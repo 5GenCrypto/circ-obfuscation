@@ -26,4 +26,5 @@ clean:
 	$(RM) $(PARSER)
 	$(RM) src/parse.tab.h
 	$(RM) src/*.o
-	$(RM) test
+	$(RM) test main
+	$(RM) circuits/*.acirc.*
