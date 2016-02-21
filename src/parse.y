@@ -1,15 +1,21 @@
 %{
 
 #include <stdio.h>
+#include <stdbool.h>
+#include "circuit.h"
+#include "bitvector.h"
+
 int yylex();
-void yyerror(int *test, const char *m){ printf("Error! %d %s\n", *test, m); }
+void yyerror(circuit *c, const char *m){ printf("Error! %s\n", m); }
+
+unsigned long from_bitstring (char *s);
 
 %}
 
-%parse-param{ int *test }
+%parse-param{ circuit *c }
 
 %union { 
-    int val;
+    unsigned long val;
     char *str;
 };
 
@@ -23,7 +29,12 @@ prog: line prog | line
 
 line: test | xinput | yinput | gate | output
 
-test: TEST NUM NUM { puts("test"); *test += 1; }
+test: TEST NUM NUM { 
+    bitvector inp;
+    bv_init(&inp, 1);
+    bv_from_string(&inp, $2);
+    circ_add_test(c, &inp, atoi($3));
+}
 
 xinput: NUM INPUT XID     { puts("xinput"); }
 yinput: NUM INPUT YID NUM { puts("yinput"); }

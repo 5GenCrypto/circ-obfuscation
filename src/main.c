@@ -1,5 +1,7 @@
 #include <stdio.h>
+#include "circuit.h"
 #include "parse.tab.h"
+
 extern int yyparse();
 extern FILE *yyin;
 
@@ -9,8 +11,8 @@ int main( int argc, char **argv ){
         yyin = fopen( argv[0], "r" );
     else
         yyin = stdin;
-    int ntests = 0;
-    yyparse(&ntests);
-    printf("%d tests\n", ntests);
+    circuit c;
+    circ_init(&c);
+    yyparse(&c);
     return 0;
 }
