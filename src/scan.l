@@ -15,7 +15,7 @@ TEST        {                              return TEST;     }
 input       {                              return INPUT;    } 
 gate        {                              return GATE;     } 
 output      {                              return OUTPUT;   } 
-ADD|SUB|MUL { yylval.str = strdup(yytext); return GATETYPE; } 
+ADD|SUB|MUL { yylval.op  = str2op(yytext); return GATETYPE; } 
 
 :.*      { }
 [ \t\n]+ { }

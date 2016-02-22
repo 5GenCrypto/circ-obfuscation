@@ -11,11 +11,13 @@ int main( int argc, char **argv ){
         yyin = fopen( argv[0], "r" );
     else
         yyin = stdin;
+
     circuit c;
     circ_init(&c);
     yyparse(&c);
 
-    printf("circuit: ninputs=%d nconsts=%d ngates=%d\n", 
-            c.ninputs, c.nconsts, c.ngates);
+    printf("circuit: ninputs=%d nconsts=%d ngates=%d\n", c.ninputs, c.nconsts, c.ngates);
+    
+    circ_clear(&c);
     return 0;
 }

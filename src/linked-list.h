@@ -14,6 +14,7 @@ typedef struct {
 } list;
 
 void list_init( list *x );
+void list_clear( list *xs );
 void list_add_node( list *existing, void *data );
 
 #endif
