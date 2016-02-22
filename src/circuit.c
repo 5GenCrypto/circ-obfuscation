@@ -2,64 +2,120 @@
 
 void ensure_space(circuit *c, circref ref);
 
-void circ_init( circuit *c ) {
+void circ_init(circuit *c) {
     c->ninputs = 0;
     c->nconsts = 0;
     c->ngates  = 0;
-    c->_size   = 2;
-    c->args    = malloc(c->_size * sizeof(*c->args));
-    c->ops     = malloc(c->_size * sizeof(*c->ops));
-    c->tests   = malloc(sizeof(list));
-    list_init(c->tests);
+    c->ntests  = 0;
+    c->outgate = -1;
+    c->_gatesize = 2;
+    c->_testsize = 2;
+    c->args     = malloc(c->_gatesize * sizeof(int **));
+    c->ops      = malloc(c->_gatesize * sizeof(operation));
+    c->testinps = malloc(c->_testsize * sizeof(int **));
+    c->testouts = malloc(c->_testsize * sizeof(int *));
 }
 
-void circ_clear( circuit *c ) {
+void circ_clear(circuit *c) {
+    for (int i = 0; i < c->ngates; i++) {
+        free(c->args[i]);
+    }
     free(c->args);
     free(c->ops);
-    list_clear(c->tests);
+    for (int i = 0; i < c->ntests; i++) {
+        free(c->testinps[i]);
+    }
+    free(c->testinps);
+    free(c->testouts);
 }
 
-void circ_add_test(circuit *c, char *inp, char *out) {
-    bitvector tmp;
-    bv_init(&tmp, strlen(inp));
-    bv_from_string(&tmp, inp);
-    testcase t = { &tmp, atoi(out) };
-    list_add_node(c->tests, &t);
+int eval_circ(circuit *c, circref ref, int *xs) {
+    operation op = c->ops[ref];
+    if (op == XINPUT) return xs[c->args[ref][0]];
+    if (op == YINPUT) return c->args[ref][1];
+    int xres = eval_circ(c, c->args[ref][0], xs);
+    int yres = eval_circ(c, c->args[ref][1], xs);
+    if (op == ADD) return xres + yres;
+    if (op == SUB) return xres - yres;
+    if (op == MUL) return xres * yres;
+    exit(EXIT_FAILURE);
+}
+
+int ensure(circuit *c) {
+    int res;
+    bool ok = true;
+    for (int i = 0; i < c->ntests; i++) {
+        printf("test %d input=", i, c->outgate);
+        for (int j = 0; j < c->ninputs; j++) {
+            printf("%d", c->testinps[i][j]);
+        }
+        res = eval_circ(c, c->outgate, c->testinps[i]);
+        printf(" expected=%d got=%d\n", c->testouts[i], res > 0);
+        ok &= res == (c->testouts[i] > 0);
+    }
+    return ok;
+}
+
+void circ_add_test(circuit *c, char *inpstr, char *out) {
+    if (c->ntests >= c->_testsize) {
+        c->testinps = realloc(c->testinps, 2 * c->_testsize * sizeof(int**));
+        c->testouts = realloc(c->testouts, 2 * c->_testsize * sizeof(int*));
+        c->_testsize *= 2;
+        return circ_add_test(c, inpstr, out);
+    }
+
+    int len = strlen(inpstr);
+    int *inp = malloc(len * sizeof(int));
+
+    for (int i = 0; i < len; i++) {
+        if (inpstr[len-1 - i] == '1') {
+            inp[i] = 1;
+        } else {
+            inp[i] = 0;
+        }
+    }
+
+    c->testinps[c->ntests] = inp;
+    c->testouts[c->ntests] = atoi(out);
+    c->ntests += 1;
 }
 
 void circ_add_xinput(circuit *c, int ref, int id) {
     ensure_space(c, ref);
     c->ninputs += 1;
-    c->ops[ref]  = XINPUT;
-    c->args[ref] = (int[]) { id, -1 };
+    c->ops[ref] = XINPUT;
+    int *args = malloc(2 * sizeof(int));
+    args[0] = id;
+    args[1] = -1;
+    c->args[ref] = args;
 }
 
 void circ_add_yinput(circuit *c, int ref, int id, int val) {
     ensure_space(c, ref);
     c->nconsts  += 1;
     c->ops[ref]  = YINPUT;
-    c->args[ref] = (int[]) { id, val };
+    int *args = malloc(2 * sizeof(int));
+    args[0] = id;
+    args[1] = val;
+    c->args[ref] = args;
 }
 
 void circ_add_gate(circuit *c, int ref, operation op, int xref, int yref, bool is_output) {
     ensure_space(c, ref);
     c->ngates   += 1;
     c->ops[ref]  = op;
-    c->args[ref] = (int[]) { xref, yref };
+    int *args = malloc(2 * sizeof(int));
+    args[0] = xref;
+    args[1] = yref;
+    c->args[ref] = args;
+    if (is_output) c->outgate = ref;
 }
 
 void ensure_space(circuit *c, circref ref) {
-    void *tmp;
-    if (ref >= c->_size) {
-        tmp = c->args;
-        c->args = malloc(2 * c->_size * sizeof(c));
-        memcpy(c->args, tmp, c->_size);
-
-        tmp = c->ops;
-        c->ops = malloc(2 * c->_size * sizeof(c));
-        memcpy(c->ops, tmp, c->_size);
-
-        c->_size *= 2;
+    if (ref >= c->_gatesize) {
+        c->args = realloc(c->args, 2 * c->_gatesize * sizeof(int**));
+        c->ops  = realloc(c->ops,  2 * c->_gatesize * sizeof(operation));
+        c->_gatesize *= 2;
         ensure_space(c, ref);
     }
 }

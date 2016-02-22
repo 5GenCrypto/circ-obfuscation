@@ -2,13 +2,10 @@
 #define __CIRCUIT_H__
 
 #include <stdbool.h>
-#include "bitvector.h"
-#include "linked-list.h"
-
-typedef struct {
-    bitvector *input;
-    bool output;
-} testcase;
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <assert.h>
 
 typedef int circref;
 
@@ -24,14 +21,21 @@ typedef struct {
     int ninputs;
     int nconsts;
     int ngates;
+    int ntests;
+    circref outgate;
     operation *ops;
     circref **args; // [nextref][2]
-    list *tests;
-    size_t _size; // alloc size of args and ops
+    int **testinps;
+    int *testouts; 
+    size_t _gatesize; // alloc size of args and ops
+    size_t _testsize;
 } circuit;
 
-void circ_init( circuit *c );
-void circ_clear( circuit *c );
+void circ_init(circuit *c);
+void circ_clear(circuit *c);
+
+int eval_circ(circuit *c, circref ref, int *xs);
+int ensure(circuit *c);
 
 // construction
 void circ_add_test(circuit *c, char *inp, char *out);

@@ -1,35 +1,36 @@
 CC 	   = gcc
-CFLAGS = -Wall -Wno-unused-result --std=gnu11 -g -O2 \
+CFLAGS = -Wall -Wno-unused-result --std=gnu11 -g \
 		 -fopenmp \
 		 -DYY_NO_UNPUT=1 -DYY_NO_INPUT=1
-IFLAGS = -Isrc
+IFLAGS = -Isrc -Isrc/parser
 LFLAGS = -lgmp -lm
 
 SRCS   = $(wildcard src/*.c)
-OBJS   = $(addsuffix .o, $(basename $(SRCS) $(PARSER)))
+OBJS   = $(addsuffix .o, $(basename $(SRCS)))
 HEADS  = $(wildcard src/*.h)
-PARSER = src/parse.tab.c src/scan.yy.c
+PARSER = src/parser/parse.tab.c src/parser/scan.yy.c
+POBJS  = $(addsuffix .o, $(basename $(PARSER)))
 
 all: main test_mmap
 
-main: $(OBJS) $(SRCS) $(HEADS) main.c
-	$(CC) $(CFLAGS) $(IFLAGS) $(LFLAGS) $(OBJS) main.c -o main
+main: $(OBJS) $(POBJS) $(SRCS) $(HEADS) src/parser/parse.tab.h main.c 
+	$(CC) $(CFLAGS) $(IFLAGS) $(LFLAGS) $(OBJS) $(POBJS) main.c -o main
 
 test_mmap: $(OBJS) $(SRCS) test_clt.c
 	$(CC) $(CFLAGS) $(IFLAGS) $(LFLAGS) $(OBJS) test_clt.c -o test_mmap
 
-src/%.o: src/%.c src/parse.tab.h
+src/%.o: src/%.c 
 	$(CC) $(CFLAGS) $(IFLAGS) -c -o $@ $<
 
-src/parse.tab.c src/parse.tab.h: src/parse.y
-	bison -o src/parse.tab.c -d src/parse.y
+src/parser/parse.tab.c src/parser/parse.tab.h: src/parser/parse.y
+	bison -o src/parser/parse.tab.c -d src/parser/parse.y
 
-src/scan.yy.c: src/scan.l
-	flex -o src/scan.yy.c src/scan.l
+src/parser/scan.yy.c: src/parser/scan.l
+	flex -o src/parser/scan.yy.c src/parser/scan.l
 
 clean:
-	$(RM) src/parse.tab.h
-	$(RM) src/*.o
+	$(RM) src/parser/parse.tab.h
+	$(RM) src/*.o src/parser/*.o
 	$(RM) test_mmap main
 	$(RM) circuits/*.acirc.*
 	$(RM) $(PARSER)

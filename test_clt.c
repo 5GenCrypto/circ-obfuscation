@@ -168,8 +168,8 @@ int main()
 
     ok &= expect("[Z] is_zero(x * y)", 0, clt_is_zero(&pp, xp));
     return !ok;
-    clt_mmap_cleanup(&mmap);
-    clt_pp_cleanup(&pp);
+    clt_state_clear(&mmap);
+    clt_pp_clear(&pp);
 }
 
 int expect(char * desc, int expected, int recieved) {

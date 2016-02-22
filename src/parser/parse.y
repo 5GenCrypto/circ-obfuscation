@@ -1,6 +1,7 @@
 %{
 
 #include <stdbool.h>
+#include <stdio.h>
 #include "circuit.h"
 
 int yylex();

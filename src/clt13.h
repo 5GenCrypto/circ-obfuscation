@@ -42,10 +42,10 @@ clt_pp_init(
 );
 
 void
-clt_mmap_cleanup(clt_state *s);
+clt_state_clear(clt_state *s);
 
 void
-clt_pp_cleanup( clt_public_parameters *pp );
+clt_pp_clear( clt_public_parameters *pp );
 
 void
 clt_encode(

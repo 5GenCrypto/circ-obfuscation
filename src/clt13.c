@@ -173,7 +173,7 @@ clt_setup(
 }
 
 void
-clt_mmap_cleanup(clt_state *s)
+clt_mmap_clear(clt_state *s)
 {
     gmp_randclear(s->rng);
     mpz_clears(s->x0, s->pzt, NULL);
@@ -198,7 +198,7 @@ clt_pp_init( clt_state *mmap, clt_public_parameters *pp )
 }
 
 void
-clt_pp_cleanup( clt_public_parameters *pp )
+clt_pp_clear( clt_public_parameters *pp )
 { 
     mpz_clears(pp->x0, pp->pzt, NULL);
     pp->nu = 0;
