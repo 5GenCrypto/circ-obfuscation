@@ -1,5 +1,9 @@
 #include "linked-list.h"
 
+void list_init( list *x ) {
+    x->head = NULL;
+}
+
 void list_add_node( list *xs, void *data ) {
     list_node *tmp = malloc(sizeof(list_node));
     tmp->data = data;

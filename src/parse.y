@@ -29,15 +29,9 @@ prog: line prog | line
 
 line: test | xinput | yinput | gate | output
 
-test: TEST NUM NUM { 
-    bitvector inp;
-    bv_init(&inp, 1);
-    bv_from_string(&inp, $2);
-    circ_add_test(c, &inp, atoi($3));
-}
-
-xinput: NUM INPUT XID     { puts("xinput"); }
-yinput: NUM INPUT YID NUM { puts("yinput"); }
+test:   TEST NUM NUM      { circ_add_test(c, $2, $3); }
+xinput: NUM INPUT XID     { circ_add_xinput(c, atoi($1), $3); }
+yinput: NUM INPUT YID NUM { circ_add_yinput(c, atoi($1), $3, atoi($4)); }
 
 gate:   NUM GATE   GATETYPE NUM NUM { puts("gate"); }
 output: NUM OUTPUT GATETYPE NUM NUM { puts("output"); }

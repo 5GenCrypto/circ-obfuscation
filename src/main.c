@@ -14,5 +14,8 @@ int main( int argc, char **argv ){
     circuit c;
     circ_init(&c);
     yyparse(&c);
+
+    printf("circuit: ninputs=%d nconsts=%d ngates=%d\n", 
+            c.ninputs, c.nconsts, c.ngates);
     return 0;
 }

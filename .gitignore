@@ -1,4 +1,5 @@
 main
-test
+test_mmap
 src/*.o
 src/*.tab.*
+src/*.yy.*
