@@ -1,25 +1,22 @@
-CC 	= gcc
-CFLAGS = -Wall --std=gnu11 -g -O2 -fopenmp \
-		 -DYY_NO_UNPUT=1 -DYY_NO_INPUT=1 \
-		 -Wno-unused-result	
+CC 	   = gcc
+CFLAGS = -Wall -Wno-unused-result --std=gnu11 -g -O2 \
+		 -fopenmp \
+		 -DYY_NO_UNPUT=1 -DYY_NO_INPUT=1
 IFLAGS = -Isrc
 LFLAGS = -lgmp -lm
 
-OBJS = src/clt13.o src/utils.o src/scan.yy.o src/parse.tab.o \
-	   src/bitvector.o src/linked-list.o \
-	   src/circuit.o
-SRCS = src/clt13.c src/utils.c src/circuit.c src/bitvector.c
-HEADS = src/parse.tab.h src/bitvector.h src/circuit.h \
-		src/linked-list.h
+SRCS   = $(wildcard src/*.c)
+OBJS   = $(addsuffix .o, $(basename $(SRCS) $(PARSER)))
+HEADS  = $(wildcard src/*.h)
 PARSER = src/parse.tab.c src/scan.yy.c
 
 all: main test_mmap
 
-main: $(OBJS) $(SRCS) $(HEADS) src/main.c
-	$(CC) $(CFLAGS) $(IFLAGS) $(LFLAGS) $(OBJS) src/main.c -o main
+main: $(OBJS) $(SRCS) $(HEADS) main.c
+	$(CC) $(CFLAGS) $(IFLAGS) $(LFLAGS) $(OBJS) main.c -o main
 
-test_mmap: $(OBJS) $(SRCS) src/test_clt.c
-	$(CC) $(CFLAGS) $(IFLAGS) $(LFLAGS) $(OBJS) src/test_clt.c -o test_mmap
+test_mmap: $(OBJS) $(SRCS) test_clt.c
+	$(CC) $(CFLAGS) $(IFLAGS) $(LFLAGS) $(OBJS) test_clt.c -o test_mmap
 
 src/%.o: src/%.c src/parse.tab.h
 	$(CC) $(CFLAGS) $(IFLAGS) -c -o $@ $<
