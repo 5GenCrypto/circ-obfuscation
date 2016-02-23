@@ -1,5 +1,6 @@
 main
 test_mmap
 src/*.o
-src/*.tab.*
-src/*.yy.*
+src/parser/*.o
+src/parser/*.tab.*
+src/parser/*.yy.*

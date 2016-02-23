@@ -7,7 +7,7 @@ void circ_init(circuit *c) {
     c->nconsts = 0;
     c->ngates  = 0;
     c->ntests  = 0;
-    c->outgate = -1;
+    c->outref = -1;
     c->_gatesize = 2;
     c->_testsize = 2;
     c->args     = malloc(c->_gatesize * sizeof(int **));
@@ -41,17 +41,60 @@ int eval_circ(circuit *c, circref ref, int *xs) {
     exit(EXIT_FAILURE);
 }
 
+int xdeg(circuit *c, int id) {
+    return xdegree(c, c->outref, id);
+}
+
+int ydeg(circuit *c) {
+    return ydegree(c, c->outref);
+}
+
+int xdegree(circuit *c, circref ref, int xid) {
+    operation op = c->ops[ref];
+    if (op == XINPUT)
+        if (c->args[ref][0] == xid)
+            return 1;
+        else 
+            return 0;
+    else if (op == YINPUT) 
+        return 0;
+    int xres = xdegree(c, c->args[ref][0], xid);
+    int yres = xdegree(c, c->args[ref][1], xid);
+    if (op == ADD || op == SUB)
+        return max(xres, yres);
+    else if (op == MUL) 
+        return xres + yres;
+    exit(EXIT_FAILURE);
+}
+
+int ydegree(circuit *c, circref ref) {
+    operation op = c->ops[ref];
+    if (op == XINPUT)
+        return 0;
+    else if (op == YINPUT) 
+        return 1;
+    int xres = ydegree(c, c->args[ref][0]);
+    int yres = ydegree(c, c->args[ref][1]);
+    if (op == ADD || op == SUB)
+        return max(xres, yres);
+    else if (op == MUL) 
+        return xres + yres;
+    exit(EXIT_FAILURE);
+}
+
 int ensure(circuit *c) {
     int res;
     bool ok = true;
     for (int i = 0; i < c->ntests; i++) {
-        printf("test %d input=", i, c->outgate);
-        for (int j = 0; j < c->ninputs; j++) {
-            printf("%d", c->testinps[i][j]);
+        res = eval_circ(c, c->outref, c->testinps[i]);
+        if (g_verbose) {
+            printf("test %d input=", i);
+            for (int j = 0; j < c->ninputs; j++) {
+                printf("%d", c->testinps[i][j]);
+            }
+            printf(" expected=%d got=%d\n", c->testouts[i], res > 0);
         }
-        res = eval_circ(c, c->outgate, c->testinps[i]);
-        printf(" expected=%d got=%d\n", c->testouts[i], res > 0);
-        ok &= res == (c->testouts[i] > 0);
+        ok = ((res > 0) == c->testouts[i]) && ok;
     }
     return ok;
 }
@@ -108,7 +151,7 @@ void circ_add_gate(circuit *c, int ref, operation op, int xref, int yref, bool i
     args[0] = xref;
     args[1] = yref;
     c->args[ref] = args;
-    if (is_output) c->outgate = ref;
+    if (is_output) c->outref = ref;
 }
 
 void ensure_space(circuit *c, circref ref) {

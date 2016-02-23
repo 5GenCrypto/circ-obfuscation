@@ -190,3 +190,26 @@ mult_vect_by_vect(mpz_t out, const mpz_t *v, const mpz_t *u, mpz_t q, int size)
         mpz_clears(tmp, NULL);
     }
 }
+
+int max(int x, int y) {
+    if (x >= y) 
+        return x;
+    else 
+        return y;
+}
+
+char* array2string(int *xs, size_t len) {
+    char* s = malloc(len * 100 * sizeof(char));
+    char tmp[100];
+    for (int i = 0; i < len; i++) {
+        if (i == 0) {
+            sprintf(tmp, "[%d,", xs[i]);
+        } else if (i == len - 1) {
+            sprintf(tmp, "%d]", xs[i]);
+        } else {
+            sprintf(tmp, "%d, ", xs[i]);
+        }
+        strcat(s, tmp);    
+    }
+    return s;
+}

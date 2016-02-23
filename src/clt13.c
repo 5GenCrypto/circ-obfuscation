@@ -1,5 +1,5 @@
 #include "clt13.h"
-#include "utils.h"
+#include "util.h"
 
 #include <math.h>
 #include <stdlib.h>

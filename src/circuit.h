@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
+#include "util.h"
 
 typedef int circref;
 
@@ -22,7 +23,7 @@ typedef struct {
     int nconsts;
     int ngates;
     int ntests;
-    circref outgate;
+    circref outref;
     operation *ops;
     circref **args; // [nextref][2]
     int **testinps;
@@ -36,6 +37,11 @@ void circ_clear(circuit *c);
 
 int eval_circ(circuit *c, circref ref, int *xs);
 int ensure(circuit *c);
+
+int xdeg(circuit *c, int xid);
+int ydeg(circuit *c);
+int xdegree(circuit *c, circref ref, int xid);
+int ydegree(circuit *c, circref ref);
 
 // construction
 void circ_add_test(circuit *c, char *inp, char *out);
