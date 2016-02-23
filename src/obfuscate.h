@@ -1,29 +1,18 @@
 #ifndef __OBFUSCATE__
 #define __OBFUSCATE__
 
-// encoding_sym represents a kind of encoding
-typedef enum { X_, U_, Y_, V_, Z_, W_, C_, S_ } encoding_var;
+#include <stdlib.h>
+#include "circuit.h"
 
-typedef struct {
-    encoding_var var;
-    int i1;
-    int i2;
-    int b1;
-    int b2;
-} encoding_sym;
+int num_indices(circuit* c);
 
-// index refers to the underlying mmap index, with F being individual indices
-// in the spanning sets S_i
-typedef enum { Y, X, Z, W, F } index_var;
+void get_pows(int* pows, circuit* c);
+void get_top_level_index(int* ix, circuit* c);
 
-typedef struct {
-    index_var var;
-    int i;
-    int b;
-    int j;
-} index;
-
-
-
+int index_y(circuit* c);
+int index_x(circuit* c, int i, int b);
+int index_z(circuit* c, int i);
+int index_w(circuit* c, int i);
+int index_f(circuit* c, int i, int j);
 
 #endif

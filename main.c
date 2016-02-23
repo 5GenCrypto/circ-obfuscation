@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "circuit.h"
+#include "obfuscate.h"
 #include "parse.tab.h"
 #include "clt13.h"
 
@@ -21,18 +22,24 @@ int main( int argc, char **argv ){
     circ_init(&c);
     yyparse(&c);
 
-    printf("circuit: ninputs=%d nconsts=%d ngates=%d ntests=%d\n", 
+    printf("circuit: ninputs=%d nconsts=%d ngates=%d ntests=%d\n",
             c.ninputs, c.nconsts, c.ngates, c.ntests);
 
-    int* xdegs = malloc(c.ninputs * sizeof(int));
-    for (int i = 0; i < c.ninputs; i++)
-        xdegs[i] = xdeg(&c, i);
+    int* pows = malloc((c.ninputs + 1) * sizeof(int));
+    get_pows(pows, &c);
+    printf("circuit: ");
+    print_array(pows, c.ninputs + 1);
+    puts("");
 
-    char* xdegstr = array2string(xdegs, c.ninputs);
-    printf("circuit: xdegs=%s ydeg=%d\n", xdegstr, ydeg(&c));
+    int nzs = num_indices(&c);
+    int* tl = malloc(nzs * sizeof(int));
+    get_top_level_index(tl, &c);
+    printf("top-level index: ");
+    print_array(tl, nzs);
+    puts("");
 
-    free(xdegstr);
-    free(xdegs);
+    free(pows);
+    free(tl);
 
     // TODO: top level index
 
@@ -40,7 +47,7 @@ int main( int argc, char **argv ){
     /*clt_state mmap;*/
     /*clt_setup(&mmap, kappa, lambda, nzs, pows, "", true);*/
     /*clt_state_clear(&mmap);*/
-    
+
     circ_clear(&c);
     return 0;
 }

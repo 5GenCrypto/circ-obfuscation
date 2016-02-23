@@ -38,8 +38,6 @@ void circ_clear(circuit *c);
 int eval_circ(circuit *c, circref ref, int *xs);
 int ensure(circuit *c);
 
-int xdeg(circuit *c, int xid);
-int ydeg(circuit *c);
 int xdegree(circuit *c, circref ref, int xid);
 int ydegree(circuit *c, circref ref);
 

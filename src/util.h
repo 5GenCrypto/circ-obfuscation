@@ -19,6 +19,7 @@ void mult_vect_by_mat(mpz_t *v, const mpz_t *m, mpz_t q, int size, mpz_t *tmparr
 void mult_vect_by_vect(mpz_t out, const mpz_t *m, const mpz_t *v, mpz_t q, int size);
 
 int max(int, int);
-char* array2string(int*, size_t);
+
+void print_array(int*, size_t);
 
 #endif

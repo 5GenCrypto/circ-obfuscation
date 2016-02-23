@@ -41,14 +41,6 @@ int eval_circ(circuit *c, circref ref, int *xs) {
     exit(EXIT_FAILURE);
 }
 
-int xdeg(circuit *c, int id) {
-    return xdegree(c, c->outref, id);
-}
-
-int ydeg(circuit *c) {
-    return ydegree(c, c->outref);
-}
-
 int xdegree(circuit *c, circref ref, int xid) {
     operation op = c->ops[ref];
     if (op == XINPUT)
