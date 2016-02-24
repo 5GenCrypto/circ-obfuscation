@@ -1,5 +1,6 @@
 CC 	   = gcc
-CFLAGS = -Wall -Wno-unused-result --std=gnu11 -g \
+CFLAGS = -Wall -Wno-unused-result -Wno-switch \
+		 --std=gnu11 -g \
 		 -fopenmp \
 		 -DYY_NO_UNPUT=1 -DYY_NO_INPUT=1
 IFLAGS = -Isrc -Isrc/parser

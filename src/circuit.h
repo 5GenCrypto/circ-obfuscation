@@ -27,7 +27,7 @@ typedef struct {
     operation *ops;
     circref **args; // [nextref][2]
     int **testinps;
-    int *testouts; 
+    int *testouts;
     size_t _gatesize; // alloc size of args and ops
     size_t _testsize;
 } circuit;
@@ -37,6 +37,8 @@ void circ_clear(circuit *c);
 
 int eval_circ(circuit *c, circref ref, int *xs);
 int ensure(circuit *c);
+
+void topological_order(int* refs, circuit* c);
 
 int xdegree(circuit *c, circref ref, int xid);
 int ydegree(circuit *c, circref ref);

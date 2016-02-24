@@ -31,14 +31,36 @@ void circ_clear(circuit *c) {
 
 int eval_circ(circuit *c, circref ref, int *xs) {
     operation op = c->ops[ref];
-    if (op == XINPUT) return xs[c->args[ref][0]];
-    if (op == YINPUT) return c->args[ref][1];
+    switch (op) {
+        case XINPUT: return xs[c->args[ref][0]];
+        case YINPUT: return c->args[ref][1];
+    }
     int xres = eval_circ(c, c->args[ref][0], xs);
     int yres = eval_circ(c, c->args[ref][1], xs);
-    if (op == ADD) return xres + yres;
-    if (op == SUB) return xres - yres;
-    if (op == MUL) return xres * yres;
-    exit(EXIT_FAILURE);
+    switch (op) {
+        case ADD: return xres + yres;
+        case SUB: return xres - yres;
+        case MUL: return xres * yres;
+    }
+    exit(EXIT_FAILURE); // should never be reached
+}
+
+void topo_helper(int ref, int* topo, int* seen, int* i, circuit* c) {
+    if (seen[ref]) return;
+    operation op = c->ops[ref];
+    if (op == ADD || op == SUB || op == MUL) {
+        topo_helper(c->args[ref][0], topo, seen, i, c);
+        topo_helper(c->args[ref][1], topo, seen, i, c);
+    }
+    topo[(*i)++] = ref;
+    seen[ref]    = 1;
+}
+
+void topological_order(int* topo, circuit* c) {
+    int* seen = calloc(c->_gatesize, sizeof(int));
+    int i = 0;
+    topo_helper(c->outref, topo, seen, &i, c);
+    free(seen);
 }
 
 int xdegree(circuit *c, circref ref, int xid) {
@@ -46,15 +68,15 @@ int xdegree(circuit *c, circref ref, int xid) {
     if (op == XINPUT)
         if (c->args[ref][0] == xid)
             return 1;
-        else 
+        else
             return 0;
-    else if (op == YINPUT) 
+    else if (op == YINPUT)
         return 0;
     int xres = xdegree(c, c->args[ref][0], xid);
     int yres = xdegree(c, c->args[ref][1], xid);
     if (op == ADD || op == SUB)
         return max(xres, yres);
-    else if (op == MUL) 
+    else if (op == MUL)
         return xres + yres;
     exit(EXIT_FAILURE);
 }
@@ -63,13 +85,13 @@ int ydegree(circuit *c, circref ref) {
     operation op = c->ops[ref];
     if (op == XINPUT)
         return 0;
-    else if (op == YINPUT) 
+    else if (op == YINPUT)
         return 1;
     int xres = ydegree(c, c->args[ref][0]);
     int yres = ydegree(c, c->args[ref][1]);
     if (op == ADD || op == SUB)
         return max(xres, yres);
-    else if (op == MUL) 
+    else if (op == MUL)
         return xres + yres;
     exit(EXIT_FAILURE);
 }

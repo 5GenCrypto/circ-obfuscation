@@ -30,6 +30,7 @@ int main( int argc, char **argv ){
     printf("circuit: ");
     print_array(pows, c.ninputs + 1);
     puts("");
+    free(pows);
 
     int nzs = num_indices(&c);
     int* tl = malloc(nzs * sizeof(int));
@@ -37,9 +38,14 @@ int main( int argc, char **argv ){
     printf("top-level index: ");
     print_array(tl, nzs);
     puts("");
-
-    free(pows);
     free(tl);
+
+    int* refs = calloc(c.ninputs + c.nconsts + c.ngates, sizeof(int));
+    topological_order(refs, &c);
+    printf("topological order: ");
+    print_array(refs, c.ngates + c.nconsts + c.ninputs);
+    puts("");
+    free(refs);
 
     // TODO: top level index
 
