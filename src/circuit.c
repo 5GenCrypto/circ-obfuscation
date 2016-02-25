@@ -91,13 +91,11 @@ int dependencies(int* deps, circuit* c, int ref) {
 // returns number of levels
 int topological_levels(int** levels, int* level_sizes, circuit* c) {
     int* topo = calloc(c->nrefs, sizeof(int));
-    int* deps = malloc(c->nrefs * sizeof(int));
+    int* deps = malloc(2 * c->nrefs * sizeof(int));
     for (int i = 0; i < c->nrefs; i++)
         level_sizes[i] = 0;
     int max_level = 0;
-
     topological_order(topo, c);
-
     for (int i = 0; i < c->nrefs; i++) {
         int ref = topo[i];
         int ndeps = dependencies(deps, c, ref);
@@ -111,7 +109,6 @@ int topological_levels(int** levels, int* level_sizes, circuit* c) {
             break;
         }
     }
-
     free(topo);
     free(deps);
     return max_level + 1;

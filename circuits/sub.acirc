@@ -1,9 +1,6 @@
-# TEST 00 0
-# TEST 01 1
-# TEST 10 1
-# TEST 11 0
-0 input x0
-1 input x1
-2 input y0 0
-3 gate SUB 0 1
-4 output ADD 3 2
+# TEST 00 1
+# TEST 01 0
+0 input y0 1
+1 input x0
+2 input x1
+3 output SUB 0 1

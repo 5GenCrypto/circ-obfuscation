@@ -22,8 +22,8 @@ int main( int argc, char **argv ){
     circ_init(&c);
     yyparse(&c);
 
-    printf("circuit: ninputs=%d nconsts=%d ngates=%d ntests=%d\n",
-            c.ninputs, c.nconsts, c.ngates, c.ntests);
+    printf("circuit: ninputs=%d nconsts=%d ngates=%d ntests=%d nrefs=%d\n",
+                     c.ninputs, c.nconsts, c.ngates, c.ntests, c.nrefs);
 
     int* pows = malloc((c.ninputs + 1) * sizeof(int));
     get_pows(pows, &c);
@@ -40,18 +40,10 @@ int main( int argc, char **argv ){
     puts("");
     free(tl);
 
-    int* refs = calloc(c.nrefs, sizeof(int));
-    topological_order(refs, &c);
-    printf("topological order: ");
-    print_array(refs, c.nrefs);
-    puts("");
-    free(refs);
-
     int** levels = malloc(c.nrefs * sizeof(int*));
     int*  level_sizes = malloc(c.nrefs * sizeof(int));
     for (int i = 0; i < c.nrefs; i++)
         levels[i] = malloc(c.nrefs * sizeof(int));
-
     printf("topological levels:\n");
     int nlevels = topological_levels(levels, level_sizes, &c);
     for (int i = 0; i < nlevels; i++) {
@@ -59,13 +51,10 @@ int main( int argc, char **argv ){
         print_array(levels[i], level_sizes[i]);
         puts("");
     }
-
     for (int i = 0; i < c.nrefs; i++)
         free(levels[i]);
     free(levels);
     free(level_sizes);
-
-    // TODO: top level index
 
     printf("plaintext tests %d\n", ensure(&c));
     /*clt_state mmap;*/

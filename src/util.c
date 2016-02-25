@@ -111,6 +111,10 @@ int max(int x, int y) {
 }
 
 void print_array(int *xs, size_t len) {
+    if (len == 1){
+        printf("[%d]", xs[0]);
+        return;
+    }
     for (int i = 0; i < len; i++) {
         if (i == 0) {
             printf("[%d,", xs[i]);
