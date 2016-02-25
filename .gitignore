@@ -4,3 +4,4 @@ src/*.o
 src/parser/*.o
 src/parser/*.tab.*
 src/parser/*.yy.*
+circuits/*.acirc.*

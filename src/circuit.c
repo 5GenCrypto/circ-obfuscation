@@ -46,7 +46,17 @@ int eval_circ(circuit *c, circref ref, int *xs) {
     exit(EXIT_FAILURE); // should never be reached
 }
 
-void topo_helper(int ref, int* topo, int* seen, int* i, circuit* c) {
+int depth(circuit *c, circref ref) {
+    operation op = c->ops[ref];
+    if (op == XINPUT || op == YINPUT) {
+        return 0;
+    }
+    int xres = depth(c, c->args[ref][0]);
+    int yres = depth(c, c->args[ref][1]);
+    return max(xres, yres);
+}
+
+void topo_helper(int ref, int *topo, int *seen, int *i, circuit *c) {
     if (seen[ref]) return;
     operation op = c->ops[ref];
     if (op == ADD || op == SUB || op == MUL) {
@@ -57,8 +67,8 @@ void topo_helper(int ref, int* topo, int* seen, int* i, circuit* c) {
     seen[ref]    = 1;
 }
 
-void topological_order(int* topo, circuit* c) {
-    int* seen = calloc(c->_refalloc, sizeof(int));
+void topological_order(int *topo, circuit *c) {
+    int *seen = calloc(c->_refalloc, sizeof(int));
     int i = 0;
     topo_helper(c->outref, topo, seen, &i, c);
     free(seen);
@@ -66,7 +76,7 @@ void topological_order(int* topo, circuit* c) {
 
 // dependencies fills an array with the refs to the subcircuit rooted at ref.
 // deps is the target array, i is an index into it.
-void dependencies_helper(int* deps, int* seen, int* i, circuit* c, int ref) {
+void dependencies_helper(int *deps, int *seen, int *i, circuit *c, int ref) {
     if (seen[ref]) return;
     operation op = c->ops[ref];
     if (op == XINPUT || op == YINPUT) return;
@@ -80,8 +90,8 @@ void dependencies_helper(int* deps, int* seen, int* i, circuit* c, int ref) {
     seen[ref] = 1;
 }
 
-int dependencies(int* deps, circuit* c, int ref) {
-    int* seen = calloc(c->nrefs, sizeof(int));
+int dependencies(int *deps, circuit *c, int ref) {
+    int *seen = calloc(c->nrefs, sizeof(int));
     int ndeps = 0;
     dependencies_helper(deps, seen, &ndeps, c, ref);
     free(seen);
@@ -89,9 +99,9 @@ int dependencies(int* deps, circuit* c, int ref) {
 }
 
 // returns number of levels
-int topological_levels(int** levels, int* level_sizes, circuit* c) {
-    int* topo = calloc(c->nrefs, sizeof(int));
-    int* deps = malloc(2 * c->nrefs * sizeof(int));
+int topological_levels(int **levels, int *level_sizes, circuit *c) {
+    int *topo = calloc(c->nrefs, sizeof(int));
+    int *deps = malloc(2 * c->nrefs * sizeof(int));
     for (int i = 0; i < c->nrefs; i++)
         level_sizes[i] = 0;
     int max_level = 0;

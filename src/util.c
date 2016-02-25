@@ -126,7 +126,7 @@ void print_array(int *xs, size_t len) {
     }
 }
 
-bool in_array(int x, int* ys, size_t len) {
+bool in_array(int x, int *ys, size_t len) {
     for (int i = 0; i < len; i++) {
         if (x == ys[i])
             return true;
@@ -134,7 +134,7 @@ bool in_array(int x, int* ys, size_t len) {
     return false;
 }
 
-bool any_in_array(int* xs, int xlen, int* ys, size_t ylen) {
+bool any_in_array(int *xs, int xlen, int *ys, size_t ylen) {
     for (int i = 0; i < xlen; i++) {
         if (in_array(xs[i], ys, ylen))
             return true;

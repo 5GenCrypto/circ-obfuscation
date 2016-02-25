@@ -39,9 +39,10 @@ void circ_clear(circuit *c);
 int eval_circ(circuit *c, circref ref, int *xs);
 int ensure(circuit *c);
 
-void topological_order(int* refs, circuit* c);
-int topological_levels(int** levels, int* level_sizes, circuit* c);
+void topological_order(int *refs, circuit *c);
+int topological_levels(int **levels, int *level_sizes, circuit *c);
 
+int depth(circuit *c, circref ref);
 int xdegree(circuit *c, circref ref, int xid);
 int ydegree(circuit *c, circref ref);
 

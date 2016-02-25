@@ -33,6 +33,6 @@ clean:
 	$(RM) src/parser/parse.tab.h
 	$(RM) src/*.o src/parser/*.o
 	$(RM) test_mmap main
-	$(RM) circuits/*.acirc.*
+	$(RM) -r circuits/*.acirc.*
 	$(RM) $(PARSER)
 	$(RM) $(OBJS)

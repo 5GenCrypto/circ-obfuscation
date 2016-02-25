@@ -6,19 +6,17 @@
 #include <string.h>
 #include <stdio.h>
 
-static int
-write_setup_params(const clt_state *s, const char *dir, long nu);
+static int write_setup_params(const clt_state *s, const char *dir, long nu);
 
-int
-clt_setup(
-    clt_state *s, 
-    ulong kappa, 
+int clt_setup(
+    clt_state *s,
+    ulong kappa,
     ulong lambda,
     ulong nzs,
-    const int *pows, 
-    const char *dir, 
+    const int *pows,
+    const char *dir,
     int verbose
-) {
+){
     ulong alpha, beta, eta, rho_f;
     mpz_t *ps, *zs;
     double start, end;
@@ -172,9 +170,7 @@ clt_setup(
     return 0;
 }
 
-void
-clt_mmap_clear(clt_state *s)
-{
+void clt_state_clear(clt_state *s) {
     gmp_randclear(s->rng);
     mpz_clears(s->x0, s->pzt, NULL);
     for (ulong i = 0; i < s->n; ++i) {
@@ -188,25 +184,19 @@ clt_mmap_clear(clt_state *s)
     free(s->zinvs);
 }
 
-void
-clt_pp_init( clt_state *mmap, clt_public_parameters *pp ) 
-{
+void clt_pp_init( clt_state *mmap, clt_public_parameters *pp ) {
     mpz_inits(pp->x0, pp->pzt, NULL);
     mpz_set(pp->x0, mmap->x0);
     mpz_set(pp->pzt, mmap->pzt);
     pp->nu = mmap->nu;
 }
 
-void
-clt_pp_clear( clt_public_parameters *pp )
-{ 
+void clt_pp_clear( clt_public_parameters *pp ) {
     mpz_clears(pp->x0, pp->pzt, NULL);
     pp->nu = 0;
 }
 
-static int
-write_setup_params(const clt_state *s, const char *dir, long nu)
-{
+static int write_setup_params(const clt_state *s, const char *dir, long nu) {
     char *fname;
     int len;
     mpz_t tmp;
@@ -243,14 +233,7 @@ write_setup_params(const clt_state *s, const char *dir, long nu)
     return 0;
 }
 
-void
-clt_encode(
-    clt_state *s, 
-    mpz_t out, 
-    size_t nins,
-    const mpz_t *ins, 
-    const int *pows
-) {
+void clt_encode( clt_state *s, mpz_t out, size_t nins, const mpz_t *ins, const int *pows) {
     mpz_t r, tmp;
     mpz_inits(r, tmp, NULL);
     mpz_set_ui(out, 0);
@@ -272,11 +255,7 @@ clt_encode(
     mpz_clears(r, tmp, NULL);
 }
 
-int
-clt_is_zero(
-    clt_public_parameters *pp,
-    const mpz_t c
-) {
+int clt_is_zero( clt_public_parameters *pp, const mpz_t c) {
     int ret;
 
     mpz_t tmp, x0_;

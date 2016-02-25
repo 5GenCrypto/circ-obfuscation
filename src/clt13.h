@@ -24,40 +24,34 @@ typedef struct {
     ulong nu;
 } clt_public_parameters;
 
-int
-clt_setup(
-    clt_state *s, 
-    ulong kappa, 
+int clt_setup(
+    clt_state *s,
+    ulong kappa,
     ulong lambda,
     ulong nzs,
-    const int *pows, 
-    const char *dir, 
+    const int *pows,
+    const char *dir,
     int verbose
 );
 
-void
-clt_pp_init(
+void clt_pp_init(
     clt_state *mmap,
     clt_public_parameters *pp
 );
 
-void
-clt_state_clear(clt_state *s);
+void clt_state_clear(clt_state *s);
 
-void
-clt_pp_clear( clt_public_parameters *pp );
+void clt_pp_clear(clt_public_parameters *pp);
 
-void
-clt_encode(
-    clt_state *s, 
-    mpz_t out, 
+void clt_encode(
+    clt_state *s,
+    mpz_t out,
     size_t nins,
-    const mpz_t *ins, 
+    const mpz_t *ins,
     const int *pows
 );
 
-int
-clt_is_zero(
+int clt_is_zero(
     clt_public_parameters *pp,
     const mpz_t c
 );
