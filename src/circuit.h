@@ -22,14 +22,15 @@ typedef struct {
     int ninputs;
     int nconsts;
     int ngates;
+    int nrefs;
     int ntests;
     circref outref;
     operation *ops;
     circref **args; // [nextref][2]
     int **testinps;
     int *testouts;
-    size_t _gatesize; // alloc size of args and ops
-    size_t _testsize;
+    size_t _refalloc; // alloc size of args and ops
+    size_t _testalloc;
 } circuit;
 
 void circ_init(circuit *c);
@@ -39,6 +40,7 @@ int eval_circ(circuit *c, circref ref, int *xs);
 int ensure(circuit *c);
 
 void topological_order(int* refs, circuit* c);
+int topological_levels(int** levels, int* level_sizes, circuit* c);
 
 int xdegree(circuit *c, circref ref, int xid);
 int ydegree(circuit *c, circref ref);

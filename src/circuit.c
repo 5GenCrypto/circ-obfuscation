@@ -7,13 +7,14 @@ void circ_init(circuit *c) {
     c->nconsts = 0;
     c->ngates  = 0;
     c->ntests  = 0;
-    c->outref = -1;
-    c->_gatesize = 2;
-    c->_testsize = 2;
-    c->args     = malloc(c->_gatesize * sizeof(int **));
-    c->ops      = malloc(c->_gatesize * sizeof(operation));
-    c->testinps = malloc(c->_testsize * sizeof(int **));
-    c->testouts = malloc(c->_testsize * sizeof(int *));
+    c->outref  = -1;
+    c->nrefs   = 0;
+    c->_refalloc  = 2;
+    c->_testalloc = 2;
+    c->args     = malloc(c->_refalloc * sizeof(int **));
+    c->ops      = malloc(c->_refalloc * sizeof(operation));
+    c->testinps = malloc(c->_testalloc * sizeof(int **));
+    c->testouts = malloc(c->_testalloc * sizeof(int *));
 }
 
 void circ_clear(circuit *c) {
@@ -57,10 +58,63 @@ void topo_helper(int ref, int* topo, int* seen, int* i, circuit* c) {
 }
 
 void topological_order(int* topo, circuit* c) {
-    int* seen = calloc(c->_gatesize, sizeof(int));
+    int* seen = calloc(c->_refalloc, sizeof(int));
     int i = 0;
     topo_helper(c->outref, topo, seen, &i, c);
     free(seen);
+}
+
+// dependencies fills an array with the refs to the subcircuit rooted at ref.
+// deps is the target array, i is an index into it.
+void dependencies_helper(int* deps, int* seen, int* i, circuit* c, int ref) {
+    if (seen[ref]) return;
+    operation op = c->ops[ref];
+    if (op == XINPUT || op == YINPUT) return;
+    // otherwise it's an ADD, SUB, or MUL gate
+    int xarg = c->args[ref][0];
+    int yarg = c->args[ref][1];
+    deps[(*i)++] = xarg;
+    deps[(*i)++] = yarg;
+    dependencies_helper(deps, seen, i, c, xarg);
+    dependencies_helper(deps, seen, i, c, yarg);
+    seen[ref] = 1;
+}
+
+int dependencies(int* deps, circuit* c, int ref) {
+    int* seen = calloc(c->nrefs, sizeof(int));
+    int ndeps = 0;
+    dependencies_helper(deps, seen, &ndeps, c, ref);
+    free(seen);
+    return ndeps;
+}
+
+// returns number of levels
+int topological_levels(int** levels, int* level_sizes, circuit* c) {
+    int* topo = calloc(c->nrefs, sizeof(int));
+    int* deps = malloc(c->nrefs * sizeof(int));
+    for (int i = 0; i < c->nrefs; i++)
+        level_sizes[i] = 0;
+    int max_level = 0;
+
+    topological_order(topo, c);
+
+    for (int i = 0; i < c->nrefs; i++) {
+        int ref = topo[i];
+        int ndeps = dependencies(deps, c, ref);
+        // find the right level for this ref
+        for (int j = 0; j < c->nrefs; j++) {
+            bool has_dep = any_in_array(deps, ndeps, levels[j], level_sizes[j]);
+            if (has_dep) continue; // try the next level
+            // otherwise the ref belongs on this level
+            levels[j][level_sizes[j]++] = ref; // push this ref
+            if (j > max_level) max_level = j;
+            break;
+        }
+    }
+
+    free(topo);
+    free(deps);
+    return max_level + 1;
 }
 
 int xdegree(circuit *c, circref ref, int xid) {
@@ -114,10 +168,10 @@ int ensure(circuit *c) {
 }
 
 void circ_add_test(circuit *c, char *inpstr, char *out) {
-    if (c->ntests >= c->_testsize) {
-        c->testinps = realloc(c->testinps, 2 * c->_testsize * sizeof(int**));
-        c->testouts = realloc(c->testouts, 2 * c->_testsize * sizeof(int*));
-        c->_testsize *= 2;
+    if (c->ntests >= c->_testalloc) {
+        c->testinps = realloc(c->testinps, 2 * c->_testalloc * sizeof(int**));
+        c->testouts = realloc(c->testouts, 2 * c->_testalloc * sizeof(int*));
+        c->_testalloc *= 2;
         return circ_add_test(c, inpstr, out);
     }
 
@@ -140,6 +194,7 @@ void circ_add_test(circuit *c, char *inpstr, char *out) {
 void circ_add_xinput(circuit *c, int ref, int id) {
     ensure_space(c, ref);
     c->ninputs += 1;
+    c->nrefs   += 1;
     c->ops[ref] = XINPUT;
     int *args = malloc(2 * sizeof(int));
     args[0] = id;
@@ -150,6 +205,7 @@ void circ_add_xinput(circuit *c, int ref, int id) {
 void circ_add_yinput(circuit *c, int ref, int id, int val) {
     ensure_space(c, ref);
     c->nconsts  += 1;
+    c->nrefs    += 1;
     c->ops[ref]  = YINPUT;
     int *args = malloc(2 * sizeof(int));
     args[0] = id;
@@ -160,6 +216,7 @@ void circ_add_yinput(circuit *c, int ref, int id, int val) {
 void circ_add_gate(circuit *c, int ref, operation op, int xref, int yref, bool is_output) {
     ensure_space(c, ref);
     c->ngates   += 1;
+    c->nrefs    += 1;
     c->ops[ref]  = op;
     int *args = malloc(2 * sizeof(int));
     args[0] = xref;
@@ -169,10 +226,10 @@ void circ_add_gate(circuit *c, int ref, operation op, int xref, int yref, bool i
 }
 
 void ensure_space(circuit *c, circref ref) {
-    if (ref >= c->_gatesize) {
-        c->args = realloc(c->args, 2 * c->_gatesize * sizeof(int**));
-        c->ops  = realloc(c->ops,  2 * c->_gatesize * sizeof(operation));
-        c->_gatesize *= 2;
+    if (ref >= c->_refalloc) {
+        c->args = realloc(c->args, 2 * c->_refalloc * sizeof(int**));
+        c->ops  = realloc(c->ops,  2 * c->_refalloc * sizeof(operation));
+        c->_refalloc *= 2;
         ensure_space(c, ref);
     }
 }

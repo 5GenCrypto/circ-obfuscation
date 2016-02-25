@@ -1,4 +1,4 @@
-#include "utils.h"
+#include "util.h"
 
 #include <fcntl.h>
 #include <gmp.h>
@@ -120,4 +120,20 @@ void print_array(int *xs, size_t len) {
             printf("%d,", xs[i]);
         }
     }
+}
+
+bool in_array(int x, int* ys, size_t len) {
+    for (int i = 0; i < len; i++) {
+        if (x == ys[i])
+            return true;
+    }
+    return false;
+}
+
+bool any_in_array(int* xs, int xlen, int* ys, size_t ylen) {
+    for (int i = 0; i < xlen; i++) {
+        if (in_array(xs[i], ys, ylen))
+            return true;
+    }
+    return false;
 }
