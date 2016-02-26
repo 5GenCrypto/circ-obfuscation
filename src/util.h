@@ -25,4 +25,6 @@ void print_array(int*, size_t);
 bool in_array(int x, int *ys, size_t len);
 bool any_in_array(int *xs, int xlen, int *ys, size_t ylen);
 
+void mpz_random_inv(mpz_t rop, gmp_randstate_t rng, mpz_t modulus);
+
 #endif

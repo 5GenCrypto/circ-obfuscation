@@ -37,6 +37,7 @@ void circ_init(circuit *c);
 void circ_clear(circuit *c);
 
 int eval_circ(circuit *c, circref ref, int *xs);
+mpz_t* eval_circ_mod(circuit *c, circref ref, mpz_t *xs, mpz_t *ys, mpz_t modulus);
 int ensure(circuit *c);
 
 void topological_order(int *refs, circuit *c);

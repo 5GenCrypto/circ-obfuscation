@@ -141,3 +141,12 @@ bool any_in_array(int *xs, int xlen, int *ys, size_t ylen) {
     }
     return false;
 }
+
+void mpz_random_inv(mpz_t rop, gmp_randstate_t rng, mpz_t modulus) {
+    mpz_t inv;
+    mpz_init(inv);
+    do {
+        mpz_urandomm(rop, rng, modulus);
+    } while (mpz_invert(inv, rop, modulus) == 0);
+    mpz_clear(inv);
+}

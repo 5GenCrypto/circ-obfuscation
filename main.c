@@ -2,9 +2,10 @@
 #include <stdbool.h>
 #include <sys/stat.h>
 #include "circuit.h"
-#include "obfuscate.h"
+#include "index.h"
 #include "parse.tab.h"
 #include "clt13.h"
+#include "obfuscate.h"
 
 // TODO: arguments parser for lambda & fresh
 //       obfuscate
@@ -73,6 +74,7 @@ int main( int argc, char **argv ){
 
     clt_state mmap;
     clt_setup(&mmap, get_kappa(&c), lambda + depth(&c, c.outref), nzs, tl, dir, true);
+    obfuscate(&mmap, &c);
 
     clt_state_clear(&mmap);
     free(tl);
@@ -81,6 +83,7 @@ int main( int argc, char **argv ){
 }
 
 int get_kappa(circuit* c){
+    return 4; // TODO: for testing
     int n = c->ninputs;
     int delta = ydegree(c, c->outref);
     for (int i = 0; i < n; i++) {
