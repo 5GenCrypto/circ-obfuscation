@@ -1,5 +1,12 @@
 #include "circuit.h"
 
+#include "util.h"
+
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <assert.h>
+
 void ensure_space(circuit *c, circref ref);
 
 void circ_init(circuit *c) {

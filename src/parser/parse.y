@@ -1,14 +1,14 @@
-%{
+%code requires { #include "circuit.h" }
 
+%{
+#include "circuit.h"
 #include <stdbool.h>
 #include <stdio.h>
-#include "circuit.h"
+#include <stdlib.h>
 
 int yylex();
 void yyerror(circuit *c, const char *m){ printf("Error! %s\n", m); }
-
 unsigned long from_bitstring (char *s);
-
 %}
 
 %parse-param{ circuit *c }

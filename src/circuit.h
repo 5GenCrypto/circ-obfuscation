@@ -1,12 +1,9 @@
 #ifndef __CIRCUIT_H__
 #define __CIRCUIT_H__
 
+#include <stddef.h>
 #include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <assert.h>
-#include "util.h"
+#include <gmp.h>
 
 typedef int circref;
 

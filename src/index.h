@@ -1,7 +1,6 @@
 #ifndef __INDEX__
 #define __INDEX__
 
-#include <stdlib.h>
 #include "circuit.h"
 
 int num_indices(circuit *c);

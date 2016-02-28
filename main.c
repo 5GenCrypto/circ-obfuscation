@@ -1,11 +1,13 @@
-#include <stdio.h>
-#include <stdbool.h>
-#include <sys/stat.h>
 #include "circuit.h"
-#include "index.h"
-#include "parse.tab.h"
 #include "clt13.h"
+#include "index.h"
 #include "obfuscate.h"
+#include "parse.tab.h"
+#include "util.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
 
 // TODO: arguments parser for lambda & fresh
 //       obfuscate

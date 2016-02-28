@@ -1,6 +1,7 @@
 %{
 #include "circuit.h"
 #include "parse.tab.h"
+#include <stdlib.h>
 %}
 
 %option noyywrap

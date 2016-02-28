@@ -1,5 +1,7 @@
 #include "index.h"
 
+#include <assert.h>
+
 // pows[0]   is the power of Y
 // pows[i+1] is the power of X_i
 void get_pows(int *pows, circuit *c) {

@@ -2,10 +2,6 @@
 
 #include <fcntl.h>
 #include <gmp.h>
-#include <math.h>
-#include <omp.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <stdio.h>

@@ -1,5 +1,10 @@
 #include "obfuscate.h"
 
+#include "util.h"
+
+#include <gmp.h>
+#include <stdlib.h>
+
 void obfuscate( clt_state *mmap, circuit *c ) {
     int n = c->ninputs;
     int m = c->nconsts;
