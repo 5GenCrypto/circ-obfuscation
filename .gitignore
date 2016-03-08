@@ -1,5 +1,5 @@
 main
-test_mmap
+clt13
 src/*.o
 src/parser/*.o
 src/parser/*.tab.*
