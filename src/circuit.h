@@ -1,11 +1,12 @@
-#ifndef __CIRCUIT_H__
-#define __CIRCUIT_H__
+#ifndef __SRC_CIRCUIT_H__
+#define __SRC_CIRCUIT_H__
 
-#include <stddef.h>
-#include <stdbool.h>
 #include <gmp.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
-typedef int circref;
+typedef size_t circref;
 
 typedef enum {
     XINPUT,
@@ -16,11 +17,11 @@ typedef enum {
 } operation;
 
 typedef struct {
-    int ninputs;
-    int nconsts;
-    int ngates;
-    int nrefs;
-    int ntests;
+    size_t ninputs;
+    size_t nconsts;
+    size_t ngates;
+    size_t nrefs;
+    size_t ntests;
     circref outref;
     operation *ops;
     circref **args; // [nextref][2]
@@ -30,26 +31,38 @@ typedef struct {
     size_t _testalloc;
 } circuit;
 
-void circ_init(circuit *c);
-void circ_clear(circuit *c);
+void circ_init  (circuit *c);
+void circ_clear (circuit *c);
 
-int eval_circ(circuit *c, circref ref, int *xs);
-mpz_t* eval_circ_mod(circuit *c, circref ref, mpz_t *xs, mpz_t *ys, mpz_t modulus);
-int ensure(circuit *c);
+// evaluation
+int eval_circ (circuit *c, circref ref, int *xs);
+mpz_t* eval_circ_mod (circuit *c, circref ref, mpz_t *xs, mpz_t *ys, mpz_t modulus);
+int ensure (circuit *c);
 
-void topological_order(int *refs, circuit *c);
-int topological_levels(int **levels, int *level_sizes, circuit *c);
+// topological orderings
+void topological_order (int *refs, circuit *c);
+int topological_levels (int **levels, int *level_sizes, circuit *c);
 
-int depth(circuit *c, circref ref);
-int xdegree(circuit *c, circref ref, int xid);
-int ydegree(circuit *c, circref ref);
+// info
+int depth   (circuit *c, circref ref);
+int xdegree (circuit *c, circref ref, int xid);
+int ydegree (circuit *c, circref ref);
+
+void type_degree (
+    uint32_t *rop,
+    circref ref,
+    circuit *c,
+    size_t nsyms,
+    size_t (*input_chunker)(size_t input_num, size_t ninputs, size_t nsyms)
+);
 
 // construction
-void circ_add_test(circuit *c, char *inp, char *out);
-void circ_add_xinput(circuit *c, int ref, int id);
-void circ_add_yinput(circuit *c, int ref, int id, int val);
-void circ_add_gate(circuit *c, int ref, operation op, int xref, int yref, bool is_output);
+void circ_add_test   (circuit *c, char *inp, char *out);
+void circ_add_xinput (circuit *c, circref ref, size_t id);
+void circ_add_yinput (circuit *c, circref ref, size_t id, int val);
+void circ_add_gate   (circuit *c, circref ref, operation op, int xref, int yref, bool is_output);
 
-operation str2op(char *s);
+// helpers
+operation str2op (char *s);
 
 #endif

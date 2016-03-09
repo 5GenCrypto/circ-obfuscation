@@ -1,11 +1,11 @@
 #include "circuit.h"
 
 #include "util.h"
-
+#include <assert.h>
+#include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <assert.h>
 
 void ensure_space(circuit *c, circref ref);
 
@@ -36,6 +36,9 @@ void circ_clear(circuit *c) {
     free(c->testinps);
     free(c->testouts);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// circuit evaluation
 
 int eval_circ(circuit *c, circref ref, int *xs) {
     operation op = c->ops[ref];
@@ -81,15 +84,25 @@ mpz_t* eval_circ_mod(circuit *c, circref ref, mpz_t *xs, mpz_t *ys, mpz_t modulu
     return res;
 }
 
-int depth(circuit *c, circref ref) {
-    operation op = c->ops[ref];
-    if (op == XINPUT || op == YINPUT) {
-        return 0;
+int ensure(circuit *c) {
+    int res;
+    bool ok = true;
+    for (int i = 0; i < c->ntests; i++) {
+        res = eval_circ(c, c->outref, c->testinps[i]);
+        if (g_verbose) {
+            printf("test %d input=", i);
+            for (int j = 0; j < c->ninputs; j++) {
+                printf("%d", c->testinps[i][j]);
+            }
+            printf(" expected=%d got=%d\n", c->testouts[i], res > 0);
+        }
+        ok = ((res > 0) == c->testouts[i]) && ok;
     }
-    int xres = depth(c, c->args[ref][0]);
-    int yres = depth(c, c->args[ref][1]);
-    return max(xres, yres);
+    return ok;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// circuit topological ordering
 
 void topo_helper(int ref, int *topo, int *seen, int *i, circuit *c) {
     if (seen[ref]) return;
@@ -159,6 +172,19 @@ int topological_levels(int **levels, int *level_sizes, circuit *c) {
     return max_level + 1;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// circuit info calculations
+
+int depth(circuit *c, circref ref) {
+    operation op = c->ops[ref];
+    if (op == XINPUT || op == YINPUT) {
+        return 0;
+    }
+    int xres = depth(c, c->args[ref][0]);
+    int yres = depth(c, c->args[ref][1]);
+    return max(xres, yres);
+}
+
 int xdegree(circuit *c, circref ref, int xid) {
     operation op = c->ops[ref];
     if (op == XINPUT)
@@ -192,22 +218,48 @@ int ydegree(circuit *c, circref ref) {
     exit(EXIT_FAILURE);
 }
 
-int ensure(circuit *c) {
-    int res;
-    bool ok = true;
-    for (int i = 0; i < c->ntests; i++) {
-        res = eval_circ(c, c->outref, c->testinps[i]);
-        if (g_verbose) {
-            printf("test %d input=", i);
-            for (int j = 0; j < c->ninputs; j++) {
-                printf("%d", c->testinps[i][j]);
-            }
-            printf(" expected=%d got=%d\n", c->testouts[i], res > 0);
-        }
-        ok = ((res > 0) == c->testouts[i]) && ok;
+void type_degree (
+    uint32_t *rop,
+    circref ref,
+    circuit *c,
+    size_t nsyms,
+    size_t (*input_chunker)(size_t input_num, size_t ninputs, size_t nsyms)
+){
+    operation op = c->ops[ref];
+    if (op == XINPUT) {
+        size_t k = input_chunker(c->args[ref][0], c->ninputs, nsyms);
+        rop[k] = 1;
+        return;
     }
-    return ok;
+    if (op == YINPUT) {
+        rop[nsyms] = 1;
+        return;
+    }
+
+    uint32_t *xtype = calloc(nsyms+1, sizeof(uint32_t));
+    uint32_t *ytype = calloc(nsyms+1, sizeof(uint32_t));
+
+    type_degree(xtype, c->args[ref][0], c, nsyms, input_chunker);
+    type_degree(ytype, c->args[ref][1], c, nsyms, input_chunker);
+
+    int types_eq = 1;
+    for (size_t i = 0; i < nsyms+1; i++)
+        types_eq = types_eq && (xtype[i] == ytype[i]);
+
+    if ((op == ADD || op == SUB) && types_eq) {
+        for (size_t i = 0; i < nsyms+1; i++)
+            rop[i] = xtype[i];
+    } else { // types unequal or op == MUL
+        for (size_t i = 0; i < nsyms+1; i++)
+            rop[i] = xtype[i] + ytype[i];
+    }
+
+    free(xtype);
+    free(ytype);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// circuit creation
 
 void circ_add_test(circuit *c, char *inpstr, char *out) {
     if (c->ntests >= c->_testalloc) {
@@ -233,39 +285,42 @@ void circ_add_test(circuit *c, char *inpstr, char *out) {
     c->ntests += 1;
 }
 
-void circ_add_xinput(circuit *c, int ref, int id) {
+void circ_add_xinput(circuit *c, circref ref, size_t id) {
     ensure_space(c, ref);
     c->ninputs += 1;
     c->nrefs   += 1;
     c->ops[ref] = XINPUT;
-    int *args = malloc(2 * sizeof(int));
+    circref *args = malloc(2 * sizeof(circref));
     args[0] = id;
     args[1] = -1;
     c->args[ref] = args;
 }
 
-void circ_add_yinput(circuit *c, int ref, int id, int val) {
+void circ_add_yinput(circuit *c, circref ref, size_t id, int val) {
     ensure_space(c, ref);
     c->nconsts  += 1;
     c->nrefs    += 1;
     c->ops[ref]  = YINPUT;
-    int *args = malloc(2 * sizeof(int));
+    circref *args = malloc(2 * sizeof(circref));
     args[0] = id;
     args[1] = val;
     c->args[ref] = args;
 }
 
-void circ_add_gate(circuit *c, int ref, operation op, int xref, int yref, bool is_output) {
+void circ_add_gate(circuit *c, circref ref, operation op, int xref, int yref, bool is_output) {
     ensure_space(c, ref);
     c->ngates   += 1;
     c->nrefs    += 1;
     c->ops[ref]  = op;
-    int *args = malloc(2 * sizeof(int));
+    circref *args = malloc(2 * sizeof(circref));
     args[0] = xref;
     args[1] = yref;
     c->args[ref] = args;
     if (is_output) c->outref = ref;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// helpers
 
 void ensure_space(circuit *c, circref ref) {
     if (ref >= c->_refalloc) {

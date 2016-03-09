@@ -1,5 +1,5 @@
 CC 	   = gcc
-CFLAGS = -Wall -Wno-unused-result -Wno-switch \
+CFLAGS = -Wall -Wno-unused-result -Wno-pointer-sign -Wno-switch \
 		 --std=gnu11 -g \
 		 -fopenmp \
 		 -DYY_NO_UNPUT=1 -DYY_NO_INPUT=1
