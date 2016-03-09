@@ -68,9 +68,12 @@ int main( int argc, char **argv ){
 
     /*printf("plaintext tests %d\n", ensure(&c));*/
 
-    level* vstar = level_create_vstar(4, 4, 2);
-    level_print(vstar);
-    level_clear(vstar);
+    level_params lp = { 4, 4, 2, NULL };
+    level vstar;
+    level_init(&vstar, &lp);
+    level_set_vstar(&vstar);
+    level_print(&vstar);
+    level_clear(&vstar);
 
     /*clt_state mmap;*/
     /*clt_setup(&mmap, get_kappa(&c), lambda + depth(&c, c.outref), nzs, tl, dir, true);*/
