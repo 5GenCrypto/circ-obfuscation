@@ -25,6 +25,6 @@ void obfuscate( clt_state *mmap, circuit *c ) {
     }
 
     // evaluate check circuit
-    mpz_t *chat = eval_circ_mod(c, c->outref, alphas, betas, mmap->gs[1]);
-    gmp_printf("check = %Zd\n", *chat);
+    /*mpz_t *chat = eval_circ_mod(c, c->outref, alphas, betas, mmap->gs[1]);*/
+    /*gmp_printf("check = %Zd\n", *chat);*/
 }

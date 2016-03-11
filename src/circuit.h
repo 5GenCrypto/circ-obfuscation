@@ -22,13 +22,15 @@ typedef struct {
     size_t ngates;
     size_t nrefs;
     size_t ntests;
-    circref outref;
+    size_t noutputs;
     operation *ops;
     circref **args; // [nextref][2]
+    circref *outrefs;
     int **testinps;
-    int *testouts;
-    size_t _refalloc; // alloc size of args and ops
-    size_t _testalloc;
+    int **testouts;
+    size_t _ref_alloc; // alloc size of args and ops
+    size_t _test_alloc;
+    size_t _outref_alloc;
 } circuit;
 
 void circ_init  (circuit *c);
@@ -40,13 +42,11 @@ mpz_t* eval_circ_mod (circuit *c, circref ref, mpz_t *xs, mpz_t *ys, mpz_t modul
 int ensure (circuit *c);
 
 // topological orderings
-void topological_order (int *refs, circuit *c);
-int topological_levels (int **levels, int *level_sizes, circuit *c);
+void topological_order(int *topo, circuit *c, circref ref);
+int topological_levels(int **levels, int *level_sizes, circuit *c, circref root);
 
 // info
 int depth   (circuit *c, circref ref);
-int xdegree (circuit *c, circref ref, int xid);
-int ydegree (circuit *c, circref ref);
 
 void type_degree (
     uint32_t *rop,
