@@ -7,9 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-void ensure_gate_space(circuit *c, circref ref);
+void ensure_gate_space (circuit *c, circref ref);
 
-void circ_init(circuit *c)
+void circ_init (circuit *c)
 {
     c->ninputs  = 0;
     c->nconsts  = 0;
@@ -27,7 +27,7 @@ void circ_init(circuit *c)
     c->testouts = malloc(c->_test_alloc   * sizeof(int**));
 }
 
-void circ_clear(circuit *c)
+void circ_clear (circuit *c)
 {
     for (int i = 0; i < c->ngates; i++) {
         free(c->args[i]);
@@ -46,7 +46,7 @@ void circ_clear(circuit *c)
 ////////////////////////////////////////////////////////////////////////////////
 // circuit evaluation
 
-int eval_circ(circuit *c, circref ref, int *xs)
+int eval_circ (circuit *c, circref ref, int *xs)
 {
     operation op = c->ops[ref];
     switch (op) {
@@ -63,7 +63,7 @@ int eval_circ(circuit *c, circref ref, int *xs)
     exit(EXIT_FAILURE); // should never be reached
 }
 
-mpz_t* eval_circ_mod(circuit *c, circref ref, mpz_t *xs, mpz_t *ys, mpz_t modulus)
+mpz_t* eval_circ_mod (circuit *c, circref ref, mpz_t *xs, mpz_t *ys, mpz_t modulus)
 {
     mpz_t *res = malloc(sizeof(mpz_t));
     mpz_init(*res);
@@ -92,7 +92,7 @@ mpz_t* eval_circ_mod(circuit *c, circref ref, mpz_t *xs, mpz_t *ys, mpz_t modulu
     return res;
 }
 
-int ensure(circuit *c)
+int ensure (circuit *c)
 {
     int *res = malloc(c->noutputs * sizeof(int));
     bool ok  = true;
@@ -131,7 +131,7 @@ int ensure(circuit *c)
 ////////////////////////////////////////////////////////////////////////////////
 // circuit topological ordering
 
-void topo_helper(int ref, int *topo, int *seen, int *i, circuit *c)
+void topo_helper (int ref, int *topo, int *seen, int *i, circuit *c)
 {
     if (seen[ref]) return;
     operation op = c->ops[ref];
@@ -143,7 +143,7 @@ void topo_helper(int ref, int *topo, int *seen, int *i, circuit *c)
     seen[ref]    = 1;
 }
 
-void topological_order(int *topo, circuit *c, circref ref)
+void topological_order (int *topo, circuit *c, circref ref)
 {
     int *seen = calloc(c->_ref_alloc, sizeof(int));
     int i = 0;
@@ -153,7 +153,7 @@ void topological_order(int *topo, circuit *c, circref ref)
 
 // dependencies fills an array with the refs to the subcircuit rooted at ref.
 // deps is the target array, i is an index into it.
-void dependencies_helper(int *deps, int *seen, int *i, circuit *c, int ref)
+void dependencies_helper (int *deps, int *seen, int *i, circuit *c, int ref)
 {
     if (seen[ref]) return;
     operation op = c->ops[ref];
@@ -168,7 +168,7 @@ void dependencies_helper(int *deps, int *seen, int *i, circuit *c, int ref)
     seen[ref] = 1;
 }
 
-int dependencies(int *deps, circuit *c, int ref)
+int dependencies (int *deps, circuit *c, int ref)
 {
     int *seen = calloc(c->nrefs, sizeof(int));
     int ndeps = 0;
@@ -178,7 +178,7 @@ int dependencies(int *deps, circuit *c, int ref)
 }
 
 // returns number of levels
-int topological_levels(int **levels, int *level_sizes, circuit *c, circref root)
+int topological_levels (int **levels, int *level_sizes, circuit *c, circref root)
 {
     int *topo = calloc(c->nrefs, sizeof(int));
     int *deps = malloc(2 * c->nrefs * sizeof(int));
@@ -207,15 +207,28 @@ int topological_levels(int **levels, int *level_sizes, circuit *c, circref root)
 ////////////////////////////////////////////////////////////////////////////////
 // circuit info calculations
 
-int depth(circuit *c, circref ref)
+uint32_t depth (circuit *c, circref ref)
 {
     operation op = c->ops[ref];
     if (op == XINPUT || op == YINPUT) {
         return 0;
     }
-    int xres = depth(c, c->args[ref][0]);
-    int yres = depth(c, c->args[ref][1]);
+    uint32_t xres = depth(c, c->args[ref][0]);
+    uint32_t yres = depth(c, c->args[ref][1]);
     return max(xres, yres);
+}
+
+uint32_t degree (circuit *c, circref ref)
+{
+    operation op = c->ops[ref];
+    if (op == XINPUT || op == YINPUT) {
+        return 0;
+    }
+    uint32_t xres = depth(c, c->args[ref][0]);
+    uint32_t yres = depth(c, c->args[ref][1]);
+    if (op == MUL)
+        return xres + yres;
+    return max(xres, yres); // else op == ADD || op == SUB
 }
 
 void type_degree (
@@ -261,7 +274,7 @@ void type_degree (
 ////////////////////////////////////////////////////////////////////////////////
 // circuit creation
 
-void circ_add_test(circuit *c, char *inpstr, char *outstr)
+void circ_add_test (circuit *c, char *inpstr, char *outstr)
 {
     if (c->ntests >= c->_test_alloc) {
         c->testinps = realloc(c->testinps, 2 * c->_test_alloc * sizeof(int**));
@@ -291,7 +304,7 @@ void circ_add_test(circuit *c, char *inpstr, char *outstr)
     c->ntests += 1;
 }
 
-void circ_add_xinput(circuit *c, circref ref, size_t id)
+void circ_add_xinput (circuit *c, circref ref, size_t id)
 {
     ensure_gate_space(c, ref);
     c->ninputs += 1;
@@ -303,7 +316,7 @@ void circ_add_xinput(circuit *c, circref ref, size_t id)
     c->args[ref] = args;
 }
 
-void circ_add_yinput(circuit *c, circref ref, size_t id, int val)
+void circ_add_yinput (circuit *c, circref ref, size_t id, int val)
 {
     ensure_gate_space(c, ref);
     c->nconsts  += 1;
@@ -315,7 +328,7 @@ void circ_add_yinput(circuit *c, circref ref, size_t id, int val)
     c->args[ref] = args;
 }
 
-void circ_add_gate(circuit *c, circref ref, operation op, int xref, int yref, bool is_output)
+void circ_add_gate (circuit *c, circref ref, operation op, int xref, int yref, bool is_output)
 {
     ensure_gate_space(c, ref);
     c->ngates   += 1;
@@ -336,7 +349,7 @@ void circ_add_gate(circuit *c, circref ref, operation op, int xref, int yref, bo
 ////////////////////////////////////////////////////////////////////////////////
 // helpers
 
-void ensure_gate_space(circuit *c, circref ref)
+void ensure_gate_space (circuit *c, circref ref)
 {
     if (ref >= c->_ref_alloc) {
         c->args = realloc(c->args, 2 * c->_ref_alloc * sizeof(circref**));
@@ -345,7 +358,7 @@ void ensure_gate_space(circuit *c, circref ref)
     }
 }
 
-operation str2op(char *s)
+operation str2op (char *s)
 {
     if (strcmp(s, "ADD") == 0) {
         return ADD;

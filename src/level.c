@@ -4,7 +4,55 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void level_init (level *lvl, level_params *lp)
+////////////////////////////////////////////////////////////////////////////////
+// level params
+
+void params_init (
+    params *lp,
+    size_t q,
+    size_t c,
+    size_t gamma,
+    circuit *circ,
+    size_t (*input_chunker)(size_t input_num, size_t ninputs, size_t nsyms)
+) {
+    lp->q = q;
+    lp->c = c;
+    lp->gamma = gamma;
+    lp->types = malloc(gamma * sizeof(uint32_t*));
+    uint32_t max_t = 0;
+
+    for (int i = 0; i < gamma; i++) {
+        lp->types[i] = calloc(q, sizeof(uint32_t));
+        type_degree(lp->types[i], circ->outrefs[i], circ, q, input_chunker);
+
+        for (int j = 0; j < q; j++) {
+            if (lp->types[i][j] > max_t)
+                max_t = lp->types[i][j];
+        }
+    }
+    lp->m = max_t;
+
+    uint32_t max_d = 0;
+    for (int i = 0; i < gamma; i++) {
+        uint32_t d = degree(circ, circ->outrefs[i]);
+        if (d > max_d)
+            max_d = d;
+    }
+    lp->d = max_d + c + 1;
+}
+
+void params_clear (params *lp)
+{
+    for (int i = 0; i < lp->gamma; i++) {
+        free(lp->types[i]);
+    }
+    free(lp->types);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// level utils
+
+void level_init (level *lvl, params *lp)
 {
     lvl->mat = malloc((lp->q+1) * sizeof(uint32_t*));
     for (int i = 0; i < lp->q+1; i++) {
@@ -47,6 +95,9 @@ void level_print (level *lvl)
     }
     printf("]\n");
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// level setters
 
 void level_set_vstar (level *lvl)
 {

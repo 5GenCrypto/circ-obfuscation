@@ -42,11 +42,12 @@ mpz_t* eval_circ_mod (circuit *c, circref ref, mpz_t *xs, mpz_t *ys, mpz_t modul
 int ensure (circuit *c);
 
 // topological orderings
-void topological_order(int *topo, circuit *c, circref ref);
-int topological_levels(int **levels, int *level_sizes, circuit *c, circref root);
+void topological_order  (int *topo, circuit *c, circref ref);
+int  topological_levels (int **levels, int *level_sizes, circuit *c, circref root);
 
 // info
-int depth   (circuit *c, circref ref);
+uint32_t depth  (circuit *c, circref ref);
+uint32_t degree (circuit *c, circref ref);
 
 void type_degree (
     uint32_t *rop,
