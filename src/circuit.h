@@ -39,7 +39,7 @@ void circ_clear (circuit *c);
 
 // evaluation
 int eval_circ (circuit *c, circref ref, int *xs);
-mpz_t* eval_circ_mod (circuit *c, circref ref, mpz_t *xs, mpz_t *ys, mpz_t modulus);
+void eval_circ_mod (mpz_t rop, circuit *c, circref ref, mpz_t *xs, mpz_t *ys, mpz_t modulus)
 int ensure (circuit *c);
 
 // topological orderings
@@ -55,7 +55,7 @@ void type_degree (
     circref ref,
     circuit *c,
     size_t nsyms,
-    input_chunker chunker;
+    input_chunker chunker
 );
 
 // construction

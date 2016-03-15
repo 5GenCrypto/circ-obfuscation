@@ -63,33 +63,30 @@ int eval_circ (circuit *c, circref ref, int *xs)
     exit(EXIT_FAILURE); // should never be reached
 }
 
-mpz_t* eval_circ_mod (circuit *c, circref ref, mpz_t *xs, mpz_t *ys, mpz_t modulus)
+void eval_circ_mod (mpz_t rop, circuit *c, circref ref, mpz_t *xs, mpz_t *ys, mpz_t modulus)
 {
-    mpz_t *res = malloc(sizeof(mpz_t));
-    mpz_init(*res);
     operation op = c->ops[ref];
     switch (op) {
         case XINPUT: {
-            mpz_set(*res, xs[c->args[ref][0]]);
-            return res;
+            mpz_set(rop, xs[c->args[ref][0]]);
+            return;
         }
         case YINPUT: {
-            mpz_set(*res, ys[c->args[ref][0]]);
-            return res;
+            mpz_set(rop, ys[c->args[ref][0]]);
+            return;
         }
     }
-    mpz_t *xres = eval_circ_mod(c, c->args[ref][0], xs, ys, modulus);
-    mpz_t *yres = eval_circ_mod(c, c->args[ref][1], xs, ys, modulus);
+    mpz_t xres, yres;
+    mpz_inits(xres, yres, NULL);
+    eval_circ_mod(xres, c, c->args[ref][0], xs, ys, modulus);
+    eval_circ_mod(yres, c, c->args[ref][1], xs, ys, modulus);
     switch (op) {
-        case ADD: mpz_add(*res, *xres, *yres);
-        case SUB: mpz_sub(*res, *xres, *yres);
-        case MUL: mpz_mul(*res, *xres, *yres);
+        case ADD: mpz_add(rop, xres, yres);
+        case SUB: mpz_sub(rop, xres, yres);
+        case MUL: mpz_mul(rop, xres, yres);
     }
-    mpz_mod(*res, *res, modulus);
-    mpz_clears(*xres, *yres, NULL);
-    free(xres);
-    free(yres);
-    return res;
+    mpz_mod(rop, rop, modulus);
+    mpz_clears(xres, yres, NULL);
 }
 
 int ensure (circuit *c)
