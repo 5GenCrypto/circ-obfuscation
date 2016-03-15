@@ -1,5 +1,6 @@
 #include "circuit.h"
 #include "clt13.h"
+#include "input_chunker.h"
 #include "obfuscate.h"
 #include "util.h"
 #include "level.h"
@@ -16,12 +17,6 @@
 extern int yyparse();
 extern FILE *yyin;
 int extern g_verbose;
-
-size_t chunker_group_in_order (size_t input_num, size_t ninputs, size_t nsyms)
-{
-    size_t chunksize = ceil((double) ninputs / (double) nsyms);
-    return floor((double)input_num / (double) chunksize);
-}
 
 int main( int argc, char **argv ){
     ++argv, --argc;
@@ -46,15 +41,18 @@ int main( int argc, char **argv ){
                      c.ninputs, c.nconsts, c.ngates, c.ntests, c.nrefs);
     ensure(&c);
 
-    size_t nsyms = 8;
-    uint32_t *type = calloc(nsyms + 1, sizeof(uint32_t));
+    params p;
+    size_t nsyms = 4;
+    /*params_init(&p, &c, chunker_in_order, nsyms);*/
+    params_init(&p, &c, chunker_mod, nsyms);
+
     for (int i = 0; i < c.noutputs; i++) {
-        type_degree(type, c.outrefs[i], &c, nsyms, chunker_group_in_order);
         printf("c=%lu o=%d type=", nsyms, i);
-        print_array(type, nsyms + 1);
+        print_array(p.types[i], nsyms + 1);
         puts("");
     }
-    free(type);
+
+    printf("M=%u\n", p.m);
 
     /*level_params lp = { 4, 4, 2, NULL };*/
     /*level vstar;*/

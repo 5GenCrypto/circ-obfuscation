@@ -1,6 +1,7 @@
 #ifndef __SRC_CIRCUIT_H__
 #define __SRC_CIRCUIT_H__
 
+#include "input_chunker.h"
 #include <gmp.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -54,7 +55,7 @@ void type_degree (
     circref ref,
     circuit *c,
     size_t nsyms,
-    size_t (*input_chunker)(size_t input_num, size_t ninputs, size_t nsyms)
+    input_chunker chunker;
 );
 
 // construction
