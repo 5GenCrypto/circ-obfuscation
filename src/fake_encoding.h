@@ -2,15 +2,15 @@
 #define __SRC_FAKE_ENCODING__
 
 #include "level.h"
-#include "params.h"
+#include "obf_params.h"
 
 typedef struct {
     mpz_t *moduli;
-    size_t nslots;
-} public_parameters;
+    obf_params *op;
+} fake_params;
 
-void public_parameters_init  (public_parameters *pp, mpz_t *moduli, size_t nslots);
-void public_parameters_clear (public_parameters *pp);
+void fake_params_init  (fake_params *p, obf_params *op, mpz_t *moduli);
+void fake_params_clear (fake_params *pp);
 
 typedef struct {
     level *lvl;
@@ -18,7 +18,7 @@ typedef struct {
     size_t nslots;
 } encoding;
 
-void encoding_init  (encoding *x, params *p);
+void encoding_init  (encoding *x, fake_params *p);
 void encoding_clear (encoding *x);
 
 void encode (encoding *x, const mpz_t *inps, size_t nins, const level *lvl);

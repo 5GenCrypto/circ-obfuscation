@@ -1,37 +1,38 @@
 #include "fake_encoding.h"
 
+#include <assert.h>
 #include <stdlib.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 // public parameters
 
-void public_parameters_init (public_parameters *pp, mpz_t *moduli, size_t nslots)
+void fake_params_init (fake_params *p, obf_params *op, mpz_t *moduli)
 {
-    pp->moduli = malloc((p->c+3) * sizeof(mpz_t));
-    for (int i = 0; i < p->c+3; i++) {
-        mpz_init_set(pp->moduli[i], moduli[i]);
+    p->moduli = malloc((op->c+3) * sizeof(mpz_t));
+    for (int i = 0; i < op->c+3; i++) {
+        mpz_init_set(p->moduli[i], moduli[i]);
     }
-    pp->nslots = nslots;
+    obf_params_init_set(p->op, op);
 }
 
-void public_parameters_clear (public_parameters *pp)
+void fake_params_clear (fake_params *p)
 {
-    for (int i = 0; i < p->c+3; i++) {
-        mpz_clear(pp->moduli[i]);
+    for (int i = 0; i < p->op->c+3; i++) {
+        mpz_clear(p->moduli[i]);
     }
-    free(pp->moduli);
+    free(p->moduli);
+    obf_params_clear(p->op);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // encodings
 
-void encoding_init (encoding *x, parameters *p);
+void encoding_init (encoding *x, fake_params *p)
 {
-    x->p = p;
-    x->nslots = p->c+3;
-    level_init(x->lvl, p);
-    x->slots = malloc((p->c+3) * sizeof(mpz_t));
-    for (int i = 0; i < p->c+3; i++) {
+    level_init(x->lvl, p->op);
+    x->nslots = p->op->c+3;
+    x->slots = malloc(x->nslots * sizeof(mpz_t));
+    for (int i = 0; i < x->nslots; i++) {
         mpz_init(x->slots[i]);
     }
 }

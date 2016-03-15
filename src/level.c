@@ -9,7 +9,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 // level utils
 
-void level_init (level *lvl, params *p)
+void level_init (level *lvl, obf_params *p)
 {
     lvl->mat = malloc((p->q+1) * sizeof(uint32_t*));
     for (int i = 0; i < p->q+1; i++) {
@@ -53,18 +53,18 @@ void level_print (level *lvl)
     printf("]\n");
 }
 
-/*void level_set (level *rop, level *lvl)*/
-/*{*/
-    /*assert(rop->p == lvl->p);*/
-    /*for (int i = 0; i < lvl->p->q+1; i++) {*/
-        /*for (int j = 0; j < lvl->p->c+2; j++) {*/
-            /*rop->mat[i][j] = lvl->mat[i][j];*/
-        /*}*/
-    /*}*/
-    /*for (int i = 0; i < lvl->p->gamma; i++) {*/
-        /*rop->vec[i] = lvl->vec[i];*/
-    /*}*/
-/*}*/
+void level_set (level *rop, const level *lvl)
+{
+    assert(rop->p == lvl->p);
+    for (int i = 0; i < lvl->p->q+1; i++) {
+        for (int j = 0; j < lvl->p->c+2; j++) {
+            rop->mat[i][j] = lvl->mat[i][j];
+        }
+    }
+    for (int i = 0; i < lvl->p->gamma; i++) {
+        rop->vec[i] = lvl->vec[i];
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // level setters

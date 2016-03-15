@@ -10,7 +10,7 @@
 // for encodings parameterized by "s \in \Sigma", use the assignment as
 // the index: s \in [2^q]
 typedef struct {
-    params *p;
+    obf_params *p;
     encoding *Zstar;
     encoding ***Rsk;        // k \in [c], s \in \Sigma
     encoding ****Zsjk;      // k \in [c], s \in \Sigma, j \in [\ell]
@@ -24,7 +24,7 @@ typedef struct {
     encoding **Zbaro;       // o \in \Gamma
 } obfuscation;
 
-void obfuscation_init  (obfuscation *obf, params *p);
+void obfuscation_init  (obfuscation *obf, obf_params *p);
 void obfuscation_clear (obfuscation *obf);
 
 void obfuscate (obfuscation *obf, clt_state *mmap, circuit *c);

@@ -41,10 +41,10 @@ int main( int argc, char **argv ){
                      c.ninputs, c.nconsts, c.ngates, c.ntests, c.nrefs);
     ensure(&c);
 
-    params p;
+    obf_params p;
     size_t nsyms = 4;
     /*params_init(&p, &c, chunker_in_order, nsyms);*/
-    params_init(&p, &c, chunker_mod, nsyms);
+    obf_params_init(&p, &c, chunker_mod, nsyms);
 
     for (int i = 0; i < c.noutputs; i++) {
         printf("c=%lu o=%d type=", nsyms, i);

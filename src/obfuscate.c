@@ -5,18 +5,18 @@
 #include <gmp.h>
 #include <stdlib.h>
 
-void obfuscation_init (obfuscation *obf, params *p)
+void obfuscation_init (obfuscation *obf, obf_params *p)
 {
-    obf->p = p;
+    obf_params_set(obf->p, p);
 
-    encoding_init(obf->Zstar);
+    /*encoding_init(obf->Zstar);*/
 
-    obf->Rsk = malloc(p->c * sizeof(encoding**));
-    for (int k = 0; k < p->c; k++) {
-        obf->Rsk[k] = malloc(p->q * sizeof(encoding*));
-        for (int s = 0; s < p->q; s++) {
-        }
-    }
+    /*obf->Rsk = malloc(p->c * sizeof(encoding**));*/
+    /*for (int k = 0; k < p->c; k++) {*/
+        /*obf->Rsk[k] = malloc(p->q * sizeof(encoding*));*/
+        /*for (int s = 0; s < p->q; s++) {*/
+        /*}*/
+    /*}*/
 }
 
 
