@@ -1,24 +1,27 @@
-#ifndef __OBFUSCATE__
-#define __OBFUSCATE__
+#ifndef __SRC_OBFUSCATE__
+#define __SRC_OBFUSCATE__
 
 #include "circuit.h"
 #include "level.h"
 #include "input_chunker.h"
 #include "clt13.h"
+#include "fake_encoding.h"
 
+// for encodings parameterized by "s \in \Sigma", use the assignment as
+// the index: s \in [2^q]
 typedef struct {
     params *p;
-    encoding Zstar;
-    encoding **Rsk;
-    encoding ***Zsjk;
-    encoding Rc;
-    encoding *Zjc;
-    encoding ***Rhatsok;
-    encoding ***Zhatsok;
-    encoding *Rhato;
-    encoding *Zhato;
-    encoding *Rbaro;
-    encoding *Zbaro;
+    encoding *Zstar;
+    encoding ***Rsk;        // k \in [c], s \in \Sigma
+    encoding ****Zsjk;      // k \in [c], s \in \Sigma, j \in [\ell]
+    encoding *Rc;
+    encoding **Zjc;         // j \in [m] where m is length of secret P
+    encoding ****Rhatsok;   // k \in [c], s \in \Sigma, o \in \Gamma
+    encoding ****Zhatsok;   // k \in [c], s \in \Sigma, o \in \Gamma
+    encoding **Rhato;       // o \in \Gamma
+    encoding **Zhato;       // o \in \Gamma
+    encoding **Rbaro;       // o \in \Gamma
+    encoding **Zbaro;       // o \in \Gamma
 } obfuscation;
 
 void obfuscation_init  (obfuscation *obf, params *p);
