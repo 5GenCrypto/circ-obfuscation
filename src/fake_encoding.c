@@ -10,8 +10,10 @@ void fake_params_init (fake_params *p, obf_params *op, mpz_t *moduli)
 {
     p->moduli = malloc((op->c+3) * sizeof(mpz_t));
     for (int i = 0; i < op->c+3; i++) {
-        mpz_init_set(p->moduli[i], moduli[i]);
+        mpz_init(p->moduli[i]);
+        mpz_set(p->moduli[i], moduli[i]);
     }
+    p->op = malloc(sizeof(obf_params));
     obf_params_init_set(p->op, op);
 }
 
@@ -22,6 +24,7 @@ void fake_params_clear (fake_params *p)
     }
     free(p->moduli);
     obf_params_clear(p->op);
+    free(p->op);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

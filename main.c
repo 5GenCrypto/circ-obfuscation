@@ -41,18 +41,36 @@ int main( int argc, char **argv ){
                      c.ninputs, c.nconsts, c.ngates, c.ntests, c.nrefs);
     ensure(&c);
 
-    obf_params p;
+    obf_params op;
     size_t nsyms = 4;
-    /*params_init(&p, &c, chunker_in_order, nsyms);*/
-    obf_params_init(&p, &c, chunker_mod, nsyms);
+    obf_params_init(&op, &c, chunker_mod, nsyms);
 
     for (int i = 0; i < c.noutputs; i++) {
         printf("c=%lu o=%d type=", nsyms, i);
-        print_array(p.types[i], nsyms + 1);
+        print_array(op.types[i], nsyms + 1);
         puts("");
     }
+    printf("M=%u\n", op.M);
 
-    printf("M=%u\n", p.m);
+    gmp_randstate_t rng;
+    seed_rng(&rng);
+
+    mpz_t *moduli = malloc((op.c+3) * sizeof(mpz_t));
+    for (int i = 0; i < op.c+3; i++) {
+        mpz_init(moduli[i]);
+        mpz_urandomb(moduli[i], rng, 128);
+    }
+
+    fake_params fp;
+    fake_params_init(&fp, &op, moduli);
+
+    for (int i = 0; i < op.c+3; i++) {
+        mpz_clear(moduli[i]);
+    }
+    free(moduli);
+    gmp_randclear(rng);
+    fake_params_clear(&fp);
+    obf_params_clear(&op);
 
     /*level_params lp = { 4, 4, 2, NULL };*/
     /*level vstar;*/
@@ -66,6 +84,6 @@ int main( int argc, char **argv ){
     /*obfuscate(&mmap, &c);*/
     /*clt_state_clear(&mmap);*/
 
-    /*circ_clear(&c);*/
+    circ_clear(&c);
     return 0;
 }

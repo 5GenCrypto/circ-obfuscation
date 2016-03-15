@@ -106,7 +106,7 @@ void level_set_vhato (level *lvl, size_t o)
     assert(o < lvl->p->gamma);
     for (int i = 0; i < lvl->p->c+1; i++) {
         for (int j = 0; j < lvl->p->q; j++) {
-            lvl->mat[i][j] = lvl->p->m - lvl->p->types[o][i];
+            lvl->mat[i][j] = lvl->p->M - lvl->p->types[o][i];
         }
     }
     lvl->mat[lvl->p->c][lvl->p->q] = 1;
@@ -128,7 +128,7 @@ void level_set_vbaro (level *lvl, size_t o)
 /*{*/
     /*for (int i = 0; i < lvl->p->q; i++) {*/
         /*for (int j = 0; j < lvl->p->c+1; j++) {*/
-            /*lvl->mat[i][j] = lvl->p->m;*/
+            /*lvl->mat[i][j] = lvl->p->M;*/
         /*}*/
     /*}*/
     /*for (int i = 0; i < lvl->p->c+1; i++) {*/

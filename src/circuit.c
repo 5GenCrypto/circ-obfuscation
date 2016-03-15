@@ -29,7 +29,7 @@ void circ_init (circuit *c)
 
 void circ_clear (circuit *c)
 {
-    for (int i = 0; i < c->ngates; i++) {
+    for (int i = 0; i < c->nrefs; i++) {
         free(c->args[i]);
     }
     free(c->args);
@@ -299,6 +299,9 @@ void circ_add_test (circuit *c, char *inpstr, char *outstr)
     c->testinps[c->ntests] = inp;
     c->testouts[c->ntests] = out;
     c->ntests += 1;
+
+    free(inpstr);
+    free(outstr);
 }
 
 void circ_add_xinput (circuit *c, circref ref, size_t id)

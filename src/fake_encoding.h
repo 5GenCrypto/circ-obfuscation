@@ -9,7 +9,7 @@ typedef struct {
     obf_params *op;
 } fake_params;
 
-void fake_params_init  (fake_params *p, obf_params *op, mpz_t *moduli);
+void fake_params_init (fake_params *p, obf_params *op, mpz_t *moduli);
 void fake_params_clear (fake_params *pp);
 
 typedef struct {
