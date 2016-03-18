@@ -64,6 +64,11 @@ int main( int argc, char **argv ){
     fake_params fp;
     fake_params_init(&fp, &op, moduli);
 
+    obfuscation obf;
+    obfuscation_init(&obf, &fp);
+
+    obfuscation_clear(&obf);
+
     for (int i = 0; i < op.c+3; i++) {
         mpz_clear(moduli[i]);
     }
@@ -71,13 +76,6 @@ int main( int argc, char **argv ){
     gmp_randclear(rng);
     fake_params_clear(&fp);
     obf_params_clear(&op);
-
-    /*level_params lp = { 4, 4, 2, NULL };*/
-    /*level vstar;*/
-    /*level_init(&vstar, &lp);*/
-    /*level_set_vstar(&vstar);*/
-    /*level_print(&vstar);*/
-    /*level_clear(&vstar);*/
 
     /*clt_state mmap;*/
     /*clt_setup(&mmap, get_kappa(&c), lambda + depth(&c, c.outref), nzs, tl, dir, true);*/

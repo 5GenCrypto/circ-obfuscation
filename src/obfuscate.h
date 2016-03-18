@@ -27,6 +27,13 @@ typedef struct {
 void obfuscation_init  (obfuscation *obf, fake_params *p);
 void obfuscation_clear (obfuscation *obf);
 
-void obfuscate (obfuscation *obf, fake_params *p, circuit *circ);
+void obfuscate (
+    obfuscation *obf,
+    fake_params *p,
+    circuit *circ,
+    gmp_randstate_t *rng
+);
+
+void encode_Zstar (encoding *enc, fake_params *p, gmp_randstate_t *rng);
 
 #endif

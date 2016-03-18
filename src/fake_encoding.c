@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 // public parameters
@@ -32,9 +33,10 @@ void fake_params_clear (fake_params *p)
 
 void encoding_init (encoding *x, fake_params *p)
 {
+    x->lvl = malloc(sizeof(level));
     level_init(x->lvl, p->op);
     x->nslots = p->op->c+3;
-    x->slots = malloc(x->nslots * sizeof(mpz_t));
+    x->slots  = malloc(x->nslots * sizeof(mpz_t));
     for (int i = 0; i < x->nslots; i++) {
         mpz_init(x->slots[i]);
     }

@@ -27,6 +27,7 @@ void level_clear (level *lvl)
     }
     free(lvl->mat);
     free(lvl->vec);
+    free(lvl);
 }
 
 void level_print (level *lvl)
@@ -72,7 +73,9 @@ void level_set (level *rop, const level *lvl)
 level* level_create_vstar (obf_params *p)
 {
     level *lvl = malloc(sizeof(level*));
+    level_init(lvl, p);
     lvl->mat[lvl->p->q][lvl->p->c+1] = 1;
+    return lvl;
 }
 
 level* level_create_vsk (obf_params *p, size_t s, size_t k)
@@ -80,33 +83,42 @@ level* level_create_vsk (obf_params *p, size_t s, size_t k)
     assert(s < p->q);
     assert(k < p->c);
     level *lvl = malloc(sizeof(level*));
+    level_init(lvl, p);
     lvl->mat[k][s] = 1;
+    return lvl;
 }
 
 level* level_create_vc (obf_params *p)
 {
     level *lvl = malloc(sizeof(level*));
+    level_init(lvl, p);
     for (int i = 0; i < lvl->p->q; i++) {
         lvl->mat[i][lvl->p->c] = 1;
     }
+    return lvl;
 }
 
 level* level_create_vhatsok (obf_params *p, size_t s, size_t o, size_t k)
 {
-    assert(s < lvl->p->q);
-    assert(o < lvl->p->gamma);
-    assert(k < lvl->p->c);
+    assert(s < p->q);
+    assert(o < p->gamma);
+    assert(k < p->c);
+    level *lvl = malloc(sizeof(level*));
+    level_init(lvl, p);
     for (int i = 0; i < lvl->p->q; i++) {
         if (i != s)
             lvl->mat[i][k] = lvl->p->types[o][k];
     }
     lvl->mat[lvl->p->q][k] = 1;
     lvl->vec[o] = 1;
+    return lvl;
 }
 
 level* level_create_vhato (obf_params *p, size_t o)
 {
-    assert(o < lvl->p->gamma);
+    assert(o < p->gamma);
+    level *lvl = malloc(sizeof(level*));
+    level_init(lvl, p);
     for (int i = 0; i < lvl->p->c+1; i++) {
         for (int j = 0; j < lvl->p->q; j++) {
             lvl->mat[i][j] = lvl->p->M - lvl->p->types[o][i];
@@ -117,12 +129,16 @@ level* level_create_vhato (obf_params *p, size_t o)
         if (i != o)
             lvl->vec[i] = lvl->p->c;
     }
+    return lvl;
 }
 
 level* level_create_vbaro (obf_params *p, size_t o)
 {
-    assert(o < lvl->p->gamma);
+    assert(o < p->gamma);
+    level *lvl = malloc(sizeof(level*));
+    level_init(lvl, p);
     for (int i = 0; i < lvl->p->q; i++) {
         lvl->mat[i][lvl->p->c+1] = 1;
     }
+    return lvl;
 }
