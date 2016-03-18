@@ -18,12 +18,11 @@ void level_clear (level *lvl);
 void level_print (level *lvl);
 void level_set   (level *rop, const level *lvl);
 
-void level_set_vstar   (level *lvl);
-void level_set_vsk     (level *lvl, size_t s, size_t k);
-void level_set_vc      (level *lvl);
-void level_set_vhatsok (level *lvl, size_t s, size_t o, size_t k);
-void level_set_vhato   (level *lvl, size_t o);
-void level_set_vbaro   (level *lvl, size_t o);
-void level_set_vzt     (level *lvl);
+level* level_create_vstar   (obf_params *p);
+level* level_create_vsk     (obf_params *p, size_t s, size_t k);
+level* level_create_vc      (obf_params *p);
+level* level_create_vhatsok (obf_params *p, size_t s, size_t o, size_t k);
+level* level_create_vhato   (obf_params *p, size_t o);
+level* level_create_vbaro   (obf_params *p, size_t o);
 
 #endif

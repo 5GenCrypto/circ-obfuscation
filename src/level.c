@@ -67,28 +67,31 @@ void level_set (level *rop, const level *lvl)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// level setters
+// level creators
 
-void level_set_vstar (level *lvl)
+level* level_create_vstar (obf_params *p)
 {
+    level *lvl = malloc(sizeof(level*));
     lvl->mat[lvl->p->q][lvl->p->c+1] = 1;
 }
 
-void level_set_vsk (level *lvl, size_t s, size_t k)
+level* level_create_vsk (obf_params *p, size_t s, size_t k)
 {
-    assert(s < lvl->p->q);
-    assert(k < lvl->p->c);
+    assert(s < p->q);
+    assert(k < p->c);
+    level *lvl = malloc(sizeof(level*));
     lvl->mat[k][s] = 1;
 }
 
-void level_set_vc (level *lvl)
+level* level_create_vc (obf_params *p)
 {
+    level *lvl = malloc(sizeof(level*));
     for (int i = 0; i < lvl->p->q; i++) {
         lvl->mat[i][lvl->p->c] = 1;
     }
 }
 
-void level_set_vhatsok (level *lvl, size_t s, size_t o, size_t k)
+level* level_create_vhatsok (obf_params *p, size_t s, size_t o, size_t k)
 {
     assert(s < lvl->p->q);
     assert(o < lvl->p->gamma);
@@ -101,7 +104,7 @@ void level_set_vhatsok (level *lvl, size_t s, size_t o, size_t k)
     lvl->vec[o] = 1;
 }
 
-void level_set_vhato (level *lvl, size_t o)
+level* level_create_vhato (obf_params *p, size_t o)
 {
     assert(o < lvl->p->gamma);
     for (int i = 0; i < lvl->p->c+1; i++) {
@@ -116,29 +119,10 @@ void level_set_vhato (level *lvl, size_t o)
     }
 }
 
-void level_set_vbaro (level *lvl, size_t o)
+level* level_create_vbaro (obf_params *p, size_t o)
 {
     assert(o < lvl->p->gamma);
     for (int i = 0; i < lvl->p->q; i++) {
         lvl->mat[i][lvl->p->c+1] = 1;
     }
 }
-
-/*void level_set_vzt(level *lvl)*/
-/*{*/
-    /*for (int i = 0; i < lvl->p->q; i++) {*/
-        /*for (int j = 0; j < lvl->p->c+1; j++) {*/
-            /*lvl->mat[i][j] = lvl->p->M;*/
-        /*}*/
-    /*}*/
-    /*for (int i = 0; i < lvl->p->c+1; i++) {*/
-        /*lvl->mat[lvl->p->q][i] = 1;*/
-    /*}*/
-    /*for (int i = 0; i < lvl->p->q; i++) {*/
-        /*lvl->mat[i][lvl->p->c+1] = 1;*/
-    /*}*/
-    /*lvl->mat[lvl->p->q][lvl->p->c+1] = lvl->p->d + lvl->p->c + 1; // D = deg(U) + c + 1*/
-    /*for (int i = 0; i < lvl->p->gamma; i++) {*/
-        /*lvl->vec[i] = lvl->p->c;*/
-    /*}*/
-/*}*/
