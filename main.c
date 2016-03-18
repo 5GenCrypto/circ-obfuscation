@@ -41,8 +41,9 @@ int main( int argc, char **argv ){
                      c.ninputs, c.nconsts, c.ngates, c.ntests, c.nrefs);
     ensure(&c);
 
-    obf_params op;
     size_t nsyms = 4;
+
+    obf_params op;
     obf_params_init(&op, &c, chunker_mod, nsyms);
 
     for (int i = 0; i < c.noutputs; i++) {

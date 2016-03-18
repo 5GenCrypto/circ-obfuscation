@@ -16,7 +16,8 @@ void level_init (level *lvl, obf_params *p)
         lvl->mat[i] = calloc(p->c+2, sizeof(uint32_t));
     }
     lvl->vec = calloc(p->gamma, sizeof(uint32_t));
-    lvl->p  = p;
+    lvl->p = malloc(sizeof(obf_params));
+    obf_params_init_set(lvl->p, p);
 }
 
 // it is the user's responsibility to clear lvl->p
@@ -27,6 +28,8 @@ void level_clear (level *lvl)
     }
     free(lvl->mat);
     free(lvl->vec);
+    obf_params_clear(lvl->p);
+    free(lvl->p);
     free(lvl);
 }
 
@@ -56,7 +59,6 @@ void level_print (level *lvl)
 
 void level_set (level *rop, const level *lvl)
 {
-    assert(rop->p == lvl->p);
     for (int i = 0; i < lvl->p->q+1; i++) {
         for (int j = 0; j < lvl->p->c+2; j++) {
             rop->mat[i][j] = lvl->mat[i][j];
@@ -72,7 +74,7 @@ void level_set (level *rop, const level *lvl)
 
 level* level_create_vstar (obf_params *p)
 {
-    level *lvl = malloc(sizeof(level*));
+    level *lvl = malloc(sizeof(level));
     level_init(lvl, p);
     lvl->mat[lvl->p->q][lvl->p->c+1] = 1;
     return lvl;
@@ -82,7 +84,7 @@ level* level_create_vsk (obf_params *p, size_t s, size_t k)
 {
     assert(s < p->q);
     assert(k < p->c);
-    level *lvl = malloc(sizeof(level*));
+    level *lvl = malloc(sizeof(level));
     level_init(lvl, p);
     lvl->mat[k][s] = 1;
     return lvl;
@@ -90,7 +92,7 @@ level* level_create_vsk (obf_params *p, size_t s, size_t k)
 
 level* level_create_vc (obf_params *p)
 {
-    level *lvl = malloc(sizeof(level*));
+    level *lvl = malloc(sizeof(level));
     level_init(lvl, p);
     for (int i = 0; i < lvl->p->q; i++) {
         lvl->mat[i][lvl->p->c] = 1;
@@ -103,7 +105,7 @@ level* level_create_vhatsok (obf_params *p, size_t s, size_t o, size_t k)
     assert(s < p->q);
     assert(o < p->gamma);
     assert(k < p->c);
-    level *lvl = malloc(sizeof(level*));
+    level *lvl = malloc(sizeof(level));
     level_init(lvl, p);
     for (int i = 0; i < lvl->p->q; i++) {
         if (i != s)
@@ -117,7 +119,7 @@ level* level_create_vhatsok (obf_params *p, size_t s, size_t o, size_t k)
 level* level_create_vhato (obf_params *p, size_t o)
 {
     assert(o < p->gamma);
-    level *lvl = malloc(sizeof(level*));
+    level *lvl = malloc(sizeof(level));
     level_init(lvl, p);
     for (int i = 0; i < lvl->p->c+1; i++) {
         for (int j = 0; j < lvl->p->q; j++) {
@@ -135,7 +137,7 @@ level* level_create_vhato (obf_params *p, size_t o)
 level* level_create_vbaro (obf_params *p, size_t o)
 {
     assert(o < p->gamma);
-    level *lvl = malloc(sizeof(level*));
+    level *lvl = malloc(sizeof(level));
     level_init(lvl, p);
     for (int i = 0; i < lvl->p->q; i++) {
         lvl->mat[i][lvl->p->c+1] = 1;

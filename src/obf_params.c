@@ -3,21 +3,22 @@
 #include <math.h>
 #include <stdlib.h>
 
-// TODO: think through what c, q, nsyms etc mean.
-void obf_params_init (obf_params *p, circuit *circ, input_chunker chunker, size_t nsyms)
+void obf_params_init (obf_params *p, circuit *circ, input_chunker chunker, size_t num_symbolic_inputs)
 {
     p->m = circ->nconsts;
-    p->q = nsyms;
-    p->c = ceil((double) circ->ninputs / (double) nsyms);
     p->gamma = circ->noutputs;
     p->types = malloc(p->gamma * sizeof(uint32_t*));
+
+    p->ell = ceil((double) circ->ninputs / (double) num_symbolic_inputs); // length of symbols
+    p->q = 1 << p->ell; // 2^ell
+    p->c = num_symbolic_inputs;
+
     p->M = 0;
-
     for (int i = 0; i < p->gamma; i++) {
-        p->types[i] = calloc(p->q+1, sizeof(uint32_t));
-        type_degree(p->types[i], circ->outrefs[i], circ, nsyms, chunker);
+        p->types[i] = calloc(p->c+1, sizeof(uint32_t));
+        type_degree(p->types[i], circ->outrefs[i], circ, p->c, chunker);
 
-        for (int j = 0; j < p->q; j++) {
+        for (int j = 0; j < p->c+1; j++) {
             if (p->types[i][j] > p->M) {
                 p->M = p->types[i][j];
             }
@@ -39,6 +40,7 @@ void obf_params_init_set (obf_params *rop, const obf_params *op)
     rop->q = op->q;
     rop->c = op->c;
     rop->M = op->M;
+    rop->ell = op->ell;
     rop->gamma = op->gamma;
     rop->types = malloc(rop->gamma * sizeof(uint32_t*));
     for (int i = 0; i < rop->gamma; i++) {
