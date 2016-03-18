@@ -4,6 +4,7 @@
 
 #include <gmp.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 // boilerplate (yikes)
@@ -17,9 +18,9 @@ void obfuscation_init (obfuscation *obf, fake_params *p)
     obf->Zstar = malloc(sizeof(encoding));
     encoding_init(obf->Zstar, p);
 
-    obf->Rsk  = malloc((1 << op.q) * sizeof(encoding**));
+    obf->Rsk = malloc((1 << op.q) * sizeof(encoding**));
     for (int s = 0; s < (1 << op.q); s++) {
-        obf->Rsk[s]  = malloc(op.q * sizeof(encoding*));
+        obf->Rsk[s] = malloc(op.q * sizeof(encoding*));
         for (int k = 0; k < op.c; k++) {
             obf->Rsk[s][k] = malloc(sizeof(encoding));
             encoding_init(obf->Rsk[s][k], p);
@@ -164,10 +165,12 @@ void obfuscate (obfuscation *obf, fake_params *p, circuit *circ, gmp_randstate_t
 
 void encode_Zstar (encoding *enc, fake_params *p, gmp_randstate_t *rng)
 {
+    printf("c+3 = %lu\n", p->op->c+3);
     mpz_t *inps = malloc(p->op->c+3 * sizeof(mpz_t));
     mpz_init_set_ui(inps[0], 1);
     mpz_init_set_ui(inps[1], 1);
-    for (int i = 2; i < p->op->c+3; i++) {
+    for (size_t i = 2; i < p->op->c+3; i++) {
+        printf("%lu\n", i);
         mpz_init(inps[i]);
         mpz_urandomm(inps[i], *rng, p->moduli[i]);
     }

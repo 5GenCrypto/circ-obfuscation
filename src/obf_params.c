@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdlib.h>
 
+// TODO: think through what c, q, nsyms etc mean.
 void obf_params_init (obf_params *p, circuit *circ, input_chunker chunker, size_t nsyms)
 {
     p->m = circ->nconsts;

@@ -46,7 +46,7 @@ int main( int argc, char **argv ){
     obf_params_init(&op, &c, chunker_mod, nsyms);
 
     for (int i = 0; i < c.noutputs; i++) {
-        printf("c=%lu o=%d type=", nsyms, i);
+        printf("c=%lu o=%d type=", op.c, i);
         print_array(op.types[i], nsyms + 1);
         puts("");
     }
@@ -66,6 +66,8 @@ int main( int argc, char **argv ){
 
     obfuscation obf;
     obfuscation_init(&obf, &fp);
+
+    obfuscate(&obf, &fp, &c, &rng);
 
     obfuscation_clear(&obf);
 
