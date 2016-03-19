@@ -27,4 +27,10 @@ bool any_in_array(int *xs, int xlen, int *ys, size_t ylen);
 
 void mpz_random_inv(mpz_t rop, gmp_randstate_t rng, mpz_t modulus);
 
+mpz_t* mpz_vect_create (size_t n);
+void mpz_vect_destroy  (mpz_t *vec, size_t n);
+void mpz_urandomm_vect (mpz_t *vec, mpz_t *moduli, size_t n, gmp_randstate_t *rng);
+
+size_t bit(size_t x, size_t i);
+
 #endif

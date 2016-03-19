@@ -30,6 +30,11 @@ void level_clear (level *lvl)
     free(lvl->vec);
     obf_params_clear(lvl->p);
     free(lvl->p);
+}
+
+void level_destroy (level *lvl)
+{
+    level_clear(lvl);
     free(lvl);
 }
 
@@ -69,6 +74,18 @@ void level_set (level *rop, const level *lvl)
     }
 }
 
+void level_add (level *rop, const level *x, const level *y)
+{
+    for (int i = 0; i < rop->p->q+1; i++) {
+        for (int j = 0; j < rop->p->c+2; j++) {
+            rop->mat[i][j] = x->mat[i][j] + y->mat[i][j];
+        }
+    }
+    for (int i = 0; i < rop->p->gamma; i++) {
+        rop->vec[i] = x->vec[i] + y->vec[i];
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // level creators
 
@@ -80,13 +97,13 @@ level* level_create_vstar (obf_params *p)
     return lvl;
 }
 
-level* level_create_vsk (obf_params *p, size_t s, size_t k)
+level* level_create_vks (obf_params *p, size_t k, size_t s)
 {
     assert(s < p->q);
     assert(k < p->c);
     level *lvl = malloc(sizeof(level));
     level_init(lvl, p);
-    lvl->mat[k][s] = 1;
+    lvl->mat[s][k] = 1;
     return lvl;
 }
 
@@ -100,7 +117,7 @@ level* level_create_vc (obf_params *p)
     return lvl;
 }
 
-level* level_create_vhatsok (obf_params *p, size_t s, size_t o, size_t k)
+level* level_create_vhatsok (obf_params *p, size_t k, size_t s, size_t o)
 {
     assert(s < p->q);
     assert(o < p->gamma);

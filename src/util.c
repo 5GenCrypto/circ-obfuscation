@@ -4,6 +4,7 @@
 #include <gmp.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 int g_verbose;
@@ -145,4 +146,31 @@ void mpz_random_inv(mpz_t rop, gmp_randstate_t rng, mpz_t modulus) {
         mpz_urandomm(rop, rng, modulus);
     } while (mpz_invert(inv, rop, modulus) == 0);
     mpz_clear(inv);
+}
+
+mpz_t* mpz_vect_create (size_t n)
+{
+    mpz_t *vec = malloc(n * sizeof(mpz_t));
+    for (int i = 0; i < n; i++)
+        mpz_init(vec[i]);
+    return vec;
+}
+
+void mpz_vect_destroy (mpz_t *vec, size_t n)
+{
+    for (int i = 0; i < n; i++)
+        mpz_clear(vec[i]);
+    free(vec);
+}
+
+void mpz_urandomm_vect (mpz_t *vec, mpz_t *moduli, size_t n, gmp_randstate_t *rng)
+{
+    for (int i = 0; i < n; i++) {
+        mpz_urandomm(vec[i], *rng, moduli[i]);
+    }
+}
+
+size_t bit(size_t x, size_t i)
+{
+    return (x & (1 << i)) > 0;
 }

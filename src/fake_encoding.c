@@ -45,6 +45,7 @@ void encoding_init (encoding *x, fake_params *p)
 void encoding_clear (encoding *x)
 {
     level_clear(x->lvl);
+    free(x->lvl);
     for (int i = 0; i < x->nslots; i++) {
         mpz_clear(x->slots[i]);
     }
