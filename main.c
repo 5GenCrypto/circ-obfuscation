@@ -4,6 +4,7 @@
 #include "obfuscate.h"
 #include "util.h"
 #include "level.h"
+#include "mmap.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,6 +42,10 @@ int main (int argc, char **argv)
     printf("circuit: ninputs=%lu nconsts=%lu ngates=%lu ntests=%lu nrefs=%lu\n",
                      c.ninputs, c.nconsts, c.ngates, c.ntests, c.nrefs);
     ensure(&c);
+
+    printf("consts: ");
+    print_array(c.consts, c.nconsts);
+    puts("");
 
     size_t nsyms = 4;
 

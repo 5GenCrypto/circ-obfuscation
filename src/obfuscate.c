@@ -7,9 +7,9 @@
 #include <stdio.h>
 
 ////////////////////////////////////////////////////////////////////////////////
-// boilerplate (yikes)
+// boilerplate
 
-void obfuscation_init (obfuscation *obf, fake_params *p)
+void obfuscation_init (obfuscation *obf, fake_params *p)/*{{{*/
 {
     obf->op = malloc(sizeof(obf_params));
     obf_params_init_set(obf->op, p->op);
@@ -73,8 +73,8 @@ void obfuscation_init (obfuscation *obf, fake_params *p)
         encoding_init(obf->Zbaro[o], p);
     }
 }
-
-void obfuscation_clear (obfuscation *obf)
+/*}}}*/
+void obfuscation_clear (obfuscation *obf)/*{{{*/
 {
     obf_params op = *(obf->op);
 
@@ -140,6 +140,7 @@ void obfuscation_clear (obfuscation *obf)
     obf_params_clear(obf->op);
     free(obf->op);
 }
+/*}}}*/
 
 ////////////////////////////////////////////////////////////////////////////////
 // obfuscator
@@ -167,6 +168,7 @@ void obfuscate (obfuscation *obf, fake_params *p, circuit *circ, gmp_randstate_t
 
     encode_Zstar(obf->Zstar, p, rng);
 
+    // encode Rks and Zksj
     mpz_t *rs = mpz_vect_create(p->op->c+3);
     for (int k = 0; k < p->op->c; k++) {
         for (int s = 0; s < p->op->q; s++) {
@@ -177,6 +179,14 @@ void obfuscate (obfuscation *obf, fake_params *p, circuit *circ, gmp_randstate_t
             }
         }
     }
+
+    // encode Rc and Zcj
+    mpz_urandomm_vect(rs, p->moduli, p->op->c+3, rng);
+    encode_Rc(obf->Rc, p, rs);
+    for (int j = 0; j < p->op->m; j++) {
+        encode_Zcj(obf->Zcj[j], p, rs, ykj[p->op->c][j], circ->consts[j], rng);
+    }
+
 
     ////////////////////////////////////////////////////////////////////////////////
     // cleanup
@@ -193,22 +203,6 @@ void obfuscate (obfuscation *obf, fake_params *p, circuit *circ, gmp_randstate_t
         mpz_clear(ykj[p->op->c][j]);
     free(ykj[p->op->c]);
     free(ykj);
-
-    /*mpz_t *rhostars = malloc(p->op->c+1 * sizeof(mpz_t));*/
-    /*for (int i = 0; i < n; i++) {*/
-        /*mpz_init(alphas[i]);*/
-        /*mpz_random_inv(alphas[i], rng, mmap->gs[1]);*/
-    /*}*/
-
-    /*mpz_t *betas = malloc(m * sizeof(mpz_t));*/
-    /*for (int i = 0; i < m; i++) {*/
-        /*mpz_init(betas[i]);*/
-        /*mpz_random_inv(betas[i], rng, mmap->gs[1]);*/
-    /*}*/
-
-    // evaluate check circuit
-    /*mpz_t *chat = eval_circ_mod(c, c->outref, alphas, betas, mmap->gs[1]);*/
-    /*gmp_printf("check = %Zd\n", *chat);*/
 }
 
 void encode_Zstar (encoding *enc, fake_params *p, gmp_randstate_t *rng)
@@ -244,19 +238,59 @@ void encode_Zksj (
 ) {
     mpz_t *w = mpz_vect_create(p->op->c+3);
     mpz_urandomm_vect(w+2, p->moduli+2, p->op->c+1, rng);
-    mpz_mul(w[0], w[0], ykj);
+
+    mpz_mul(w[0], rs[0], ykj);
     mpz_mod(w[0], w[0], p->moduli[0]);
-    mpz_mul_ui(w[1], w[1], bit(s, j));
+
+    mpz_mul_ui(w[1], rs[1], bit(s, j));
     mpz_mod(w[1], w[1], p->moduli[1]);
+
     for (int i = 2; i < p->op->c+3; i++) {
         mpz_mul(w[i], w[i], rs[i]);
         mpz_mod(w[i], w[i], p->moduli[i]);
     }
+
     level *lvl = level_create_vks(p->op, k, s);
     level *vstar = level_create_vstar(p->op);
     level_add(lvl, lvl, vstar);
+
     encode(enc, w, p->op->c+3, lvl);
-    level_destroy(lvl);
+
     level_destroy(vstar);
+    level_destroy(lvl);
+    mpz_vect_destroy(w, p->op->c+3);
+}
+
+void encode_Rc (encoding *enc, fake_params *p, mpz_t *rs)
+{
+    level *vc = level_create_vc(p->op);
+    encode(enc, rs, p->op->c+3, vc);
+    level_destroy(vc);
+}
+
+void encode_Zcj(encoding *enc, fake_params *p, mpz_t *rs, mpz_t ykj, int const_val, gmp_randstate_t *rng)
+{
+    mpz_t *w = mpz_vect_create(p->op->c+3);
+    mpz_urandomm_vect(w+2, p->moduli+2, p->op->c+1, rng);
+
+    mpz_mul(w[0], ykj, rs[0]);
+    mpz_mod(w[0], w[0], p->moduli[0]);
+
+    mpz_mul_ui(w[1], rs[1], const_val);
+    mpz_mod(w[1], w[1], p->moduli[1]);
+
+    for (int i = 2; i < p->op->c+3; i++) {
+        mpz_mul(w[i], w[i], rs[i]);
+        mpz_mod(w[i], w[i], p->moduli[i]);
+    }
+
+    level *lvl = level_create_vc(p->op);
+    level *vstar = level_create_vstar(p->op);
+    level_add(lvl, lvl, vstar);
+
+    encode(enc, w, p->op->c+3, lvl);
+
+    level_destroy(vstar);
+    level_destroy(lvl);
     mpz_vect_destroy(w, p->op->c+3);
 }

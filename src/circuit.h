@@ -27,11 +27,13 @@ typedef struct {
     operation *ops;
     circref **args; // [nextref][2]
     circref *outrefs;
+    int *consts;
     int **testinps;
     int **testouts;
     size_t _ref_alloc; // alloc size of args and ops
     size_t _test_alloc;
     size_t _outref_alloc;
+    size_t _consts_alloc;
 } circuit;
 
 void circ_init  (circuit *c);

@@ -20,11 +20,13 @@ void circ_init (circuit *c)
     c->_ref_alloc    = 2;
     c->_test_alloc   = 2;
     c->_outref_alloc = 2;
+    c->_consts_alloc = 2;
     c->outrefs  = malloc(c->_outref_alloc * sizeof(circref));
-    c->args     = malloc(c->_ref_alloc    * sizeof(circref**));
+    c->args     = malloc(c->_ref_alloc    * sizeof(circref*));
     c->ops      = malloc(c->_ref_alloc    * sizeof(operation));
-    c->testinps = malloc(c->_test_alloc   * sizeof(int**));
-    c->testouts = malloc(c->_test_alloc   * sizeof(int**));
+    c->testinps = malloc(c->_test_alloc   * sizeof(int*));
+    c->testouts = malloc(c->_test_alloc   * sizeof(int*));
+    c->consts   = malloc(c->_consts_alloc * sizeof(int));
 }
 
 void circ_clear (circuit *c)
@@ -41,6 +43,7 @@ void circ_clear (circuit *c)
     }
     free(c->testinps);
     free(c->testouts);
+    free(c->consts);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -319,6 +322,11 @@ void circ_add_xinput (circuit *c, circref ref, size_t id)
 void circ_add_yinput (circuit *c, circref ref, size_t id, int val)
 {
     ensure_gate_space(c, ref);
+    if (c->nconsts >= c->_consts_alloc) {
+        c->consts = realloc(c->consts, 2 * c->_consts_alloc * sizeof(int));
+        c->_consts_alloc *= 2;
+    }
+    c->consts[c->nconsts] = val;
     c->nconsts  += 1;
     c->nrefs    += 1;
     c->ops[ref]  = YINPUT;
@@ -341,6 +349,7 @@ void circ_add_gate (circuit *c, circref ref, operation op, int xref, int yref, b
     if (is_output) {
         if (c->noutputs >= c->_outref_alloc) {
             c->outrefs = realloc(c->outrefs, 2 * c->_outref_alloc * sizeof(circref));
+            c->_outref_alloc *= 2;
         }
         c->outrefs[c->noutputs++] = ref;
     }

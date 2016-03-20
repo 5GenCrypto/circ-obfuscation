@@ -49,4 +49,7 @@ void encode_Zksj (
     gmp_randstate_t *rng
 );
 
+void encode_Rc  (encoding *enc, fake_params *p, mpz_t *rs);
+void encode_Zcj (encoding *enc, fake_params *p, mpz_t *rs, mpz_t ykj, int const_val, gmp_randstate_t *rng);
+
 #endif
