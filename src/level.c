@@ -16,8 +16,7 @@ void level_init (level *lvl, obf_params *p)
         lvl->mat[i] = calloc(p->c+2, sizeof(uint32_t));
     }
     lvl->vec = calloc(p->gamma, sizeof(uint32_t));
-    lvl->p = malloc(sizeof(obf_params));
-    obf_params_init_set(lvl->p, p);
+    lvl->p = p;
 }
 
 // it is the user's responsibility to clear lvl->p
@@ -28,8 +27,6 @@ void level_clear (level *lvl)
     }
     free(lvl->mat);
     free(lvl->vec);
-    obf_params_clear(lvl->p);
-    free(lvl->p);
 }
 
 void level_destroy (level *lvl)
@@ -86,6 +83,18 @@ void level_add (level *rop, const level *x, const level *y)
     }
 }
 
+void level_mul_ui (level *rop, level *op, int x)
+{
+    for (int i = 0; i < rop->p->q+1; i++) {
+        for (int j = 0; j < rop->p->c+2; j++) {
+            rop->mat[i][j] = op->mat[i][j] * x;
+        }
+    }
+    for (int i = 0; i < rop->p->gamma; i++) {
+        rop->vec[i] = op->vec[i] * x;
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // level creators
 
@@ -117,7 +126,7 @@ level* level_create_vc (obf_params *p)
     return lvl;
 }
 
-level* level_create_vhatsok (obf_params *p, size_t k, size_t s, size_t o)
+level* level_create_vhatkso (obf_params *p, size_t k, size_t s, size_t o)
 {
     assert(s < p->q);
     assert(o < p->gamma);
@@ -128,7 +137,7 @@ level* level_create_vhatsok (obf_params *p, size_t k, size_t s, size_t o)
         if (i != s)
             lvl->mat[i][k] = lvl->p->types[o][k];
     }
-    lvl->mat[lvl->p->q][k] = 1;
+    lvl->mat[p->q][k] = 1;
     lvl->vec[o] = 1;
     return lvl;
 }

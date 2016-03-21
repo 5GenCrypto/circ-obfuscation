@@ -12,3 +12,8 @@ size_t chunker_mod (size_t input_num, size_t ninputs, size_t nsyms)
 {
     return input_num % nsyms;
 }
+
+size_t rchunker_mod (size_t k, size_t l, size_t ninputs, size_t nsyms)
+{
+    return k + l * nsyms;
+}

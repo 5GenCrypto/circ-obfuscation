@@ -6,8 +6,12 @@
 // takes a particular input id, total number of inputs, total number of symbols
 // returns which symbol this input id belongs to
 typedef size_t (*input_chunker) (size_t input_num, size_t ninputs, size_t nsyms);
+typedef size_t (*reverse_chunker) (size_t k, size_t l, size_t ninputs, size_t nsyms);
 
-size_t chunker_in_order (size_t input_num, size_t ninputs, size_t nsyms);
-size_t chunker_mod      (size_t input_num, size_t ninputs, size_t nsyms);
+size_t chunker_in_order  (size_t input_num, size_t ninputs, size_t nsyms);
+size_t rchunker_in_order (size_t k, size_t l, size_t ninputs, size_t nsyms);
+
+size_t chunker_mod  (size_t input_num, size_t ninputs, size_t nsyms);
+size_t rchunker_mod (size_t k, size_t l, size_t ninputs, size_t nsyms);
 
 #endif

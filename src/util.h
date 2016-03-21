@@ -30,6 +30,8 @@ void mpz_random_inv(mpz_t rop, gmp_randstate_t rng, mpz_t modulus);
 mpz_t* mpz_vect_create (size_t n);
 void mpz_vect_destroy  (mpz_t *vec, size_t n);
 void mpz_urandomm_vect (mpz_t *vec, mpz_t *moduli, size_t n, gmp_randstate_t *rng);
+void mpz_vect_mul      (mpz_t *rop, mpz_t *xs, mpz_t *ys, size_t n);
+void mpz_vect_mod      (mpz_t *rop, mpz_t *xs, mpz_t *moduli, size_t n);
 
 size_t bit(size_t x, size_t i);
 

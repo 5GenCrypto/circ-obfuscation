@@ -170,6 +170,20 @@ void mpz_urandomm_vect (mpz_t *vec, mpz_t *moduli, size_t n, gmp_randstate_t *rn
     }
 }
 
+void mpz_vect_mul (mpz_t *rop, mpz_t *xs, mpz_t *ys, size_t n)
+{
+    for (int i = 0; i < n; i++) {
+        mpz_mul(rop[i], xs[i], ys[i]);
+    }
+}
+
+void mpz_vect_mod (mpz_t *rop, mpz_t *xs, mpz_t *moduli, size_t n)
+{
+    for (int i = 0; i < n; i++) {
+        mpz_mod(rop[i], xs[i], moduli[i]);
+    }
+}
+
 size_t bit(size_t x, size_t i)
 {
     return (x & (1 << i)) > 0;

@@ -1,10 +1,9 @@
 #include "obfuscate.h"
 
 #include "util.h"
-
 #include <gmp.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 // boilerplate
@@ -148,7 +147,7 @@ void obfuscation_clear (obfuscation *obf)/*{{{*/
 void obfuscate (obfuscation *obf, fake_params *p, circuit *circ, gmp_randstate_t *rng)
 {
     // create ykj
-    mpz_t **ykj = malloc((p->op->c+1) * sizeof(mpz_t));
+    mpz_t **ykj = malloc((p->op->c+1) * sizeof(mpz_t*));
     for (int k = 0; k < p->op->c; k++) {
         ykj[k] = malloc(p->op->ell * sizeof(mpz_t));
         for (int j = 0; j < p->op->ell; j++) {
@@ -161,6 +160,14 @@ void obfuscate (obfuscation *obf, fake_params *p, circuit *circ, gmp_randstate_t
     for (int j = 0; j < p->op->m; j++) {
         mpz_init(ykj[p->op->c][j]);
         mpz_urandomm(ykj[p->op->c][j], *rng, p->moduli[0]);
+    }
+
+    // create wk
+    mpz_t **whatk = malloc((p->op->c+1) * sizeof(mpz_t*));
+    for (int k = 0; k < p->op->c+1; k++) {
+        whatk[k] = mpz_vect_create(p->op->c+3);
+        mpz_urandomm_vect(whatk[k], p->moduli, p->op->c+3, rng);
+        mpz_set_ui(whatk[k][k+2], 0);
     }
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -187,6 +194,23 @@ void obfuscate (obfuscation *obf, fake_params *p, circuit *circ, gmp_randstate_t
         encode_Zcj(obf->Zcj[j], p, rs, ykj[p->op->c][j], circ->consts[j], rng);
     }
 
+    // encode Rhatkso and Zhatkso
+    for (int o = 0; o < p->op->gamma; o++) {
+        for (int k = 0; k < p->op->c; k++) {
+            for (int s = 0; s < p->op->q; s++) {
+                mpz_urandomm_vect(rs, p->moduli, p->op->c+3, rng);
+                encode_Rhatkso(obf->Rhatkso[k][s][o], p, rs, k, s, o);
+                encode_Zhatkso(obf->Zhatkso[k][s][o], p, rs, whatk[k], k, s, o);
+            }
+        }
+    }
+
+    // encode Rbaro and Zbaro
+    for (int o = 0; o < p->op->gamma; o++) {
+        mpz_urandomm_vect(rs, p->moduli, p->op->c+3, rng);
+        encode_Rbaro(obf->Rbaro[o], p, rs, o);
+        encode_Zbaro(obf->Zbaro[o], p, rs, whatk, ykj, circ, o);
+    }
 
     ////////////////////////////////////////////////////////////////////////////////
     // cleanup
@@ -203,6 +227,12 @@ void obfuscate (obfuscation *obf, fake_params *p, circuit *circ, gmp_randstate_t
         mpz_clear(ykj[p->op->c][j]);
     free(ykj[p->op->c]);
     free(ykj);
+
+    // delete whatk
+    for (int k = 0; k < p->op->c+1; k++) {
+        mpz_vect_destroy(whatk[k], p->op->c+3);
+    }
+    free(whatk);
 }
 
 void encode_Zstar (encoding *enc, fake_params *p, gmp_randstate_t *rng)
@@ -293,4 +323,89 @@ void encode_Zcj(encoding *enc, fake_params *p, mpz_t *rs, mpz_t ykj, int const_v
     level_destroy(vstar);
     level_destroy(lvl);
     mpz_vect_destroy(w, p->op->c+3);
+}
+
+void encode_Rhatkso(encoding *enc, fake_params *p, mpz_t *rs, size_t k, size_t s, size_t o)
+{
+    level *vhatkso = level_create_vhatkso(p->op, k, s, o);
+    encode(enc, rs, p->op->c+3, vhatkso);
+    level_destroy(vhatkso);
+}
+
+void encode_Zhatkso(encoding *enc, fake_params *p, mpz_t *rs, mpz_t *w, size_t k, size_t s, size_t o)
+{
+    mpz_t *inp = mpz_vect_create(p->op->c+3);
+    for (int i = 0; i < p->op->c+3; i++) {
+        mpz_mul(inp[i], w[i], rs[i]);
+        mpz_mod(inp[i], w[i], p->moduli[i]);
+    }
+
+    level *lvl   = level_create_vhatkso(p->op, k, s, o);
+    level *vstar = level_create_vstar(p->op);
+    level_add(lvl, lvl, vstar);
+
+    encode(enc, inp, p->op->c+3, lvl);
+
+    level_destroy(vstar);
+    level_destroy(lvl);
+    mpz_vect_destroy(inp, p->op->c+3);
+}
+
+void encode_Rbaro(encoding *enc, fake_params *p, mpz_t *rs, size_t o)
+{
+    level *vbaro = level_create_vbaro(p->op, o);
+    encode(enc, rs, p->op->c+3, vbaro);
+    level_destroy(vbaro);
+}
+
+void encode_Zbaro(encoding *enc, fake_params *p, mpz_t *rs, mpz_t **whatk, mpz_t **ykj, circuit *c, size_t o)
+{
+
+    mpz_t ybar;
+    mpz_init(ybar);
+
+    mpz_t *xs = mpz_vect_create(c->ninputs);
+    for (int k = 0; k < p->op->c; k++) {
+        for (int j = 0; j < p->op->ell; j++) {
+            int i = p->op->rchunker(k, j, c->ninputs, p->op->c);
+            if (i >= c->ninputs)
+                continue;
+            mpz_set(xs[i], ykj[k][j]);
+        }
+    }
+    eval_circ_mod(ybar, c, c->outrefs[o], xs, ykj[p->op->c], p->moduli[0]);
+
+    mpz_t *tmp = mpz_vect_create(p->op->c+3);
+    for (int i = 0; i < p->op->c+3; i++) {
+        mpz_set_ui(tmp[i], 1);
+    }
+    for (int k = 0; k < p->op->c+1; k++) {
+        mpz_vect_mul(tmp, whatk[k], tmp, p->op->c+3);
+    }
+    mpz_t *w = mpz_vect_create(p->op->c+3);
+    mpz_set(w[0], ybar);
+    mpz_set_ui(w[1], 1);
+    mpz_vect_mul(w, w, tmp,       p->op->c+3);
+    mpz_vect_mod(w, w, p->moduli, p->op->c+3);
+
+    for (int i = 0; i < p->op->c+3; i++) {
+        mpz_mul(w[i], w[i], rs[i]);
+        mpz_mod(w[i], w[i], p->moduli[i]);
+    }
+
+    uint32_t d = degree(c, c->outrefs[o]);
+
+    level *lvl   = level_create_vbaro(p->op, o);
+    level *vstar = level_create_vstar(p->op);
+    level_mul_ui(vstar, vstar, d + p->op->c + 1);
+    level_add(lvl, lvl, vstar);
+
+    encode(enc, w, p->op->c+3, lvl);
+
+    mpz_clear(ybar);
+    mpz_vect_destroy(tmp, p->op->c+3);
+    mpz_vect_destroy(xs, c->ninputs);
+    mpz_vect_destroy(w, p->op->c+3);
+    level_destroy(vstar);
+    level_destroy(lvl);
 }

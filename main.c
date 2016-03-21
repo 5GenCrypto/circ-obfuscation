@@ -50,7 +50,7 @@ int main (int argc, char **argv)
     size_t nsyms = 4;
 
     obf_params op;
-    obf_params_init(&op, &c, chunker_mod, nsyms);
+    obf_params_init(&op, &c, chunker_mod, rchunker_mod, nsyms);
 
     for (int i = 0; i < c.noutputs; i++) {
         printf("c=%lu o=%d type=", op.c, i);

@@ -3,8 +3,13 @@
 #include <math.h>
 #include <stdlib.h>
 
-void obf_params_init (obf_params *p, circuit *circ, input_chunker chunker, size_t num_symbolic_inputs)
-{
+void obf_params_init (
+    obf_params *p,
+    circuit *circ,
+    input_chunker chunker,
+    reverse_chunker rchunker,
+    size_t num_symbolic_inputs
+) {
     p->m = circ->nconsts;
     p->gamma = circ->noutputs;
     p->types = malloc(p->gamma * sizeof(uint32_t*));
@@ -24,6 +29,9 @@ void obf_params_init (obf_params *p, circuit *circ, input_chunker chunker, size_
             }
         }
     }
+
+    p->chunker  = chunker;
+    p->rchunker = rchunker;
 }
 
 void obf_params_clear (obf_params *p)
@@ -42,6 +50,8 @@ void obf_params_init_set (obf_params *rop, const obf_params *op)
     rop->M = op->M;
     rop->ell = op->ell;
     rop->gamma = op->gamma;
+    rop->chunker  = op->chunker;
+    rop->rchunker = op->rchunker;
     rop->types = malloc(rop->gamma * sizeof(uint32_t*));
     for (int i = 0; i < rop->gamma; i++) {
         rop->types[i] = malloc((rop->q+1) * sizeof(uint32_t));

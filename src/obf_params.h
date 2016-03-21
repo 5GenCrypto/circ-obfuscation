@@ -13,9 +13,18 @@ typedef struct {
     size_t ell;       // length of symbols
     uint32_t **types; // (gamma x q)-size array
     uint32_t M;       // max type degree in circuit over all output wires
+    input_chunker chunker;
+    reverse_chunker rchunker;
 } obf_params;
 
-void obf_params_init     (obf_params *p, circuit *circ, input_chunker chunker, size_t num_symbolic_inputs);
+void obf_params_init (
+    obf_params *p,
+    circuit *circ,
+    input_chunker chunker,
+    reverse_chunker rchunker,
+    size_t num_symbolic_inputs
+);
+
 void obf_params_clear    (obf_params *p);
 void obf_params_init_set (obf_params *rop, const obf_params *op);
 
