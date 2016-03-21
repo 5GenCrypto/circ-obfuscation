@@ -4,9 +4,7 @@
 #include "circuit.h"
 #include "clt13.h"
 #include "fake_encoding.h"
-#include "input_chunker.h"
 #include "level.h"
-#include "util.h"
 
 // for encodings parameterized by "s \in \Sigma", use the assignment as
 // the index: s \in [2^q]

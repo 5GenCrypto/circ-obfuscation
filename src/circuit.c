@@ -236,12 +236,12 @@ void type_degree (
     circref ref,
     circuit *c,
     size_t nsyms,
-    size_t (*input_chunker)(size_t input_num, size_t ninputs, size_t nsyms)
+    sym_id (*input_chunker) (input_id id, size_t ninputs, size_t nsyms)
 ){
     operation op = c->ops[ref];
     if (op == XINPUT) {
-        size_t k = input_chunker(c->args[ref][0], c->ninputs, nsyms);
-        rop[k] = 1;
+        sym_id sym = input_chunker(c->args[ref][0], c->ninputs, nsyms);
+        rop[sym.sym_number] = 1;
         return;
     }
     if (op == YINPUT) {
@@ -307,7 +307,7 @@ void circ_add_test (circuit *c, char *inpstr, char *outstr)
     free(outstr);
 }
 
-void circ_add_xinput (circuit *c, circref ref, size_t id)
+void circ_add_xinput (circuit *c, circref ref, input_id id)
 {
     ensure_gate_space(c, ref);
     c->ninputs += 1;

@@ -52,18 +52,12 @@ int  topological_levels (int **levels, int *level_sizes, circuit *c, circref roo
 uint32_t depth  (circuit *c, circref ref);
 uint32_t degree (circuit *c, circref ref);
 
-void type_degree (
-    uint32_t *rop,
-    circref ref,
-    circuit *c,
-    size_t nsyms,
-    input_chunker chunker
-);
+void type_degree (uint32_t *rop, circref ref, circuit *c, size_t nsyms, input_chunker chunker);
 
 // construction
 void circ_add_test   (circuit *c, char *inp, char *out);
-void circ_add_xinput (circuit *c, circref ref, size_t id);
-void circ_add_yinput (circuit *c, circref ref, size_t id, int val);
+void circ_add_xinput (circuit *c, circref ref, size_t input_id);
+void circ_add_yinput (circuit *c, circref ref, size_t const_id, int val);
 void circ_add_gate   (circuit *c, circref ref, operation op, int xref, int yref, bool is_output);
 
 // helpers

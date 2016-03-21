@@ -367,10 +367,11 @@ void encode_Zbaro(encoding *enc, fake_params *p, mpz_t *rs, mpz_t **whatk, mpz_t
     mpz_t *xs = mpz_vect_create(c->ninputs);
     for (int k = 0; k < p->op->c; k++) {
         for (int j = 0; j < p->op->ell; j++) {
-            int i = p->op->rchunker(k, j, c->ninputs, p->op->c);
-            if (i >= c->ninputs)
+            sym_id sym = {k, j};
+            input_id id = p->op->rchunker(sym, c->ninputs, p->op->c);
+            if (id >= c->ninputs)
                 continue;
-            mpz_set(xs[i], ykj[k][j]);
+            mpz_set(xs[id], ykj[k][j]);
         }
     }
     eval_circ_mod(ybar, c, c->outrefs[o], xs, ykj[p->op->c], p->moduli[0]);

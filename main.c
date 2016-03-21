@@ -1,10 +1,11 @@
 #include "circuit.h"
 #include "clt13.h"
+#include "evaluate.h"
 #include "input_chunker.h"
-#include "obfuscate.h"
-#include "util.h"
 #include "level.h"
 #include "mmap.h"
+#include "obfuscate.h"
+#include "util.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,6 +22,9 @@ int extern g_verbose;
 
 int main (int argc, char **argv)
 {
+    /*test_chunker(chunker_in_order, rchunker_in_order);*/
+    /*test_chunker(chunker_mod, rchunker_mod);*/
+
     ++argv, --argc;
     if (argc > 0)
         yyin = fopen( argv[0], "r" );
