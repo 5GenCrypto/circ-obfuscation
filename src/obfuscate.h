@@ -29,7 +29,6 @@ void obfuscation_clear (obfuscation *obf);
 void obfuscate (
     obfuscation *obf,
     fake_params *p,
-    circuit *circ,
     gmp_randstate_t *rng
 );
 

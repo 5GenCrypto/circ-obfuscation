@@ -32,6 +32,7 @@ void obf_params_init (
 
     p->chunker  = chunker;
     p->rchunker = rchunker;
+    p->circ = circ;
 }
 
 void obf_params_clear (obf_params *p)

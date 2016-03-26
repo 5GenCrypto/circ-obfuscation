@@ -78,7 +78,7 @@ int main (int argc, char **argv)
     obfuscation obf;
     obfuscation_init(&obf, &fp);
 
-    obfuscate(&obf, &fp, &c, &rng);
+    obfuscate(&obf, &fp, &rng);
 
     obfuscation_clear(&obf);
 

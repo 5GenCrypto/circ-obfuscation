@@ -15,6 +15,7 @@ typedef struct {
     uint32_t M;       // max type degree in circuit over all output wires
     input_chunker chunker;
     reverse_chunker rchunker;
+    circuit *circ;
 } obf_params;
 
 void obf_params_init (

@@ -144,7 +144,7 @@ void obfuscation_clear (obfuscation *obf)/*{{{*/
 ////////////////////////////////////////////////////////////////////////////////
 // obfuscator
 
-void obfuscate (obfuscation *obf, fake_params *p, circuit *circ, gmp_randstate_t *rng)
+void obfuscate (obfuscation *obf, fake_params *p, gmp_randstate_t *rng)
 {
     // create ykj
     mpz_t **ykj = malloc((p->op->c+1) * sizeof(mpz_t*));
@@ -191,7 +191,7 @@ void obfuscate (obfuscation *obf, fake_params *p, circuit *circ, gmp_randstate_t
     mpz_urandomm_vect(rs, p->moduli, p->op->c+3, rng);
     encode_Rc(obf->Rc, p, rs);
     for (int j = 0; j < p->op->m; j++) {
-        encode_Zcj(obf->Zcj[j], p, rs, ykj[p->op->c][j], circ->consts[j], rng);
+        encode_Zcj(obf->Zcj[j], p, rs, ykj[p->op->c][j], p->op->circ->consts[j], rng);
     }
 
     // encode Rhatkso and Zhatkso
@@ -209,7 +209,7 @@ void obfuscate (obfuscation *obf, fake_params *p, circuit *circ, gmp_randstate_t
     for (int o = 0; o < p->op->gamma; o++) {
         mpz_urandomm_vect(rs, p->moduli, p->op->c+3, rng);
         encode_Rbaro(obf->Rbaro[o], p, rs, o);
-        encode_Zbaro(obf->Zbaro[o], p, rs, whatk, ykj, circ, o);
+        encode_Zbaro(obf->Zbaro[o], p, rs, whatk, ykj, p->op->circ, o);
     }
 
     ////////////////////////////////////////////////////////////////////////////////
