@@ -38,6 +38,7 @@ void encoding_init (encoding *x, fake_params *p)
     for (int i = 0; i < x->nslots; i++) {
         mpz_init(x->slots[i]);
     }
+    x->d = 0;
 }
 
 void encoding_clear (encoding *x)
@@ -57,4 +58,36 @@ void encode (encoding *x, const mpz_t *inps, size_t nins, const level *lvl)
         mpz_set(x->slots[i], inps[i]);
     }
     level_set(x->lvl, lvl);
+    x->d = 1;
+}
+
+void encoding_mul (encoding *rop, encoding *x, encoding *y)
+{
+    level_add(rop->lvl, x->lvl, y->lvl);
+    for (int i = 0; i < rop->nslots; i++) {
+        mpz_mul(rop->slots[i], x->slots[i], y->slots[i]);
+    }
+    rop->d = x->d + y->d;
+}
+
+void encoding_add (encoding *rop, encoding *x, encoding *y)
+{
+    assert(x->d == y->d);
+    assert(level_eq(x->lvl, y->lvl));
+    for (int i = 0; i < rop->nslots; i++) {
+        mpz_add(rop->slots[i], x->slots[i], y->slots[i]);
+    }
+    level_set(rop->lvl, x->lvl);
+    rop->d = x->d;
+}
+
+void encoding_sub (encoding *rop, encoding *x, encoding *y)
+{
+    assert(x->d == y->d);
+    assert(level_eq(x->lvl, y->lvl));
+    for (int i = 0; i < rop->nslots; i++) {
+        mpz_sub(rop->slots[i], x->slots[i], y->slots[i]);
+    }
+    level_set(rop->lvl, x->lvl);
+    rop->d = x->d;
 }

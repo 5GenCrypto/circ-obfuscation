@@ -16,11 +16,16 @@ typedef struct {
     level *lvl;
     mpz_t *slots;   // of size c+3
     size_t nslots;
+    size_t d;
 } encoding;
 
 void encoding_init  (encoding *x, fake_params *p);
 void encoding_clear (encoding *x);
 
 void encode (encoding *x, const mpz_t *inps, size_t nins, const level *lvl);
+
+void encoding_mul (encoding *rop, encoding *x, encoding *y);
+void encoding_add (encoding *rop, encoding *x, encoding *y);
+void encoding_sub (encoding *rop, encoding *x, encoding *y);
 
 #endif

@@ -3,7 +3,6 @@
 #include "evaluate.h"
 #include "input_chunker.h"
 #include "level.h"
-#include "mmap.h"
 #include "obfuscate.h"
 #include "util.h"
 

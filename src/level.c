@@ -95,6 +95,21 @@ void level_mul_ui (level *rop, level *op, int x)
     }
 }
 
+int level_eq (level *x, level *y)
+{
+    for (int i = 0; i < x->p->q+1; i++) {
+        for (int j = 0; j < x->p->c+2; j++) {
+            if (x->mat[i][j] != y->mat[i][j])
+                return 0;
+        }
+    }
+    for (int i = 0; i < x->p->gamma; i++) {
+        if (x->vec[i] != y->vec[i])
+            return 0;
+    }
+    return 1;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // level creators
 
