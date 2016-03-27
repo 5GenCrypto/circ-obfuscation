@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <assert.h>
+#include <stdio.h>
 
 void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
 {
@@ -64,7 +65,6 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
                     wire x = cache[args[0]];
                     wire y = cache[args[1]];
 
-
                     if (op == MUL) {
                         encoding_mul(w.r, x.r, y.r);
                         encoding_mul(w.z, x.z, y.z);
@@ -73,24 +73,29 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
 
                     else if (op == ADD || (op == SUB && x.d <= y.d)) {
                         if (x.d > y.d) {
+                            assert(op == ADD);
                             x = cache[args[1]];
                             y = cache[args[0]];
                         }
 
-                        encoding zstar;
-                        encoding_init(&zstar, p);
-                        encoding_mul(&zstar, obf->Zstar, obf->Zstar);
                         size_t delta = y.d - x.d;
-                        for (int j = 1; j < delta; j++) {
-                            encoding_mul(&zstar, &zstar, obf->Zstar);
+                        encoding zstar;
+                        if (delta > 1) {
+                            encoding_init(&zstar, p);
+                            encoding_mul(&zstar, obf->Zstar, obf->Zstar);
+                            for (int j = 2; j < delta; j++)
+                                encoding_mul(&zstar, &zstar, obf->Zstar);
+                        } else {
+                            zstar = *obf->Zstar;
                         }
 
                         encoding tmp;
                         encoding_init(&tmp, p);
 
                         encoding_mul(w.z, x.z, y.r);
-                        encoding_mul(w.z, w.z, &zstar);
-                        encoding_mul(&tmp, y.z, y.r);
+                        if (delta > 0)
+                            encoding_mul(w.z, w.z, &zstar);
+                        encoding_mul(&tmp, y.z, x.r);
 
                         if (op == ADD)
                             encoding_add(w.z, w.z, &tmp);
@@ -100,7 +105,9 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
                         encoding_mul(w.r, x.r, y.r);
                         w.d = y.d;
 
-                        encoding_clear(&zstar);
+                        if (delta > 1)
+                            encoding_clear(&zstar);
+
                         encoding_clear(&tmp);
                     }
 
@@ -111,25 +118,31 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
                         assert (x.d > y.d);
 
                         encoding zstar;
-                        encoding_init(&zstar, p);
-                        encoding_mul(&zstar, obf->Zstar, obf->Zstar);
                         size_t delta = x.d - y.d;
-                        for (int j = 1; j < delta; j++) {
-                            encoding_mul(&zstar, &zstar, obf->Zstar);
+                        if (delta > 1) {
+                            encoding_init(&zstar, p);
+                            encoding_mul(&zstar, obf->Zstar, obf->Zstar);
+                            for (int j = 2; j < delta; j++)
+                                encoding_mul(&zstar, &zstar, obf->Zstar);
+                        } else {
+                            zstar = *obf->Zstar;
                         }
 
                         encoding tmp;
                         encoding_init(&tmp, p);
 
-                        encoding_mul(w.z, x.z, x.r);
+                        encoding_mul(w.z, x.z, y.r);
                         encoding_mul(&tmp, y.z, x.r);
-                        encoding_mul(&tmp, &tmp, &zstar);
+                        if (delta > 0)
+                            encoding_mul(&tmp, &tmp, &zstar);
                         encoding_sub(w.z, w.z, &tmp);
 
                         encoding_mul(w.r, x.r, y.r);
                         w.d = x.d;
 
-                        encoding_clear(&zstar);
+                        if (delta > 1)
+                            encoding_clear(&zstar);
+
                         encoding_clear(&tmp);
                     }
                 }

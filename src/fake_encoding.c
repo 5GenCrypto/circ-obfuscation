@@ -69,8 +69,6 @@ void encoding_mul (encoding *rop, encoding *x, encoding *y)
 
 void encoding_add (encoding *rop, encoding *x, encoding *y)
 {
-    level_print(x->lvl);
-    level_print(y->lvl);
     assert(level_eq(x->lvl, y->lvl));
     for (int i = 0; i < rop->nslots; i++) {
         mpz_add(rop->slots[i], x->slots[i], y->slots[i]);
@@ -80,8 +78,6 @@ void encoding_add (encoding *rop, encoding *x, encoding *y)
 
 void encoding_sub (encoding *rop, encoding *x, encoding *y)
 {
-    level_print(x->lvl);
-    level_print(y->lvl);
     assert(level_eq(x->lvl, y->lvl));
     for (int i = 0; i < rop->nslots; i++) {
         mpz_sub(rop->slots[i], x->slots[i], y->slots[i]);
