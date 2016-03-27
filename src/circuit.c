@@ -232,6 +232,7 @@ void topo_levels_destroy (topo_levels *topo)
 {
     for (int i = 0; i < topo->nlevels; i++)
         free(topo->levels[i]);
+    free(topo->levels);
     free(topo->level_sizes);
     free(topo);
 }

@@ -78,11 +78,20 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
                 cache[ref] = w;
             }
         }
-
         topo_levels_destroy(topo);
-
     }
 
+    for (circref x = 0; x < c->nrefs; x++) {
+        if (known[x] && c->ops[x] != XINPUT && c->ops[x] != YINPUT) {
+            encoding_clear(cache[x].r);
+            encoding_clear(cache[x].z);
+            free(cache[x].r);
+            free(cache[x].z);
+        }
+    }
+    free(cache);
+    free(known);
+    free(input_syms);
 }
 
 void wire_mul (wire *rop, wire *x, wire *y)

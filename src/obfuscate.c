@@ -10,8 +10,7 @@
 
 void obfuscation_init (obfuscation *obf, fake_params *p)/*{{{*/
 {
-    obf->op = malloc(sizeof(obf_params));
-    obf_params_init_set(obf->op, p->op);
+    obf->op = p->op;
     obf_params op = *(obf->op);
 
     obf->Zstar = malloc(sizeof(encoding));
@@ -135,9 +134,6 @@ void obfuscation_clear (obfuscation *obf)/*{{{*/
     }
     free(obf->Rbaro);
     free(obf->Zbaro);
-
-    obf_params_clear(obf->op);
-    free(obf->op);
 }
 /*}}}*/
 
