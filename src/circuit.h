@@ -46,7 +46,16 @@ int ensure (circuit *c);
 
 // topological orderings
 void topological_order  (int *topo, circuit *c, circref ref);
-int  topological_levels (int **levels, int *level_sizes, circuit *c, circref root);
+
+typedef struct {
+    int nlevels;
+    int **levels;
+    int *level_sizes;
+} topo_levels;
+
+topo_levels* topological_levels (circuit *c, circref root);
+
+void topo_levels_destroy (topo_levels *topo);
 
 // info
 uint32_t depth  (circuit *c, circref ref);

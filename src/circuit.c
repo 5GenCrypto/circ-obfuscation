@@ -178,30 +178,62 @@ int dependencies (int *deps, circuit *c, int ref)
 }
 
 // returns number of levels
-int topological_levels (int **levels, int *level_sizes, circuit *c, circref root)
+topo_levels* topological_levels (circuit *c, circref root)
 {
-    int *topo = calloc(c->nrefs, sizeof(int));
+    topo_levels *topo = malloc(sizeof(topo_levels));
+    topo->levels      = malloc(c->nrefs * sizeof(circref));
+    topo->level_sizes = calloc(c->nrefs, sizeof(int));
+
+    int *level_alloc  = calloc(c->nrefs, sizeof(int));
+
+    int *topo_list = calloc(c->nrefs, sizeof(int));
     int *deps = malloc(2 * c->nrefs * sizeof(int));
-    for (int i = 0; i < c->nrefs; i++)
-        level_sizes[i] = 0;
+
     int max_level = 0;
-    topological_order(topo, c, root);
+    topological_order(topo_list, c, root);
+
     for (int i = 0; i < c->nrefs; i++) {
-        int ref = topo[i];
+        int ref = topo_list[i];
         int ndeps = dependencies(deps, c, ref);
+
         // find the right level for this ref
         for (int j = 0; j < c->nrefs; j++) {
-            bool has_dep = any_in_array(deps, ndeps, levels[j], level_sizes[j]);
-            if (has_dep) continue; // try the next level
+            // if the ref has a dependency in this topological level, try the next level
+            bool has_dep = any_in_array(deps, ndeps, topo->levels[j], topo->level_sizes[j]);
+            if (has_dep) continue;
             // otherwise the ref belongs on this level
-            levels[j][level_sizes[j]++] = ref; // push this ref
-            if (j > max_level) max_level = j;
-            break;
+
+            // ensure space
+            if (level_alloc[j] == 0) {
+                level_alloc[j] = 2;
+                topo->levels[j] = malloc(level_alloc[j] * sizeof(int));
+            } else if (topo->level_sizes[j] + 1 >= level_alloc[j]) {
+                level_alloc[j] *= 2;
+                topo->levels[j] = realloc(topo->levels[j], level_alloc[j] * sizeof(int));
+            }
+
+            topo->levels[j][topo->level_sizes[j]] = ref; // push this ref
+            topo->level_sizes[j] += 1;
+
+            if (j > max_level)
+                max_level = j;
+
+            break; // we've found the right level for this ref: stop searching
         }
     }
-    free(topo);
+    topo->nlevels = max_level + 1;
+    free(topo_list);
     free(deps);
-    return max_level + 1;
+    free(level_alloc);
+    return topo;
+}
+
+void topo_levels_destroy (topo_levels *topo)
+{
+    for (int i = 0; i < topo->nlevels; i++)
+        free(topo->levels[i]);
+    free(topo->level_sizes);
+    free(topo);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

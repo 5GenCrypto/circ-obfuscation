@@ -2,7 +2,6 @@
 #define __SRC_EVALUATE_H__
 
 #include "obfuscate.h"
-#include <stdbool.h>
 
 typedef struct {
     encoding *r;
@@ -10,6 +9,6 @@ typedef struct {
     size_t d;
 } wire;
 
-void evaluate (bool *rop, const bool *inps, obfuscation *obf, fake_params *p);
+void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p);
 
 #endif

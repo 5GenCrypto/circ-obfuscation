@@ -1,11 +1,12 @@
 #include "evaluate.h"
 
 #include <stdlib.h>
+#include <assert.h>
 
-void evaluate (bool *rop, const bool *inps, obfuscation *obf, fake_params *p)
+void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
 {
     circuit *c = obf->op->circ;
-    bool *known = malloc(c->nrefs * sizeof(circref));
+    int  *known = calloc(c->nrefs, sizeof(circref));
     wire *cache = malloc(c->nrefs * sizeof(wire));
 
     // determine each assignment s \in \Sigma from the input bits
@@ -22,14 +23,13 @@ void evaluate (bool *rop, const bool *inps, obfuscation *obf, fake_params *p)
     for (int o = 0; o < obf->op->circ->noutputs; o++) {
         circref root = c->outrefs[o];
 
-        int **topo_levels = malloc(c->nrefs * sizeof(circref));
-        int *level_sizes  = malloc(c->nrefs * sizeof(int));
-        int nlevels = topological_levels (topo_levels, level_sizes, c, root);
+        topo_levels *topo = topological_levels(c, root);
 
-        for (int level = 0; level < nlevels; level++) {
+        for (int lvl = 0; lvl < topo->nlevels; lvl++) {
             // TODO: parallelize here
-            for (int i = 0; i < level_sizes[level]; i++) {
-                circref ref = topo_levels[level][i];
+            for (int i = 0; i < topo->level_sizes[lvl]; i++) {
+
+                circref ref = topo->levels[lvl][i];
                 if (known[ref]) continue;
 
                 operation op  = c->ops[ref];
@@ -64,10 +64,6 @@ void evaluate (bool *rop, const bool *inps, obfuscation *obf, fake_params *p)
                     wire x = cache[args[0]];
                     wire y = cache[args[1]];
 
-                    if (x.d > y.d) {
-                        x = cache[args[1]];
-                        y = cache[args[0]];
-                    }
 
                     if (op == MUL) {
                         encoding_mul(w.r, x.r, y.r);
@@ -75,42 +71,75 @@ void evaluate (bool *rop, const bool *inps, obfuscation *obf, fake_params *p)
                         w.d = x.d + y.d;
                     }
 
-                    else if (op == ADD || op == SUB) {
-                        encoding zstar;
-                        encoding_init(&zstar, p);
-                        encoding_mul(zstar, obf->Zstar, obf->Zstar);
-                        size_t delta = y.d - x.d;
-                        for (int j = 1; j < delta; j++) {
-                            encoding_mul(zstar, zstar, obf->Zstar);
+                    else if (op == ADD || (op == SUB && x.d <= y.d)) {
+                        if (x.d > y.d) {
+                            x = cache[args[1]];
+                            y = cache[args[0]];
                         }
 
-                        encoding tmp0, tmp1;
-                        encoding_init(tmp0);
-                        encoding_init(tmp1);
+                        encoding zstar;
+                        encoding_init(&zstar, p);
+                        encoding_mul(&zstar, obf->Zstar, obf->Zstar);
+                        size_t delta = y.d - x.d;
+                        for (int j = 1; j < delta; j++) {
+                            encoding_mul(&zstar, &zstar, obf->Zstar);
+                        }
 
-                        encoding_mul(tmp0, x.z, y.r);
-                        encoding_mul(tmp0, tmp0, zstar);
-                        encoding_mul(tmp1, y.z, x.r);
+                        encoding tmp;
+                        encoding_init(&tmp, p);
+
+                        encoding_mul(w.z, x.z, y.r);
+                        encoding_mul(w.z, w.z, &zstar);
+                        encoding_mul(&tmp, y.z, y.r);
 
                         if (op == ADD)
-                            encoding_add(w.z, tmp0, tmp1);
+                            encoding_add(w.z, w.z, &tmp);
                         else
-                            encoding_sub(w.z, tmp0, tmp1);
+                            encoding_sub(w.z, w.z, &tmp);
 
                         encoding_mul(w.r, x.r, y.r);
                         w.d = y.d;
 
                         encoding_clear(&zstar);
-                        encoding_clear(&tmp0);
-                        encoding_clear(&tmp1);
+                        encoding_clear(&tmp);
                     }
 
+                    // in the case that the degree of x is greather than the degree of y,
+                    // we can't just permute the operands like with addition, since
+                    // subtraction isn't associative
+                    else if (op == SUB) {
+                        assert (x.d > y.d);
+
+                        encoding zstar;
+                        encoding_init(&zstar, p);
+                        encoding_mul(&zstar, obf->Zstar, obf->Zstar);
+                        size_t delta = x.d - y.d;
+                        for (int j = 1; j < delta; j++) {
+                            encoding_mul(&zstar, &zstar, obf->Zstar);
+                        }
+
+                        encoding tmp;
+                        encoding_init(&tmp, p);
+
+                        encoding_mul(w.z, x.z, x.r);
+                        encoding_mul(&tmp, y.z, x.r);
+                        encoding_mul(&tmp, &tmp, &zstar);
+                        encoding_sub(w.z, w.z, &tmp);
+
+                        encoding_mul(w.r, x.r, y.r);
+                        w.d = x.d;
+
+                        encoding_clear(&zstar);
+                        encoding_clear(&tmp);
+                    }
                 }
 
                 known[ref] = true;
                 cache[ref] = w;
             }
         }
+
+        topo_levels_destroy(topo);
 
     }
 

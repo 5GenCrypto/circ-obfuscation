@@ -146,6 +146,8 @@ void obfuscation_clear (obfuscation *obf)/*{{{*/
 
 void obfuscate (obfuscation *obf, fake_params *p, gmp_randstate_t *rng)
 {
+    obf->op = p->op;
+
     // create ykj
     mpz_t **ykj = malloc((p->op->c+1) * sizeof(mpz_t*));
     for (int k = 0; k < p->op->c; k++) {

@@ -78,7 +78,11 @@ int main (int argc, char **argv)
     obfuscation_init(&obf, &fp);
 
     obfuscate(&obf, &fp, &rng);
+    /*void evaluate (bool *rop, const bool *inps, obfuscation *obf, fake_params *p);*/
+    int *res = malloc(c.noutputs * sizeof(int));
+    evaluate(res, c.testinps[0], &obf, &fp);
 
+    free(res);
     obfuscation_clear(&obf);
 
     for (int i = 0; i < op.c+3; i++) {
