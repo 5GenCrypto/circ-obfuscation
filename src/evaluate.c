@@ -66,84 +66,11 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
                     wire y = cache[args[1]];
 
                     if (op == MUL) {
-                        encoding_mul(w.r, x.r, y.r);
-                        encoding_mul(w.z, x.z, y.z);
-                        w.d = x.d + y.d;
-                    }
-
-                    else if (op == ADD || (op == SUB && x.d <= y.d)) {
-                        if (x.d > y.d) {
-                            assert(op == ADD);
-                            x = cache[args[1]];
-                            y = cache[args[0]];
-                        }
-
-                        size_t delta = y.d - x.d;
-                        encoding zstar;
-                        if (delta > 1) {
-                            encoding_init(&zstar, p);
-                            encoding_mul(&zstar, obf->Zstar, obf->Zstar);
-                            for (int j = 2; j < delta; j++)
-                                encoding_mul(&zstar, &zstar, obf->Zstar);
-                        } else {
-                            zstar = *obf->Zstar;
-                        }
-
-                        encoding tmp;
-                        encoding_init(&tmp, p);
-
-                        encoding_mul(w.z, x.z, y.r);
-                        if (delta > 0)
-                            encoding_mul(w.z, w.z, &zstar);
-                        encoding_mul(&tmp, y.z, x.r);
-
-                        if (op == ADD)
-                            encoding_add(w.z, w.z, &tmp);
-                        else
-                            encoding_sub(w.z, w.z, &tmp);
-
-                        encoding_mul(w.r, x.r, y.r);
-                        w.d = y.d;
-
-                        if (delta > 1)
-                            encoding_clear(&zstar);
-
-                        encoding_clear(&tmp);
-                    }
-
-                    // in the case that the degree of x is greather than the degree of y,
-                    // we can't just permute the operands like with addition, since
-                    // subtraction isn't associative
-                    else if (op == SUB) {
-                        assert (x.d > y.d);
-
-                        encoding zstar;
-                        size_t delta = x.d - y.d;
-                        if (delta > 1) {
-                            encoding_init(&zstar, p);
-                            encoding_mul(&zstar, obf->Zstar, obf->Zstar);
-                            for (int j = 2; j < delta; j++)
-                                encoding_mul(&zstar, &zstar, obf->Zstar);
-                        } else {
-                            zstar = *obf->Zstar;
-                        }
-
-                        encoding tmp;
-                        encoding_init(&tmp, p);
-
-                        encoding_mul(w.z, x.z, y.r);
-                        encoding_mul(&tmp, y.z, x.r);
-                        if (delta > 0)
-                            encoding_mul(&tmp, &tmp, &zstar);
-                        encoding_sub(w.z, w.z, &tmp);
-
-                        encoding_mul(w.r, x.r, y.r);
-                        w.d = x.d;
-
-                        if (delta > 1)
-                            encoding_clear(&zstar);
-
-                        encoding_clear(&tmp);
+                        wire_mul(&w, &x, &y);
+                    } else if (op == ADD) {
+                        wire_add(&w, &x, &y, obf, p);
+                    } else if (op == SUB) {
+                        wire_sub(&w, &x, &y, obf, p);
                     }
                 }
 
@@ -156,4 +83,89 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
 
     }
 
+}
+
+void wire_mul (wire *rop, wire *x, wire *y)
+{
+    encoding_mul(rop->r, x->r, y->r);
+    encoding_mul(rop->z, x->z, y->z);
+    rop->d = x->d + y->d;
+}
+
+void wire_add (wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p)
+{
+    if (x->d > y->d) {
+        wire_add(rop, y, x, obf, p);
+        return;
+    }
+
+    size_t delta = y->d - x->d;
+    encoding zstar;
+    if (delta > 1) {
+        encoding_init(&zstar, p);
+        encoding_mul(&zstar, obf->Zstar, obf->Zstar);
+        for (int j = 2; j < delta; j++)
+            encoding_mul(&zstar, &zstar, obf->Zstar);
+    } else {
+        zstar = *obf->Zstar;
+    }
+
+    encoding tmp;
+    encoding_init(&tmp, p);
+
+    encoding_mul(rop->z, x->z, y->r);
+    if (delta > 0)
+        encoding_mul(rop->z, rop->z, &zstar);
+    encoding_mul(&tmp, y->z, x->r);
+
+    encoding_add(rop->z, rop->z, &tmp);
+
+    encoding_mul(rop->r, x->r, y->r);
+    rop->d = y->d;
+
+    if (delta > 1)
+        encoding_clear(&zstar);
+
+    encoding_clear(&tmp);
+}
+
+void wire_sub(wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p)
+{
+    size_t delta = y->d - x->d;
+    encoding zstar;
+    if (delta > 1) {
+        encoding_init(&zstar, p);
+        encoding_mul(&zstar, obf->Zstar, obf->Zstar);
+        for (int j = 2; j < delta; j++)
+            encoding_mul(&zstar, &zstar, obf->Zstar);
+    } else {
+        zstar = *obf->Zstar;
+    }
+
+    encoding tmp;
+    encoding_init(&tmp, p);
+
+    if (x->d <= y->d) {
+        encoding_mul(rop->z, x->z, y->r);
+        if (delta > 0)
+            encoding_mul(rop->z, rop->z, &zstar);
+        encoding_mul(&tmp, y->z, x->r);
+        encoding_add(rop->z, rop->z, &tmp);
+        encoding_mul(rop->r, x->r, y->r);
+        rop->d = y->d;
+    } else {
+        encoding_mul(rop->z, x->z, y->r);
+        encoding_mul(&tmp, y->z, x->r);
+        if (delta > 0)
+            encoding_mul(&tmp, &tmp, &zstar);
+        encoding_sub(rop->z, rop->z, &tmp);
+
+        encoding_mul(rop->r, x->r, y->r);
+        rop->d = x->d;
+    }
+
+    if (delta > 1)
+        encoding_clear(&zstar);
+
+    encoding_clear(&tmp);
 }
