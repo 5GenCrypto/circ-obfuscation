@@ -16,7 +16,6 @@ typedef struct {
     level *lvl;
     mpz_t *slots;   // of size c+3
     size_t nslots;
-    size_t d;
 } encoding;
 
 void encoding_init  (encoding *x, fake_params *p);

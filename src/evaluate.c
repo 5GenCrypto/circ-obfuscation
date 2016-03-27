@@ -29,7 +29,7 @@ void evaluate (bool *rop, const bool *inps, obfuscation *obf, fake_params *p)
         for (int level = 0; level < nlevels; level++) {
             // TODO: parallelize here
             for (int i = 0; i < level_sizes[level]; i++) {
-                circref ref   = topo_levels[level][i];
+                circref ref = topo_levels[level][i];
                 if (known[ref]) continue;
 
                 operation op  = c->ops[ref];
@@ -41,6 +41,7 @@ void evaluate (bool *rop, const bool *inps, obfuscation *obf, fake_params *p)
                     size_t yid = args[0];
                     w.r = obf->Rc;
                     w.z = obf->Zcj[yid];
+                    w.d = 1;
                 }
 
                 else if (op == XINPUT) {
@@ -51,15 +52,58 @@ void evaluate (bool *rop, const bool *inps, obfuscation *obf, fake_params *p)
                     int s = input_syms[k];
                     w.r = obf->Rks[k][s];
                     w.z = obf->Zksj[k][s][j];
+                    w.d = 1;
                 }
 
-                else if (op == MUL) {
+                else { // op is some kind of gate
+                    w.r = malloc(sizeof(encoding));
+                    w.z = malloc(sizeof(encoding));
+                    encoding_init(w.r, p);
+                    encoding_init(w.z, p);
 
-                    if (x->d > y->d) {
-                        return encoding_add(rop, y, x);
+                    wire x = cache[args[0]];
+                    wire y = cache[args[1]];
+
+                    if (x.d > y.d) {
+                        x = cache[args[1]];
+                        y = cache[args[0]];
                     }
 
-                    size_t delta = y->d - x->d;
+                    if (op == MUL) {
+                        encoding_mul(w.r, x.r, y.r);
+                        encoding_mul(w.z, x.z, y.z);
+                        w.d = x.d + y.d;
+                    }
+
+                    else if (op == ADD || op == SUB) {
+                        encoding zstar;
+                        encoding_init(&zstar, p);
+                        encoding_mul(zstar, obf->Zstar, obf->Zstar);
+                        size_t delta = y.d - x.d;
+                        for (int j = 1; j < delta; j++) {
+                            encoding_mul(zstar, zstar, obf->Zstar);
+                        }
+
+                        encoding tmp0, tmp1;
+                        encoding_init(tmp0);
+                        encoding_init(tmp1);
+
+                        encoding_mul(tmp0, x.z, y.r);
+                        encoding_mul(tmp0, tmp0, zstar);
+                        encoding_mul(tmp1, y.z, x.r);
+
+                        if (op == ADD)
+                            encoding_add(w.z, tmp0, tmp1);
+                        else
+                            encoding_sub(w.z, tmp0, tmp1);
+
+                        encoding_mul(w.r, x.r, y.r);
+                        w.d = y.d;
+
+                        encoding_clear(&zstar);
+                        encoding_clear(&tmp0);
+                        encoding_clear(&tmp1);
+                    }
 
                 }
 

@@ -7,6 +7,7 @@
 typedef struct {
     encoding *r;
     encoding *z;
+    size_t d;
 } wire;
 
 void evaluate (bool *rop, const bool *inps, obfuscation *obf, fake_params *p);
