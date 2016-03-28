@@ -6,7 +6,8 @@
 typedef struct {
     encoding *r;
     encoding *z;
-    int my_encodings; // whether this wire "owns" the encodings
+    int my_r; // whether this wire "owns" r
+    int my_z; // whether this wire "owns" z
     size_t d;
     size_t *type;
     size_t c; // size of type - 1
@@ -14,11 +15,15 @@ typedef struct {
 
 void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p);
 
-void wire_init  (wire *rop, fake_params *p, int init_encodings);
+void wire_init  (wire *rop, fake_params *p, int init_r, int init_z);
 void wire_clear (wire *rop);
 
 void wire_mul (wire *rop, wire *x, wire *y);
 void wire_add (wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p);
 void wire_sub (wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p);
+void wire_constrained_sub (wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p);
+void wire_constrained_add (wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p);
+
+int wire_type_eq (wire *x, wire *y);
 
 #endif

@@ -93,3 +93,13 @@ void encoding_sub (encoding *rop, encoding *x, encoding *y)
     }
     level_set(rop->lvl, x->lvl);
 }
+
+int encoding_eq (encoding *x, encoding *y)
+{
+    if (!level_eq(x->lvl, y->lvl))
+        return 0;
+    for (int i = 0; i < x->nslots; i++)
+        if (x->slots[i] != y->slots[i])
+            return 0;
+    return 1;
+}
