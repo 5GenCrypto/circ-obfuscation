@@ -50,6 +50,15 @@ void encoding_clear (encoding *x)
     free(x->slots);
 }
 
+void encoding_set (encoding *rop, encoding *x)
+{
+    rop->nslots = x->nslots;
+    for (int i = 0; i < x->nslots; i++) {
+        mpz_set(rop->slots[i], x->slots[i]);
+    }
+    level_set(rop->lvl, x->lvl);
+}
+
 void encode (encoding *x, const mpz_t *inps, size_t nins, const level *lvl)
 {
     assert(nins == x->nslots);

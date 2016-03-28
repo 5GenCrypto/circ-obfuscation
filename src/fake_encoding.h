@@ -20,6 +20,7 @@ typedef struct {
 
 void encoding_init  (encoding *x, fake_params *p);
 void encoding_clear (encoding *x);
+void encoding_set   (encoding *rop, encoding *x);
 
 void encode (encoding *x, const mpz_t *inps, size_t nins, const level *lvl);
 

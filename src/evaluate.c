@@ -1,5 +1,6 @@
 #include "evaluate.h"
 
+#include "util.h"
 #include <stdlib.h>
 #include <assert.h>
 #include <stdio.h>
@@ -7,8 +8,8 @@
 void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
 {
     circuit *c = obf->op->circ;
-    int  *known = calloc(c->nrefs, sizeof(circref));
-    wire *cache = malloc(c->nrefs * sizeof(wire));
+    int   *known = calloc(c->nrefs, sizeof(circref));
+    wire **cache = malloc(c->nrefs * sizeof(wire*));
 
     // determine each assignment s \in \Sigma from the input bits
     int *input_syms = malloc(obf->op->c * sizeof(int));
@@ -36,41 +37,41 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
                 operation op  = c->ops[ref];
                 circref *args = c->args[ref];
 
-                wire w;
+                wire *w = malloc(sizeof(wire));
 
-                if (op == YINPUT) {
-                    size_t yid = args[0];
-                    w.r = obf->Rc;
-                    w.z = obf->Zcj[yid];
-                    w.d = 1;
-                }
-
-                else if (op == XINPUT) {
+                if (op == XINPUT) {
+                    wire_init(w, p, 0);
                     size_t xid = args[0];
                     sym_id sym = obf->op->chunker(xid, c->ninputs, obf->op->c);
                     int k = sym.sym_number;
                     int j = sym.bit_number;
                     int s = input_syms[k];
-                    w.r = obf->Rks[k][s];
-                    w.z = obf->Zksj[k][s][j];
-                    w.d = 1;
+                    w->r = obf->Rks[k][s];
+                    w->z = obf->Zksj[k][s][j];
+                    w->d = 1;
+                    w->type[k] = 1;
+                }
+
+                else if (op == YINPUT) {
+                    wire_init(w, p, 0);
+                    size_t yid = args[0];
+                    w->r = obf->Rc;
+                    w->z = obf->Zcj[yid];
+                    w->d = 1;
+                    w->type[obf->op->c] = 1;
                 }
 
                 else { // op is some kind of gate
-                    w.r = malloc(sizeof(encoding));
-                    w.z = malloc(sizeof(encoding));
-                    encoding_init(w.r, p);
-                    encoding_init(w.z, p);
-
-                    wire x = cache[args[0]];
-                    wire y = cache[args[1]];
+                    wire_init(w, p, 1);
+                    wire *x = cache[args[0]];
+                    wire *y = cache[args[1]];
 
                     if (op == MUL) {
-                        wire_mul(&w, &x, &y);
+                        wire_mul(w, x, y);
                     } else if (op == ADD) {
-                        wire_add(&w, &x, &y, obf, p);
+                        wire_add(w, x, y, obf, p);
                     } else if (op == SUB) {
-                        wire_sub(&w, &x, &y, obf, p);
+                        wire_sub(w, x, y, obf, p);
                     }
                 }
 
@@ -82,11 +83,9 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
     }
 
     for (circref x = 0; x < c->nrefs; x++) {
-        if (known[x] && c->ops[x] != XINPUT && c->ops[x] != YINPUT) {
-            encoding_clear(cache[x].r);
-            encoding_clear(cache[x].z);
-            free(cache[x].r);
-            free(cache[x].z);
+        if (known[x]) {
+            wire_clear(cache[x]);
+            free(cache[x]);
         }
     }
     free(cache);
@@ -94,11 +93,39 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
     free(input_syms);
 }
 
+void wire_init (wire *rop, fake_params *p, int init_encodings)
+{
+    if (init_encodings) {
+        rop->r = malloc(sizeof(encoding));
+        rop->z = malloc(sizeof(encoding));
+        encoding_init(rop->r, p);
+        encoding_init(rop->z, p);
+    }
+    rop->d = 0;
+    rop->type = calloc(p->op->c+1, sizeof(size_t));
+    rop->c = p->op->c;
+    rop->my_encodings = init_encodings;
+}
+
+void wire_clear (wire *rop)
+{
+    if (rop->my_encodings) {
+        encoding_clear(rop->r);
+        encoding_clear(rop->z);
+        free(rop->r);
+        free(rop->z);
+    }
+    free(rop->type);
+}
+
 void wire_mul (wire *rop, wire *x, wire *y)
 {
     encoding_mul(rop->r, x->r, y->r);
     encoding_mul(rop->z, x->z, y->z);
     rop->d = x->d + y->d;
+    for (int i = 0; i < x->c+1; i++) {
+        rop->type[i] = x->type[i] + y->type[i];
+    }
 }
 
 void wire_add (wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p)
@@ -131,6 +158,10 @@ void wire_add (wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p)
 
     encoding_mul(rop->r, x->r, y->r);
     rop->d = y->d;
+
+    for (int i = 0; i < x->c+1; i++) {
+        rop->type[i] = max(x->type[i], y->type[i]);
+    }
 
     if (delta > 1)
         encoding_clear(&zstar);
@@ -171,6 +202,10 @@ void wire_sub(wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p)
 
         encoding_mul(rop->r, x->r, y->r);
         rop->d = x->d;
+    }
+
+    for (int i = 0; i < x->c+1; i++) {
+        rop->type[i] = max(x->type[i], y->type[i]);
     }
 
     if (delta > 1)

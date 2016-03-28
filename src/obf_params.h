@@ -11,7 +11,7 @@ typedef struct {
     size_t c;         // number of "symbolic" inputs
     size_t gamma;     // number of outputs
     size_t ell;       // length of symbols
-    uint32_t **types; // (gamma x q)-size array
+    uint32_t **types; // (gamma x (c+1))-size array
     uint32_t M;       // max type degree in circuit over all output wires
     input_chunker chunker;
     reverse_chunker rchunker;
