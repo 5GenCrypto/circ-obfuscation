@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-sym_id chunker_in_order  (input_id id, size_t ninputs, size_t nsyms)
+sym_id chunker_in_order (input_id id, size_t ninputs, size_t nsyms)
 {
     size_t chunksize = ceil((double) ninputs / (double) nsyms);
     size_t k = floor((double)id / (double) chunksize);

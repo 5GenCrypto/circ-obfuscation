@@ -34,9 +34,6 @@ int seed_rng(gmp_randstate_t *rng) {
             (void) close(file);
             return 1;
         } else {
-            if (g_verbose)
-                (void) fprintf(stderr, "  Seed: %lu\n", seed);
-
             gmp_randinit_default(*rng);
             gmp_randseed_ui(*rng, seed);
         }
