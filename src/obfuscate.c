@@ -175,6 +175,7 @@ void obfuscate (obfuscation *obf, fake_params *p, gmp_randstate_t *rng)
 
     // encode Rks and Zksj
     mpz_t *rs = mpz_vect_create(p->op->c+3);
+    #pragma omp parallel for schedule(dynamic,1) collapse(2)
     for (int k = 0; k < p->op->c; k++) {
         for (int s = 0; s < p->op->q; s++) {
             mpz_urandomm_vect(rs, p->moduli, p->op->c+3, rng);
@@ -188,11 +189,13 @@ void obfuscate (obfuscation *obf, fake_params *p, gmp_randstate_t *rng)
     // encode Rc and Zcj
     mpz_urandomm_vect(rs, p->moduli, p->op->c+3, rng);
     encode_Rc(obf->Rc, p, rs);
+    #pragma omp parallel for
     for (int j = 0; j < p->op->m; j++) {
         encode_Zcj(obf->Zcj[j], p, rs, ykj[p->op->c][j], p->op->circ->consts[j], rng);
     }
 
     // encode Rhatkso and Zhatkso
+    #pragma omp parallel for schedule(dynamic,1) collapse(3)
     for (int o = 0; o < p->op->gamma; o++) {
         for (int k = 0; k < p->op->c; k++) {
             for (int s = 0; s < p->op->q; s++) {
@@ -204,6 +207,7 @@ void obfuscate (obfuscation *obf, fake_params *p, gmp_randstate_t *rng)
     }
 
     // encode Rbaro and Zbaro
+    #pragma omp parallel for
     for (int o = 0; o < p->op->gamma; o++) {
         mpz_urandomm_vect(rs, p->moduli, p->op->c+3, rng);
         encode_Rbaro(obf->Rbaro[o], p, rs, o);

@@ -30,7 +30,8 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
         topo_levels *topo = topological_levels(c, root);
 
         for (int lvl = 0; lvl < topo->nlevels; lvl++) {
-            // TODO: parallelize here
+
+            #pragma omp parallel for
             for (int i = 0; i < topo->level_sizes[lvl]; i++) {
 
                 circref ref = topo->levels[lvl][i];
