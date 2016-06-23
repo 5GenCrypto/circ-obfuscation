@@ -1,10 +1,10 @@
 #include "circuit.h"
+#include "util.h"
 /*#include "clt13.h"*/
 #include "evaluate.h"
 #include "input_chunker.h"
 #include "level.h"
 #include "obfuscate.h"
-#include "util.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,20 +57,20 @@ int main (int argc, char **argv)
     puts("");
 
     obf_params op;
-    /*obf_params_init(&op, &c, chunker_in_order, rchunker_in_order, nsyms);*/
-    obf_params_init(&op, &c, chunker_mod, rchunker_mod, nsyms);
+    obf_params_init(&op, &c, chunker_in_order, rchunker_in_order, nsyms);
+    /*obf_params_init(&op, &c, chunker_mod, rchunker_mod, nsyms);*/
 
     for (int i = 0; i < c.noutputs; i++) {
-        printf("c=%lu o=%d type=", op.c, i);
+        printf("output bit %d: type=", i);
         print_array(op.types[i], nsyms + 1);
         puts("");
     }
-    printf("M=%u\n", op.M);
+    printf("params: c=%lu ell=%lu q=%lu M=%u\n", op.c, op.ell, op.q, op.M);
 
     gmp_randstate_t rng;
     seed_rng(&rng);
 
-    mpz_t *moduli = malloc((op.c+3) * sizeof(mpz_t));
+    mpz_t *moduli = lin_malloc((op.c+3) * sizeof(mpz_t));
     for (int i = 0; i < op.c+3; i++) {
         mpz_init(moduli[i]);
         mpz_urandomb(moduli[i], rng, 128);
@@ -88,7 +88,7 @@ int main (int argc, char **argv)
 
     printf("evaluating...\n");
     /*void evaluate (bool *rop, const bool *inps, obfuscation *obf, fake_params *p);*/
-    int *res = malloc(c.noutputs * sizeof(int));
+    int *res = lin_malloc(c.noutputs * sizeof(int));
     evaluate(res, c.testinps[0], &obf, &fp);
 
     // free all the things

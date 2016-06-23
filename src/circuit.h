@@ -1,13 +1,13 @@
 #ifndef __SRC_CIRCUIT_H__
 #define __SRC_CIRCUIT_H__
 
-#include "input_chunker.h"
 #include <gmp.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
 typedef size_t circref;
+typedef size_t input_id;
 
 typedef enum {
     XINPUT,
@@ -60,8 +60,6 @@ void topo_levels_destroy (topo_levels *topo);
 // info
 uint32_t depth  (circuit *c, circref ref);
 uint32_t degree (circuit *c, circref ref);
-
-void type_degree (uint32_t *rop, circref ref, circuit *c, size_t nsyms, input_chunker chunker);
 
 // construction
 void circ_add_test   (circuit *c, char *inp, char *out);

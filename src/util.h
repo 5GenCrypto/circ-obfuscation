@@ -35,4 +35,8 @@ void mpz_vect_mod      (mpz_t *rop, mpz_t *xs, mpz_t *moduli, size_t n);
 
 size_t bit(size_t x, size_t i);
 
+void* lin_calloc(size_t nmemb, size_t size);
+void* lin_malloc(size_t size);
+void* lin_realloc(void *ptr, size_t size);
+
 #endif

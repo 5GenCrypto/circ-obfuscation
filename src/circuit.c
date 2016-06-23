@@ -4,8 +4,8 @@
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
 
 void ensure_gate_space (circuit *c, circref ref);
 
@@ -21,12 +21,12 @@ void circ_init (circuit *c)
     c->_test_alloc   = 2;
     c->_outref_alloc = 2;
     c->_consts_alloc = 2;
-    c->outrefs  = malloc(c->_outref_alloc * sizeof(circref));
-    c->args     = malloc(c->_ref_alloc    * sizeof(circref*));
-    c->ops      = malloc(c->_ref_alloc    * sizeof(operation));
-    c->testinps = malloc(c->_test_alloc   * sizeof(int*));
-    c->testouts = malloc(c->_test_alloc   * sizeof(int*));
-    c->consts   = malloc(c->_consts_alloc * sizeof(int));
+    c->outrefs  = lin_malloc(c->_outref_alloc * sizeof(circref));
+    c->args     = lin_malloc(c->_ref_alloc    * sizeof(circref*));
+    c->ops      = lin_malloc(c->_ref_alloc    * sizeof(operation));
+    c->testinps = lin_malloc(c->_test_alloc   * sizeof(int*));
+    c->testouts = lin_malloc(c->_test_alloc   * sizeof(int*));
+    c->consts   = lin_malloc(c->_consts_alloc * sizeof(int));
 }
 
 void circ_clear (circuit *c)
@@ -94,7 +94,7 @@ void eval_circ_mod (mpz_t rop, circuit *c, circref ref, mpz_t *xs, mpz_t *ys, mp
 
 int ensure (circuit *c)
 {
-    int *res = malloc(c->noutputs * sizeof(int));
+    int *res = lin_malloc(c->noutputs * sizeof(int));
     bool ok  = true;
 
     for (int test_num = 0; test_num < c->ntests; test_num++) {
@@ -145,7 +145,7 @@ void topo_helper (int ref, int *topo, int *seen, int *i, circuit *c)
 
 void topological_order (int *topo, circuit *c, circref ref)
 {
-    int *seen = calloc(c->_ref_alloc, sizeof(int));
+    int *seen = lin_calloc(c->_ref_alloc, sizeof(int));
     int i = 0;
     topo_helper(ref, topo, seen, &i, c);
     free(seen);
@@ -170,7 +170,7 @@ void dependencies_helper (int *deps, int *seen, int *i, circuit *c, int ref)
 
 int dependencies (int *deps, circuit *c, int ref)
 {
-    int *seen = calloc(c->nrefs, sizeof(int));
+    int *seen = lin_calloc(c->nrefs, sizeof(int));
     int ndeps = 0;
     dependencies_helper(deps, seen, &ndeps, c, ref);
     free(seen);
@@ -180,14 +180,14 @@ int dependencies (int *deps, circuit *c, int ref)
 // returns number of levels
 topo_levels* topological_levels (circuit *c, circref root)
 {
-    topo_levels *topo = malloc(sizeof(topo_levels));
-    topo->levels      = malloc(c->nrefs * sizeof(circref));
-    topo->level_sizes = calloc(c->nrefs, sizeof(int));
+    topo_levels *topo = lin_malloc(sizeof(topo_levels));
+    topo->levels      = lin_malloc(c->nrefs * sizeof(circref));
+    topo->level_sizes = lin_calloc(c->nrefs, sizeof(int));
 
-    int *level_alloc  = calloc(c->nrefs, sizeof(int));
+    int *level_alloc  = lin_calloc(c->nrefs, sizeof(int));
 
-    int *topo_list = calloc(c->nrefs, sizeof(int));
-    int *deps = malloc(2 * c->nrefs * sizeof(int));
+    int *topo_list = lin_calloc(c->nrefs, sizeof(int));
+    int *deps = lin_malloc(2 * c->nrefs * sizeof(int));
 
     int max_level = 0;
     topological_order(topo_list, c, root);
@@ -206,10 +206,10 @@ topo_levels* topological_levels (circuit *c, circref root)
             // ensure space
             if (level_alloc[j] == 0) {
                 level_alloc[j] = 2;
-                topo->levels[j] = malloc(level_alloc[j] * sizeof(int));
+                topo->levels[j] = lin_malloc(level_alloc[j] * sizeof(int));
             } else if (topo->level_sizes[j] + 1 >= level_alloc[j]) {
                 level_alloc[j] *= 2;
-                topo->levels[j] = realloc(topo->levels[j], level_alloc[j] * sizeof(int));
+                topo->levels[j] = lin_realloc(topo->levels[j], level_alloc[j] * sizeof(int));
             }
 
             topo->levels[j][topo->level_sizes[j]] = ref; // push this ref
@@ -264,61 +264,21 @@ uint32_t degree (circuit *c, circref ref)
     return max(xres, yres); // else op == ADD || op == SUB
 }
 
-void type_degree (
-    uint32_t *rop,
-    circref ref,
-    circuit *c,
-    size_t nsyms,
-    sym_id (*input_chunker) (input_id id, size_t ninputs, size_t nsyms)
-){
-    operation op = c->ops[ref];
-    if (op == XINPUT) {
-        sym_id sym = input_chunker(c->args[ref][0], c->ninputs, nsyms);
-        rop[sym.sym_number] = 1;
-        return;
-    }
-    if (op == YINPUT) {
-        rop[nsyms] = 1;
-        return;
-    }
-
-    uint32_t *xtype = calloc(nsyms+1, sizeof(uint32_t));
-    uint32_t *ytype = calloc(nsyms+1, sizeof(uint32_t));
-
-    type_degree(xtype, c->args[ref][0], c, nsyms, input_chunker);
-    type_degree(ytype, c->args[ref][1], c, nsyms, input_chunker);
-
-    int types_eq = 1;
-    for (size_t i = 0; i < nsyms+1; i++)
-        types_eq = types_eq && (xtype[i] == ytype[i]);
-
-    if ((op == ADD || op == SUB) && types_eq) {
-        for (size_t i = 0; i < nsyms+1; i++)
-            rop[i] = xtype[i];
-    } else { // types unequal or op == MUL
-        for (size_t i = 0; i < nsyms+1; i++)
-            rop[i] = xtype[i] + ytype[i];
-    }
-
-    free(xtype);
-    free(ytype);
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 // circuit creation
 
 void circ_add_test (circuit *c, char *inpstr, char *outstr)
 {
     if (c->ntests >= c->_test_alloc) {
-        c->testinps = realloc(c->testinps, 2 * c->_test_alloc * sizeof(int**));
-        c->testouts = realloc(c->testouts, 2 * c->_test_alloc * sizeof(int**));
+        c->testinps = lin_realloc(c->testinps, 2 * c->_test_alloc * sizeof(int**));
+        c->testouts = lin_realloc(c->testouts, 2 * c->_test_alloc * sizeof(int**));
         c->_test_alloc *= 2;
     }
 
     int inp_len = strlen(inpstr);
     int out_len = strlen(outstr);
-    int *inp = malloc(inp_len * sizeof(int));
-    int *out = malloc(out_len * sizeof(int));
+    int *inp = lin_malloc(inp_len * sizeof(int));
+    int *out = lin_malloc(out_len * sizeof(int));
 
     for (int i = 0; i < inp_len; i++)
         if (inpstr[inp_len-1 - i] == '1')
@@ -346,7 +306,7 @@ void circ_add_xinput (circuit *c, circref ref, input_id id)
     c->ninputs += 1;
     c->nrefs   += 1;
     c->ops[ref] = XINPUT;
-    circref *args = malloc(2 * sizeof(circref));
+    circref *args = lin_malloc(2 * sizeof(circref));
     args[0] = id;
     args[1] = -1;
     c->args[ref] = args;
@@ -356,14 +316,14 @@ void circ_add_yinput (circuit *c, circref ref, size_t id, int val)
 {
     ensure_gate_space(c, ref);
     if (c->nconsts >= c->_consts_alloc) {
-        c->consts = realloc(c->consts, 2 * c->_consts_alloc * sizeof(int));
+        c->consts = lin_realloc(c->consts, 2 * c->_consts_alloc * sizeof(int));
         c->_consts_alloc *= 2;
     }
     c->consts[c->nconsts] = val;
     c->nconsts  += 1;
     c->nrefs    += 1;
     c->ops[ref]  = YINPUT;
-    circref *args = malloc(2 * sizeof(circref));
+    circref *args = lin_malloc(2 * sizeof(circref));
     args[0] = id;
     args[1] = val;
     c->args[ref] = args;
@@ -375,13 +335,13 @@ void circ_add_gate (circuit *c, circref ref, operation op, int xref, int yref, b
     c->ngates   += 1;
     c->nrefs    += 1;
     c->ops[ref]  = op;
-    circref *args = malloc(2 * sizeof(circref));
+    circref *args = lin_malloc(2 * sizeof(circref));
     args[0] = xref;
     args[1] = yref;
     c->args[ref] = args;
     if (is_output) {
         if (c->noutputs >= c->_outref_alloc) {
-            c->outrefs = realloc(c->outrefs, 2 * c->_outref_alloc * sizeof(circref));
+            c->outrefs = lin_realloc(c->outrefs, 2 * c->_outref_alloc * sizeof(circref));
             c->_outref_alloc *= 2;
         }
         c->outrefs[c->noutputs++] = ref;
@@ -394,8 +354,8 @@ void circ_add_gate (circuit *c, circref ref, operation op, int xref, int yref, b
 void ensure_gate_space (circuit *c, circref ref)
 {
     if (ref >= c->_ref_alloc) {
-        c->args = realloc(c->args, 2 * c->_ref_alloc * sizeof(circref**));
-        c->ops  = realloc(c->ops,  2 * c->_ref_alloc * sizeof(operation));
+        c->args = lin_realloc(c->args, 2 * c->_ref_alloc * sizeof(circref**));
+        c->ops  = lin_realloc(c->ops,  2 * c->_ref_alloc * sizeof(operation));
         c->_ref_alloc *= 2;
     }
 }

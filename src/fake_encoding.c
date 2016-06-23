@@ -1,4 +1,5 @@
 #include "fake_encoding.h"
+#include "util.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -10,7 +11,7 @@
 void fake_params_init (fake_params *p, obf_params *op, mpz_t *moduli)
 {
     p->moduli = moduli;
-    /*p->moduli = malloc((op->c+3) * sizeof(mpz_t));*/
+    /*p->moduli = lin_malloc((op->c+3) * sizeof(mpz_t));*/
     /*for (int i = 0; i < op->c+3; i++) {*/
         /*mpz_init(p->moduli[i]);*/
         /*mpz_set(p->moduli[i], moduli[i]);*/
@@ -31,10 +32,10 @@ void fake_params_clear (fake_params *p)
 
 void encoding_init (encoding *x, fake_params *p)
 {
-    x->lvl = malloc(sizeof(level));
+    x->lvl = lin_malloc(sizeof(level));
     level_init(x->lvl, p->op);
     x->nslots = p->op->c+3;
-    x->slots  = malloc(x->nslots * sizeof(mpz_t));
+    x->slots  = lin_malloc(x->nslots * sizeof(mpz_t));
     for (int i = 0; i < x->nslots; i++) {
         mpz_init(x->slots[i]);
     }

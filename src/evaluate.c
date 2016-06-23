@@ -10,11 +10,11 @@
 void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
 {
     circuit *c = obf->op->circ;
-    int   *known = calloc(c->nrefs, sizeof(circref));
-    wire **cache = malloc(c->nrefs * sizeof(wire*));
+    int   *known = lin_calloc(c->nrefs, sizeof(circref));
+    wire **cache = lin_malloc(c->nrefs * sizeof(wire*));
 
     // determine each assignment s \in \Sigma from the input bits
-    int *input_syms = malloc(obf->op->c * sizeof(int));
+    int *input_syms = lin_malloc(obf->op->c * sizeof(int));
     for (int i = 0; i < obf->op->c; i++) {
         input_syms[i] = 0;
         for (int j = 0; j < obf->op->ell; j++) {
@@ -40,7 +40,7 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
                 operation op  = c->ops[ref];
                 circref *args = c->args[ref];
 
-                wire *w = malloc(sizeof(wire));
+                wire *w = lin_malloc(sizeof(wire));
 
                 if (op == XINPUT) {
                     wire_init(w, p, 0, 0);
@@ -113,15 +113,15 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
 void wire_init (wire *rop, fake_params *p, int init_r, int init_z)
 {
     if (init_r) {
-        rop->r = malloc(sizeof(encoding));
+        rop->r = lin_malloc(sizeof(encoding));
         encoding_init(rop->r, p);
     }
     if (init_z) {
-        rop->z = malloc(sizeof(encoding));
+        rop->z = lin_malloc(sizeof(encoding));
         encoding_init(rop->z, p);
     }
     rop->d = 0;
-    rop->type = calloc(p->op->c+1, sizeof(size_t));
+    rop->type = lin_calloc(p->op->c+1, sizeof(size_t));
     rop->c = p->op->c;
     rop->my_r = init_r;
     rop->my_z = init_z;

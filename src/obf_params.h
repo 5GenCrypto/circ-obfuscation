@@ -2,6 +2,7 @@
 #define __SRC_OBF_PARAMS_H__
 
 #include "circuit.h"
+#include "input_chunker.h"
 #include <stddef.h>
 #include <stdint.h>
 

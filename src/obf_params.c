@@ -1,7 +1,10 @@
 #include "obf_params.h"
+#include "util.h"
 
 #include <math.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <err.h>
 
 void obf_params_init (
     obf_params *p,
@@ -12,15 +15,17 @@ void obf_params_init (
 ) {
     p->m = circ->nconsts;
     p->gamma = circ->noutputs;
-    p->types = malloc(p->gamma * sizeof(uint32_t*));
+    p->types = lin_malloc(p->gamma * sizeof(uint32_t*));
 
     p->ell = ceil((double) circ->ninputs / (double) num_symbolic_inputs); // length of symbols
-    p->q = 1 << p->ell; // 2^ell
+    p->q = pow((double) 2, (double) p->ell); // 2^ell
+    if (p->q <= 0)
+        errx(1, "[obf_params_init] q (size of alphabet) overflowed");
     p->c = num_symbolic_inputs;
 
     p->M = 0;
     for (int i = 0; i < p->gamma; i++) {
-        p->types[i] = calloc(p->c+1, sizeof(uint32_t));
+        p->types[i] = lin_calloc(p->c+1, sizeof(uint32_t));
         type_degree(p->types[i], circ->outrefs[i], circ, p->c, chunker);
 
         for (int j = 0; j < p->c+1; j++) {
@@ -53,9 +58,9 @@ void obf_params_init_set (obf_params *rop, const obf_params *op)
     rop->gamma = op->gamma;
     rop->chunker  = op->chunker;
     rop->rchunker = op->rchunker;
-    rop->types = malloc(rop->gamma * sizeof(uint32_t*));
+    rop->types = lin_malloc(rop->gamma * sizeof(uint32_t*));
     for (int i = 0; i < rop->gamma; i++) {
-        rop->types[i] = malloc((rop->q+1) * sizeof(uint32_t));
+        rop->types[i] = lin_malloc((rop->q+1) * sizeof(uint32_t));
         for (int j = 0; j < rop->q+1; j++) {
             rop->types[i][j] = op->types[i][j];
         }

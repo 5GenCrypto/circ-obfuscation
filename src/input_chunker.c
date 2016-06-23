@@ -1,4 +1,5 @@
 #include "input_chunker.h"
+#include "util.h"
 
 #include <assert.h>
 #include <math.h>
@@ -47,3 +48,44 @@ void test_chunker (input_chunker chunker, reverse_chunker rchunker)
         }
     }
 }
+
+void type_degree (
+    uint32_t *rop,
+    circref ref,
+    circuit *c,
+    size_t nsyms,
+    input_chunker chunker
+){
+    operation op = c->ops[ref];
+    if (op == XINPUT) {
+        sym_id sym = chunker(c->args[ref][0], c->ninputs, nsyms);
+        rop[sym.sym_number] = 1;
+        return;
+    }
+    if (op == YINPUT) {
+        rop[nsyms] = 1;
+        return;
+    }
+
+    uint32_t *xtype = lin_calloc(nsyms+1, sizeof(uint32_t));
+    uint32_t *ytype = lin_calloc(nsyms+1, sizeof(uint32_t));
+
+    type_degree(xtype, c->args[ref][0], c, nsyms, chunker);
+    type_degree(ytype, c->args[ref][1], c, nsyms, chunker);
+
+    int types_eq = 1;
+    for (size_t i = 0; i < nsyms+1; i++)
+        types_eq = types_eq && (xtype[i] == ytype[i]);
+
+    if ((op == ADD || op == SUB) && types_eq) {
+        for (size_t i = 0; i < nsyms+1; i++)
+            rop[i] = xtype[i];
+    } else { // types unequal or op == MUL
+        for (size_t i = 0; i < nsyms+1; i++)
+            rop[i] = xtype[i] + ytype[i];
+    }
+
+    free(xtype);
+    free(ytype);
+}
+

@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <err.h>
 
 int g_verbose;
 
@@ -184,4 +185,31 @@ void mpz_vect_mod (mpz_t *rop, mpz_t *xs, mpz_t *moduli, size_t n)
 size_t bit(size_t x, size_t i)
 {
     return (x & (1 << i)) > 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// custom allocators that complain when they fail
+
+void* lin_calloc(size_t nmemb, size_t size)
+{
+    void *ptr = calloc(nmemb, size);
+    if (ptr == NULL)
+        errx(1, "[lin_calloc] couldn't allocate %lu bytes!", nmemb * size);
+    return ptr;
+}
+
+void* lin_malloc(size_t size)
+{
+    void *ptr = malloc(size);
+    if (ptr == NULL)
+        errx(1, "[lin_malloc] couldn't allocate %lu bytes!", size);
+    return ptr;
+}
+
+void* lin_realloc(void *ptr, size_t size)
+{
+    void *ptr_ = realloc(ptr, size);
+    if (ptr_ == NULL)
+        errx(1, "[lin_realloc] couldn't reallocate %lu bytes!", size);
+    return ptr_;
 }
