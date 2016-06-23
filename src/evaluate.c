@@ -10,8 +10,6 @@
 void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
 {
     circuit *c = obf->op->circ;
-    int   *known = lin_calloc(c->nrefs, sizeof(circref));
-    wire **cache = lin_malloc(c->nrefs * sizeof(wire*));
 
     // determine each assignment s \in \Sigma from the input bits
     int *input_syms = lin_malloc(obf->op->c * sizeof(int));
@@ -23,6 +21,9 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
             input_syms[i] += inps[inp_bit] << j;
         }
     }
+
+    int   *known = lin_calloc(c->nrefs, sizeof(circref));
+    wire **cache = lin_malloc(c->nrefs * sizeof(wire*));
 
     for (int o = 0; o < obf->op->circ->noutputs; o++) {
         circref root = c->outrefs[o];
@@ -51,7 +52,6 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
                     int s = input_syms[k];
                     w->r = obf->Rks[k][s];
                     w->z = obf->Zksj[k][s][j];
-                    w->d = 1;
                     w->type[k] = 1;
                 }
 
@@ -60,7 +60,6 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
                     size_t yid = args[0];
                     w->r = obf->Rc;
                     w->z = obf->Zcj[yid];
-                    w->d = 1;
                     w->type[obf->op->c] = 1;
                 }
 
@@ -97,6 +96,34 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
             }
         }
         topo_levels_destroy(topo);
+
+        wire outwire;
+        wire_init(&outwire, p, 1, 1);
+        outwire.d = 1 + cache[root]->d;
+
+        // input consistency
+        for (int k = 0; k < p->op->c; k++) {
+            encoding_mul(outwire.r, cache[root]->r, obf->Rhatkso[k][input_syms[k]][o]);
+            encoding_mul(outwire.z, cache[root]->z, obf->Zhatkso[k][input_syms[k]][o]);
+        }
+
+        // output consistency
+        encoding_mul(outwire.r, outwire.r, obf->Rhato[o]);
+        encoding_mul(outwire.z, outwire.z, obf->Zhato[o]);
+
+        // authentication
+        wire rzbar;
+        wire_init(&rzbar, p, 0, 0);
+        rzbar.r = obf->Rbaro[o];
+        rzbar.z = obf->Zbaro[o];
+        rzbar.d = rzbar.z->lvl->mat[p->op->q][p->op->c+1];
+
+        wire_sub(&outwire, &outwire, &rzbar, obf, p);
+        wire_clear(&rzbar);
+
+        rop[o] = !encoding_is_zero(outwire.z, p);
+
+        wire_clear(&outwire);
     }
 
     for (circref x = 0; x < c->nrefs; x++) {
@@ -120,7 +147,7 @@ void wire_init (wire *rop, fake_params *p, int init_r, int init_z)
         rop->z = lin_malloc(sizeof(encoding));
         encoding_init(rop->z, p);
     }
-    rop->d = 0;
+    rop->d = 1;
     rop->type = lin_calloc(p->op->c+1, sizeof(size_t));
     rop->c = p->op->c;
     rop->my_r = init_r;
@@ -193,7 +220,6 @@ void wire_add (wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p)
 void wire_sub(wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p)
 {
     size_t d = abs(y->d - x->d);
-    printf("x.d=%lu y.d=%lu d=%lu\n", x->d, y->d, d);
     encoding zstar;
     if (d > 1) {
         encoding_init(&zstar, p);

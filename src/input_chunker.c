@@ -18,7 +18,9 @@ sym_id chunker_in_order (input_id id, size_t ninputs, size_t nsyms)
 input_id rchunker_in_order (sym_id sym,  size_t ninputs, size_t nsyms)
 {
     size_t chunksize = ceil((double) ninputs / (double) nsyms);
-    return sym.sym_number * chunksize + sym.bit_number;
+    input_id id = sym.sym_number * chunksize + sym.bit_number;
+    assert(id < ninputs);
+    return id;
 }
 
 sym_id chunker_mod (input_id id, size_t ninputs, size_t nsyms)
@@ -31,21 +33,32 @@ sym_id chunker_mod (input_id id, size_t ninputs, size_t nsyms)
 
 input_id rchunker_mod (sym_id sym, size_t ninputs, size_t nsyms)
 {
-    return sym.sym_number + sym.bit_number * nsyms;
+    input_id id = sym.sym_number + sym.bit_number * nsyms;
+    assert(id < ninputs);
+    return id;
 }
 
-void test_chunker (input_chunker chunker, reverse_chunker rchunker)
+void test_chunker (
+    input_chunker chunker,
+    reverse_chunker rchunker,
+    size_t ninputs,
+    size_t nsyms
+) {
+    for (int j = 0; j < 100; j++) {
+        input_id id = 1 + (rand() % (ninputs-1));
+        sym_id sym = chunker(id, ninputs, nsyms);
+        input_id id_ = rchunker(sym, ninputs, nsyms);
+        assert(id == id_);
+    }
+}
+
+void test_chunker_rand (input_chunker chunker, reverse_chunker rchunker)
 {
     srand(time(NULL));
     for (int i = 0; i < 100; i++) {
         size_t ninputs = 1 + (rand() % 1000);
         size_t nsyms   = 1 + (rand() % 100);
-        for (int j = 0; j < 100; j++) {
-            input_id id = 1 + (rand() % (ninputs-1));
-            sym_id sym = chunker(id, ninputs, nsyms);
-            input_id id_ = rchunker(sym, ninputs, nsyms);
-            assert(id == id_);
-        }
+        test_chunker(chunker, rchunker, ninputs, nsyms);
     }
 }
 

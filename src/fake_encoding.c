@@ -10,6 +10,7 @@
 
 void fake_params_init (fake_params *p, obf_params *op, mpz_t *moduli)
 {
+// TODO: keep track of top level
     p->moduli = moduli;
     /*p->moduli = lin_malloc((op->c+3) * sizeof(mpz_t));*/
     /*for (int i = 0; i < op->c+3; i++) {*/
@@ -86,9 +87,14 @@ void encoding_add (encoding *rop, encoding *x, encoding *y)
     level_set(rop->lvl, x->lvl);
 }
 
-void encoding_sub (encoding *rop, encoding *x, encoding *y)
+void encoding_sub(encoding *rop, encoding *x, encoding *y)
 {
-    assert(level_eq(x->lvl, y->lvl));
+    if (!level_eq(x->lvl, y->lvl)) {
+        level_print(x->lvl);
+        puts("");
+        level_print(y->lvl);
+        assert(level_eq(x->lvl, y->lvl));
+    }
     for (int i = 0; i < rop->nslots; i++) {
         mpz_sub(rop->slots[i], x->slots[i], y->slots[i]);
     }
@@ -101,6 +107,14 @@ int encoding_eq (encoding *x, encoding *y)
         return 0;
     for (int i = 0; i < x->nslots; i++)
         if (x->slots[i] != y->slots[i])
+            return 0;
+    return 1;
+}
+
+int encoding_is_zero (encoding *x, fake_params *p)
+{
+    for (int i = 0; i < x->nslots; i++)
+        if (mpz_sgn(x->slots[i]) != 0)
             return 0;
     return 1;
 }

@@ -29,4 +29,6 @@ void encoding_add (encoding *rop, encoding *x, encoding *y);
 void encoding_sub (encoding *rop, encoding *x, encoding *y);
 int  encoding_eq  (encoding *x, encoding *y);
 
+int encoding_is_zero (encoding *x, fake_params *p);
+
 #endif

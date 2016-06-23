@@ -163,12 +163,12 @@ level* level_create_vhato (obf_params *p, size_t o)
     assert(o < p->gamma);
     level *lvl = lin_malloc(sizeof(level));
     level_init(lvl, p);
-    for (int i = 0; i < lvl->p->c+1; i++) {
-        for (int j = 0; j < lvl->p->q; j++) {
-            lvl->mat[i][j] = lvl->p->M - lvl->p->types[o][i];
+    for (int i = 0; i < lvl->p->q; i++) {
+        for (int j = 0; j < lvl->p->c+1; j++) {
+            lvl->mat[i][j] = lvl->p->M - lvl->p->types[o][j];
         }
     }
-    lvl->mat[lvl->p->c][lvl->p->q] = 1;
+    lvl->mat[lvl->p->q][lvl->p->c] = 1;
     for (int i = 0; i < lvl->p->gamma; i++) {
         if (i != o)
             lvl->vec[i] = lvl->p->c;

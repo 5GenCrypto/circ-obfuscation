@@ -21,7 +21,13 @@ input_id rchunker_in_order (sym_id sym,  size_t ninputs, size_t nsyms);
 sym_id   chunker_mod  (input_id id, size_t ninputs, size_t nsyms);
 input_id rchunker_mod (sym_id sym,  size_t ninputs, size_t nsyms);
 
-void test_chunker (input_chunker chunker, reverse_chunker rchunker);
+void test_chunker (
+    input_chunker chunker,
+    reverse_chunker rchunker,
+    size_t ninputs,
+    size_t nsyms
+);
+void test_chunker_rand (input_chunker chunker, reverse_chunker rchunker);
 
 void type_degree (uint32_t *rop, circref ref, circuit *c, size_t nsyms, input_chunker chunker);
 

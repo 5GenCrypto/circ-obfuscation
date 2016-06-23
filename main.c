@@ -6,6 +6,7 @@
 #include "level.h"
 #include "obfuscate.h"
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -21,8 +22,6 @@ int extern g_verbose;
 
 int main (int argc, char **argv)
 {
-    /*test_chunker(chunker_in_order, rchunker_in_order);*/
-    /*test_chunker(chunker_mod, rchunker_mod);*/
 
     ++argv, --argc;
     if (argc >= 1)
@@ -48,6 +47,8 @@ int main (int argc, char **argv)
     circ_init(&c);
     yyparse(&c);
 
+    assert(c.ninputs >= nsyms);
+
     printf("circuit: ninputs=%lu nconsts=%lu ngates=%lu ntests=%lu nrefs=%lu\n",
                      c.ninputs, c.nconsts, c.ngates, c.ntests, c.nrefs);
     ensure(&c);
@@ -55,6 +56,8 @@ int main (int argc, char **argv)
     printf("consts: ");
     print_array(c.consts, c.nconsts);
     puts("");
+
+    test_chunker(chunker_in_order, rchunker_in_order, nsyms, c.ninputs);
 
     obf_params op;
     obf_params_init(&op, &c, chunker_in_order, rchunker_in_order, nsyms);
@@ -86,13 +89,19 @@ int main (int argc, char **argv)
 
     obfuscate(&obf, &fp, &rng);
 
-    printf("evaluating...\n");
-    /*void evaluate (bool *rop, const bool *inps, obfuscation *obf, fake_params *p);*/
-    int *res = lin_malloc(c.noutputs * sizeof(int));
-    evaluate(res, c.testinps[0], &obf, &fp);
+    /*int *res = lin_malloc(c.noutputs * sizeof(int));*/
+    int res[c.noutputs];
+    for (int i = 0; i < c.ntests; i++) {
+        printf("evaluating test %d...\n", i);
+        /*void evaluate (bool *rop, const bool *inps, obfuscation *obf, fake_params *p);*/
+        evaluate(res, c.testinps[i], &obf, &fp);
+        printf("outputs: ");
+        print_array(res, c.noutputs);
+        puts("");
+    }
 
     // free all the things
-    free(res);
+    /*free(res);*/
     obfuscation_clear(&obf);
     for (int i = 0; i < op.c+3; i++) {
         mpz_clear(moduli[i]);
