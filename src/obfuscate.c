@@ -180,7 +180,7 @@ void obfuscate (obfuscation *obf, fake_params *p, gmp_randstate_t *rng)
 
     // create whatk and what
     mpz_t **whatk = lin_malloc((p->op->c+1) * sizeof(mpz_t*));
-    for (int k = 0; k < p->op->c+1; k++) {
+    for (int k = 0; k < p->op->c; k++) {
         whatk[k] = mpz_vect_create(p->op->c+3);
         mpz_urandomm_vect(whatk[k], p->moduli, p->op->c+3, rng);
         mpz_set_ui(whatk[k][k+2], 0);
@@ -260,7 +260,7 @@ void obfuscate (obfuscation *obf, fake_params *p, gmp_randstate_t *rng)
     free(ykj);
 
     // delete whatk and what
-    for (int k = 0; k < p->op->c+1; k++) {
+    for (int k = 0; k < p->op->c; k++) {
         mpz_vect_destroy(whatk[k], p->op->c+3);
     }
     free(whatk);
@@ -360,8 +360,15 @@ void encode_Rhatkso(encoding *enc, fake_params *p, mpz_t *rs, size_t k, size_t s
     level_destroy(vhatkso);
 }
 
-void encode_Zhatkso(encoding *enc, fake_params *p, mpz_t *rs, mpz_t *whatk, size_t k, size_t s, size_t o)
-{
+void encode_Zhatkso (
+    encoding *enc,
+    fake_params *p,
+    mpz_t *rs,
+    mpz_t *whatk,
+    size_t k,
+    size_t s,
+    size_t o
+) {
     mpz_t *inp = mpz_vect_create(p->op->c+3);
     mpz_vect_mul(inp, whatk, rs, p->op->c+3);
     mpz_vect_mod(inp, inp, p->moduli, p->op->c+3);
@@ -432,14 +439,14 @@ void encode_Zbaro(
         }
     }
     eval_circ_mod(ybar, c, c->outrefs[o], xs, ykj[p->op->c], p->moduli[0]);
+    gmp_printf("ybar=%Zd\n", ybar);
 
     mpz_t *tmp = mpz_vect_create(p->op->c+3);
-    for (int i = 0; i < p->op->c+3; i++) {
-        mpz_set(tmp[i], what[i]);
-    }
-    for (int k = 0; k < p->op->c+1; k++) {
+    mpz_vect_set(tmp, what, p->op->c+3);
+    for (int k = 0; k < p->op->c; k++) {
         mpz_vect_mul(tmp, tmp, whatk[k], p->op->c+3);
     }
+
     mpz_t *w = mpz_vect_create(p->op->c+3);
     mpz_set(w[0], ybar);
     mpz_set_ui(w[1], 1);

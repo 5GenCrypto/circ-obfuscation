@@ -95,6 +95,9 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
         wire outwire[1];
 
         wire_copy(outwire, cache[root], p);
+        printf("outwire=");
+        print_mpz_array(outwire->z->slots, outwire->z->nslots);
+        puts("");
 
         // input consistency
         for (int k = 0; k < p->op->c; k++) {
@@ -115,7 +118,7 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
 
         wire_clear(tmp);
 
-        rop[o] = !encoding_is_zero(outwire->z, p);
+        rop[o] = encoding_is_zero(outwire->z, p);
         print_mpz_array(outwire->z->slots, outwire->z->nslots);
         puts("");
 

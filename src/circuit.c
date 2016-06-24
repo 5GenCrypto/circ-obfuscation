@@ -101,22 +101,22 @@ int ensure (circuit *c)
         bool test_ok = true;
 
         for (int i = 0; i < c->noutputs; i++) {
-            /*res[i] = eval_circ(c, c->outrefs[i], c->testinps[test_num]);*/
-            mpz_t inps[c->ninputs];
-            for (int j = 0; j < c->ninputs; j++) {
-                mpz_init_set_ui(inps[j], c->testinps[test_num][j]);
-            }
-            mpz_t secs[c->nconsts];
-            for (int j = 0; j < c->nconsts; j++) {
-                mpz_init_set_ui(secs[j], c->consts[j]);
-            }
-            mpz_t mod;
-            mpz_init_set_ui(mod, 2);
-            mpz_t tmp;
-            mpz_init(tmp);
-            eval_circ_mod(tmp, c, c->outrefs[i], inps, secs, mod);
-            res[i] = mpz_get_ui(tmp);
-
+            res[i] = eval_circ(c, c->outrefs[i], c->testinps[test_num]);
+            // the following uses eval_circ_mod for testing
+            /*mpz_t inps[c->ninputs];*/
+            /*for (int j = 0; j < c->ninputs; j++) {*/
+                /*mpz_init_set_ui(inps[j], c->testinps[test_num][j]);*/
+            /*}*/
+            /*mpz_t secs[c->nconsts];*/
+            /*for (int j = 0; j < c->nconsts; j++) {*/
+                /*mpz_init_set_ui(secs[j], c->consts[j]);*/
+            /*}*/
+            /*mpz_t mod;*/
+            /*mpz_init_set_ui(mod, 2);*/
+            /*mpz_t tmp;*/
+            /*mpz_init(tmp);*/
+            /*eval_circ_mod(tmp, c, c->outrefs[i], inps, secs, mod);*/
+            /*res[i] = mpz_get_ui(tmp);*/
             test_ok = test_ok && ((res[i] > 0) == c->testouts[test_num][i]);
         }
 

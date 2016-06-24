@@ -186,6 +186,20 @@ void mpz_vect_destroy (mpz_t *vec, size_t n)
     free(vec);
 }
 
+void mpz_vect_set (mpz_t *rop, mpz_t *xs, size_t n)
+{
+    for (int i = 0; i < n; i++)
+        mpz_set(rop[i], xs[i]);
+}
+
+// set vec to be [x]*n
+void mpz_vect_replicate_ui (mpz_t *vec, size_t x, size_t n)
+{
+    for (int i = 0; i < n; i++) {
+        mpz_set_ui(vec[i], x);
+    }
+}
+
 void mpz_urandomm_vect (mpz_t *vec, mpz_t *moduli, size_t n, gmp_randstate_t *rng)
 {
     for (int i = 0; i < n; i++) {
