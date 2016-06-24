@@ -25,9 +25,9 @@ void encoding_set   (encoding *rop, encoding *x);
 
 void encode (encoding *x, const mpz_t *inps, size_t nins, const level *lvl);
 
-void encoding_mul (encoding *rop, encoding *x, encoding *y);
-void encoding_add (encoding *rop, encoding *x, encoding *y);
-void encoding_sub (encoding *rop, encoding *x, encoding *y);
+void encoding_mul (encoding *rop, encoding *x, encoding *y, fake_params *p);
+void encoding_add (encoding *rop, encoding *x, encoding *y, fake_params *p);
+void encoding_sub (encoding *rop, encoding *x, encoding *y, fake_params *p);
 int  encoding_eq  (encoding *x, encoding *y);
 
 int encoding_is_zero (encoding *x, fake_params *p);

@@ -121,6 +121,23 @@ void print_array(int *xs, size_t len) {
     }
 }
 
+void print_mpz_array(mpz_t *xs, size_t len)
+{
+    if (len == 1){
+        gmp_printf("[%Zd]", xs[0]);
+        return;
+    }
+    for (int i = 0; i < len; i++) {
+        if (i == 0) {
+            gmp_printf("[%Zd,", xs[i]);
+        } else if (i == len - 1) {
+            gmp_printf("%Zd]", xs[i]);
+        } else {
+            gmp_printf("%Zd,", xs[i]);
+        }
+    }
+}
+
 bool in_array(int x, int *ys, size_t len) {
     for (int i = 0; i < len; i++) {
         if (x == ys[i])
@@ -135,6 +152,14 @@ bool any_in_array(int *xs, int xlen, int *ys, size_t ylen) {
             return true;
     }
     return false;
+}
+
+bool array_eq(int *xs, int *ys, size_t len)
+{
+    for (int i = 0; i < len; i++)
+        if (xs[i] != ys[i])
+            return false;
+    return true;
 }
 
 void mpz_random_inv(mpz_t rop, gmp_randstate_t rng, mpz_t modulus) {

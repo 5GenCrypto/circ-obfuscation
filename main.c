@@ -78,7 +78,8 @@ int main (int argc, char **argv)
     mpz_t *moduli = lin_malloc((op.c+3) * sizeof(mpz_t));
     for (int i = 0; i < op.c+3; i++) {
         mpz_init(moduli[i]);
-        mpz_urandomb(moduli[i], rng, 128);
+        /*mpz_urandomb(moduli[i], rng, 128);*/
+        mpz_urandomb(moduli[i], rng, 16);
     }
 
     printf("initializing params..\n");
@@ -92,14 +93,23 @@ int main (int argc, char **argv)
 
     obfuscate(&obf, &fp, &rng);
 
+    puts("evaluating...");
     /*int *res = lin_malloc(c.noutputs * sizeof(int));*/
     int res[c.noutputs];
     for (int i = 0; i < c.ntests; i++) {
-        printf("evaluating test %d...\n", i);
         /*void evaluate (bool *rop, const bool *inps, obfuscation *obf, fake_params *p);*/
         evaluate(res, c.testinps[i], &obf, &fp);
-        printf("outputs: ");
+        bool test_ok = array_eq(res, c.testouts[i], c.noutputs);
+        if (!test_ok)
+            printf("\033[1;41m");
+        printf("test %d input=", i);
+        print_array(c.testinps[i], c.ninputs);
+        printf(" expected=");
+        print_array(c.testouts[i], c.noutputs);
+        printf(" got=");
         print_array(res, c.noutputs);
+        if (!test_ok)
+            printf("\033[0m");
         puts("");
     }
 

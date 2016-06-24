@@ -171,7 +171,7 @@ void obfuscate (obfuscation *obf, fake_params *p, gmp_randstate_t *rng)
             mpz_urandomm(ykj[k][j], *rng, p->moduli[0]);
         }
     }
-    // the cth ykj has length m (number of constant bits)
+    // the cth ykj has length m (number of secret bits)
     ykj[p->op->c] = lin_malloc(p->op->m * sizeof(mpz_t));
     for (int j = 0; j < p->op->m; j++) {
         mpz_init(ykj[p->op->c][j]);
@@ -300,18 +300,13 @@ void encode_Zksj (
     gmp_randstate_t *rng
 ) {
     mpz_t *w = mpz_vect_create(p->op->c+3);
+
+    mpz_set(w[0], ykj);
+    mpz_set_ui(w[1], bit(s,j));
     mpz_urandomm_vect(w+2, p->moduli+2, p->op->c+1, rng);
 
-    mpz_mul(w[0], rs[0], ykj);
-    mpz_mod(w[0], w[0], p->moduli[0]);
-
-    mpz_mul_ui(w[1], rs[1], bit(s, j));
-    mpz_mod(w[1], w[1], p->moduli[1]);
-
-    for (int i = 2; i < p->op->c+3; i++) {
-        mpz_mul(w[i], w[i], rs[i]);
-        mpz_mod(w[i], w[i], p->moduli[i]);
-    }
+    mpz_vect_mul(w, w, rs, p->op->c+3);
+    mpz_vect_mod(w, w, p->moduli, p->op->c+3);
 
     level *lvl = level_create_vks(p->op, k, s);
     level *vstar = level_create_vstar(p->op);
@@ -331,21 +326,21 @@ void encode_Rc (encoding *enc, fake_params *p, mpz_t *rs)
     level_destroy(vc);
 }
 
-void encode_Zcj(encoding *enc, fake_params *p, mpz_t *rs, mpz_t ykj, int const_val, gmp_randstate_t *rng)
-{
+void encode_Zcj (
+    encoding *enc,
+    fake_params *p,
+    mpz_t *rs,
+    mpz_t ykj,
+    int const_val,
+    gmp_randstate_t *rng
+) {
     mpz_t *w = mpz_vect_create(p->op->c+3);
+    mpz_set(w[0], ykj);
+    mpz_set_ui(w[1], const_val);
     mpz_urandomm_vect(w+2, p->moduli+2, p->op->c+1, rng);
 
-    mpz_mul(w[0], ykj, rs[0]);
-    mpz_mod(w[0], w[0], p->moduli[0]);
-
-    mpz_mul_ui(w[1], rs[1], const_val);
-    mpz_mod(w[1], w[1], p->moduli[1]);
-
-    for (int i = 2; i < p->op->c+3; i++) {
-        mpz_mul(w[i], w[i], rs[i]);
-        mpz_mod(w[i], w[i], p->moduli[i]);
-    }
+    mpz_vect_mul(w, w, rs, p->op->c+3);
+    mpz_vect_mod(w, w, p->moduli, p->op->c+3);
 
     level *lvl = level_create_vc(p->op);
     level *vstar = level_create_vstar(p->op);

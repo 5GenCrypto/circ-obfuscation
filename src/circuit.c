@@ -84,9 +84,9 @@ void eval_circ_mod (mpz_t rop, circuit *c, circref ref, mpz_t *xs, mpz_t *ys, mp
     eval_circ_mod(xres, c, c->args[ref][0], xs, ys, modulus);
     eval_circ_mod(yres, c, c->args[ref][1], xs, ys, modulus);
     switch (op) {
-        case ADD: mpz_add(rop, xres, yres);
-        case SUB: mpz_sub(rop, xres, yres);
-        case MUL: mpz_mul(rop, xres, yres);
+        case ADD: mpz_add(rop, xres, yres); break;
+        case SUB: mpz_sub(rop, xres, yres); break;
+        case MUL: mpz_mul(rop, xres, yres); break;
     }
     mpz_mod(rop, rop, modulus);
     mpz_clears(xres, yres, NULL);
@@ -101,7 +101,22 @@ int ensure (circuit *c)
         bool test_ok = true;
 
         for (int i = 0; i < c->noutputs; i++) {
-            res[i] = eval_circ(c, c->outrefs[i], c->testinps[test_num]);
+            /*res[i] = eval_circ(c, c->outrefs[i], c->testinps[test_num]);*/
+            mpz_t inps[c->ninputs];
+            for (int j = 0; j < c->ninputs; j++) {
+                mpz_init_set_ui(inps[j], c->testinps[test_num][j]);
+            }
+            mpz_t secs[c->nconsts];
+            for (int j = 0; j < c->nconsts; j++) {
+                mpz_init_set_ui(secs[j], c->consts[j]);
+            }
+            mpz_t mod;
+            mpz_init_set_ui(mod, 2);
+            mpz_t tmp;
+            mpz_init(tmp);
+            eval_circ_mod(tmp, c, c->outrefs[i], inps, secs, mod);
+            res[i] = mpz_get_ui(tmp);
+
             test_ok = test_ok && ((res[i] > 0) == c->testouts[test_num][i]);
         }
 

@@ -63,7 +63,7 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
 
                     if (op == MUL) {
                         wire_init(w, p, 1, 1);
-                        wire_mul(w, x, y);
+                        wire_mul(w, x, y, p);
                     }
 
                     else if (wire_type_eq(x, y) && encoding_eq(x->r, y->r)) {
@@ -102,12 +102,12 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
                 obf->Rhatkso[k][input_syms[k]][o],
                 obf->Zhatkso[k][input_syms[k]][o]
             );
-            wire_mul(outwire, outwire, tmp);
+            wire_mul(outwire, outwire, tmp, p);
         }
 
         // output consistency
         wire_init_from_encodings(tmp, p, obf->Rhato[o], obf->Zhato[o]);
-        wire_mul(outwire, outwire, tmp);
+        wire_mul(outwire, outwire, tmp, p);
 
         // authentication
         wire_init_from_encodings(tmp, p, obf->Rbaro[o], obf->Zbaro[o]);
@@ -116,6 +116,8 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
         wire_clear(tmp);
 
         rop[o] = !encoding_is_zero(outwire->z, p);
+        print_mpz_array(outwire->z->slots, outwire->z->nslots);
+        puts("");
 
         wire_clear(outwire);
     }
@@ -182,10 +184,10 @@ void wire_init_from_encodings (wire *rop, fake_params *p, encoding *r, encoding 
     rop->d = z->lvl->mat[p->op->q][p->op->c+1];
 }
 
-void wire_mul (wire *rop, wire *x, wire *y)
+void wire_mul (wire *rop, wire *x, wire *y, fake_params *p)
 {
-    encoding_mul(rop->r, x->r, y->r);
-    encoding_mul(rop->z, x->z, y->z);
+    encoding_mul(rop->r, x->r, y->r, p);
+    encoding_mul(rop->z, x->z, y->z, p);
     rop->d = x->d + y->d;
 }
 
@@ -200,9 +202,9 @@ void wire_add (wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p)
     encoding zstar;
     if (d > 1) {
         encoding_init(&zstar, p);
-        encoding_mul(&zstar, obf->Zstar, obf->Zstar);
+        encoding_mul(&zstar, obf->Zstar, obf->Zstar, p);
         for (int j = 2; j < d; j++)
-            encoding_mul(&zstar, &zstar, obf->Zstar);
+            encoding_mul(&zstar, &zstar, obf->Zstar, p);
     } else {
         zstar = *obf->Zstar;
     }
@@ -210,13 +212,13 @@ void wire_add (wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p)
     encoding tmp;
     encoding_init(&tmp, p);
 
-    encoding_mul(rop->z, x->z, y->r);
+    encoding_mul(rop->z, x->z, y->r, p);
     if (d > 0)
-        encoding_mul(rop->z, rop->z, &zstar);
-    encoding_mul(&tmp, y->z, x->r);
-    encoding_add(rop->z, rop->z, &tmp);
+        encoding_mul(rop->z, rop->z, &zstar, p);
+    encoding_mul(&tmp, y->z, x->r, p);
+    encoding_add(rop->z, rop->z, &tmp, p);
 
-    encoding_mul(rop->r, x->r, y->r);
+    encoding_mul(rop->r, x->r, y->r, p);
 
     rop->d = y->d;
 
@@ -231,9 +233,9 @@ void wire_sub(wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p)
     encoding zstar;
     if (d > 1) {
         encoding_init(&zstar, p);
-        encoding_mul(&zstar, obf->Zstar, obf->Zstar);
+        encoding_mul(&zstar, obf->Zstar, obf->Zstar, p);
         for (int j = 2; j < d; j++)
-            encoding_mul(&zstar, &zstar, obf->Zstar);
+            encoding_mul(&zstar, &zstar, obf->Zstar, p);
     } else {
         zstar = *obf->Zstar;
     }
@@ -242,21 +244,21 @@ void wire_sub(wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p)
     encoding_init(&tmp, p);
 
     if (x->d <= y->d) {
-        encoding_mul(rop->z, x->z, y->r);
+        encoding_mul(rop->z, x->z, y->r, p);
         if (d > 0)
-            encoding_mul(rop->z, rop->z, &zstar);
-        encoding_mul(&tmp, y->z, x->r);
-        encoding_sub(rop->z, rop->z, &tmp);
+            encoding_mul(rop->z, rop->z, &zstar, p);
+        encoding_mul(&tmp, y->z, x->r, p);
+        encoding_sub(rop->z, rop->z, &tmp, p);
         rop->d = y->d;
     } else {
-        encoding_mul(rop->z, x->z, y->r);
-        encoding_mul(&tmp, y->z, x->r);
+        encoding_mul(rop->z, x->z, y->r, p);
+        encoding_mul(&tmp, y->z, x->r, p);
         if (d > 0)
-            encoding_mul(&tmp, &tmp, &zstar);
-        encoding_sub(rop->z, rop->z, &tmp);
+            encoding_mul(&tmp, &tmp, &zstar, p);
+        encoding_sub(rop->z, rop->z, &tmp, p);
         rop->d = x->d;
     }
-    encoding_mul(rop->r, x->r, y->r);
+    encoding_mul(rop->r, x->r, y->r, p);
 
     if (d > 1)
         encoding_clear(&zstar);
@@ -272,22 +274,22 @@ void wire_constrained_sub(wire *rop, wire *x, wire *y, obfuscation *obf, fake_pa
     encoding zstar;
     if (d > 1) {
         encoding_init(&zstar, p);
-        encoding_mul(&zstar, obf->Zstar, obf->Zstar);
+        encoding_mul(&zstar, obf->Zstar, obf->Zstar, p);
         for (int j = 2; j < d; j++)
-            encoding_mul(&zstar, &zstar, obf->Zstar);
+            encoding_mul(&zstar, &zstar, obf->Zstar, p);
     } else {
         zstar = *obf->Zstar;
     }
 
     if (x->d == y->d) {
-        encoding_sub(rop->z, x->z, y->z);
+        encoding_sub(rop->z, x->z, y->z, p);
     }
     else if (x->d < y->d) {
-        encoding_mul(rop->z, x->z, &zstar);
-        encoding_sub(rop->z, rop->z, y->z);
+        encoding_mul(rop->z, x->z, &zstar, p);
+        encoding_sub(rop->z, rop->z, y->z, p);
     } else {
-        encoding_mul(&zstar, &zstar, y->z);
-        encoding_sub(rop->z, rop->z, &zstar);
+        encoding_mul(&zstar, &zstar, y->z, p);
+        encoding_sub(rop->z, rop->z, &zstar, p);
     }
 
     rop->d = y->d;
@@ -309,18 +311,18 @@ void wire_constrained_add (wire *rop, wire *x, wire *y, obfuscation *obf, fake_p
     encoding zstar;
     if (d > 1) {
         encoding_init(&zstar, p);
-        encoding_mul(&zstar, obf->Zstar, obf->Zstar);
+        encoding_mul(&zstar, obf->Zstar, obf->Zstar, p);
         for (int j = 2; j < d; j++)
-            encoding_mul(&zstar, &zstar, obf->Zstar);
+            encoding_mul(&zstar, &zstar, obf->Zstar, p);
     } else {
         zstar = *obf->Zstar;
     }
 
     if (d > 0) {
-        encoding_mul(rop->z, x->z, &zstar);
-        encoding_add(rop->z, rop->z, y->z);
+        encoding_mul(rop->z, x->z, &zstar, p);
+        encoding_add(rop->z, rop->z, y->z, p);
     } else {
-        encoding_add(rop->z, x->z, y->z);
+        encoding_add(rop->z, x->z, y->z, p);
     }
 
     rop->d = y->d;

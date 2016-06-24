@@ -18,7 +18,7 @@ void wire_clear (wire *rop);
 void wire_copy  (wire *rop, wire *source, fake_params *p);
 void wire_init_from_encodings (wire *rop, fake_params *p, encoding *r, encoding *z);
 
-void wire_mul (wire *rop, wire *x, wire *y);
+void wire_mul (wire *rop, wire *x, wire *y, fake_params *p);
 void wire_add (wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p);
 void wire_sub (wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p);
 void wire_constrained_sub (wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p);
