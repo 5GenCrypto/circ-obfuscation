@@ -231,8 +231,8 @@ void obfuscate (obfuscation *obf, fake_params *p, gmp_randstate_t *rng)
     #pragma omp parallel for
     for (int o = 0; o < p->op->gamma; o++) {
         mpz_urandomm_vect(rs, p->moduli, p->op->c+3, rng);
-        encode_Rhato(obf->Rbaro[o], p, rs, o);
-        encode_Zhato(obf->Zbaro[o], p, rs, what, o);
+        encode_Rhato(obf->Rhato[o], p, rs, o);
+        encode_Zhato(obf->Zhato[o], p, rs, what, o);
     }
 
     // encode Rbaro and Zbaro

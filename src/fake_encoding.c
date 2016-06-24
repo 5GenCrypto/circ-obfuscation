@@ -8,9 +8,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 // public parameters
 
-void fake_params_init (fake_params *p, obf_params *op, mpz_t *moduli)
+void fake_params_init (fake_params *p, obf_params *op, mpz_t *moduli, level *toplevel)
 {
-// TODO: keep track of top level
+    // TODO: keep track of top level
     p->moduli = moduli;
     /*p->moduli = lin_malloc((op->c+3) * sizeof(mpz_t));*/
     /*for (int i = 0; i < op->c+3; i++) {*/
@@ -18,10 +18,12 @@ void fake_params_init (fake_params *p, obf_params *op, mpz_t *moduli)
         /*mpz_set(p->moduli[i], moduli[i]);*/
     /*}*/
     p->op = op;
+    p->toplevel = toplevel;
 }
 
 void fake_params_clear (fake_params *p)
 {
+    level_destroy(p->toplevel);
     /*for (int i = 0; i < p->op->c+3; i++) {*/
         /*mpz_clear(p->moduli[i]);*/
     /*}*/
@@ -113,6 +115,11 @@ int encoding_eq (encoding *x, encoding *y)
 
 int encoding_is_zero (encoding *x, fake_params *p)
 {
+    if(!level_eq(x->lvl, p->toplevel)) {
+        level_print(x->lvl);
+        level_print(p->toplevel);
+        assert(level_eq(x->lvl, p->toplevel));
+    }
     for (int i = 0; i < x->nslots; i++)
         if (mpz_sgn(x->slots[i]) != 0)
             return 0;

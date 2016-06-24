@@ -255,13 +255,25 @@ uint32_t degree (circuit *c, circref ref)
 {
     operation op = c->ops[ref];
     if (op == XINPUT || op == YINPUT) {
-        return 0;
+        return 1;
     }
-    uint32_t xres = depth(c, c->args[ref][0]);
-    uint32_t yres = depth(c, c->args[ref][1]);
+    uint32_t xres = degree(c, c->args[ref][0]);
+    uint32_t yres = degree(c, c->args[ref][1]);
     if (op == MUL)
         return xres + yres;
     return max(xres, yres); // else op == ADD || op == SUB
+}
+
+uint32_t max_degree (circuit *c)
+{
+    uint32_t tmp;
+    uint32_t ret = 0;
+    for (int i = 0; i < c->noutputs; i++) {
+        tmp = degree(c, c->outrefs[i]);
+        if (tmp > ret)
+            ret = tmp;
+    }
+    return ret;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

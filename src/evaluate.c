@@ -44,23 +44,17 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
                 wire *w = lin_malloc(sizeof(wire));
 
                 if (op == XINPUT) {
-                    wire_init(w, p, 0, 0);
                     size_t xid = args[0];
                     sym_id sym = obf->op->chunker(xid, c->ninputs, obf->op->c);
                     int k = sym.sym_number;
                     int j = sym.bit_number;
                     int s = input_syms[k];
-                    w->r = obf->Rks[k][s];
-                    w->z = obf->Zksj[k][s][j];
-                    w->type[k] = 1;
+                    wire_init_from_encodings(w, p, obf->Rks[k][s], obf->Zksj[k][s][j]);
                 }
 
                 else if (op == YINPUT) {
-                    wire_init(w, p, 0, 0);
                     size_t yid = args[0];
-                    w->r = obf->Rc;
-                    w->z = obf->Zcj[yid];
-                    w->type[obf->op->c] = 1;
+                    wire_init_from_encodings(w, p, obf->Rc, obf->Zcj[yid]);
                 }
 
                 else { // op is some kind of gate
@@ -97,33 +91,33 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
         }
         topo_levels_destroy(topo);
 
-        wire outwire;
-        wire_init(&outwire, p, 1, 1);
-        outwire.d = 1 + cache[root]->d;
+        wire tmp[1]; // stack allocated pointers
+        wire outwire[1];
+
+        wire_copy(outwire, cache[root], p);
 
         // input consistency
         for (int k = 0; k < p->op->c; k++) {
-            encoding_mul(outwire.r, cache[root]->r, obf->Rhatkso[k][input_syms[k]][o]);
-            encoding_mul(outwire.z, cache[root]->z, obf->Zhatkso[k][input_syms[k]][o]);
+            wire_init_from_encodings(tmp, p,
+                obf->Rhatkso[k][input_syms[k]][o],
+                obf->Zhatkso[k][input_syms[k]][o]
+            );
+            wire_mul(outwire, outwire, tmp);
         }
 
         // output consistency
-        encoding_mul(outwire.r, outwire.r, obf->Rhato[o]);
-        encoding_mul(outwire.z, outwire.z, obf->Zhato[o]);
+        wire_init_from_encodings(tmp, p, obf->Rhato[o], obf->Zhato[o]);
+        wire_mul(outwire, outwire, tmp);
 
         // authentication
-        wire rzbar;
-        wire_init(&rzbar, p, 0, 0);
-        rzbar.r = obf->Rbaro[o];
-        rzbar.z = obf->Zbaro[o];
-        rzbar.d = rzbar.z->lvl->mat[p->op->q][p->op->c+1];
+        wire_init_from_encodings(tmp, p, obf->Rbaro[o], obf->Zbaro[o]);
+        wire_sub(outwire, outwire, tmp, obf, p);
 
-        wire_sub(&outwire, &outwire, &rzbar, obf, p);
-        wire_clear(&rzbar);
+        wire_clear(tmp);
 
-        rop[o] = !encoding_is_zero(outwire.z, p);
+        rop[o] = !encoding_is_zero(outwire->z, p);
 
-        wire_clear(&outwire);
+        wire_clear(outwire);
     }
 
     for (circref x = 0; x < c->nrefs; x++) {
@@ -148,8 +142,6 @@ void wire_init (wire *rop, fake_params *p, int init_r, int init_z)
         encoding_init(rop->z, p);
     }
     rop->d = 1;
-    rop->type = lin_calloc(p->op->c+1, sizeof(size_t));
-    rop->c = p->op->c;
     rop->my_r = init_r;
     rop->my_z = init_z;
 }
@@ -164,7 +156,30 @@ void wire_clear (wire *rop)
         encoding_clear(rop->z);
         free(rop->z);
     }
-    free(rop->type);
+}
+
+void wire_copy (wire *rop, wire *source, fake_params *p)
+{
+    rop->r = lin_malloc(sizeof(encoding));
+    encoding_init(rop->r, p);
+    encoding_set(rop->r, source->r);
+    rop->my_r = 1;
+
+    rop->z = lin_malloc(sizeof(encoding));
+    encoding_init(rop->z, p);
+    encoding_set(rop->z, source->z);
+    rop->my_z = 1;
+
+    rop->d = source->d;
+}
+
+void wire_init_from_encodings (wire *rop, fake_params *p, encoding *r, encoding *z)
+{
+    rop->r = r;
+    rop->z = z;
+    rop->my_r = 0;
+    rop->my_z = 0;
+    rop->d = z->lvl->mat[p->op->q][p->op->c+1];
 }
 
 void wire_mul (wire *rop, wire *x, wire *y)
@@ -172,9 +187,6 @@ void wire_mul (wire *rop, wire *x, wire *y)
     encoding_mul(rop->r, x->r, y->r);
     encoding_mul(rop->z, x->z, y->z);
     rop->d = x->d + y->d;
-    for (int i = 0; i < x->c+1; i++) {
-        rop->type[i] = x->type[i] + y->type[i];
-    }
 }
 
 void wire_add (wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p)
@@ -207,10 +219,6 @@ void wire_add (wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p)
     encoding_mul(rop->r, x->r, y->r);
 
     rop->d = y->d;
-
-    for (int i = 0; i < x->c+1; i++) {
-        rop->type[i] = max(x->type[i], y->type[i]);
-    }
 
     if (d > 1)
         encoding_clear(&zstar);
@@ -250,10 +258,6 @@ void wire_sub(wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p)
     }
     encoding_mul(rop->r, x->r, y->r);
 
-    for (int i = 0; i < x->c+1; i++) {
-        rop->type[i] = max(x->type[i], y->type[i]);
-    }
-
     if (d > 1)
         encoding_clear(&zstar);
 
@@ -288,10 +292,6 @@ void wire_constrained_sub(wire *rop, wire *x, wire *y, obfuscation *obf, fake_pa
 
     rop->d = y->d;
 
-    for (int i = 0; i < x->c+1; i++) {
-        rop->type[i] = x->type[i];
-    }
-
     if (d > 1)
         encoding_clear(&zstar);
 }
@@ -325,18 +325,13 @@ void wire_constrained_add (wire *rop, wire *x, wire *y, obfuscation *obf, fake_p
 
     rop->d = y->d;
 
-    for (int i = 0; i < x->c+1; i++) {
-        rop->type[i] = x->type[i];
-    }
-
     if (d > 1)
         encoding_clear(&zstar);
 }
 
 int wire_type_eq (wire *x, wire *y)
 {
-    for (int i = 0; i < x->c+1; i++)
-        if (x->type[i] != y->type[i])
-            return 0;
+    if (!level_eq(x->r->lvl, y->r->lvl) || !level_eq(x->z->lvl, y->z->lvl))
+        return 0;
     return 1;
 }

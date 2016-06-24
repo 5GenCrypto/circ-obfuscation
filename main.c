@@ -49,8 +49,10 @@ int main (int argc, char **argv)
 
     assert(c.ninputs >= nsyms);
 
-    printf("circuit: ninputs=%lu nconsts=%lu ngates=%lu ntests=%lu nrefs=%lu\n",
-                     c.ninputs, c.nconsts, c.ngates, c.ntests, c.nrefs);
+    uint32_t d = max_degree(&c);
+
+    printf("circuit: ninputs=%lu nconsts=%lu ngates=%lu ntests=%lu nrefs=%lu degree=%u\n",
+                     c.ninputs, c.nconsts, c.ngates, c.ntests, c.nrefs, d);
     ensure(&c);
 
     printf("consts: ");
@@ -80,8 +82,9 @@ int main (int argc, char **argv)
     }
 
     printf("initializing params..\n");
+    level *vzt = level_create_vzt(&op, d);
     fake_params fp;
-    fake_params_init(&fp, &op, moduli);
+    fake_params_init(&fp, &op, moduli, vzt);
 
     printf("obfuscating...\n");
     obfuscation obf;

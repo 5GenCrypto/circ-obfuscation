@@ -7,9 +7,10 @@
 typedef struct {
     mpz_t *moduli;
     obf_params *op;
+    level *toplevel;
 } fake_params;
 
-void fake_params_init (fake_params *p, obf_params *op, mpz_t *moduli);
+void fake_params_init (fake_params *p, obf_params *op, mpz_t *moduli, level *toplevel);
 void fake_params_clear (fake_params *pp);
 
 typedef struct {

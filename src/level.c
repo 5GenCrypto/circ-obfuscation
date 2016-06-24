@@ -186,3 +186,25 @@ level* level_create_vbaro (obf_params *p, size_t o)
     }
     return lvl;
 }
+
+level* level_create_vzt(obf_params *p, uint32_t d)
+{
+    level *lvl = lin_malloc(sizeof(level));
+    level_init(lvl, p);
+    for (int i = 0; i < p->q + 1; i++) {
+        for (int j = 0; j < p->c+1; j++) {
+            if (i < p->q)
+                lvl->mat[i][j] = p->M;
+            else
+                lvl->mat[i][j] = 1;
+        }
+        if (i < p->q)
+            lvl->mat[i][p->c+1] = 1;
+        else
+            lvl->mat[i][p->c+1] = d + p->c + 1;
+    }
+    for (int i = 0; i < lvl->p->gamma; i++) {
+        lvl->vec[i] = lvl->p->c;
+    }
+    return lvl;
+}
