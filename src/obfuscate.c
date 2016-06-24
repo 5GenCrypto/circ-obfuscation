@@ -445,6 +445,7 @@ void encode_Zbaro(
     mpz_vect_set(tmp, what, p->op->c+3);
     for (int k = 0; k < p->op->c; k++) {
         mpz_vect_mul(tmp, tmp, whatk[k], p->op->c+3);
+        mpz_vect_mod(tmp, tmp, p->moduli, p->op->c+3);
     }
 
     mpz_t *w = mpz_vect_create(p->op->c+3);

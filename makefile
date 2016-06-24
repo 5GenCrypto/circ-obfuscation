@@ -13,7 +13,7 @@ HEADS  = $(wildcard src/*.h) $(wildcart clt13/src/*.h)
 PARSER = src/parser/parse.tab.c src/parser/scan.yy.c
 POBJS  = $(addsuffix .o, $(basename $(PARSER)))
 
-main: clt13 $(OBJS) $(POBJS) $(SRCS) $(HEADS) src/parser/parse.tab.h main.c 
+main: $(OBJS) $(POBJS) $(SRCS) $(HEADS) src/parser/parse.tab.h main.c 
 	$(CC) $(CFLAGS) $(IFLAGS) $(LFLAGS) $(OBJS) $(POBJS) main.c -o main
 
 src/%.o: src/%.c 
@@ -25,8 +25,8 @@ src/parser/parse.tab.c src/parser/parse.tab.h: src/parser/parse.y
 src/parser/scan.yy.c: src/parser/scan.l
 	flex -o src/parser/scan.yy.c src/parser/scan.l
 
-clt13: 
-	git clone https://github.com/spaceships/clt13.git
+#clt13: 
+	#git clone https://github.com/spaceships/clt13.git
 
 clean:
 	$(RM) src/parser/parse.tab.h

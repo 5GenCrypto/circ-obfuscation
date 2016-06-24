@@ -1,13 +1,13 @@
 : nins 2
 : depth 1
-# TEST 00 10
+# TEST 00 00
 # TEST 01 01
 # TEST 10 01
-# TEST 11 01
+# TEST 11 11
 0 input x0
 1 input x1
 2 input y0 0
 3 input y1 1
 4 gate ADD 0 1
 5 output ADD 2 4
-6 output SUB 3 5
+6 output SUB 5 3

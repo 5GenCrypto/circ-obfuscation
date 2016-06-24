@@ -10,7 +10,6 @@
 
 void fake_params_init (fake_params *p, obf_params *op, mpz_t *moduli, level *toplevel)
 {
-    // TODO: keep track of top level
     p->moduli = moduli;
     /*p->moduli = lin_malloc((op->c+3) * sizeof(mpz_t));*/
     /*for (int i = 0; i < op->c+3; i++) {*/
@@ -24,10 +23,6 @@ void fake_params_init (fake_params *p, obf_params *op, mpz_t *moduli, level *top
 void fake_params_clear (fake_params *p)
 {
     level_destroy(p->toplevel);
-    /*for (int i = 0; i < p->op->c+3; i++) {*/
-        /*mpz_clear(p->moduli[i]);*/
-    /*}*/
-    /*free(p->moduli);*/
 }
 
 ////////////////////////////////////////////////////////////////////////////////

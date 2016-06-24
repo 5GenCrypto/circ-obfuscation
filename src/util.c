@@ -202,6 +202,8 @@ void mpz_vect_replicate_ui (mpz_t *vec, size_t x, size_t n)
 
 void mpz_urandomm_vect (mpz_t *vec, mpz_t *moduli, size_t n, gmp_randstate_t *rng)
 {
+    /*mpz_vect_replicate_ui(vec, 1, n);*/
+    /*return;*/
     for (int i = 0; i < n; i++) {
         mpz_urandomm(vec[i], *rng, moduli[i]);
     }

@@ -78,8 +78,8 @@ int main (int argc, char **argv)
     mpz_t *moduli = lin_malloc((op.c+3) * sizeof(mpz_t));
     for (int i = 0; i < op.c+3; i++) {
         mpz_init(moduli[i]);
-        /*mpz_urandomb(moduli[i], rng, 128);*/
-        mpz_urandomb(moduli[i], rng, 16);
+        mpz_urandomb(moduli[i], rng, 128);
+        /*mpz_urandomb(moduli[i], rng, 16);*/
     }
 
     printf("initializing params..\n");

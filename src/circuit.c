@@ -97,7 +97,17 @@ int ensure (circuit *c)
     int *res = lin_malloc(c->noutputs * sizeof(int));
     bool ok  = true;
 
+    /*int max_d = max_degree(c);*/
+    /*for (int i = 0; i < c->noutputs; i++) {*/
+        /*int d = degree(c, c->outrefs[i]);*/
+        /*if (d != max_d) {*/
+            /*printf("[ensure] output %d has degree %d but max is %d!", i, d, max_d);*/
+            /*assert(d == max_d);*/
+        /*}*/
+    /*}*/
+
     for (int test_num = 0; test_num < c->ntests; test_num++) {
+
         bool test_ok = true;
 
         for (int i = 0; i < c->noutputs; i++) {
@@ -120,6 +130,7 @@ int ensure (circuit *c)
             test_ok = test_ok && ((res[i] > 0) == c->testouts[test_num][i]);
         }
 
+
         if (g_verbose) {
             if (!test_ok)
                 printf("\033[1;41m");
@@ -136,6 +147,10 @@ int ensure (circuit *c)
                 printf("\033[0m");
             puts("");
         }
+
+        printf("res=");
+        print_array(res, c->noutputs);
+        puts("");
 
         ok = ok && test_ok;
     }

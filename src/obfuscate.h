@@ -2,7 +2,6 @@
 #define __SRC_OBFUSCATE__
 
 #include "circuit.h"
-#include "clt13.h"
 #include "fake_encoding.h"
 #include "level.h"
 

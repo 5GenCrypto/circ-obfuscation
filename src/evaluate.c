@@ -95,7 +95,7 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
         wire outwire[1];
 
         wire_copy(outwire, cache[root], p);
-        printf("outwire=");
+        printf("\noutwire=");
         print_mpz_array(outwire->z->slots, outwire->z->nslots);
         puts("");
 
@@ -119,6 +119,8 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
         wire_clear(tmp);
 
         rop[o] = encoding_is_zero(outwire->z, p);
+
+        printf("encoding to be zero-tested:");
         print_mpz_array(outwire->z->slots, outwire->z->nslots);
         puts("");
 
