@@ -1,6 +1,8 @@
 #include "circuit.h"
 #include "util.h"
 /*#include "clt13.h"*/
+#include "aesrand.h"
+#include "fake_mmap.h"
 #include "evaluate.h"
 #include "input_chunker.h"
 #include "level.h"
@@ -73,26 +75,19 @@ int main (int argc, char **argv)
     }
     printf("params: c=%lu ell=%lu q=%lu M=%u\n", op.c, op.ell, op.q, op.M);
 
-    gmp_randstate_t rng;
-    seed_rng(&rng);
-
-    mpz_t *moduli = lin_malloc((op.c+3) * sizeof(mpz_t));
-    for (int i = 0; i < op.c+3; i++) {
-        mpz_init(moduli[i]);
-        mpz_urandomb(moduli[i], rng, 128);
-        /*mpz_urandomb(moduli[i], rng, 16);*/
-    }
+    aes_randstate_t rng;
+    aes_randinit(rng);
 
     printf("initializing params..\n");
     level *vzt = level_create_vzt(&op, d);
     public_params pp;
-    public_params_init(&pp, &op, moduli, vzt);
+    public_params_init(&pp, &op, vzt, rng);
 
     printf("obfuscating...\n");
     obfuscation obf;
     obfuscation_init(&obf, &pp);
 
-    obfuscate(&obf, &pp, &rng);
+    obfuscate(&obf, &pp, rng);
 
     puts("evaluating...");
     /*int *res = lin_malloc(c.noutputs * sizeof(int));*/
@@ -116,12 +111,8 @@ int main (int argc, char **argv)
 
     // free all the things
     /*free(res);*/
+    aes_randclear(rng);
     obfuscation_clear(&obf);
-    for (int i = 0; i < op.c+3; i++) {
-        mpz_clear(moduli[i]);
-    }
-    free(moduli);
-    gmp_randclear(rng);
     public_params_clear(&pp);
     obf_params_clear(&op);
     circ_clear(&c);

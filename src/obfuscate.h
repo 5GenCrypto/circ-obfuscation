@@ -2,8 +2,7 @@
 #define __SRC_OBFUSCATE__
 
 #include "circuit.h"
-#include "fake_encoding.h"
-#include "level.h"
+#include "fake_mmap.h"
 
 // for encodings parameterized by "s \in \Sigma", use the assignment as
 // the index: s \in [2^q]
@@ -28,30 +27,19 @@ void obfuscation_clear (obfuscation *obf);
 void obfuscate (
     obfuscation *obf,
     public_params *p,
-    gmp_randstate_t *rng
+    aes_randstate_t rng
 );
 
-void encode_Zstar (encoding *enc, public_params *p, gmp_randstate_t *rng);
-void encode_Rks   (encoding *enc, public_params *p, mpz_t *rs, size_t k, size_t s);
-
-void encode_Zksj (
-    encoding *enc,
-    public_params *p,
-    mpz_t *rs,
-    mpz_t ykj,
-    size_t k,
-    size_t s,
-    size_t j,
-    gmp_randstate_t *rng
-);
-
-void encode_Rc      (encoding *enc, public_params *p, mpz_t *rs);
-void encode_Zcj     (encoding *enc, public_params *p, mpz_t *rs, mpz_t ykj, int const_val, gmp_randstate_t *rng);
-void encode_Rhatkso (encoding *enc, public_params *p, mpz_t *rs, size_t k, size_t s, size_t o);
-void encode_Zhatkso (encoding *enc, public_params *p, mpz_t *rs, mpz_t *whatk, size_t k, size_t s, size_t o);
-void encode_Rhato   (encoding *enc, public_params *p, mpz_t *rs, size_t o);
-void encode_Zhato   (encoding *enc, public_params *p, mpz_t *rs, mpz_t *what, size_t o);
-void encode_Rbaro   (encoding *enc, public_params *p, mpz_t *rs, size_t o);
-void encode_Zbaro   (encoding *enc, public_params *p, mpz_t *rs, mpz_t *what, mpz_t **whatk, mpz_t **ykj, circuit *c, size_t o);
+void encode_Zstar   (encoding *enc, public_params *p, aes_randstate_t rng);
+void encode_Rks     (encoding *enc, public_params *p, aes_randstate_t rng, mpz_t *rs, size_t k, size_t s);
+void encode_Zksj    (encoding *enc, public_params *p, aes_randstate_t rng, mpz_t *rs, mpz_t ykj, size_t k, size_t s, size_t j);
+void encode_Rc      (encoding *enc, public_params *p, aes_randstate_t rng, mpz_t *rs);
+void encode_Zcj     (encoding *enc, public_params *p, aes_randstate_t rng, mpz_t *rs, mpz_t ykj, int const_val);
+void encode_Rhatkso (encoding *enc, public_params *p, aes_randstate_t rng, mpz_t *rs, size_t k, size_t s, size_t o);
+void encode_Zhatkso (encoding *enc, public_params *p, aes_randstate_t rng, mpz_t *rs, mpz_t *whatk, size_t k, size_t s, size_t o);
+void encode_Rhato   (encoding *enc, public_params *p, aes_randstate_t rng, mpz_t *rs, size_t o);
+void encode_Zhato   (encoding *enc, public_params *p, aes_randstate_t rng, mpz_t *rs, mpz_t *what, size_t o);
+void encode_Rbaro   (encoding *enc, public_params *p, aes_randstate_t rng, mpz_t *rs, size_t o);
+void encode_Zbaro   (encoding *enc, public_params *p, aes_randstate_t rng, mpz_t *rs, mpz_t *what, mpz_t **whatk, mpz_t **ykj, circuit *c, size_t o);
 
 #endif
