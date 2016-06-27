@@ -62,8 +62,8 @@ void obfuscation_init (obfuscation *obf, fake_params *p)/*{{{*/
         }
     }
 
-    obf->Rhato = lin_malloc(op.c * sizeof(encoding*));
-    obf->Zhato = lin_malloc(op.c * sizeof(encoding*));
+    obf->Rhato = lin_malloc(op.gamma * sizeof(encoding*));
+    obf->Zhato = lin_malloc(op.gamma * sizeof(encoding*));
     for (int o = 0; o < op.gamma; o++) {
         obf->Rhato[o] = lin_malloc(sizeof(encoding));
         obf->Zhato[o] = lin_malloc(sizeof(encoding));
@@ -439,7 +439,6 @@ void encode_Zbaro(
         }
     }
     eval_circ_mod(ybar, c, c->outrefs[o], xs, ykj[p->op->c], p->moduli[0]);
-    gmp_printf("ybar=%Zd\n", ybar);
 
     mpz_t *tmp = mpz_vect_create(p->op->c+3);
     mpz_vect_set(tmp, what, p->op->c+3);

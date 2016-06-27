@@ -9,6 +9,9 @@
 int yylex();
 void yyerror(circuit *c, const char *m){ printf("Error! %s\n", m); }
 unsigned long from_bitstring (char *s);
+
+#define YYINITDEPTH 100000
+
 %}
 
 %parse-param{ circuit *c }
