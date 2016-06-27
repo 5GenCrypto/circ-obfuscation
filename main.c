@@ -59,11 +59,12 @@ int main (int argc, char **argv)
     print_array(c.consts, c.nconsts);
     puts("");
 
-    test_chunker(chunker_in_order, rchunker_in_order, nsyms, c.ninputs);
+    /*test_chunker(chunker_in_order, rchunker_in_order, nsyms, c.ninputs);*/
+    /*test_chunker(chunker_mod, rchunker_mod, nsyms, c.ninputs);*/
 
     obf_params op;
-    obf_params_init(&op, &c, chunker_in_order, rchunker_in_order, nsyms);
-    /*obf_params_init(&op, &c, chunker_mod, rchunker_mod, nsyms);*/
+    /*obf_params_init(&op, &c, chunker_in_order, rchunker_in_order, nsyms);*/
+    obf_params_init(&op, &c, chunker_mod, rchunker_mod, nsyms);
 
     for (int i = 0; i < c.noutputs; i++) {
         printf("output bit %d: type=", i);
@@ -103,11 +104,11 @@ int main (int argc, char **argv)
         if (!test_ok)
             printf("\033[1;41m");
         printf("test %d input=", i);
-        print_array(c.testinps[i], c.ninputs);
+        print_arraystring(c.testinps[i], c.ninputs);
         printf(" expected=");
-        print_array(c.testouts[i], c.noutputs);
+        print_arraystring(c.testouts[i], c.noutputs);
         printf(" got=");
-        print_array(res, c.noutputs);
+        print_arraystring(res, c.noutputs);
         if (!test_ok)
             printf("\033[0m");
         puts("");

@@ -86,10 +86,7 @@ void type_degree (
     type_degree(xtype, c->args[ref][0], c, nsyms, chunker);
     type_degree(ytype, c->args[ref][1], c, nsyms, chunker);
 
-    int types_eq = 1;
-    for (size_t i = 0; i < nsyms+1; i++)
-        types_eq = types_eq && (xtype[i] == ytype[i]);
-
+    int types_eq = array_eq(xtype, ytype, nsyms + 1);
     if ((op == ADD || op == SUB) && types_eq) {
         for (size_t i = 0; i < nsyms+1; i++)
             rop[i] = xtype[i];

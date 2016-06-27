@@ -95,9 +95,6 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
         wire outwire[1];
 
         wire_copy(outwire, cache[root], p);
-        printf("\noutwire=");
-        print_mpz_array(outwire->z->slots, outwire->z->nslots);
-        puts("");
 
         // input consistency
         for (int k = 0; k < p->op->c; k++) {
@@ -119,10 +116,6 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, fake_params *p)
         wire_clear(tmp);
 
         rop[o] = encoding_is_zero(outwire->z, p);
-
-        printf("encoding to be zero-tested:");
-        print_mpz_array(outwire->z->slots, outwire->z->nslots);
-        puts("");
 
         wire_clear(outwire);
     }
@@ -148,9 +141,18 @@ void wire_init (wire *rop, fake_params *p, int init_r, int init_z)
         rop->z = lin_malloc(sizeof(encoding));
         encoding_init(rop->z, p);
     }
-    rop->d = 1;
+    rop->d = 0;
     rop->my_r = init_r;
     rop->my_z = init_z;
+}
+
+void wire_init_from_encodings (wire *rop, fake_params *p, encoding *r, encoding *z)
+{
+    rop->r = r;
+    rop->z = z;
+    rop->my_r = 0;
+    rop->my_z = 0;
+    rop->d = z->lvl->mat[p->op->q][p->op->c+1];
 }
 
 void wire_clear (wire *rop)
@@ -178,15 +180,6 @@ void wire_copy (wire *rop, wire *source, fake_params *p)
     rop->my_z = 1;
 
     rop->d = source->d;
-}
-
-void wire_init_from_encodings (wire *rop, fake_params *p, encoding *r, encoding *z)
-{
-    rop->r = r;
-    rop->z = z;
-    rop->my_r = 0;
-    rop->my_z = 0;
-    rop->d = z->lvl->mat[p->op->q][p->op->c+1];
 }
 
 void wire_mul (wire *rop, wire *x, wire *y, fake_params *p)
@@ -273,67 +266,18 @@ void wire_sub(wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p)
 
 void wire_constrained_sub(wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p)
 {
+    assert(x->d == y->d);
     rop->r = x->r;
-
-    size_t d = abs(y->d - x->d);
-    encoding zstar;
-    if (d > 1) {
-        encoding_init(&zstar, p);
-        encoding_mul(&zstar, obf->Zstar, obf->Zstar, p);
-        for (int j = 2; j < d; j++)
-            encoding_mul(&zstar, &zstar, obf->Zstar, p);
-    } else {
-        zstar = *obf->Zstar;
-    }
-
-    if (x->d == y->d) {
-        encoding_sub(rop->z, x->z, y->z, p);
-    }
-    else if (x->d < y->d) {
-        encoding_mul(rop->z, x->z, &zstar, p);
-        encoding_sub(rop->z, rop->z, y->z, p);
-    } else {
-        encoding_mul(&zstar, &zstar, y->z, p);
-        encoding_sub(rop->z, rop->z, &zstar, p);
-    }
-
+    encoding_sub(rop->z, x->z, y->z, p);
     rop->d = y->d;
-
-    if (d > 1)
-        encoding_clear(&zstar);
 }
 
 void wire_constrained_add (wire *rop, wire *x, wire *y, obfuscation *obf, fake_params *p)
 {
-    if (x->d > y->d) {
-        wire_constrained_add(rop, y, x, obf, p);
-        return;
-    }
-
+    assert(x->d == y->d);
     rop->r = x->r;
-
-    size_t d = y->d - x->d;
-    encoding zstar;
-    if (d > 1) {
-        encoding_init(&zstar, p);
-        encoding_mul(&zstar, obf->Zstar, obf->Zstar, p);
-        for (int j = 2; j < d; j++)
-            encoding_mul(&zstar, &zstar, obf->Zstar, p);
-    } else {
-        zstar = *obf->Zstar;
-    }
-
-    if (d > 0) {
-        encoding_mul(rop->z, x->z, &zstar, p);
-        encoding_add(rop->z, rop->z, y->z, p);
-    } else {
-        encoding_add(rop->z, x->z, y->z, p);
-    }
-
+    encoding_add(rop->z, x->z, y->z, p);
     rop->d = y->d;
-
-    if (d > 1)
-        encoding_clear(&zstar);
 }
 
 int wire_type_eq (wire *x, wire *y)

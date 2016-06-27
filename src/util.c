@@ -105,6 +105,12 @@ int max(int x, int y) {
         return y;
 }
 
+void print_arraystring(int *xs, size_t n)
+{
+    for (int i = 0; i < n; i++)
+        printf("%d", xs[i]);
+}
+
 void print_array(int *xs, size_t len) {
     if (len == 1){
         printf("[%d]", xs[0]);
