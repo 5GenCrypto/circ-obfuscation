@@ -8,7 +8,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 // boilerplate
 
-void obfuscation_init (obfuscation *obf, public_params *p)/*{{{*/
+void obfuscation_init (obfuscation *obf, secret_params *p)/*{{{*/
 {
     obf->op = p->op;
     obf_params op = *(obf->op);
@@ -158,7 +158,7 @@ void obfuscation_clear (obfuscation *obf)/*{{{*/
 ////////////////////////////////////////////////////////////////////////////////
 // obfuscator
 
-void obfuscate (obfuscation *obf, public_params *p, aes_randstate_t rng)
+void obfuscate (obfuscation *obf, secret_params *p, aes_randstate_t rng)
 {
     obf->op = p->op;
 
@@ -168,25 +168,25 @@ void obfuscate (obfuscation *obf, public_params *p, aes_randstate_t rng)
         ykj[k] = lin_malloc(p->op->ell * sizeof(mpz_t));
         for (int j = 0; j < p->op->ell; j++) {
             mpz_init(ykj[k][j]);
-            mpz_urandomm_aes(ykj[k][j], rng, p->moduli[0]);
+            mpz_urandomm_aes(ykj[k][j], rng, get_moduli(p)[0]);
         }
     }
     // the cth ykj has length m (number of secret bits)
     ykj[p->op->c] = lin_malloc(p->op->m * sizeof(mpz_t));
     for (int j = 0; j < p->op->m; j++) {
         mpz_init(ykj[p->op->c][j]);
-        mpz_urandomm_aes(ykj[p->op->c][j], rng, p->moduli[0]);
+        mpz_urandomm_aes(ykj[p->op->c][j], rng, get_moduli(p)[0]);
     }
 
     // create whatk and what
     mpz_t **whatk = lin_malloc((p->op->c+1) * sizeof(mpz_t*));
     for (int k = 0; k < p->op->c; k++) {
         whatk[k] = mpz_vect_create(p->op->c+3);
-        mpz_urandomm_vect_aes(whatk[k], p->moduli, p->op->c+3, rng);
+        mpz_urandomm_vect_aes(whatk[k], get_moduli(p), p->op->c+3, rng);
         mpz_set_ui(whatk[k][k+2], 0);
     }
     mpz_t *what = mpz_vect_create(p->op->c+3);
-    mpz_urandomm_vect_aes(what, p->moduli, p->op->c+3, rng);
+    mpz_urandomm_vect_aes(what, get_moduli(p), p->op->c+3, rng);
     mpz_set_ui(what[p->op->c+2], 0);
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -199,7 +199,7 @@ void obfuscate (obfuscation *obf, public_params *p, aes_randstate_t rng)
     #pragma omp parallel for schedule(dynamic,1) collapse(2)
     for (int k = 0; k < p->op->c; k++) {
         for (int s = 0; s < p->op->q; s++) {
-            mpz_urandomm_vect_aes(rs, p->moduli, p->op->c+3, rng);
+            mpz_urandomm_vect_aes(rs, get_moduli(p), p->op->c+3, rng);
             encode_Rks(obf->Rks[k][s], p, rng, rs, k, s);
             for (int j = 0; j < p->op->ell; j++) {
                 encode_Zksj(obf->Zksj[k][s][j], p, rng, rs, ykj[k][j], k, s, j);
@@ -208,7 +208,7 @@ void obfuscate (obfuscation *obf, public_params *p, aes_randstate_t rng)
     }
 
     // encode Rc and Zcj
-    mpz_urandomm_vect_aes(rs, p->moduli, p->op->c+3, rng);
+    mpz_urandomm_vect_aes(rs, get_moduli(p), p->op->c+3, rng);
     encode_Rc(obf->Rc, p, rng, rs);
     #pragma omp parallel for
     for (int j = 0; j < p->op->m; j++) {
@@ -220,7 +220,7 @@ void obfuscate (obfuscation *obf, public_params *p, aes_randstate_t rng)
     for (int o = 0; o < p->op->gamma; o++) {
         for (int k = 0; k < p->op->c; k++) {
             for (int s = 0; s < p->op->q; s++) {
-                mpz_urandomm_vect_aes(rs, p->moduli, p->op->c+3, rng);
+                mpz_urandomm_vect_aes(rs, get_moduli(p), p->op->c+3, rng);
                 encode_Rhatkso(obf->Rhatkso[k][s][o], p, rng, rs, k, s, o);
                 encode_Zhatkso(obf->Zhatkso[k][s][o], p, rng, rs, whatk[k], k, s, o);
             }
@@ -230,7 +230,7 @@ void obfuscate (obfuscation *obf, public_params *p, aes_randstate_t rng)
     // encode Rhato and Zhato
     #pragma omp parallel for
     for (int o = 0; o < p->op->gamma; o++) {
-        mpz_urandomm_vect_aes(rs, p->moduli, p->op->c+3, rng);
+        mpz_urandomm_vect_aes(rs, get_moduli(p), p->op->c+3, rng);
         encode_Rhato(obf->Rhato[o], p, rng, rs, o);
         encode_Zhato(obf->Zhato[o], p, rng, rs, what, o);
     }
@@ -238,7 +238,7 @@ void obfuscate (obfuscation *obf, public_params *p, aes_randstate_t rng)
     // encode Rbaro and Zbaro
     #pragma omp parallel for
     for (int o = 0; o < p->op->gamma; o++) {
-        mpz_urandomm_vect_aes(rs, p->moduli, p->op->c+3, rng);
+        mpz_urandomm_vect_aes(rs, get_moduli(p), p->op->c+3, rng);
         encode_Rbaro(obf->Rbaro[o], p, rng, rs, o);
         encode_Zbaro(obf->Zbaro[o], p, rng, rs, what, whatk, ykj, p->op->circ, o);
     }
@@ -267,12 +267,12 @@ void obfuscate (obfuscation *obf, public_params *p, aes_randstate_t rng)
     mpz_vect_destroy(what, p->op->c+3);
 }
 
-void encode_Zstar (encoding *enc, public_params *p, aes_randstate_t rng)
+void encode_Zstar (encoding *enc, secret_params *p, aes_randstate_t rng)
 {
     mpz_t *inps = mpz_vect_create(p->op->c+3);
     mpz_set_ui(inps[0], 1);
     mpz_set_ui(inps[1], 1);
-    mpz_urandomm_vect_aes(inps + 2, p->moduli + 2, p->op->c+1, rng);
+    mpz_urandomm_vect_aes(inps + 2, get_moduli(p) + 2, p->op->c+1, rng);
 
     level *vstar = level_create_vstar(p->op);
     encode(enc, inps, p->op->c+3, vstar, p, rng);
@@ -282,7 +282,7 @@ void encode_Zstar (encoding *enc, public_params *p, aes_randstate_t rng)
 }
 
 
-void encode_Rks (encoding *enc, public_params *p, aes_randstate_t rng, mpz_t *rs, size_t k, size_t s)
+void encode_Rks (encoding *enc, secret_params *p, aes_randstate_t rng, mpz_t *rs, size_t k, size_t s)
 {
     level *vsk = level_create_vks(p->op, k, s);
     encode(enc, rs, p->op->c+3, vsk, p, rng);
@@ -291,7 +291,7 @@ void encode_Rks (encoding *enc, public_params *p, aes_randstate_t rng, mpz_t *rs
 
 void encode_Zksj (
     encoding *enc,
-    public_params *p,
+    secret_params *p,
     aes_randstate_t rng,
     mpz_t *rs,
     mpz_t ykj,
@@ -303,10 +303,10 @@ void encode_Zksj (
 
     mpz_set(w[0], ykj);
     mpz_set_ui(w[1], bit(s,j));
-    mpz_urandomm_vect_aes(w+2, p->moduli+2, p->op->c+1, rng);
+    mpz_urandomm_vect_aes(w+2, get_moduli(p)+2, p->op->c+1, rng);
 
     mpz_vect_mul(w, w, rs, p->op->c+3);
-    mpz_vect_mod(w, w, p->moduli, p->op->c+3);
+    mpz_vect_mod(w, w, get_moduli(p), p->op->c+3);
 
     level *lvl = level_create_vks(p->op, k, s);
     level *vstar = level_create_vstar(p->op);
@@ -321,7 +321,7 @@ void encode_Zksj (
 
 void encode_Rc (
     encoding *enc,
-    public_params *p,
+    secret_params *p,
     aes_randstate_t rng,
     mpz_t *rs
 ){
@@ -332,7 +332,7 @@ void encode_Rc (
 
 void encode_Zcj (
     encoding *enc,
-    public_params *p,
+    secret_params *p,
     aes_randstate_t rng,
     mpz_t *rs,
     mpz_t ykj,
@@ -341,10 +341,10 @@ void encode_Zcj (
     mpz_t *w = mpz_vect_create(p->op->c+3);
     mpz_set(w[0], ykj);
     mpz_set_ui(w[1], const_val);
-    mpz_urandomm_vect_aes(w+2, p->moduli+2, p->op->c+1, rng);
+    mpz_urandomm_vect_aes(w+2, get_moduli(p)+2, p->op->c+1, rng);
 
     mpz_vect_mul(w, w, rs, p->op->c+3);
-    mpz_vect_mod(w, w, p->moduli, p->op->c+3);
+    mpz_vect_mod(w, w, get_moduli(p), p->op->c+3);
 
     level *lvl = level_create_vc(p->op);
     level *vstar = level_create_vstar(p->op);
@@ -359,7 +359,7 @@ void encode_Zcj (
 
 void encode_Rhatkso(
     encoding *enc,
-    public_params *p,
+    secret_params *p,
     aes_randstate_t rng,
     mpz_t *rs,
     size_t k,
@@ -373,7 +373,7 @@ void encode_Rhatkso(
 
 void encode_Zhatkso (
     encoding *enc,
-    public_params *p,
+    secret_params *p,
     aes_randstate_t rng,
     mpz_t *rs,
     mpz_t *whatk,
@@ -383,7 +383,7 @@ void encode_Zhatkso (
 ) {
     mpz_t *inp = mpz_vect_create(p->op->c+3);
     mpz_vect_mul(inp, whatk, rs, p->op->c+3);
-    mpz_vect_mod(inp, inp, p->moduli, p->op->c+3);
+    mpz_vect_mod(inp, inp, get_moduli(p), p->op->c+3);
 
     level *lvl   = level_create_vhatkso(p->op, k, s, o);
     level *vstar = level_create_vstar(p->op);
@@ -398,7 +398,7 @@ void encode_Zhatkso (
 
 void encode_Rhato (
     encoding *enc,
-    public_params *p,
+    secret_params *p,
     aes_randstate_t rng,
     mpz_t *rs,
     size_t o
@@ -410,7 +410,7 @@ void encode_Rhato (
 
 void encode_Zhato (
     encoding *enc,
-    public_params *p,
+    secret_params *p,
     aes_randstate_t rng,
     mpz_t *rs,
     mpz_t *what,
@@ -418,7 +418,7 @@ void encode_Zhato (
 ) {
     mpz_t *inp = mpz_vect_create(p->op->c+3);
     mpz_vect_mul(inp, what, rs, p->op->c+3);
-    mpz_vect_mod(inp, inp, p->moduli, p->op->c+3);
+    mpz_vect_mod(inp, inp, get_moduli(p), p->op->c+3);
 
     level *vhato = level_create_vhato(p->op, o);
     level *lvl = level_create_vstar(p->op);
@@ -433,7 +433,7 @@ void encode_Zhato (
 
 void encode_Rbaro(
     encoding *enc,
-    public_params *p,
+    secret_params *p,
     aes_randstate_t rng,
     mpz_t *rs,
     size_t o
@@ -445,7 +445,7 @@ void encode_Rbaro(
 
 void encode_Zbaro(
     encoding *enc,
-    public_params *p,
+    secret_params *p,
     aes_randstate_t rng,
     mpz_t *rs,
     mpz_t *what,
@@ -467,23 +467,23 @@ void encode_Zbaro(
             mpz_set(xs[id], ykj[k][j]);
         }
     }
-    eval_circ_mod(ybar, c, c->outrefs[o], xs, ykj[p->op->c], p->moduli[0]);
+    eval_circ_mod(ybar, c, c->outrefs[o], xs, ykj[p->op->c], get_moduli(p)[0]);
 
     mpz_t *tmp = mpz_vect_create(p->op->c+3);
     mpz_vect_set(tmp, what, p->op->c+3);
     for (int k = 0; k < p->op->c; k++) {
-        mpz_vect_mul(tmp, tmp, whatk[k], p->op->c+3);
-        mpz_vect_mod(tmp, tmp, p->moduli, p->op->c+3);
+        mpz_vect_mul(tmp, tmp, whatk[k],      p->op->c+3);
+        mpz_vect_mod(tmp, tmp, get_moduli(p), p->op->c+3);
     }
 
     mpz_t *w = mpz_vect_create(p->op->c+3);
     mpz_set(w[0], ybar);
     mpz_set_ui(w[1], 1);
-    mpz_vect_mul(w, w, tmp,       p->op->c+3);
-    mpz_vect_mod(w, w, p->moduli, p->op->c+3);
+    mpz_vect_mul(w, w, tmp,           p->op->c+3);
+    mpz_vect_mod(w, w, get_moduli(p), p->op->c+3);
 
-    mpz_vect_mul(w, w, rs,        p->op->c+3);
-    mpz_vect_mod(w, w, p->moduli, p->op->c+3);
+    mpz_vect_mul(w, w, rs,            p->op->c+3);
+    mpz_vect_mod(w, w, get_moduli(p), p->op->c+3);
 
     uint32_t d = degree(c, c->outrefs[o]);
 

@@ -1,11 +1,12 @@
 #include "circuit.h"
 
 #include "util.h"
+
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 void ensure_gate_space (circuit *c, circref ref);
 
@@ -94,6 +95,7 @@ void eval_circ_mod (mpz_t rop, circuit *c, circref ref, mpz_t *xs, mpz_t *ys, mp
 
 int ensure (circuit *c)
 {
+    puts("running circuit tests in plaintext...");
     int *res = lin_malloc(c->noutputs * sizeof(int));
     bool ok  = true;
 
@@ -151,9 +153,9 @@ int ensure (circuit *c)
             puts("");
         }
 
-        printf("res=");
-        print_array(res, c->noutputs);
-        puts("");
+        /*printf("res=");*/
+        /*print_array(res, c->noutputs);*/
+        /*puts("");*/
 
         ok = ok && test_ok;
     }
