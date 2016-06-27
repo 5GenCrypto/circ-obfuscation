@@ -8,7 +8,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 // public parameters
 
-void fake_params_init (fake_params *p, obf_params *op, mpz_t *moduli, level *toplevel)
+void public_params_init (public_params *p, obf_params *op, mpz_t *moduli, level *toplevel)
 {
     p->moduli = moduli;
     /*p->moduli = lin_malloc((op->c+3) * sizeof(mpz_t));*/
@@ -20,7 +20,7 @@ void fake_params_init (fake_params *p, obf_params *op, mpz_t *moduli, level *top
     p->toplevel = toplevel;
 }
 
-void fake_params_clear (fake_params *p)
+void public_params_clear (public_params *p)
 {
     level_destroy(p->toplevel);
 }
@@ -28,7 +28,7 @@ void fake_params_clear (fake_params *p)
 ////////////////////////////////////////////////////////////////////////////////
 // encodings
 
-void encoding_init (encoding *x, fake_params *p)
+void encoding_init (encoding *x, public_params *p)
 {
     x->lvl = lin_malloc(sizeof(level));
     level_init(x->lvl, p->op);
@@ -67,7 +67,7 @@ void encode (encoding *x, const mpz_t *inps, size_t nins, const level *lvl)
     level_set(x->lvl, lvl);
 }
 
-void encoding_mul (encoding *rop, encoding *x, encoding *y, fake_params *p)
+void encoding_mul (encoding *rop, encoding *x, encoding *y, public_params *p)
 {
     level_add(rop->lvl, x->lvl, y->lvl);
     for (int i = 0; i < rop->nslots; i++) {
@@ -76,7 +76,7 @@ void encoding_mul (encoding *rop, encoding *x, encoding *y, fake_params *p)
     }
 }
 
-void encoding_add (encoding *rop, encoding *x, encoding *y, fake_params *p)
+void encoding_add (encoding *rop, encoding *x, encoding *y, public_params *p)
 {
     assert(level_eq(x->lvl, y->lvl));
     for (int i = 0; i < rop->nslots; i++) {
@@ -86,7 +86,7 @@ void encoding_add (encoding *rop, encoding *x, encoding *y, fake_params *p)
     level_set(rop->lvl, x->lvl);
 }
 
-void encoding_sub(encoding *rop, encoding *x, encoding *y, fake_params *p)
+void encoding_sub(encoding *rop, encoding *x, encoding *y, public_params *p)
 {
     if (!level_eq(x->lvl, y->lvl)) {
         level_print(x->lvl);
@@ -111,7 +111,7 @@ int encoding_eq (encoding *x, encoding *y)
     return 1;
 }
 
-int encoding_is_zero (encoding *x, fake_params *p)
+int encoding_is_zero (encoding *x, public_params *p)
 {
     if(!level_eq(x->lvl, p->toplevel)) {
         level_print(x->lvl);

@@ -21,12 +21,13 @@ void mult_vect_by_vect(mpz_t out, const mpz_t *m, const mpz_t *v, mpz_t q, int s
 
 int max(int, int);
 
-void print_array(int*, size_t);
-void print_arraystring(int *bits, size_t n);
-void print_mpz_array(mpz_t*, size_t);
-bool in_array(int x, int *ys, size_t len);
-bool any_in_array(int *xs, int xlen, int *ys, size_t ylen);
-bool array_eq(int *xs, int *ys, size_t len);
+void print_array           (int*, size_t);
+void print_arraystring     (int *bits, size_t n);
+void print_arraystring_rev (int *bits, size_t n);
+void print_mpz_array       (mpz_t*, size_t);
+bool in_array              (int x, int *ys, size_t len);
+bool any_in_array          (int *xs, int xlen, int *ys, size_t ylen);
+bool array_eq              (int *xs, int *ys, size_t len);
 
 void mpz_random_inv(mpz_t rop, gmp_randstate_t rng, mpz_t modulus);
 

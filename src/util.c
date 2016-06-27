@@ -108,7 +108,13 @@ int max(int x, int y) {
 void print_arraystring(int *xs, size_t n)
 {
     for (int i = 0; i < n; i++)
-        printf("%d", xs[i]);
+        printf("%d", xs[i] == 1);
+}
+
+void print_arraystring_rev(int *xs, size_t n)
+{
+    for (int i = n-1; i >= 0; i--)
+        printf("%d", xs[i] == 1);
 }
 
 void print_array(int *xs, size_t len) {

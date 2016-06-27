@@ -8,10 +8,10 @@ typedef struct {
     mpz_t *moduli;
     obf_params *op;
     level *toplevel;
-} fake_params;
+} public_params;
 
-void fake_params_init (fake_params *p, obf_params *op, mpz_t *moduli, level *toplevel);
-void fake_params_clear (fake_params *pp);
+void public_params_init (public_params *p, obf_params *op, mpz_t *moduli, level *toplevel);
+void public_params_clear (public_params *pp);
 
 typedef struct {
     level *lvl;
@@ -19,17 +19,17 @@ typedef struct {
     size_t nslots;
 } encoding;
 
-void encoding_init  (encoding *x, fake_params *p);
+void encoding_init  (encoding *x, public_params *p);
 void encoding_clear (encoding *x);
 void encoding_set   (encoding *rop, encoding *x);
 
 void encode (encoding *x, const mpz_t *inps, size_t nins, const level *lvl);
 
-void encoding_mul (encoding *rop, encoding *x, encoding *y, fake_params *p);
-void encoding_add (encoding *rop, encoding *x, encoding *y, fake_params *p);
-void encoding_sub (encoding *rop, encoding *x, encoding *y, fake_params *p);
+void encoding_mul (encoding *rop, encoding *x, encoding *y, public_params *p);
+void encoding_add (encoding *rop, encoding *x, encoding *y, public_params *p);
+void encoding_sub (encoding *rop, encoding *x, encoding *y, public_params *p);
 int  encoding_eq  (encoding *x, encoding *y);
 
-int encoding_is_zero (encoding *x, fake_params *p);
+int encoding_is_zero (encoding *x, public_params *p);
 
 #endif

@@ -8,7 +8,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 // boilerplate
 
-void obfuscation_init (obfuscation *obf, fake_params *p)/*{{{*/
+void obfuscation_init (obfuscation *obf, public_params *p)/*{{{*/
 {
     obf->op = p->op;
     obf_params op = *(obf->op);
@@ -158,7 +158,7 @@ void obfuscation_clear (obfuscation *obf)/*{{{*/
 ////////////////////////////////////////////////////////////////////////////////
 // obfuscator
 
-void obfuscate (obfuscation *obf, fake_params *p, gmp_randstate_t *rng)
+void obfuscate (obfuscation *obf, public_params *p, gmp_randstate_t *rng)
 {
     obf->op = p->op;
 
@@ -267,7 +267,7 @@ void obfuscate (obfuscation *obf, fake_params *p, gmp_randstate_t *rng)
     mpz_vect_destroy(what, p->op->c+3);
 }
 
-void encode_Zstar (encoding *enc, fake_params *p, gmp_randstate_t *rng)
+void encode_Zstar (encoding *enc, public_params *p, gmp_randstate_t *rng)
 {
     mpz_t *inps = mpz_vect_create(p->op->c+3);
     mpz_set_ui(inps[0], 1);
@@ -282,7 +282,7 @@ void encode_Zstar (encoding *enc, fake_params *p, gmp_randstate_t *rng)
 }
 
 
-void encode_Rks (encoding *enc, fake_params *p, mpz_t *rs, size_t k, size_t s)
+void encode_Rks (encoding *enc, public_params *p, mpz_t *rs, size_t k, size_t s)
 {
     level *vsk = level_create_vks(p->op, k, s);
     encode(enc, rs, p->op->c+3, vsk);
@@ -291,7 +291,7 @@ void encode_Rks (encoding *enc, fake_params *p, mpz_t *rs, size_t k, size_t s)
 
 void encode_Zksj (
     encoding *enc,
-    fake_params *p,
+    public_params *p,
     mpz_t *rs,
     mpz_t ykj,
     size_t k,
@@ -319,7 +319,7 @@ void encode_Zksj (
     mpz_vect_destroy(w, p->op->c+3);
 }
 
-void encode_Rc (encoding *enc, fake_params *p, mpz_t *rs)
+void encode_Rc (encoding *enc, public_params *p, mpz_t *rs)
 {
     level *vc = level_create_vc(p->op);
     encode(enc, rs, p->op->c+3, vc);
@@ -328,7 +328,7 @@ void encode_Rc (encoding *enc, fake_params *p, mpz_t *rs)
 
 void encode_Zcj (
     encoding *enc,
-    fake_params *p,
+    public_params *p,
     mpz_t *rs,
     mpz_t ykj,
     int const_val,
@@ -353,7 +353,7 @@ void encode_Zcj (
     mpz_vect_destroy(w, p->op->c+3);
 }
 
-void encode_Rhatkso(encoding *enc, fake_params *p, mpz_t *rs, size_t k, size_t s, size_t o)
+void encode_Rhatkso(encoding *enc, public_params *p, mpz_t *rs, size_t k, size_t s, size_t o)
 {
     level *vhatkso = level_create_vhatkso(p->op, k, s, o);
     encode(enc, rs, p->op->c+3, vhatkso);
@@ -362,7 +362,7 @@ void encode_Rhatkso(encoding *enc, fake_params *p, mpz_t *rs, size_t k, size_t s
 
 void encode_Zhatkso (
     encoding *enc,
-    fake_params *p,
+    public_params *p,
     mpz_t *rs,
     mpz_t *whatk,
     size_t k,
@@ -384,14 +384,14 @@ void encode_Zhatkso (
     mpz_vect_destroy(inp, p->op->c+3);
 }
 
-void encode_Rhato (encoding *enc, fake_params *p, mpz_t *rs, size_t o)
+void encode_Rhato (encoding *enc, public_params *p, mpz_t *rs, size_t o)
 {
     level *vhato = level_create_vhato(p->op, o);
     encode(enc, rs, p->op->c+3, vhato);
     level_destroy(vhato);
 }
 
-void encode_Zhato (encoding *enc, fake_params *p, mpz_t *rs, mpz_t *what, size_t o)
+void encode_Zhato (encoding *enc, public_params *p, mpz_t *rs, mpz_t *what, size_t o)
 {
     mpz_t *inp = mpz_vect_create(p->op->c+3);
     mpz_vect_mul(inp, what, rs, p->op->c+3);
@@ -408,7 +408,7 @@ void encode_Zhato (encoding *enc, fake_params *p, mpz_t *rs, mpz_t *what, size_t
     mpz_vect_destroy(inp, p->op->c+3);
 }
 
-void encode_Rbaro(encoding *enc, fake_params *p, mpz_t *rs, size_t o)
+void encode_Rbaro(encoding *enc, public_params *p, mpz_t *rs, size_t o)
 {
     level *vbaro = level_create_vbaro(p->op, o);
     encode(enc, rs, p->op->c+3, vbaro);
@@ -417,7 +417,7 @@ void encode_Rbaro(encoding *enc, fake_params *p, mpz_t *rs, size_t o)
 
 void encode_Zbaro(
     encoding *enc,
-    fake_params *p,
+    public_params *p,
     mpz_t *rs,
     mpz_t *what,
     mpz_t **whatk,

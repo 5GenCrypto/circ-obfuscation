@@ -85,30 +85,30 @@ int main (int argc, char **argv)
 
     printf("initializing params..\n");
     level *vzt = level_create_vzt(&op, d);
-    fake_params fp;
-    fake_params_init(&fp, &op, moduli, vzt);
+    public_params pp;
+    public_params_init(&pp, &op, moduli, vzt);
 
     printf("obfuscating...\n");
     obfuscation obf;
-    obfuscation_init(&obf, &fp);
+    obfuscation_init(&obf, &pp);
 
-    obfuscate(&obf, &fp, &rng);
+    obfuscate(&obf, &pp, &rng);
 
     puts("evaluating...");
     /*int *res = lin_malloc(c.noutputs * sizeof(int));*/
     int res[c.noutputs];
     for (int i = 0; i < c.ntests; i++) {
-        /*void evaluate (bool *rop, const bool *inps, obfuscation *obf, fake_params *p);*/
-        evaluate(res, c.testinps[i], &obf, &fp);
+        /*void evaluate (bool *rop, const bool *inps, obfuscation *obf, public_params *p);*/
+        evaluate(res, c.testinps[i], &obf, &pp);
         bool test_ok = array_eq(res, c.testouts[i], c.noutputs);
         if (!test_ok)
             printf("\033[1;41m");
         printf("test %d input=", i);
-        print_arraystring(c.testinps[i], c.ninputs);
+        print_arraystring_rev(c.testinps[i], c.ninputs);
         printf(" expected=");
-        print_arraystring(c.testouts[i], c.noutputs);
+        print_arraystring_rev(c.testouts[i], c.noutputs);
         printf(" got=");
-        print_arraystring(res, c.noutputs);
+        print_arraystring_rev(res, c.noutputs);
         if (!test_ok)
             printf("\033[0m");
         puts("");
@@ -122,7 +122,7 @@ int main (int argc, char **argv)
     }
     free(moduli);
     gmp_randclear(rng);
-    fake_params_clear(&fp);
+    public_params_clear(&pp);
     obf_params_clear(&op);
     circ_clear(&c);
 

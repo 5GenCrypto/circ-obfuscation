@@ -3,7 +3,7 @@
 # TEST 00 00
 # TEST 01 01
 # TEST 10 01
-# TEST 11 11
+# TEST 11 10
 0 input x0
 1 input x1
 2 input y0 0

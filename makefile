@@ -4,8 +4,8 @@ CFLAGS = -Wall -Wno-unused-result -Wno-pointer-sign -Wno-switch \
 		 #-fopenmp \
 		 -DYY_NO_UNPUT=1 -DYY_NO_INPUT=1
 
-IFLAGS = -Isrc -Isrc/parser -Iclt13/src
-LFLAGS = -lgmp -lm
+IFLAGS = -Isrc -Isrc/parser -Ibuild/include
+LFLAGS = -lgmp -lm -lclt13 -laesrand -Lbuild/lib -Wl,-rpath -Wl,build/lib
 
 SRCS   = $(wildcard src/*.c) $(wildcard clt13/src/*.c)
 OBJS   = $(addsuffix .o, $(basename $(SRCS)))
@@ -25,8 +25,10 @@ src/parser/parse.tab.c src/parser/parse.tab.h: src/parser/parse.y
 src/parser/scan.yy.c: src/parser/scan.l
 	flex -o src/parser/scan.yy.c src/parser/scan.l
 
-#clt13: 
-	#git clone https://github.com/spaceships/clt13.git
+deepclean: clean
+	$(RM) -r libaesrand
+	$(RM) -r clt13
+	$(RM) -r build
 
 clean:
 	$(RM) src/parser/parse.tab.h

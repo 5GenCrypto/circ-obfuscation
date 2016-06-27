@@ -127,7 +127,7 @@ int ensure (circuit *c)
             /*mpz_init(tmp);*/
             /*eval_circ_mod(tmp, c, c->outrefs[i], inps, secs, mod);*/
             /*res[i] = mpz_get_ui(tmp);*/
-            test_ok = test_ok && ((res[i] > 0) == c->testouts[test_num][i]);
+            test_ok = test_ok && ((res[i] == 1) == (c->testouts[test_num][i] == 1));
         }
 
 
@@ -135,15 +135,15 @@ int ensure (circuit *c)
             if (!test_ok)
                 printf("\033[1;41m");
             printf("test %d input=", test_num);
-            print_arraystring(c->testinps[test_num], c->ninputs);
+            print_arraystring_rev(c->testinps[test_num], c->ninputs);
             /*for (int i = 0; i < c->ninputs; i++)*/
                 /*printf("%d", c->testinps[test_num][i]);*/
             printf(" expected=");
-            print_arraystring(c->testouts[test_num], c->noutputs);
+            print_arraystring_rev(c->testouts[test_num], c->noutputs);
             /*for (int i = 0; i < c->noutputs; i++)*/
                 /*printf("%d", c->testouts[test_num][i]);*/
             printf(" got=");
-            print_arraystring(res, c->noutputs);
+            print_arraystring_rev(res, c->noutputs);
             /*for (int i = 0; i < c->noutputs; i++)*/
                 /*printf("%d", res[i] > 0);*/
             if (!test_ok)

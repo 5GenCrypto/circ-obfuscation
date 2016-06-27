@@ -1,5 +1,7 @@
 main
 clt13
+libaesrand
+build
 src/*.o
 src/parser/*.o
 src/parser/*.tab.*

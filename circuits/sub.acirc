@@ -1,6 +1,0 @@
-# TEST 00 1
-# TEST 01 0
-0 input y0 1
-1 input x0
-2 input x1
-3 output SUB 0 1
