@@ -66,15 +66,17 @@ int main (int argc, char **argv)
     /*obf_params_init(&op, &c, chunker_in_order, rchunker_in_order, nsyms);*/
     obf_params_init(&op, &c, chunker_mod, rchunker_mod, nsyms);
 
+
+
     printf("params: c=%lu ell=%lu q=%lu M=%u\n", op.c, op.ell, op.q, op.M);
 
     printf("consts: ");
-    print_array(c.consts, c.nconsts);
+    array_print(c.consts, c.nconsts);
     puts("");
 
     for (int i = 0; i < c.noutputs; i++) {
         printf("output bit %d: type=", i);
-        print_array(op.types[i], nsyms + 1);
+        array_print(op.types[i], nsyms + 1);
         puts("");
     }
 
@@ -86,12 +88,24 @@ int main (int argc, char **argv)
     printf("initializing params..\n");
     level *vzt = level_create_vzt(&op, d);
     secret_params st;
-    secret_params_init(&st, &op, vzt, rng);
+    secret_params_init(&st, &op, vzt, 10, rng);
+
 
     printf("obfuscating...\n");
     obfuscation obf;
     obfuscation_init(&obf, &st);
     obfuscate(&obf, &st, rng);
+
+    FILE *obf_fp = fopen("test.lin", "w+");
+    obfuscation_write(obf_fp, &obf);
+
+    // check obfuscation serialization
+    rewind(obf_fp);
+    obfuscation obfp;
+    obfuscation_read(&obfp, obf_fp, &op);
+    obfuscation_eq(&obf, &obfp);
+    obfuscation_clear(&obfp);
+    fclose(obf_fp);
 
     public_params pp;
     public_params_init(&pp, &st);
@@ -106,11 +120,11 @@ int main (int argc, char **argv)
         if (!test_ok)
             printf("\033[1;41m");
         printf("test %d input=", i);
-        print_arraystring_rev(c.testinps[i], c.ninputs);
+        array_printstring_rev(c.testinps[i], c.ninputs);
         printf(" expected=");
-        print_arraystring_rev(c.testouts[i], c.noutputs);
+        array_printstring_rev(c.testouts[i], c.noutputs);
         printf(" got=");
-        print_arraystring_rev(res, c.noutputs);
+        array_printstring_rev(res, c.noutputs);
         if (!test_ok)
             printf("\033[0m");
         puts("");

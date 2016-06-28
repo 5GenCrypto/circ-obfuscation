@@ -46,4 +46,8 @@ void encode_Zhato   (encoding *enc, secret_params *p, aes_randstate_t rng, mpz_t
 void encode_Rbaro   (encoding *enc, secret_params *p, aes_randstate_t rng, mpz_t *rs, size_t o);
 void encode_Zbaro   (encoding *enc, secret_params *p, aes_randstate_t rng, mpz_t *rs, mpz_t *what, mpz_t **whatk, mpz_t **ykj, circuit *c, size_t o);
 
+void obfuscation_write (FILE *const fp, const obfuscation *obf);
+void obfuscation_read  (obfuscation *ob, FILE *const fp, obf_params *op);
+void obfuscation_eq (const obfuscation *x, const obfuscation *y);
+
 #endif

@@ -1,5 +1,6 @@
 #include "util.h"
 
+#include <assert.h>
 #include <fcntl.h>
 #include <gmp.h>
 #include <sys/time.h>
@@ -44,60 +45,6 @@ int seed_rng(gmp_randstate_t *rng) {
     return 0;
 }
 
-int load_mpz_scalar(const char *fname, mpz_t x) {
-    FILE *f;
-    if ((f = fopen(fname, "r")) == NULL) {
-        perror(fname);
-        return 1;
-    }
-    (void) mpz_inp_raw(x, f);
-    (void) fclose(f);
-    return 0;
-}
-
-int save_mpz_scalar(const char *fname, const mpz_t x) {
-    FILE *f;
-    if ((f = fopen(fname, "w")) == NULL) {
-        perror(fname);
-        return 1;
-    }
-    if (mpz_out_raw(f, x) == 0) {
-        (void) fclose(f);
-        return 1;
-    }
-    (void) fclose(f);
-    return 0;
-}
-
-int load_mpz_vector(const char *fname, mpz_t *m, const int len) {
-    FILE *f;
-    if ((f = fopen(fname, "r")) == NULL) {
-        perror(fname);
-        return 1;
-    }
-    for (int i = 0; i < len; ++i) {
-        (void) mpz_inp_raw(m[i], f);
-    }
-    (void) fclose(f);
-    return 0;
-}
-
-int save_mpz_vector(const char *fname, const mpz_t *m, const int len) {
-    FILE *f;
-    if ((f = fopen(fname, "w")) == NULL) {
-        perror(fname);
-        return 1;
-    }
-    for (int i = 0; i < len; ++i) {
-        if (mpz_out_raw(f, m[i]) == 0) {
-            (void) fclose(f);
-            return 1;
-        }
-    }
-    (void) fclose(f);
-    return 0;
-}
-
 int max(int x, int y) {
     if (x >= y)
         return x;
@@ -105,19 +52,19 @@ int max(int x, int y) {
         return y;
 }
 
-void print_arraystring(int *xs, size_t n)
+void array_printstring(int *xs, size_t n)
 {
     for (int i = 0; i < n; i++)
         printf("%d", xs[i] == 1);
 }
 
-void print_arraystring_rev(int *xs, size_t n)
+void array_printstring_rev(int *xs, size_t n)
 {
     for (int i = n-1; i >= 0; i--)
         printf("%d", xs[i] == 1);
 }
 
-void print_array(int *xs, size_t len) {
+void array_print(int *xs, size_t len) {
     if (len == 1){
         printf("[%d]", xs[0]);
         return;
@@ -129,23 +76,6 @@ void print_array(int *xs, size_t len) {
             printf("%d]", xs[i]);
         } else {
             printf("%d,", xs[i]);
-        }
-    }
-}
-
-void print_mpz_array(mpz_t *xs, size_t len)
-{
-    if (len == 1){
-        gmp_printf("[%Zd]", xs[0]);
-        return;
-    }
-    for (int i = 0; i < len; i++) {
-        if (i == 0) {
-            gmp_printf("[%Zd,", xs[i]);
-        } else if (i == len - 1) {
-            gmp_printf("%Zd]", xs[i]);
-        } else {
-            gmp_printf("%Zd,", xs[i]);
         }
     }
 }
@@ -189,6 +119,23 @@ mpz_t* mpz_vect_create (size_t n)
     for (int i = 0; i < n; i++)
         mpz_init(vec[i]);
     return vec;
+}
+
+void mpz_vect_print(mpz_t *xs, size_t len)
+{
+    if (len == 1){
+        gmp_printf("[%Zd]", xs[0]);
+        return;
+    }
+    for (int i = 0; i < len; i++) {
+        if (i == 0) {
+            gmp_printf("[%Zd,", xs[i]);
+        } else if (i == len - 1) {
+            gmp_printf("%Zd]", xs[i]);
+        } else {
+            gmp_printf("%Zd,", xs[i]);
+        }
+    }
 }
 
 void mpz_vect_destroy (mpz_t *vec, size_t n)
@@ -251,23 +198,43 @@ size_t bit(size_t x, size_t i)
 void* lin_calloc(size_t nmemb, size_t size)
 {
     void *ptr = calloc(nmemb, size);
-    if (ptr == NULL)
-        errx(1, "[lin_calloc] couldn't allocate %lu bytes!", nmemb * size);
+    if (ptr == NULL) {
+        fprintf(stderr, "[lin_calloc] couldn't allocate %lu bytes!\n", nmemb * size);
+        assert(false);
+    }
     return ptr;
 }
 
 void* lin_malloc(size_t size)
 {
     void *ptr = malloc(size);
-    if (ptr == NULL)
-        errx(1, "[lin_malloc] couldn't allocate %lu bytes!", size);
+    if (ptr == NULL) {
+        fprintf(stderr, "[lin_malloc] couldn't allocate %lu bytes!\n", size);
+        assert(false);
+    }
     return ptr;
 }
 
 void* lin_realloc(void *ptr, size_t size)
 {
     void *ptr_ = realloc(ptr, size);
-    if (ptr_ == NULL)
-        errx(1, "[lin_realloc] couldn't reallocate %lu bytes!", size);
+    if (ptr_ == NULL) {
+        fprintf(stderr, "[lin_realloc] couldn't reallocate %lu bytes!\n", size);
+        assert(false);
+    }
     return ptr_;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// serialization
+
+void ulong_read (unsigned long *x, FILE *const fp)
+{
+    assert(fscanf(fp, "%lu", x) > 0);
+}
+
+void ulong_write (FILE *const fp, unsigned long x)
+{
+    assert(fprintf(fp, "%lu", x) > 0);
+}
+

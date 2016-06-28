@@ -137,15 +137,15 @@ int ensure (circuit *c)
             if (!test_ok)
                 printf("\033[1;41m");
             printf("test %d input=", test_num);
-            print_arraystring_rev(c->testinps[test_num], c->ninputs);
+            array_printstring_rev(c->testinps[test_num], c->ninputs);
             /*for (int i = 0; i < c->ninputs; i++)*/
                 /*printf("%d", c->testinps[test_num][i]);*/
             printf(" expected=");
-            print_arraystring_rev(c->testouts[test_num], c->noutputs);
+            array_printstring_rev(c->testouts[test_num], c->noutputs);
             /*for (int i = 0; i < c->noutputs; i++)*/
                 /*printf("%d", c->testouts[test_num][i]);*/
             printf(" got=");
-            print_arraystring_rev(res, c->noutputs);
+            array_printstring_rev(res, c->noutputs);
             /*for (int i = 0; i < c->noutputs; i++)*/
                 /*printf("%d", res[i] > 0);*/
             if (!test_ok)

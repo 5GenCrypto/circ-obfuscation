@@ -1,9 +1,11 @@
 #include "obfuscate.h"
 
 #include "util.h"
+#include <clt13.h>
 #include <gmp.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 // boilerplate
@@ -14,14 +16,14 @@ void obfuscation_init (obfuscation *obf, secret_params *p)/*{{{*/
     obf_params op = *(obf->op);
 
     obf->Zstar = lin_malloc(sizeof(encoding));
-    encoding_init(obf->Zstar, p);
+    encoding_init(obf->Zstar, p->op);
 
     obf->Rks = lin_malloc(op.c * sizeof(encoding**));
     for (int k = 0; k < op.c; k++) {
         obf->Rks[k] = lin_malloc(op.q * sizeof(encoding*));
         for (int s = 0; s < op.q; s++) {
             obf->Rks[k][s] = lin_malloc(sizeof(encoding));
-            encoding_init(obf->Rks[k][s], p);
+            encoding_init(obf->Rks[k][s], p->op);
         }
     }
 
@@ -32,17 +34,17 @@ void obfuscation_init (obfuscation *obf, secret_params *p)/*{{{*/
             obf->Zksj[k][s] = lin_malloc(op.ell * sizeof(encoding*));
             for (int j = 0; j < op.ell; j++) {
                 obf->Zksj[k][s][j] = lin_malloc(sizeof(encoding));
-                encoding_init(obf->Zksj[k][s][j], p);
+                encoding_init(obf->Zksj[k][s][j], p->op);
             }
         }
     }
 
     obf->Rc = lin_malloc(sizeof(encoding));
-    encoding_init(obf->Rc, p);
+    encoding_init(obf->Rc, p->op);
     obf->Zcj = lin_malloc(op.m * sizeof(encoding*));
     for (int j = 0; j < op.m; j++) {
         obf->Zcj[j] = lin_malloc(sizeof(encoding));
-        encoding_init(obf->Zcj[j], p);
+        encoding_init(obf->Zcj[j], p->op);
     }
 
     obf->Rhatkso = lin_malloc(op.c * sizeof(encoding***));
@@ -56,8 +58,8 @@ void obfuscation_init (obfuscation *obf, secret_params *p)/*{{{*/
             for (int o = 0; o < op.gamma; o++) {
                 obf->Rhatkso[k][s][o] = lin_malloc(sizeof(encoding));
                 obf->Zhatkso[k][s][o] = lin_malloc(sizeof(encoding));
-                encoding_init(obf->Rhatkso[k][s][o], p);
-                encoding_init(obf->Zhatkso[k][s][o], p);
+                encoding_init(obf->Rhatkso[k][s][o], p->op);
+                encoding_init(obf->Zhatkso[k][s][o], p->op);
             }
         }
     }
@@ -67,8 +69,8 @@ void obfuscation_init (obfuscation *obf, secret_params *p)/*{{{*/
     for (int o = 0; o < op.gamma; o++) {
         obf->Rhato[o] = lin_malloc(sizeof(encoding));
         obf->Zhato[o] = lin_malloc(sizeof(encoding));
-        encoding_init(obf->Rhato[o], p);
-        encoding_init(obf->Zhato[o], p);
+        encoding_init(obf->Rhato[o], p->op);
+        encoding_init(obf->Zhato[o], p->op);
     }
 
     obf->Rbaro = lin_malloc(op.gamma * sizeof(encoding*));
@@ -76,8 +78,8 @@ void obfuscation_init (obfuscation *obf, secret_params *p)/*{{{*/
     for (int o = 0; o < op.gamma; o++) {
         obf->Rbaro[o] = lin_malloc(sizeof(encoding));
         obf->Zbaro[o] = lin_malloc(sizeof(encoding));
-        encoding_init(obf->Rbaro[o], p);
-        encoding_init(obf->Zbaro[o], p);
+        encoding_init(obf->Rbaro[o], p->op);
+        encoding_init(obf->Zbaro[o], p->op);
     }
 }
 /*}}}*/
@@ -500,4 +502,190 @@ void encode_Zbaro(
     mpz_vect_destroy(w, p->op->c+3);
     level_destroy(vstar);
     level_destroy(lvl);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// serialization
+
+void obfuscation_eq (const obfuscation *x, const obfuscation *y)
+{
+    obf_params op = *x->op;
+    assert(encoding_eq(x->Zstar, y->Zstar));
+    for (int k = 0; k < op.c; k++) {
+        for (int s = 0; s < op.q; s++) {
+            assert(encoding_eq(x->Rks[k][s], y->Rks[k][s]));
+        }
+    }
+
+    for (int k = 0; k < op.c; k++) {
+        for (int s = 0; s < op.q; s++) {
+            for (int j = 0; j < op.ell; j++) {
+                assert(encoding_eq(x->Zksj[k][s][j], y->Zksj[k][s][j]));
+            }
+        }
+    }
+
+    assert(encoding_eq(x->Rc, y->Rc));
+    for (int j = 0; j < op.m; j++) {
+        assert(encoding_eq(x->Zcj[j], y->Zcj[j]));
+    }
+
+    for (int k = 0; k < op.c; k++) {
+        for (int s = 0; s < op.q; s++) {
+            for (int o = 0; o < op.gamma; o++) {
+                assert(encoding_eq(x->Rhatkso[k][s][o], y->Rhatkso[k][s][o]));
+                assert(encoding_eq(x->Zhatkso[k][s][o], y->Zhatkso[k][s][o]));
+            }
+        }
+    }
+
+    for (int o = 0; o < op.gamma; o++) {
+        assert(encoding_eq(x->Rhato[o], y->Rhato[o]));
+        assert(encoding_eq(x->Zhato[o], y->Zhato[o]));
+    }
+
+    for (int o = 0; o < op.gamma; o++) {
+        assert(encoding_eq(x->Rbaro[o], y->Rbaro[o]));
+        assert(encoding_eq(x->Zbaro[o], y->Zbaro[o]));
+    }
+}
+
+void obfuscation_write (FILE *const fp, const obfuscation *obf)
+{
+    obf_params op = *obf->op;
+
+    encoding_write(fp, obf->Zstar);
+    PUT_NEWLINE(fp);
+
+    for (int k = 0; k < op.c; k++) {
+        for (int s = 0; s < op.q; s++) {
+            encoding_write(fp, obf->Rks[k][s]);
+            PUT_NEWLINE(fp);
+        }
+    }
+
+    for (int k = 0; k < op.c; k++) {
+        for (int s = 0; s < op.q; s++) {
+            for (int j = 0; j < op.ell; j++) {
+                encoding_write(fp, obf->Zksj[k][s][j]);
+                PUT_NEWLINE(fp);
+            }
+        }
+    }
+
+    encoding_write(fp, obf->Rc);
+    PUT_NEWLINE(fp);
+    for (int j = 0; j < op.m; j++) {
+        encoding_write(fp, obf->Zcj[j]);
+        PUT_NEWLINE(fp);
+    }
+
+    for (int k = 0; k < op.c; k++) {
+        for (int s = 0; s < op.q; s++) {
+            for (int o = 0; o < op.gamma; o++) {
+                encoding_write(fp, obf->Rhatkso[k][s][o]);
+                PUT_NEWLINE(fp);
+                encoding_write(fp, obf->Zhatkso[k][s][o]);
+                PUT_NEWLINE(fp);
+            }
+        }
+    }
+
+    for (int o = 0; o < op.gamma; o++) {
+        encoding_write(fp, obf->Rhato[o]);
+        PUT_NEWLINE(fp);
+        encoding_write(fp, obf->Zhato[o]);
+        PUT_NEWLINE(fp);
+    }
+
+    for (int o = 0; o < op.gamma; o++) {
+        encoding_write(fp, obf->Rbaro[o]);
+        PUT_NEWLINE(fp);
+        encoding_write(fp, obf->Zbaro[o]);
+        PUT_NEWLINE(fp);
+    }
+}
+
+void obfuscation_read (obfuscation *obf, FILE *const fp, obf_params *p)
+{
+    obf->op = p;
+    obf_params op = *p;
+
+    obf->Zstar = lin_malloc(sizeof(encoding));
+    encoding_read(obf->Zstar, fp);
+    GET_NEWLINE(fp);
+
+    obf->Rks = lin_malloc(op.c * sizeof(encoding**));
+    for (int k = 0; k < op.c; k++) {
+        obf->Rks[k] = lin_malloc(op.q * sizeof(encoding*));
+        for (int s = 0; s < op.q; s++) {
+            obf->Rks[k][s] = lin_malloc(sizeof(encoding));
+            encoding_read(obf->Rks[k][s], fp);
+            GET_NEWLINE(fp);
+        }
+    }
+
+    obf->Zksj = lin_malloc(op.c * sizeof(encoding***));
+    for (int k = 0; k < op.c; k++) {
+        obf->Zksj[k] = lin_malloc(op.q * sizeof(encoding**));
+        for (int s = 0; s < op.q; s++) {
+            obf->Zksj[k][s] = lin_malloc(op.ell * sizeof(encoding*));
+            for (int j = 0; j < op.ell; j++) {
+                obf->Zksj[k][s][j] = lin_malloc(sizeof(encoding));
+                encoding_read(obf->Zksj[k][s][j], fp);
+                GET_NEWLINE(fp);
+            }
+        }
+    }
+
+    obf->Rc = lin_malloc(sizeof(encoding));
+    encoding_read(obf->Rc, fp);
+    GET_NEWLINE(fp);
+    obf->Zcj = lin_malloc(op.m * sizeof(encoding*));
+    for (int j = 0; j < op.m; j++) {
+        obf->Zcj[j] = lin_malloc(sizeof(encoding));
+        encoding_read(obf->Zcj[j], fp);
+        GET_NEWLINE(fp);
+    }
+
+    obf->Rhatkso = lin_malloc(op.c * sizeof(encoding***));
+    obf->Zhatkso = lin_malloc(op.c * sizeof(encoding***));
+    for (int k = 0; k < op.c; k++) {
+        obf->Rhatkso[k] = lin_malloc(op.q * sizeof(encoding**));
+        obf->Zhatkso[k] = lin_malloc(op.q * sizeof(encoding**));
+        for (int s = 0; s < op.q; s++) {
+            obf->Rhatkso[k][s] = lin_malloc(op.gamma * sizeof(encoding*));
+            obf->Zhatkso[k][s] = lin_malloc(op.gamma * sizeof(encoding*));
+            for (int o = 0; o < op.gamma; o++) {
+                obf->Rhatkso[k][s][o] = lin_malloc(sizeof(encoding));
+                obf->Zhatkso[k][s][o] = lin_malloc(sizeof(encoding));
+                encoding_read(obf->Rhatkso[k][s][o], fp);
+                GET_NEWLINE(fp);
+                encoding_read(obf->Zhatkso[k][s][o], fp);
+                GET_NEWLINE(fp);
+            }
+        }
+    }
+
+    obf->Rhato = lin_malloc(op.gamma * sizeof(encoding*));
+    obf->Zhato = lin_malloc(op.gamma * sizeof(encoding*));
+    for (int o = 0; o < op.gamma; o++) {
+        obf->Rhato[o] = lin_malloc(sizeof(encoding));
+        obf->Zhato[o] = lin_malloc(sizeof(encoding));
+        encoding_read(obf->Rhato[o], fp);
+        GET_NEWLINE(fp);
+        encoding_read(obf->Zhato[o], fp);
+        GET_NEWLINE(fp);
+    }
+
+    obf->Rbaro = lin_malloc(op.gamma * sizeof(encoding*));
+    obf->Zbaro = lin_malloc(op.gamma * sizeof(encoding*));
+    for (int o = 0; o < op.gamma; o++) {
+        obf->Rbaro[o] = lin_malloc(sizeof(encoding));
+        obf->Zbaro[o] = lin_malloc(sizeof(encoding));
+        encoding_read(obf->Rbaro[o], fp);
+        GET_NEWLINE(fp);
+        encoding_read(obf->Zbaro[o], fp);
+        GET_NEWLINE(fp);
+    }
 }

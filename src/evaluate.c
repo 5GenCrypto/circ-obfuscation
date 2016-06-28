@@ -135,11 +135,11 @@ void wire_init (wire *rop, public_params *p, int init_r, int init_z)
 {
     if (init_r) {
         rop->r = lin_malloc(sizeof(encoding));
-        encoding_init(rop->r, p);
+        encoding_init(rop->r, p->op);
     }
     if (init_z) {
         rop->z = lin_malloc(sizeof(encoding));
-        encoding_init(rop->z, p);
+        encoding_init(rop->z, p->op);
     }
     rop->d = 0;
     rop->my_r = init_r;
@@ -170,12 +170,12 @@ void wire_clear (wire *rop)
 void wire_copy (wire *rop, wire *source, public_params *p)
 {
     rop->r = lin_malloc(sizeof(encoding));
-    encoding_init(rop->r, p);
+    encoding_init(rop->r, p->op);
     encoding_set(rop->r, source->r);
     rop->my_r = 1;
 
     rop->z = lin_malloc(sizeof(encoding));
-    encoding_init(rop->z, p);
+    encoding_init(rop->z, p->op);
     encoding_set(rop->z, source->z);
     rop->my_z = 1;
 
@@ -199,7 +199,7 @@ void wire_add (wire *rop, wire *x, wire *y, obfuscation *obf, public_params *p)
     size_t d = y->d - x->d;
     encoding zstar;
     if (d > 1) {
-        encoding_init(&zstar, p);
+        encoding_init(&zstar, p->op);
         encoding_mul(&zstar, obf->Zstar, obf->Zstar, p);
         for (int j = 2; j < d; j++)
             encoding_mul(&zstar, &zstar, obf->Zstar, p);
@@ -208,7 +208,7 @@ void wire_add (wire *rop, wire *x, wire *y, obfuscation *obf, public_params *p)
     }
 
     encoding tmp;
-    encoding_init(&tmp, p);
+    encoding_init(&tmp, p->op);
 
     encoding_mul(rop->z, x->z, y->r, p);
     if (d > 0)
@@ -230,7 +230,7 @@ void wire_sub(wire *rop, wire *x, wire *y, obfuscation *obf, public_params *p)
     size_t d = abs(y->d - x->d);
     encoding zstar;
     if (d > 1) {
-        encoding_init(&zstar, p);
+        encoding_init(&zstar, p->op);
         encoding_mul(&zstar, obf->Zstar, obf->Zstar, p);
         for (int j = 2; j < d; j++)
             encoding_mul(&zstar, &zstar, obf->Zstar, p);
@@ -239,7 +239,7 @@ void wire_sub(wire *rop, wire *x, wire *y, obfuscation *obf, public_params *p)
     }
 
     encoding tmp;
-    encoding_init(&tmp, p);
+    encoding_init(&tmp, p->op);
 
     if (x->d <= y->d) {
         encoding_mul(rop->z, x->z, y->r, p);
