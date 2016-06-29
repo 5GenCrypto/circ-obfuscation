@@ -15,12 +15,16 @@ int seed_rng(gmp_randstate_t *rng);
 int max(int, int);
 
 void array_print           (int*, size_t);
+void array_print_ui        (size_t*, size_t);
 void array_printstring     (int *bits, size_t n);
 void array_printstring_rev (int *bits, size_t n);
 
-bool in_array              (int x, int *ys, size_t len);
-bool any_in_array          (int *xs, int xlen, int *ys, size_t ylen);
-bool array_eq              (int *xs, int *ys, size_t len);
+size_t array_sum_ui (size_t *xs, size_t n);
+
+bool in_array     (int x, int *ys, size_t len);
+bool any_in_array (int *xs, int xlen, int *ys, size_t ylen);
+bool array_eq     (int *xs, int *ys, size_t len);
+bool array_eq_ui  (size_t *xs, size_t *ys, size_t len);
 
 void mpz_random_inv(mpz_t rop, gmp_randstate_t rng, mpz_t modulus);
 

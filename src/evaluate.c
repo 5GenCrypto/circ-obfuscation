@@ -282,7 +282,9 @@ void wire_constrained_add (wire *rop, wire *x, wire *y, obfuscation *obf, public
 
 int wire_type_eq (wire *x, wire *y)
 {
-    if (!level_eq(x->r->lvl, y->r->lvl) || !level_eq(x->z->lvl, y->z->lvl))
+    if (!level_eq(x->r->lvl, y->r->lvl))
+        return 0;
+    if (!level_eq(x->z->lvl, y->z->lvl))
         return 0;
     return 1;
 }

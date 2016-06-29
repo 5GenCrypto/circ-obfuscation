@@ -7,37 +7,44 @@
 #include <clt13.h>
 #include <stdlib.h>
 
-typedef struct {
-    mpz_t *moduli;
-    obf_params *op;
-    level *toplevel;
-
-    clt_pp *pp;
-} public_params;
+#define FAKE_MMAP 0
 
 typedef struct {
-    mpz_t *moduli;
     obf_params *op;
     level *toplevel;
-
-    clt_state *st;
+#if FAKE_MMAP
+    mpz_t *moduli;
+#else
+    clt_state *clt_st;
+#endif
 } secret_params;
 
-mpz_t* get_moduli (secret_params *s);
-
-void secret_params_init (secret_params *p, obf_params *op, level *toplevel, size_t lambda, aes_randstate_t rng);
-void secret_params_clear (secret_params *pp);
-
-void public_params_init (public_params *p, secret_params *s);
-void public_params_clear (public_params *pp);
+typedef struct {
+    obf_params *op;
+    level *toplevel;
+#if FAKE_MMAP
+    mpz_t *moduli;
+#else
+    clt_pp *clt_pp;
+#endif
+} public_params;
 
 typedef struct {
     level *lvl;
     size_t nslots;
+#if FAKE_MMAP
     mpz_t *slots;   // of size c+3
-
+#else
     clt_elem_t clt;
+#endif
 } encoding;
+
+void secret_params_init (secret_params *p, obf_params *op, level *toplevel, size_t lambda, aes_randstate_t rng);
+void secret_params_clear (secret_params *pp);
+mpz_t* get_moduli (secret_params *s);
+
+void public_params_init (public_params *p, secret_params *s);
+void public_params_clear (public_params *pp);
 
 void encoding_init  (encoding *x, obf_params *p);
 void encoding_clear (encoding *x);

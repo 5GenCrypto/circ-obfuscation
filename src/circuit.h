@@ -58,9 +58,9 @@ topo_levels* topological_levels (circuit *c, circref root);
 void topo_levels_destroy (topo_levels *topo);
 
 // info
-uint32_t depth      (circuit *c, circref ref);
-uint32_t degree     (circuit *c, circref ref);
-uint32_t max_degree (circuit *c);
+size_t depth      (circuit *c, circref ref);
+size_t degree     (circuit *c, circref ref);
+size_t max_degree (circuit *c);
 
 // construction
 void circ_add_test   (circuit *c, char *inp, char *out);

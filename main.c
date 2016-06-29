@@ -13,8 +13,6 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
-#define FAKE_MMAP
-
 // obfuscate
 // save circuit w/o consts
 // evaluate
@@ -25,6 +23,7 @@ int extern g_verbose;
 
 int main (int argc, char **argv)
 {
+    size_t lambda = 16;
 
     ++argv, --argc;
     if (argc >= 1)
@@ -46,6 +45,12 @@ int main (int argc, char **argv)
     yyparse(&c);
     fclose(yyin);
 
+    if (c.noutputs != 1) {
+        fprintf(stderr, "[error] only single output circuits supported at this time.\n");
+        fprintf(stderr, "        we don't know how to set kappa properly - figure it out!\n");
+        assert(c.noutputs == 1);
+    }
+
     size_t nsyms;
     if (argc >= 2)
         nsyms = atoi(argv[1]);
@@ -54,9 +59,9 @@ int main (int argc, char **argv)
 
     assert(c.ninputs >= nsyms);
 
-    uint32_t d = max_degree(&c);
+    size_t d = max_degree(&c);
 
-    printf("circuit: ninputs=%lu nconsts=%lu ngates=%lu ntests=%lu nrefs=%lu degree=%u\n",
+    printf("circuit: ninputs=%lu nconsts=%lu ngates=%lu ntests=%lu nrefs=%lu degree=%lu\n",
                      c.ninputs, c.nconsts, c.ngates, c.ntests, c.nrefs, d);
 
     /*test_chunker(chunker_in_order, rchunker_in_order, nsyms, c.ninputs);*/
@@ -68,7 +73,7 @@ int main (int argc, char **argv)
 
 
 
-    printf("params: c=%lu ell=%lu q=%lu M=%u\n", op.c, op.ell, op.q, op.M);
+    printf("params: c=%lu ell=%lu q=%lu M=%lu\n", op.c, op.ell, op.q, op.M);
 
     printf("consts: ");
     array_print(c.consts, c.nconsts);
@@ -76,7 +81,7 @@ int main (int argc, char **argv)
 
     for (int i = 0; i < c.noutputs; i++) {
         printf("output bit %d: type=", i);
-        array_print(op.types[i], nsyms + 1);
+        array_print_ui(op.types[i], nsyms + 1);
         puts("");
     }
 
@@ -88,7 +93,7 @@ int main (int argc, char **argv)
     printf("initializing params..\n");
     level *vzt = level_create_vzt(&op, d);
     secret_params st;
-    secret_params_init(&st, &op, vzt, 10, rng);
+    secret_params_init(&st, &op, vzt, lambda, rng);
 
 
     printf("obfuscating...\n");
@@ -96,16 +101,15 @@ int main (int argc, char **argv)
     obfuscation_init(&obf, &st);
     obfuscate(&obf, &st, rng);
 
-    FILE *obf_fp = fopen("test.lin", "w+");
-    obfuscation_write(obf_fp, &obf);
-
     // check obfuscation serialization
-    rewind(obf_fp);
-    obfuscation obfp;
-    obfuscation_read(&obfp, obf_fp, &op);
-    obfuscation_eq(&obf, &obfp);
-    obfuscation_clear(&obfp);
-    fclose(obf_fp);
+    /*FILE *obf_fp = fopen("test.lin", "w+");*/
+    /*obfuscation_write(obf_fp, &obf);*/
+    /*rewind(obf_fp);*/
+    /*obfuscation obfp;*/
+    /*obfuscation_read(&obfp, obf_fp, &op);*/
+    /*obfuscation_eq(&obf, &obfp);*/
+    /*obfuscation_clear(&obfp);*/
+    /*fclose(obf_fp);*/
 
     public_params pp;
     public_params_init(&pp, &st);

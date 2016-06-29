@@ -1,8 +1,8 @@
 CC 	   = gcc
 CFLAGS = -Wall -Wno-unused-result -Wno-pointer-sign -Wno-switch \
 		 --std=gnu11 -g \
-		 #-fopenmp \
-		 -DYY_NO_UNPUT=1 -DYY_NO_INPUT=1
+		 -DYY_NO_UNPUT=1 -DYY_NO_INPUT=1 \
+		 #-fopenmp # zero testing does not work properly when this is on, probably an error in topoSort
 
 IFLAGS = -Isrc -Isrc/parser -Ibuild/include
 LFLAGS = -lgmp -lm -lclt13 -laesrand -Lbuild/lib -Wl,-rpath -Wl,build/lib

@@ -275,34 +275,34 @@ void topo_levels_destroy (topo_levels *topo)
 ////////////////////////////////////////////////////////////////////////////////
 // circuit info calculations
 
-uint32_t depth (circuit *c, circref ref)
+size_t depth (circuit *c, circref ref)
 {
     operation op = c->ops[ref];
     if (op == XINPUT || op == YINPUT) {
         return 0;
     }
-    uint32_t xres = depth(c, c->args[ref][0]);
-    uint32_t yres = depth(c, c->args[ref][1]);
+    size_t xres = depth(c, c->args[ref][0]);
+    size_t yres = depth(c, c->args[ref][1]);
     return max(xres, yres);
 }
 
-uint32_t degree (circuit *c, circref ref)
+size_t degree (circuit *c, circref ref)
 {
     operation op = c->ops[ref];
     if (op == XINPUT || op == YINPUT) {
         return 1;
     }
-    uint32_t xres = degree(c, c->args[ref][0]);
-    uint32_t yres = degree(c, c->args[ref][1]);
+    size_t xres = degree(c, c->args[ref][0]);
+    size_t yres = degree(c, c->args[ref][1]);
     if (op == MUL)
         return xres + yres;
     return max(xres, yres); // else op == ADD || op == SUB
 }
 
-uint32_t max_degree (circuit *c)
+size_t max_degree (circuit *c)
 {
-    uint32_t tmp;
-    uint32_t ret = 0;
+    size_t tmp;
+    size_t ret = 0;
     for (int i = 0; i < c->noutputs; i++) {
         tmp = degree(c, c->outrefs[i]);
         if (tmp > ret)

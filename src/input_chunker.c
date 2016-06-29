@@ -62,31 +62,43 @@ void test_chunker_rand (input_chunker chunker, reverse_chunker rchunker)
     }
 }
 
+size_t td (circref ref, circuit *c, size_t nsyms, input_chunker chunker)
+{
+    size_t deg[nsyms+1];
+    type_degree(deg, ref, c, nsyms, chunker);
+    size_t res = 0;
+    for (int i = 0; i < nsyms+1; i++)
+        res += deg[i];
+    return res;
+}
+
 void type_degree (
-    uint32_t *rop,
+    size_t *rop,
     circref ref,
     circuit *c,
     size_t nsyms,
     input_chunker chunker
-){
+) {
     operation op = c->ops[ref];
     if (op == XINPUT) {
         sym_id sym = chunker(c->args[ref][0], c->ninputs, nsyms);
-        rop[sym.sym_number] = 1;
+        /*rop[sym.sym_number] = 1;*/
+        rop[sym.sym_number+1] = 1;
         return;
     }
     if (op == YINPUT) {
-        rop[nsyms] = 1;
+        /*rop[nsyms] = 1;*/
+        rop[0] = 1;
         return;
     }
 
-    uint32_t *xtype = lin_calloc(nsyms+1, sizeof(uint32_t));
-    uint32_t *ytype = lin_calloc(nsyms+1, sizeof(uint32_t));
+    size_t *xtype = lin_calloc(nsyms+1, sizeof(size_t));
+    size_t *ytype = lin_calloc(nsyms+1, sizeof(size_t));
 
     type_degree(xtype, c->args[ref][0], c, nsyms, chunker);
     type_degree(ytype, c->args[ref][1], c, nsyms, chunker);
 
-    int types_eq = array_eq(xtype, ytype, nsyms + 1);
+    int types_eq = array_eq_ui(xtype, ytype, nsyms + 1);
     if ((op == ADD || op == SUB) && types_eq) {
         for (size_t i = 0; i < nsyms+1; i++)
             rop[i] = xtype[i];

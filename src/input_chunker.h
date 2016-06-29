@@ -29,6 +29,8 @@ void test_chunker (
 );
 void test_chunker_rand (input_chunker chunker, reverse_chunker rchunker);
 
-void type_degree (uint32_t *rop, circref ref, circuit *c, size_t nsyms, input_chunker chunker);
+size_t td (circref ref, circuit *c, size_t nsyms, input_chunker chunker);
+
+void type_degree (size_t *rop, circref ref, circuit *c, size_t nsyms, input_chunker chunker);
 
 #endif

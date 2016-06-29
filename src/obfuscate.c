@@ -487,7 +487,7 @@ void encode_Zbaro(
     mpz_vect_mul(w, w, rs,            p->op->c+3);
     mpz_vect_mod(w, w, get_moduli(p), p->op->c+3);
 
-    uint32_t d = degree(c, c->outrefs[o]);
+    size_t d = degree(c, c->outrefs[o]);
 
     level *lvl   = level_create_vbaro(p->op, o);
     level *vstar = level_create_vstar(p->op);

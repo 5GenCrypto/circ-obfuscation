@@ -80,6 +80,31 @@ void array_print(int *xs, size_t len) {
     }
 }
 
+void array_print_ui (size_t *xs, size_t len) {
+    if (len == 1){
+        printf("[%lu]", xs[0]);
+        return;
+    }
+    for (int i = 0; i < len; i++) {
+        if (i == 0) {
+            printf("[%lu,", xs[i]);
+        } else if (i == len - 1) {
+            printf("%lu]", xs[i]);
+        } else {
+            printf("%lu,", xs[i]);
+        }
+    }
+}
+
+size_t array_sum_ui (size_t *xs, size_t n)
+{
+    size_t res = 0;
+    for (int i = 0; i < n; i++) {
+        res += xs[i];
+    }
+    return res;
+}
+
 bool in_array(int x, int *ys, size_t len) {
     for (int i = 0; i < len; i++) {
         if (x == ys[i])
@@ -97,6 +122,14 @@ bool any_in_array(int *xs, int xlen, int *ys, size_t ylen) {
 }
 
 bool array_eq(int *xs, int *ys, size_t len)
+{
+    for (int i = 0; i < len; i++)
+        if (xs[i] != ys[i])
+            return false;
+    return true;
+}
+
+bool array_eq_ui(size_t *xs, size_t *ys, size_t len)
 {
     for (int i = 0; i < len; i++)
         if (xs[i] != ys[i])
