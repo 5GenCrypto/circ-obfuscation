@@ -197,34 +197,39 @@ void obfuscate (obfuscation *obf, secret_params *p, aes_randstate_t rng)
     encode_Zstar(obf->Zstar, p, rng);
 
     // encode Rks and Zksj
-    mpz_t *rs = mpz_vect_create(p->op->c+3);
     #pragma omp parallel for schedule(dynamic,1) collapse(2)
     for (int k = 0; k < p->op->c; k++) {
         for (int s = 0; s < p->op->q; s++) {
-            mpz_urandomm_vect_aes(rs, get_moduli(p), p->op->c+3, rng);
-            encode_Rks(obf->Rks[k][s], p, rng, rs, k, s);
+            mpz_t *tmp = mpz_vect_create(p->op->c+3);
+            mpz_urandomm_vect_aes(tmp, get_moduli(p), p->op->c+3, rng);
+            encode_Rks(obf->Rks[k][s], p, rng, tmp, k, s);
             for (int j = 0; j < p->op->ell; j++) {
-                encode_Zksj(obf->Zksj[k][s][j], p, rng, rs, ykj[k][j], k, s, j);
+                encode_Zksj(obf->Zksj[k][s][j], p, rng, tmp, ykj[k][j], k, s, j);
             }
+            mpz_vect_destroy(tmp, p->op->c+3);
         }
     }
 
     // encode Rc and Zcj
+    mpz_t *rs = mpz_vect_create(p->op->c+3);
     mpz_urandomm_vect_aes(rs, get_moduli(p), p->op->c+3, rng);
     encode_Rc(obf->Rc, p, rng, rs);
     #pragma omp parallel for
     for (int j = 0; j < p->op->m; j++) {
         encode_Zcj(obf->Zcj[j], p, rng, rs, ykj[p->op->c][j], p->op->circ->consts[j]);
     }
+    mpz_vect_destroy(rs, p->op->c+3);
 
     // encode Rhatkso and Zhatkso
     #pragma omp parallel for schedule(dynamic,1) collapse(3)
     for (int o = 0; o < p->op->gamma; o++) {
         for (int k = 0; k < p->op->c; k++) {
             for (int s = 0; s < p->op->q; s++) {
-                mpz_urandomm_vect_aes(rs, get_moduli(p), p->op->c+3, rng);
-                encode_Rhatkso(obf->Rhatkso[k][s][o], p, rng, rs, k, s, o);
-                encode_Zhatkso(obf->Zhatkso[k][s][o], p, rng, rs, whatk[k], k, s, o);
+                mpz_t *tmp = mpz_vect_create(p->op->c+3);
+                mpz_urandomm_vect_aes(tmp, get_moduli(p), p->op->c+3, rng);
+                encode_Rhatkso(obf->Rhatkso[k][s][o], p, rng, tmp, k, s, o);
+                encode_Zhatkso(obf->Zhatkso[k][s][o], p, rng, tmp, whatk[k], k, s, o);
+                mpz_vect_destroy(tmp, p->op->c+3);
             }
         }
     }
@@ -232,23 +237,25 @@ void obfuscate (obfuscation *obf, secret_params *p, aes_randstate_t rng)
     // encode Rhato and Zhato
     #pragma omp parallel for
     for (int o = 0; o < p->op->gamma; o++) {
-        mpz_urandomm_vect_aes(rs, get_moduli(p), p->op->c+3, rng);
-        encode_Rhato(obf->Rhato[o], p, rng, rs, o);
-        encode_Zhato(obf->Zhato[o], p, rng, rs, what, o);
+        mpz_t *tmp = mpz_vect_create(p->op->c+3);
+        mpz_urandomm_vect_aes(tmp, get_moduli(p), p->op->c+3, rng);
+        encode_Rhato(obf->Rhato[o], p, rng, tmp, o);
+        encode_Zhato(obf->Zhato[o], p, rng, tmp, what, o);
+        mpz_vect_destroy(tmp, p->op->c+3);
     }
 
     // encode Rbaro and Zbaro
     #pragma omp parallel for
     for (int o = 0; o < p->op->gamma; o++) {
-        mpz_urandomm_vect_aes(rs, get_moduli(p), p->op->c+3, rng);
-        encode_Rbaro(obf->Rbaro[o], p, rng, rs, o);
-        encode_Zbaro(obf->Zbaro[o], p, rng, rs, what, whatk, ykj, p->op->circ, o);
+        mpz_t *tmp = mpz_vect_create(p->op->c+3);
+        mpz_urandomm_vect_aes(tmp, get_moduli(p), p->op->c+3, rng);
+        encode_Rbaro(obf->Rbaro[o], p, rng, tmp, o);
+        encode_Zbaro(obf->Zbaro[o], p, rng, tmp, what, whatk, ykj, p->op->circ, o);
+        mpz_vect_destroy(tmp, p->op->c+3);
     }
 
     ////////////////////////////////////////////////////////////////////////////////
     // cleanup
-
-    mpz_vect_destroy(rs, p->op->c+3);
 
     // delete ykj
     for (int k = 0; k < p->op->c; k++) {
