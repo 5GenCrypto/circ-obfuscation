@@ -21,8 +21,8 @@ void secret_params_init (secret_params *p, obf_params *op, level *toplevel, size
     p->moduli = moduli;
 #endif
     size_t t = 0;
-    for (int i = 0; i < op->gamma; i++) {
-        size_t tmp = array_sum_ui(op->types[0], op->c+1);
+    for (int o = 0; o < op->gamma; o++) {
+        size_t tmp = array_sum_ui(op->types[o], op->c+1);
         if (tmp > t)
             t = tmp;
     }
