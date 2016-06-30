@@ -45,11 +45,11 @@ int main (int argc, char **argv)
     yyparse(&c);
     fclose(yyin);
 
-    if (c.noutputs != 1) {
-        fprintf(stderr, "[error] only single output circuits supported at this time.\n");
-        fprintf(stderr, "        we don't know how to set kappa properly - figure it out!\n");
-        assert(c.noutputs == 1);
-    }
+    /*if (c.noutputs != 1) {*/
+        /*fprintf(stderr, "[error] only single output circuits supported at this time.\n");*/
+        /*fprintf(stderr, "        we don't know how to set kappa properly - figure it out!\n");*/
+        /*assert(c.noutputs == 1);*/
+    /*}*/
 
     size_t nsyms;
     if (argc >= 2)
@@ -71,9 +71,7 @@ int main (int argc, char **argv)
     /*obf_params_init(&op, &c, chunker_in_order, rchunker_in_order, nsyms);*/
     obf_params_init(&op, &c, chunker_mod, rchunker_mod, nsyms);
 
-
-
-    printf("params: c=%lu ell=%lu q=%lu M=%lu\n", op.c, op.ell, op.q, op.M);
+    printf("params: c=%lu ell=%lu q=%lu M=%lu D=%lu\n", op.c, op.ell, op.q, op.M, op.D);
 
     printf("consts: ");
     array_print(c.consts, c.nconsts);
@@ -91,7 +89,7 @@ int main (int argc, char **argv)
     aes_randinit(rng);
 
     printf("initializing params..\n");
-    level *vzt = level_create_vzt(&op, d);
+    level *vzt = level_create_vzt(&op);
     secret_params st;
     secret_params_init(&st, &op, vzt, lambda, rng);
 

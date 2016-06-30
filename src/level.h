@@ -32,7 +32,7 @@ level* level_create_vc      (obf_params *p);
 level* level_create_vhatkso (obf_params *p, size_t k, size_t s, size_t o);
 level* level_create_vhato   (obf_params *p, size_t o);
 level* level_create_vbaro   (obf_params *p, size_t o);
-level* level_create_vzt     (obf_params *p, size_t d);
+level* level_create_vzt     (obf_params *p);
 
 void level_write (FILE *const fp, const level *lvl);
 void level_read  (level *lvl, FILE *const fp);

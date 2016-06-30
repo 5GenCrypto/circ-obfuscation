@@ -93,7 +93,6 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, public_params *p)
 
         wire tmp[1]; // stack allocated pointers
         wire outwire[1];
-
         wire_copy(outwire, cache[root], p);
 
         // input consistency
@@ -112,8 +111,15 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, public_params *p)
         // authentication
         wire_init_from_encodings(tmp, p, obf->Rbaro[o], obf->Zbaro[o]);
         wire_sub(outwire, outwire, tmp, obf, p);
-
         wire_clear(tmp);
+
+        if (outwire->d < p->op->D) {
+            printf("[eval] raising outwire %d degree by %lu\n", o, p->op->D - outwire->d);
+            while (outwire->d < p->op->D) {
+                encoding_mul(outwire->z, outwire->z, obf->Zstar, p);
+                outwire->d += 1;
+            }
+        }
 
         rop[o] = encoding_is_zero(outwire->z, p);
 

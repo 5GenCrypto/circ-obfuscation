@@ -19,16 +19,20 @@ void secret_params_init (secret_params *p, obf_params *op, level *toplevel, size
         mpz_urandomb_aes(moduli[i], rng, 128);
     }
     p->moduli = moduli;
-#else
-    // TODO:  how to set kappa for multiple outputs is unclear from the paper (p45)
-    //        so I'm just setting kappa as if the first output was the only output.
-    p->clt_st = lin_malloc(sizeof(clt_state));
-    size_t t = array_sum_ui(op->types[0], op->c+1);
-    size_t d = degree(op->circ, op->circ->outrefs[0]);
-    size_t kappa = 2 + op->c + t + (d + p->op->c + 1);
+#endif
+    size_t t = 0;
+    for (int i = 0; i < op->gamma; i++) {
+        size_t tmp = array_sum_ui(op->types[0], op->c+1);
+        if (tmp > t)
+            t = tmp;
+    }
+    size_t kappa = 2 + op->c + t + op->D;
+    printf("kappa=%lu\n", kappa);
+#if !FAKE_MMAP
     size_t nzs = (op->q+1) * (op->c+2) + op->gamma;
     int pows[nzs];
     level_flatten(pows, toplevel);
+    p->clt_st = lin_malloc(sizeof(clt_state));
     clt_state_init(p->clt_st, kappa, lambda, nzs, pows, CLT_FLAG_DEFAULT | CLT_FLAG_VERBOSE, rng);
 #endif
 }
@@ -203,7 +207,9 @@ int encoding_is_zero (encoding *x, public_params *p)
 {
     bool ret;
     if(!level_eq(x->lvl, p->toplevel)) {
+        puts("this level:");
         level_print(x->lvl);
+        puts("top level:");
         level_print(p->toplevel);
         assert(level_eq(x->lvl, p->toplevel));
     }

@@ -301,10 +301,9 @@ size_t degree (circuit *c, circref ref)
 
 size_t max_degree (circuit *c)
 {
-    size_t tmp;
     size_t ret = 0;
     for (int i = 0; i < c->noutputs; i++) {
-        tmp = degree(c, c->outrefs[i]);
+        size_t tmp = degree(c, c->outrefs[i]);
         if (tmp > ret)
             ret = tmp;
     }

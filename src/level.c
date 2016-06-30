@@ -201,7 +201,7 @@ level* level_create_vbaro (obf_params *p, size_t o)
     return lvl;
 }
 
-level* level_create_vzt(obf_params *p, size_t d)
+level* level_create_vzt(obf_params *p)
 {
     level *lvl = lin_malloc(sizeof(level));
     level_init(lvl, p);
@@ -215,7 +215,7 @@ level* level_create_vzt(obf_params *p, size_t d)
         if (i < p->q)
             lvl->mat[i][p->c+1] = 1;
         else
-            lvl->mat[i][p->c+1] = d + p->c + 1;
+            lvl->mat[i][p->c+1] = p->D;
     }
     for (int i = 0; i < lvl->gamma; i++) {
         lvl->vec[i] = lvl->c;

@@ -82,13 +82,11 @@ void type_degree (
     operation op = c->ops[ref];
     if (op == XINPUT) {
         sym_id sym = chunker(c->args[ref][0], c->ninputs, nsyms);
-        /*rop[sym.sym_number] = 1;*/
-        rop[sym.sym_number+1] = 1;
+        rop[sym.sym_number] = 1;
         return;
     }
     if (op == YINPUT) {
-        /*rop[nsyms] = 1;*/
-        rop[0] = 1;
+        rop[nsyms] = 1;
         return;
     }
 
