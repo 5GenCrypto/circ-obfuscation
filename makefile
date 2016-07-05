@@ -7,9 +7,9 @@ CFLAGS = -Wall -Wno-unused-result -Wno-pointer-sign -Wno-switch \
 IFLAGS = -Isrc -Isrc/parser -Ibuild/include
 LFLAGS = -lgmp -lm -lclt13 -laesrand -Lbuild/lib -Wl,-rpath -Wl,build/lib
 
-SRCS   = $(wildcard src/*.c) $(wildcard clt13/src/*.c)
+SRCS   = $(wildcard src/*.c)
 OBJS   = $(addsuffix .o, $(basename $(SRCS)))
-HEADS  = $(wildcard src/*.h) $(wildcart clt13/src/*.h)
+HEADS  = $(wildcard src/*.h)
 PARSER = src/parser/parse.tab.c src/parser/scan.yy.c
 POBJS  = $(addsuffix .o, $(basename $(PARSER)))
 
