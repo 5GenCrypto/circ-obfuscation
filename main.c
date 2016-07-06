@@ -45,18 +45,11 @@ int main (int argc, char **argv)
     yyparse(&c);
     fclose(yyin);
 
-    /*if (c.noutputs != 1) {*/
-        /*fprintf(stderr, "[error] only single output circuits supported at this time.\n");*/
-        /*fprintf(stderr, "        we don't know how to set kappa properly - figure it out!\n");*/
-        /*assert(c.noutputs == 1);*/
-    /*}*/
-
     size_t nsyms;
     if (argc >= 2)
         nsyms = atoi(argv[1]);
     else
         nsyms = c.ninputs;
-
     assert(c.ninputs >= nsyms);
 
     size_t d = max_degree(&c);
@@ -68,8 +61,8 @@ int main (int argc, char **argv)
     /*test_chunker(chunker_mod, rchunker_mod, nsyms, c.ninputs);*/
 
     obf_params op;
-    /*obf_params_init(&op, &c, chunker_in_order, rchunker_in_order, nsyms);*/
-    obf_params_init(&op, &c, chunker_mod, rchunker_mod, nsyms);
+    obf_params_init(&op, &c, chunker_in_order, rchunker_in_order, nsyms);
+    /*obf_params_init(&op, &c, chunker_mod, rchunker_mod, nsyms);*/
 
     printf("params: c=%lu ell=%lu q=%lu M=%lu D=%lu\n", op.c, op.ell, op.q, op.M, op.D);
 

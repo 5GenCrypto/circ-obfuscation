@@ -7,8 +7,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 // parameters
 
-void secret_params_init (secret_params *p, obf_params *op, level *toplevel, size_t lambda, aes_randstate_t rng)
-{
+void secret_params_init (
+    secret_params *p,
+    obf_params *op,
+    level *toplevel,
+    size_t lambda,
+    aes_randstate_t rng
+) {
     p->op = op;
     p->toplevel = toplevel;
 
