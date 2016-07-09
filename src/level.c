@@ -125,6 +125,25 @@ int level_eq (level *x, level *y)
     return 1;
 }
 
+// for testing whether we can use constrained addition, we dont consider the
+// degree (bottom right corner of the level)
+int level_eq_z (level *x, level *y)
+{
+    for (int i = 0; i < x->q+1; i++) {
+        for (int j = 0; j < x->c+2; j++) {
+            if (i == x->q && j == x->c+1)
+                continue;
+            if (x->mat[i][j] != y->mat[i][j])
+                return 0;
+        }
+    }
+    for (int i = 0; i < x->gamma; i++) {
+        if (x->vec[i] != y->vec[i])
+            return 0;
+    }
+    return 1;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // level creators
 

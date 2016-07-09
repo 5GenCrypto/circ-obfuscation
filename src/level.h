@@ -25,6 +25,7 @@ void level_add     (level *rop, const level *x, const level *y);
 void level_mul_ui  (level *rop, level *op, int x);
 void level_flatten (int *pows, const level *lvl);
 int  level_eq      (level *x, level *y);
+int  level_eq_z    (level *x, level *y);
 
 level* level_create_vstar   (obf_params *p);
 level* level_create_vks     (obf_params *p, size_t k, size_t s);
