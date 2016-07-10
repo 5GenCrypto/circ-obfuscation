@@ -181,6 +181,12 @@ void encoding_add (encoding *rop, encoding *x, encoding *y, public_params *p)
 
 void encoding_sub(encoding *rop, encoding *x, encoding *y, public_params *p)
 {
+    if (!level_eq(x->lvl, y->lvl)) {
+        printf("[encoding_sub] unequal levels!\nx=\n");
+        level_print(x->lvl);
+        printf("y=\n");
+        level_print(y->lvl);
+    }
     assert(level_eq(x->lvl, y->lvl));
     level_set(rop->lvl, x->lvl);
 #if FAKE_MMAP

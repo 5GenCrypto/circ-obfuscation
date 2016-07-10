@@ -66,7 +66,8 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, public_params *p)
                         wire_mul(w, x, y, p);
                     }
 
-                    else if (wire_type_eq(x, y) && encoding_eq(x->r, y->r)) {
+                    /*else if (wire_type_eq(x, y) && encoding_eq(x->r, y->r)) {*/
+                    else if (wire_type_eq(x, y)) {
                         wire_init(w, p, 0, 1);
                         if (op == ADD) {
                             wire_constrained_add(w, x, y, obf, p);
@@ -262,20 +263,72 @@ void wire_sub(wire *rop, wire *x, wire *y, obfuscation *obf, public_params *p)
     encoding_clear(&tmp);
 }
 
-void wire_constrained_sub(wire *rop, wire *x, wire *y, obfuscation *obf, public_params *p)
-{
-    assert(x->d == y->d);
-    rop->r = x->r;
-    encoding_sub(rop->z, x->z, y->z, p);
-    rop->d = y->d;
-}
-
 void wire_constrained_add (wire *rop, wire *x, wire *y, obfuscation *obf, public_params *p)
 {
-    assert(x->d == y->d);
-    rop->r = x->r;
-    encoding_add(rop->z, x->z, y->z, p);
+    if (x->d > y->d) {
+        wire_constrained_add(rop, y, x, obf, p);
+        return;
+    }
+
+    size_t d = abs(y->d - x->d);
+    encoding zstar;
+    if (d > 1) {
+        encoding_init(&zstar, p->op);
+        encoding_mul(&zstar, obf->Zstar, obf->Zstar, p);
+        for (int j = 2; j < d; j++)
+            encoding_mul(&zstar, &zstar, obf->Zstar, p);
+    } else {
+        zstar = *obf->Zstar;
+    }
+
+    if (d > 0) {
+        printf("multiplying!\n");
+        encoding_mul(rop->z, x->z, &zstar, p);
+        encoding_add(rop->z, rop->z, y->z, p);
+    } else {
+        encoding_add(rop->z, x->z, y->z, p);
+    }
     rop->d = y->d;
+    rop->r = x->r;
+
+    if (d > 1)
+        encoding_clear(&zstar);
+}
+
+void wire_constrained_sub(wire *rop, wire *x, wire *y, obfuscation *obf, public_params *p)
+{
+    size_t d = abs(y->d - x->d);
+    encoding zstar;
+    if (d > 1) {
+        encoding_init(&zstar, p->op);
+        encoding_mul(&zstar, obf->Zstar, obf->Zstar, p);
+        for (int j = 2; j < d; j++)
+            encoding_mul(&zstar, &zstar, obf->Zstar, p);
+    } else {
+        zstar = *obf->Zstar;
+    }
+
+    if (x->d <= y->d) {
+        if (d > 0) {
+            encoding_mul(rop->z, x->z, &zstar, p);
+            encoding_sub(rop->z, rop->z, y->z, p);
+        } else {
+            encoding_sub(rop->z, x->z, y->z, p);
+        }
+        rop->d = y->d;
+    } else {
+        // x->d > y->d && d > 0
+        encoding tmp;
+        encoding_init(&tmp, p->op);
+        encoding_mul(&tmp, y->z, &zstar, p);
+        encoding_sub(rop->z, rop->z, &tmp, p);
+        encoding_clear(&tmp);
+        rop->d = x->d;
+    }
+    rop->r = x->r;
+
+    if (d > 1)
+        encoding_clear(&zstar);
 }
 
 int wire_type_eq (wire *x, wire *y)
