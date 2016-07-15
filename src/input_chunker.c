@@ -97,19 +97,6 @@ void type_degree (
     type_degree(ytype, c->args[ref][1], c, nsyms, chunker);
 
     int types_eq = array_eq_ui(xtype, ytype, nsyms + 1);
-    /*int degs_eq = degree(c, c->args[ref][0]) == degree(c, c->args[ref][1]);*/
-
-    // NOTE: added degree equality to avoid this bug:
-    //
-    //      w1 <- x + y
-    //      w2 <- x * y
-    //      w3 <- w1 - w2
-    //      output w3
-    //
-    // w3 will not have top-level index because the subtraction
-    // is not constrained subtraction due to the difference in
-    // degree.
-    /*if (degs_eq && types_eq && ((op == ADD) || (op == SUB))) {*/
     if (types_eq && ((op == ADD) || (op == SUB))) {
         for (size_t i = 0; i < nsyms+1; i++)
             rop[i] = xtype[i];

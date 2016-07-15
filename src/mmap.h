@@ -7,7 +7,7 @@
 #include <clt13.h>
 #include <stdlib.h>
 
-#define FAKE_MMAP 0
+#define FAKE_MMAP 1
 
 typedef struct {
     obf_params *op;
