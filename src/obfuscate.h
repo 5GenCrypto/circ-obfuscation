@@ -1,10 +1,10 @@
 #ifndef __SRC_OBFUSCATE__
 #define __SRC_OBFUSCATE__
 
-#include "circuit.h"
 #include "mmap.h"
 
-#include "aesrand.h"
+#include <aesrand.h>
+#include <acirc.h>
 #include <gmp.h>
 #include <stddef.h>
 
@@ -44,7 +44,7 @@ void encode_Zhatkso (encoding *enc, secret_params *p, aes_randstate_t rng, mpz_t
 void encode_Rhato   (encoding *enc, secret_params *p, aes_randstate_t rng, mpz_t *rs, size_t o);
 void encode_Zhato   (encoding *enc, secret_params *p, aes_randstate_t rng, mpz_t *rs, mpz_t *what, size_t o);
 void encode_Rbaro   (encoding *enc, secret_params *p, aes_randstate_t rng, mpz_t *rs, size_t o);
-void encode_Zbaro   (encoding *enc, secret_params *p, aes_randstate_t rng, mpz_t *rs, mpz_t *what, mpz_t **whatk, mpz_t **ykj, circuit *c, size_t o);
+void encode_Zbaro   (encoding *enc, secret_params *p, aes_randstate_t rng, mpz_t *rs, mpz_t *what, mpz_t **whatk, mpz_t **ykj, acirc *c, size_t o);
 
 void obfuscation_write (FILE *const fp, const obfuscation *obf);
 void obfuscation_read  (obfuscation *ob, FILE *const fp, obf_params *op);

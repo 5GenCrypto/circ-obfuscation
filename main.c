@@ -1,5 +1,4 @@
 #include "aesrand.h"
-#include "circuit.h"
 #include "mmap.h"
 #include "evaluate.h"
 #include "input_chunker.h"
@@ -7,6 +6,7 @@
 #include "obfuscate.h"
 #include "util.h"
 
+#include <acirc.h>
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -17,8 +17,6 @@
 // save circuit w/o consts
 // evaluate
 
-extern int yyparse();
-extern FILE *yyin;
 int extern g_verbose;
 
 int main (int argc, char **argv)
@@ -26,9 +24,6 @@ int main (int argc, char **argv)
     size_t lambda = 16;
 
     ++argv, --argc;
-    if (argc >= 1)
-        yyin = fopen( argv[0], "r" );
-    assert(yyin != NULL);
 
     /*char dir[100];*/
     /*int lambda = 4;*/
@@ -40,10 +35,9 @@ int main (int argc, char **argv)
 
     g_verbose = 1;
 
-    circuit c;
-    circ_init(&c);
-    yyparse(&c);
-    fclose(yyin);
+    acirc c;
+    acirc_init(&c);
+    acirc_parse(&c, argv[0]);
 
     size_t nsyms;
     if (argc >= 2)
@@ -52,7 +46,7 @@ int main (int argc, char **argv)
         nsyms = c.ninputs;
     assert(c.ninputs >= nsyms);
 
-    size_t d = max_degree(&c);
+    size_t d = acirc_max_degree(&c);
 
     printf("circuit: ninputs=%lu nconsts=%lu ngates=%lu ntests=%lu nrefs=%lu degree=%lu\n",
                      c.ninputs, c.nconsts, c.ngates, c.ntests, c.nrefs, d);
@@ -76,7 +70,7 @@ int main (int argc, char **argv)
         puts("");
     }
 
-    ensure(&c);
+    acirc_ensure(&c, true);
 
     aes_randstate_t rng;
     aes_randinit(rng);
@@ -132,7 +126,7 @@ int main (int argc, char **argv)
     public_params_clear(&pp);
     secret_params_clear(&st);
     obf_params_clear(&op);
-    circ_clear(&c);
+    acirc_clear(&c);
 
     /*clt_state mmap;*/
     /*clt_setup(&mmap, get_kappa(&c), lambda + depth(&c, c.outref), nzs, tl, dir, true);*/

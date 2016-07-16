@@ -1,8 +1,8 @@
 #ifndef __SRC_OBF_PARAMS_H__
 #define __SRC_OBF_PARAMS_H__
 
-#include "circuit.h"
 #include "input_chunker.h"
+#include <acirc.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -18,12 +18,12 @@ typedef struct {
     size_t D;
     input_chunker chunker;
     reverse_chunker rchunker;
-    circuit *circ;
+    acirc *circ;
 } obf_params;
 
 void obf_params_init (
     obf_params *p,
-    circuit *circ,
+    acirc *circ,
     input_chunker chunker,
     reverse_chunker rchunker,
     size_t num_symbolic_inputs

@@ -460,7 +460,7 @@ void encode_Zbaro(
     mpz_t *what,
     mpz_t **whatk,
     mpz_t **ykj,
-    circuit *c,
+    acirc *c,
     size_t o
 ) {
     mpz_t ybar;
@@ -476,7 +476,7 @@ void encode_Zbaro(
             mpz_set(xs[id], ykj[k][j]);
         }
     }
-    eval_circ_mod(ybar, c, c->outrefs[o], xs, ykj[p->op->c], get_moduli(p)[0]);
+    acirc_eval_mpz_mod(ybar, c, c->outrefs[o], xs, ykj[p->op->c], get_moduli(p)[0]);
 
     mpz_t *tmp = mpz_vect_create(p->op->c+3);
     mpz_vect_set(tmp, what, p->op->c+3);

@@ -62,7 +62,7 @@ void test_chunker_rand (input_chunker chunker, reverse_chunker rchunker)
     }
 }
 
-size_t td (circref ref, circuit *c, size_t nsyms, input_chunker chunker)
+size_t td (acircref ref, acirc *c, size_t nsyms, input_chunker chunker)
 {
     size_t deg[nsyms+1];
     type_degree(deg, ref, c, nsyms, chunker);
@@ -74,12 +74,12 @@ size_t td (circref ref, circuit *c, size_t nsyms, input_chunker chunker)
 
 void type_degree (
     size_t *rop,
-    circref ref,
-    circuit *c,
+    acircref ref,
+    acirc *c,
     size_t nsyms,
     input_chunker chunker
 ) {
-    operation op = c->ops[ref];
+    acirc_operation op = c->ops[ref];
     if (op == XINPUT) {
         sym_id sym = chunker(c->args[ref][0], c->ninputs, nsyms);
         rop[sym.sym_number] = 1;

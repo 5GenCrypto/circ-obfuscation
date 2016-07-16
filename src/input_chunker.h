@@ -1,7 +1,7 @@
 #ifndef __SRC_INPUT_CHUNKER_H__
 #define __SRC_INPUT_CHUNKER_H__
 
-#include "circuit.h"
+#include <acirc.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -29,8 +29,8 @@ void test_chunker (
 );
 void test_chunker_rand (input_chunker chunker, reverse_chunker rchunker);
 
-size_t td (circref ref, circuit *c, size_t nsyms, input_chunker chunker);
+size_t td (acircref ref, acirc *c, size_t nsyms, input_chunker chunker);
 
-void type_degree (size_t *rop, circref ref, circuit *c, size_t nsyms, input_chunker chunker);
+void type_degree (size_t *rop, acircref ref, acirc *c, size_t nsyms, input_chunker chunker);
 
 #endif

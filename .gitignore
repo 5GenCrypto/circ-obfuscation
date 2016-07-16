@@ -1,6 +1,7 @@
 main
 clt13
 libaesrand
+libacirc
 build
 src/*.o
 src/parser/*.o

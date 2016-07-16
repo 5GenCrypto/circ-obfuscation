@@ -21,6 +21,15 @@ echo "clt13"
         cd $path; git pull origin master; cd ..;
     fi
 
+echo "libacirc"
+    path=libacirc
+    url=https://github.com/spaceships/libacirc.git
+    if [ ! -d $path ]; then
+        git clone $url;
+    else
+        cd $path; git pull origin master; cd ..;
+    fi
+
 mkdir -p build
 builddir=$(readlink -f build)
 
@@ -28,7 +37,9 @@ export CPPFLAGS=-I$builddir/include
 export CFLAGS=-I$builddir/include
 export LDFLAGS=-L$builddir/lib
 
+echo
 echo builddir = $builddir
+echo
 
 echo building libaesrand
 cd libaesrand
@@ -36,7 +47,7 @@ cd libaesrand
     ./configure --prefix=$builddir
     make
     make install
-cd ..
+cd ..;  echo
 
 echo building clt13
 cd clt13
@@ -45,4 +56,13 @@ cd clt13
     ./configure --prefix=$builddir
     make
     make install
-cd ..
+cd ..; echo
+
+echo building libacirc
+cd libacirc
+    mkdir -p build/autoconf
+    autoreconf -i
+    ./configure --prefix=$builddir
+    make
+    make install
+cd ..; echo

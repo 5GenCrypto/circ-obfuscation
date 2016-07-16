@@ -1,7 +1,6 @@
 #ifndef __SRC_LEVEL_H__
 #define __SRC_LEVEL_H__
 
-#include "circuit.h"
 #include "input_chunker.h"
 #include "obf_params.h"
 #include <stdint.h>

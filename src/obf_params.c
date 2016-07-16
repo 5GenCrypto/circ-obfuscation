@@ -8,7 +8,7 @@
 
 void obf_params_init (
     obf_params *p,
-    circuit *circ,
+    acirc *circ,
     input_chunker chunker,
     reverse_chunker rchunker,
     size_t num_symbolic_inputs
@@ -34,7 +34,7 @@ void obf_params_init (
             }
         }
     }
-    p->d = max_degree(circ);
+    p->d = acirc_max_degree(circ);
     p->D = p->d + num_symbolic_inputs + 1;
 
     p->chunker  = chunker;

@@ -1,15 +1,16 @@
 #include "evaluate.h"
 
 #include "util.h"
-#include <stdlib.h>
+#include <acirc.h>
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 // TODO: save zstar pows for reuse within the circuit
 
 void evaluate (int *rop, const int *inps, obfuscation *obf, public_params *p)
 {
-    circuit *c = obf->op->circ;
+    acirc *c = obf->op->circ;
 
     // determine each assignment s \in \Sigma from the input bits
     int *input_syms = lin_malloc(obf->op->c * sizeof(int));
@@ -17,29 +18,29 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, public_params *p)
         input_syms[i] = 0;
         for (int j = 0; j < obf->op->ell; j++) {
             sym_id sym = { i, j };
-            circref inp_bit = obf->op->rchunker(sym, c->ninputs, obf->op->c);
+            acircref inp_bit = obf->op->rchunker(sym, c->ninputs, obf->op->c);
             input_syms[i] += inps[inp_bit] << j;
         }
     }
 
-    int   *known = lin_calloc(c->nrefs, sizeof(circref));
+    int   *known = lin_calloc(c->nrefs, sizeof(acircref));
     wire **cache = lin_malloc(c->nrefs * sizeof(wire*));
 
     for (int o = 0; o < obf->op->circ->noutputs; o++) {
-        circref root = c->outrefs[o];
+        acircref root = c->outrefs[o];
 
-        topo_levels *topo = topological_levels(c, root);
+        acirc_topo_levels *topo = acirc_topological_levels(c, root);
 
         for (int lvl = 0; lvl < topo->nlevels; lvl++) {
 
             #pragma omp parallel for
             for (int i = 0; i < topo->level_sizes[lvl]; i++) {
 
-                circref ref = topo->levels[lvl][i];
+                acircref ref = topo->levels[lvl][i];
                 if (known[ref]) continue;
 
-                operation op  = c->ops[ref];
-                circref *args = c->args[ref];
+                acirc_operation op = c->ops[ref];
+                acircref *args = c->args[ref];
 
                 wire *w = lin_malloc(sizeof(wire));
 
@@ -90,7 +91,7 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, public_params *p)
                 cache[ref] = w;
             }
         }
-        topo_levels_destroy(topo);
+        acirc_topo_levels_destroy(topo);
 
         wire tmp[1]; // stack allocated pointers
         wire outwire[1];
@@ -119,7 +120,7 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, public_params *p)
         wire_clear(outwire);
     }
 
-    for (circref x = 0; x < c->nrefs; x++) {
+    for (acircref x = 0; x < c->nrefs; x++) {
         if (known[x]) {
             wire_clear(cache[x]);
             free(cache[x]);
