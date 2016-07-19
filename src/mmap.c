@@ -27,7 +27,7 @@ void secret_params_init (
 #endif
     size_t t = 0;
     for (int o = 0; o < op->gamma; o++) {
-        size_t tmp = array_sum_ui(op->types[o], op->c+1);
+        size_t tmp = ARRAY_SUM(op->types[o], op->c+1);
         if (tmp > t)
             t = tmp;
     }

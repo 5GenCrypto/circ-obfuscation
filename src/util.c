@@ -96,47 +96,6 @@ void array_print_ui (size_t *xs, size_t len) {
     }
 }
 
-size_t array_sum_ui (size_t *xs, size_t n)
-{
-    size_t res = 0;
-    for (int i = 0; i < n; i++) {
-        res += xs[i];
-    }
-    return res;
-}
-
-bool in_array(int x, int *ys, size_t len) {
-    for (int i = 0; i < len; i++) {
-        if (x == ys[i])
-            return true;
-    }
-    return false;
-}
-
-bool any_in_array(int *xs, int xlen, int *ys, size_t ylen) {
-    for (int i = 0; i < xlen; i++) {
-        if (in_array(xs[i], ys, ylen))
-            return true;
-    }
-    return false;
-}
-
-bool array_eq(int *xs, int *ys, size_t len)
-{
-    for (int i = 0; i < len; i++)
-        if (xs[i] != ys[i])
-            return false;
-    return true;
-}
-
-bool array_eq_ui(size_t *xs, size_t *ys, size_t len)
-{
-    for (int i = 0; i < len; i++)
-        if (xs[i] != ys[i])
-            return false;
-    return true;
-}
-
 void mpz_random_inv(mpz_t rop, gmp_randstate_t rng, mpz_t modulus) {
     mpz_t inv;
     mpz_init(inv);

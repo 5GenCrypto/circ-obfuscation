@@ -105,7 +105,7 @@ int main (int argc, char **argv)
     for (int i = 0; i < c.ntests; i++) {
         /*void evaluate (bool *rop, const bool *inps, obfuscation *obf, public_params *p);*/
         evaluate(res, c.testinps[i], &obf, &pp);
-        bool test_ok = array_eq(res, c.testouts[i], c.noutputs);
+        bool test_ok = ARRAY_EQ(res, c.testouts[i], c.noutputs);
         if (!test_ok)
             printf("\033[1;41m");
         printf("test %d input=", i);
