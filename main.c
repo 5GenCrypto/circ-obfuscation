@@ -37,6 +37,7 @@ int main (int argc, char **argv)
 
     acirc c;
     acirc_init(&c);
+    printf("reading circuit\n");
     acirc_parse(&c, argv[0]);
 
     size_t nsyms;
@@ -46,6 +47,7 @@ int main (int argc, char **argv)
         nsyms = c.ninputs;
     assert(c.ninputs >= nsyms);
 
+    printf("calculating degree\n");
     size_t d = acirc_max_degree(&c);
 
     printf("circuit: ninputs=%lu nconsts=%lu ngates=%lu ntests=%lu nrefs=%lu degree=%lu\n",
