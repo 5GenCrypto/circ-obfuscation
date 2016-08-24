@@ -11,14 +11,18 @@ void obf_params_init (
     acirc *circ,
     input_chunker chunker,
     reverse_chunker rchunker,
-    size_t num_symbolic_inputs
+    size_t num_symbolic_inputs,
+    bool is_rachel
 ) {
     p->m = circ->nconsts;
     p->gamma = circ->noutputs;
     p->types = lin_malloc(p->gamma * sizeof(size_t*));
 
     p->ell = ceil((double) circ->ninputs / (double) num_symbolic_inputs); // length of symbols
-    p->q = pow((double) 2, (double) p->ell); // 2^ell
+    if (is_rachel)
+        p->q = p->ell;
+    else
+        p->q = pow((double) 2, (double) p->ell); // 2^ell
     if (p->q <= 0)
         errx(1, "[obf_params_init] q (size of alphabet) overflowed");
     p->c = num_symbolic_inputs;

@@ -28,15 +28,13 @@ typedef struct {
 void obfuscation_init  (obfuscation *obf, secret_params *p);
 void obfuscation_clear (obfuscation *obf);
 
-void obfuscate (
-    obfuscation *obf,
-    secret_params *s,
-    aes_randstate_t rng
-);
+void obfuscate (obfuscation *obf, secret_params *p, aes_randstate_t rng, bool rachel_input);
 
-void encode_Zstar   (encoding *enc, secret_params *p, aes_randstate_t rng);
-void encode_Rks     (encoding *enc, secret_params *p, aes_randstate_t rng, mpz_t *rs, size_t k, size_t s);
-void encode_Zksj    (encoding *enc, secret_params *p, aes_randstate_t rng, mpz_t *rs, mpz_t ykj, size_t k, size_t s, size_t j);
+void encode_Zstar(encoding *enc, secret_params *p, aes_randstate_t rng);
+void encode_Rks  (encoding *enc, secret_params *p, aes_randstate_t rng, mpz_t *rs, size_t k, size_t s);
+void encode_Zksj (encoding *enc, secret_params *p, aes_randstate_t rng, mpz_t *rs, mpz_t ykj, size_t k,
+                  size_t s, size_t j, bool rachel_input);
+
 void encode_Rc      (encoding *enc, secret_params *p, aes_randstate_t rng, mpz_t *rs);
 void encode_Zcj     (encoding *enc, secret_params *p, aes_randstate_t rng, mpz_t *rs, mpz_t ykj, int const_val);
 void encode_Rhatkso (encoding *enc, secret_params *p, aes_randstate_t rng, mpz_t *rs, size_t k, size_t s, size_t o);

@@ -8,7 +8,7 @@
 
 // TODO: save zstar pows for reuse within the circuit
 
-void evaluate (int *rop, const int *inps, obfuscation *obf, public_params *p)
+void evaluate (int *rop, const int *inps, obfuscation *obf, public_params *p, bool is_rachel)
 {
     acirc *c = obf->op->circ;
 
@@ -19,7 +19,10 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, public_params *p)
         for (int j = 0; j < obf->op->ell; j++) {
             sym_id sym = { i, j };
             acircref inp_bit = obf->op->rchunker(sym, c->ninputs, obf->op->c);
-            input_syms[i] += inps[inp_bit] << j;
+            if (is_rachel)
+                input_syms[i] += inps[inp_bit] * j;
+            else
+                input_syms[i] += inps[inp_bit] << j;
         }
     }
 
@@ -33,7 +36,7 @@ void evaluate (int *rop, const int *inps, obfuscation *obf, public_params *p)
 
         for (int lvl = 0; lvl < topo->nlevels; lvl++) {
 
-            #pragma omp parallel for
+            // #pragma omp parallel for
             for (int i = 0; i < topo->level_sizes[lvl]; i++) {
 
                 acircref ref = topo->levels[lvl][i];

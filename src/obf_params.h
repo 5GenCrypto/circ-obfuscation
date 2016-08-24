@@ -5,10 +5,11 @@
 #include <acirc.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef struct {
     size_t m;       // number of secret bits
-    size_t q;       // number of symbols in sigma = 2^\ell
+    size_t q;       // number of symbols in sigma = 2^\ell for binary, \ell for rachel vectors
     size_t c;       // number of "symbolic" inputs
     size_t gamma;   // number of outputs
     size_t ell;     // length of symbols
@@ -26,7 +27,8 @@ void obf_params_init (
     acirc *circ,
     input_chunker chunker,
     reverse_chunker rchunker,
-    size_t num_symbolic_inputs
+    size_t num_symbolic_inputs,
+    bool is_rachel
 );
 
 void obf_params_clear (obf_params *p);

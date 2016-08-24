@@ -11,7 +11,7 @@ typedef struct {
     size_t d;
 } wire;
 
-void evaluate (int *rop, const int *inps, obfuscation *obf, public_params *p);
+void evaluate (int *rop, const int *inps, obfuscation *obf, public_params *p, bool is_rachel);
 
 void wire_init  (wire *rop, public_params *p, int init_r, int init_z);
 void wire_clear (wire *rop);

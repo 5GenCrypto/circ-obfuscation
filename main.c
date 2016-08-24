@@ -40,24 +40,31 @@ int main (int argc, char **argv)
     printf("reading circuit\n");
     acirc_parse(&c, argv[0]);
 
-    size_t nsyms;
+    size_t symlen;
     if (argc >= 2)
-        nsyms = atoi(argv[1]);
+        symlen = atoi(argv[1]);
     else
-        nsyms = c.ninputs;
-    assert(c.ninputs >= nsyms);
+        symlen = 1;
 
-    printf("calculating degree\n");
-    size_t d = acirc_max_degree(&c);
+    assert((c.ninputs % symlen) == 0);
+    size_t nsyms = c.ninputs / symlen;
 
-    printf("circuit: ninputs=%lu nconsts=%lu ngates=%lu ntests=%lu nrefs=%lu degree=%lu\n",
-                     c.ninputs, c.nconsts, c.ngates, c.ntests, c.nrefs, d);
+    bool input_is_rachel_representation = symlen > 1;
+
+    // printf("calculating degree\n");
+    // size_t d = acirc_max_degree(&c);
+
+    // printf("circuit: ninputs=%lu nconsts=%lu ngates=%lu ntests=%lu nrefs=%lu degree=%lu\n",
+    //                  c.ninputs, c.nconsts, c.ngates, c.ntests, c.nrefs, d);
+
+    printf("circuit: ninputs=%lu nconsts=%lu ngates=%lu ntests=%lu nrefs=%lu\n",
+                     c.ninputs, c.nconsts, c.ngates, c.ntests, c.nrefs);
 
     /*test_chunker(chunker_in_order, rchunker_in_order, nsyms, c.ninputs);*/
     /*test_chunker(chunker_mod, rchunker_mod, nsyms, c.ninputs);*/
 
     obf_params op;
-    obf_params_init(&op, &c, chunker_in_order, rchunker_in_order, nsyms);
+    obf_params_init(&op, &c, chunker_in_order, rchunker_in_order, nsyms, input_is_rachel_representation);
     /*obf_params_init(&op, &c, chunker_mod, rchunker_mod, nsyms);*/
 
     printf("params: c=%lu ell=%lu q=%lu M=%lu D=%lu\n", op.c, op.ell, op.q, op.M, op.D);
@@ -72,7 +79,7 @@ int main (int argc, char **argv)
         puts("");
     }
 
-    acirc_ensure(&c, true);
+    acirc_ensure(&c, input_is_rachel_representation);
 
     aes_randstate_t rng;
     aes_randinit(rng);
@@ -86,7 +93,7 @@ int main (int argc, char **argv)
     printf("obfuscating...\n");
     obfuscation obf;
     obfuscation_init(&obf, &st);
-    obfuscate(&obf, &st, rng);
+    obfuscate(&obf, &st, rng, input_is_rachel_representation);
 
     // check obfuscation serialization
     /*FILE *obf_fp = fopen("test.lin", "w+");*/
@@ -106,7 +113,7 @@ int main (int argc, char **argv)
     int res[c.noutputs];
     for (int i = 0; i < c.ntests; i++) {
         /*void evaluate (bool *rop, const bool *inps, obfuscation *obf, public_params *p);*/
-        evaluate(res, c.testinps[i], &obf, &pp);
+        evaluate(res, c.testinps[i], &obf, &pp, true);
         bool test_ok = ARRAY_EQ(res, c.testouts[i], c.noutputs);
         if (!test_ok)
             printf("\033[1;41m");

@@ -160,7 +160,7 @@ void obfuscation_clear (obfuscation *obf)/*{{{*/
 ////////////////////////////////////////////////////////////////////////////////
 // obfuscator
 
-void obfuscate (obfuscation *obf, secret_params *p, aes_randstate_t rng)
+void obfuscate (obfuscation *obf, secret_params *p, aes_randstate_t rng, bool rachel_input)
 {
     obf->op = p->op;
 
@@ -204,7 +204,7 @@ void obfuscate (obfuscation *obf, secret_params *p, aes_randstate_t rng)
             mpz_urandomm_vect_aes(tmp, get_moduli(p), p->op->c+3, rng);
             encode_Rks(obf->Rks[k][s], p, rng, tmp, k, s);
             for (int j = 0; j < p->op->ell; j++) {
-                encode_Zksj(obf->Zksj[k][s][j], p, rng, tmp, ykj[k][j], k, s, j);
+                encode_Zksj(obf->Zksj[k][s][j], p, rng, tmp, ykj[k][j], k, s, j, rachel_input);
             }
             mpz_vect_destroy(tmp, p->op->c+3);
         }
@@ -306,12 +306,16 @@ void encode_Zksj (
     mpz_t ykj,
     size_t k,
     size_t s,
-    size_t j
+    size_t j,
+    bool rachel_input
 ) {
     mpz_t *w = mpz_vect_create(p->op->c+3);
 
     mpz_set(w[0], ykj);
-    mpz_set_ui(w[1], bit(s,j));
+    if (rachel_input)
+        mpz_set_ui(w[1], s == j);
+    else
+        mpz_set_ui(w[1], bit(s,j));
     mpz_urandomm_vect_aes(w+2, get_moduli(p)+2, p->op->c+1, rng);
 
     mpz_vect_mul(w, w, rs, p->op->c+3);
