@@ -254,10 +254,10 @@ void encoding_read (encoding *x, FILE *const fp)
     for (int i = 0; i < x->nslots; i++) {
         mpz_init(x->slots[i]);
     }
-    clt_vector_fread(fp, x->slots, x->nslots);
+    assert(clt_vector_fread(fp, x->slots, x->nslots) == 0);
 #else
     mpz_init(x->clt);
-    clt_elem_fread(fp, x->clt);
+    assert(clt_elem_fread(fp, x->clt) == 0);
 #endif
 }
 
@@ -268,8 +268,8 @@ void encoding_write (FILE *const fp, encoding *x)
     ulong_write(fp, x->nslots);
     PUT_SPACE(fp);
 #if FAKE_MMAP
-    clt_vector_fsave(fp, x->slots, x->nslots);
+    assert(clt_vector_fsave(fp, x->slots, x->nslots) == 0);
 #else
-    clt_elem_fsave(fp, x->clt);
+    assert(clt_elem_fsave(fp, x->clt) == 0);
 #endif
 }
