@@ -286,7 +286,6 @@ void wire_constrained_add (wire *rop, wire *x, wire *y, obfuscation *obf, public
     }
 
     if (d > 0) {
-        printf("multiplying!\n");
         encoding_mul(rop->z, x->z, &zstar, p);
         encoding_add(rop->z, rop->z, y->z, p);
     } else {
