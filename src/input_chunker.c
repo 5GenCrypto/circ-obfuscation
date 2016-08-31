@@ -72,40 +72,70 @@ size_t td (acircref ref, acirc *c, size_t nsyms, input_chunker chunker)
     return res;
 }
 
-void type_degree (
-    size_t *rop,
-    acircref ref,
-    acirc *c,
-    size_t nsyms,
-    input_chunker chunker
-) {
+void
+type_degree_helper(size_t *rop, acircref ref, acirc *c, size_t nsyms,
+                   input_chunker chunker, bool *seen, size_t **memo)
+{
+    if (seen[ref]) {
+        for (size_t i = 0; i < nsyms+1; i++)
+            rop[i] = memo[ref][i];
+        return;
+    }
+
     acirc_operation op = c->ops[ref];
+
     if (op == XINPUT) {
         sym_id sym = chunker(c->args[ref][0], c->ninputs, nsyms);
         rop[sym.sym_number] = 1;
-        return;
     }
-    if (op == YINPUT) {
+
+    else if (op == YINPUT) {
         rop[nsyms] = 1;
-        return;
     }
 
-    size_t *xtype = lin_calloc(nsyms+1, sizeof(size_t));
-    size_t *ytype = lin_calloc(nsyms+1, sizeof(size_t));
+    else {
 
-    type_degree(xtype, c->args[ref][0], c, nsyms, chunker);
-    type_degree(ytype, c->args[ref][1], c, nsyms, chunker);
+        size_t *xtype = lin_calloc(nsyms+1, sizeof(size_t));
+        size_t *ytype = lin_calloc(nsyms+1, sizeof(size_t));
 
-    int types_eq = ARRAY_EQ(xtype, ytype, nsyms + 1);
-    if (types_eq && ((op == ADD) || (op == SUB))) {
-        for (size_t i = 0; i < nsyms+1; i++)
-            rop[i] = xtype[i];
-    } else { // types unequal or op == MUL
-        for (size_t i = 0; i < nsyms+1; i++)
-            rop[i] = xtype[i] + ytype[i];
+        type_degree_helper(xtype, c->args[ref][0], c, nsyms, chunker, seen, memo);
+        type_degree_helper(ytype, c->args[ref][1], c, nsyms, chunker, seen, memo);
+
+        int types_eq = ARRAY_EQ(xtype, ytype, nsyms + 1);
+
+        if (types_eq && ((op == ADD) || (op == SUB))) {
+            for (size_t i = 0; i < nsyms+1; i++)
+                rop[i] = xtype[i];
+        }
+
+        else { // types unequal or op == MUL
+            for (size_t i = 0; i < nsyms+1; i++)
+                rop[i] = xtype[i] + ytype[i];
+        }
+
+        free(xtype);
+        free(ytype);
     }
 
-    free(xtype);
-    free(ytype);
+    seen[ref] = true;
+
+    for (size_t i = 0; i < nsyms+1; i++)
+        memo[ref][i] = rop[i];
 }
 
+void
+type_degree(size_t *rop, acircref ref, acirc *c, size_t nsyms, input_chunker chunker)
+{
+    bool    seen[c->nrefs];
+    size_t *memo[c->nrefs];
+
+    for (size_t i = 0; i < c->nrefs; i++) {
+        seen[i] = false;
+        memo[i] = lin_calloc(nsyms+1, sizeof(size_t));
+    }
+
+    type_degree_helper(rop, ref, c, nsyms, chunker, seen, memo);
+
+    for (size_t i = 0; i < c->nrefs; i++)
+        free(memo[i]);
+}

@@ -6,14 +6,10 @@
 #include <stdio.h>
 #include <err.h>
 
-void obf_params_init (
-    obf_params *p,
-    acirc *circ,
-    input_chunker chunker,
-    reverse_chunker rchunker,
-    size_t num_symbolic_inputs,
-    bool is_rachel
-) {
+void
+obf_params_init(obf_params *p, acirc *circ, input_chunker chunker, reverse_chunker rchunker,
+                size_t num_symbolic_inputs, bool is_rachel)
+{
     p->m = circ->nconsts;
     p->gamma = circ->noutputs;
     p->types = lin_malloc(p->gamma * sizeof(size_t*));
@@ -46,7 +42,8 @@ void obf_params_init (
     p->circ = circ;
 }
 
-void obf_params_clear (obf_params *p)
+void
+obf_params_clear(obf_params *p)
 {
     for (int i = 0; i < p->gamma; i++) {
         free(p->types[i]);
