@@ -79,7 +79,7 @@ int main (int argc, char **argv)
         puts("");
     }
 
-    acirc_ensure(&c, input_is_rachel_representation);
+    acirc_ensure(&c, true);
 
     aes_randstate_t rng;
     aes_randinit(rng);
