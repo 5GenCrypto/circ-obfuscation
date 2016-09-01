@@ -33,8 +33,6 @@ int main (int argc, char **argv)
     /*struct stat st = {0};*/
     /*if (stat(dir, &st) == -1) mkdir(dir, 0700);*/
 
-    g_verbose = 1;
-
     acirc c;
     acirc_init(&c);
     printf("reading circuit\n");
@@ -113,7 +111,7 @@ int main (int argc, char **argv)
     int res[c.noutputs];
     for (int i = 0; i < c.ntests; i++) {
         /*void evaluate (bool *rop, const bool *inps, obfuscation *obf, public_params *p);*/
-        evaluate(res, c.testinps[i], &obf, &pp, true);
+        evaluate(res, c.testinps[i], &obf, &pp, input_is_rachel_representation);
         bool test_ok = ARRAY_EQ(res, c.testouts[i], c.noutputs);
         if (!test_ok)
             printf("\033[1;41m");
