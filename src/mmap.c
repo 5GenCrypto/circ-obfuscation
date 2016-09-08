@@ -13,7 +13,6 @@ secret_params_init(const mmap_vtable *mmap, secret_params *p, obf_params *op,
                    level *toplevel, size_t lambda, aes_randstate_t rng)
 {
     size_t t, kappa, nzs;
-    int *pows;
 
     p->op = op;
     p->toplevel = toplevel;
@@ -29,11 +28,12 @@ secret_params_init(const mmap_vtable *mmap, secret_params *p, obf_params *op,
     nzs = (op->q+1) * (op->c+2) + op->gamma;
     printf("nzs=%lu\n", nzs);
 
-    pows = calloc(nzs, sizeof(int));
-    level_flatten(pows, toplevel);
-    p->sk = lin_malloc(mmap->sk->size);
-    mmap->sk->init(p->sk, lambda, kappa, op->c + 3, nzs, pows, 1, rng, true);
-    free(pows);
+    {
+        int pows[nzs];
+        level_flatten(pows, toplevel);
+        p->sk = lin_malloc(mmap->sk->size);
+        mmap->sk->init(p->sk, lambda, kappa, op->c + 3, nzs, pows, 1, rng, true);
+    }
 }
 
 void
@@ -93,13 +93,12 @@ void
 encode(const mmap_vtable *mmap, encoding *x, mpz_t *inps, size_t nins,
        const level *lvl, secret_params *sp)
 {
-    int *pows;
-    fmpz_t *finps;
+    fmpz_t finps[nins];
+    int pows[mmap->sk->nzs(sp->sk)];
+
     assert(nins == x->nslots);
     level_set(x->lvl, lvl);
-    pows = calloc(mmap->sk->nzs(sp->sk), sizeof(int));
     level_flatten(pows, lvl);
-    finps = calloc(nins, sizeof(fmpz_t));
     for (size_t i = 0; i < nins; ++i) {
         fmpz_init(finps[i]);
         fmpz_set_mpz(finps[i], inps[i]);
@@ -108,9 +107,6 @@ encode(const mmap_vtable *mmap, encoding *x, mpz_t *inps, size_t nins,
     for (size_t i = 0; i < nins; ++i) {
         fmpz_clear(finps[i]);
     }
-    free(finps);
-    if (pows)
-        free(pows);
 }
 
 int

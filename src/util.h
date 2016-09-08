@@ -6,8 +6,6 @@
 #include <stdbool.h>
 #include <gmp.h>
 
-extern int g_verbose;
-
 double current_time(void);
 
 int seed_rng(gmp_randstate_t *rng);

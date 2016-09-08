@@ -34,6 +34,7 @@ void
 obfuscation_write(const obfuscation *obf, FILE *const fp);
 void
 obfuscation_read(obfuscation *obf, FILE *const fp, obf_params *p);
-void obfuscation_eq (const obfuscation *x, const obfuscation *y);
+void
+obfuscation_eq(const obfuscation *x, const obfuscation *y);
 
 #endif

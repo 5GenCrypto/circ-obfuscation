@@ -354,9 +354,6 @@ obfuscation_clear(obfuscation *obf)
     free(obf->Zbaro);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// obfuscator
-
 void
 obfuscate(obfuscation *obf, secret_params *p, aes_randstate_t rng,
           bool rachel_input)
