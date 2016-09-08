@@ -25,6 +25,7 @@ input_id rchunker_in_order (sym_id sym,  size_t ninputs, size_t nsyms)
 
 sym_id chunker_mod (input_id id, size_t ninputs, size_t nsyms)
 {
+    (void) ninputs;
     size_t k = id % nsyms;
     size_t j = floor((double) id / (double) nsyms);
     sym_id sym = { k, j };
@@ -67,7 +68,7 @@ size_t td (acircref ref, acirc *c, size_t nsyms, input_chunker chunker)
     size_t deg[nsyms+1];
     type_degree(deg, ref, c, nsyms, chunker);
     size_t res = 0;
-    for (int i = 0; i < nsyms+1; i++)
+    for (size_t i = 0; i < nsyms+1; i++)
         res += deg[i];
     return res;
 }

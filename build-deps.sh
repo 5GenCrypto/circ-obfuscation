@@ -14,10 +14,11 @@ build () {
     echo building $1
     path=$1
     url=$2
+    branch=$3
     if [ ! -d $path ]; then
         git clone $url $path;
     else
-        cd $path; git pull origin master; cd ..;
+        cd $path; git pull origin $branch; cd ..;
     fi
     cd $1
         mkdir -p build/autoconf
@@ -33,7 +34,9 @@ echo
 echo builddir = $builddir
 echo
 
-build libaesrand    git@github.com:5GenCrypto/libaesrand.git
-build clt13         git@github.com:5GenCrypto/clt13.git
-build libacirc      git@github.com:spaceships/libacirc.git
+build libaesrand    https://github.com/5GenCrypto/libaesrand master
+build clt13         https://github.com/5GenCrypto/clt13 dev
+build gghlite       https://github.com/5GenCrypto/gghlite-flint dev
+build libmmap       https://github.com/5GenCrypto/libmmap dev
+build libacirc      https://github.com/spaceships/libacirc master
 # build libthreadpool git@github.com:spaceships/libthreadpool.git

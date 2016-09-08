@@ -22,6 +22,7 @@ void array_printstring_rev (int *bits, size_t n);
 void mpz_random_inv(mpz_t rop, gmp_randstate_t rng, mpz_t modulus);
 
 mpz_t* mpz_vect_create     (size_t n);
+mpz_t* mpz_vect_create_of_fmpz (fmpz_t *fvec, size_t n);
 void mpz_vect_print        (mpz_t*, size_t);
 void mpz_vect_destroy      (mpz_t *vec, size_t n);
 void mpz_urandomm_vect     (mpz_t *vec, mpz_t *moduli, size_t n, gmp_randstate_t *rng);
@@ -42,10 +43,10 @@ void* lin_realloc(void *ptr, size_t size);
 void ulong_read (unsigned long *x, FILE *const fp);
 void ulong_write (FILE *const fp, unsigned long x);
 
-#define PUT_NEWLINE(fp) assert(fputc('\n', (fp)) != EOF);
-#define GET_NEWLINE(fp) assert(fgetc(fp) == '\n');
-#define PUT_SPACE(fp)   assert(fputc(' ', (fp)) != EOF);
-#define GET_SPACE(fp)   assert(fgetc(fp) == ' ');
+#define PUT_NEWLINE(fp) (!(fprintf(fp, "\n") > 0))
+#define GET_NEWLINE(fp) fscanf(fp, "\n")
+#define PUT_SPACE(fp) (!(fprintf(fp, " ") > 0))
+#define GET_SPACE(fp) fscanf(fp, " ")
 
 #define ARRAY_SUM(XS, N) ({     \
     size_t RES = 0;             \

@@ -7,8 +7,9 @@
 #include <err.h>
 
 void
-obf_params_init(obf_params *p, acirc *circ, input_chunker chunker, reverse_chunker rchunker,
-                size_t num_symbolic_inputs, bool is_rachel)
+obf_params_init(obf_params *p, acirc *circ, input_chunker chunker,
+                reverse_chunker rchunker, size_t num_symbolic_inputs,
+                bool is_rachel)
 {
     p->m = circ->nconsts;
     p->gamma = circ->noutputs;
@@ -24,11 +25,11 @@ obf_params_init(obf_params *p, acirc *circ, input_chunker chunker, reverse_chunk
     p->c = num_symbolic_inputs;
 
     p->M = 0;
-    for (int o = 0; o < p->gamma; o++) {
+    for (size_t o = 0; o < p->gamma; o++) {
         p->types[o] = lin_calloc(p->c+1, sizeof(size_t));
         type_degree(p->types[o], circ->outrefs[o], circ, p->c, chunker);
 
-        for (int k = 0; k < p->c+1; k++) {
+        for (size_t k = 0; k < p->c+1; k++) {
             if (p->types[o][k] > p->M) {
                 p->M = p->types[o][k];
             }
@@ -45,7 +46,7 @@ obf_params_init(obf_params *p, acirc *circ, input_chunker chunker, reverse_chunk
 void
 obf_params_clear(obf_params *p)
 {
-    for (int i = 0; i < p->gamma; i++) {
+    for (size_t i = 0; i < p->gamma; i++) {
         free(p->types[i]);
     }
     free(p->types);

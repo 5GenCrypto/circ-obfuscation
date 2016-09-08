@@ -54,14 +54,14 @@ int max(int x, int y) {
 
 void array_printstring(int *xs, size_t n)
 {
-    for (int i = 0; i < n; i++)
+    for (size_t i = 0; i < n; i++)
         printf("%d", xs[i] == 1);
 }
 
 void array_printstring_rev(int *xs, size_t n)
 {
-    for (int i = n-1; i >= 0; i--)
-        printf("%d", xs[i] == 1);
+    for (size_t i = n; i > 0; i--)
+        printf("%d", xs[i-1] == 1);
 }
 
 void array_print(int *xs, size_t len) {
@@ -69,7 +69,7 @@ void array_print(int *xs, size_t len) {
         printf("[%d]", xs[0]);
         return;
     }
-    for (int i = 0; i < len; i++) {
+    for (size_t i = 0; i < len; i++) {
         if (i == 0) {
             printf("[%d,", xs[i]);
         } else if (i == len - 1) {
@@ -85,7 +85,7 @@ void array_print_ui (size_t *xs, size_t len) {
         printf("[%lu]", xs[0]);
         return;
     }
-    for (int i = 0; i < len; i++) {
+    for (size_t i = 0; i < len; i++) {
         if (i == 0) {
             printf("[%lu,", xs[i]);
         } else if (i == len - 1) {
@@ -108,8 +108,16 @@ void mpz_random_inv(mpz_t rop, gmp_randstate_t rng, mpz_t modulus) {
 mpz_t* mpz_vect_create (size_t n)
 {
     mpz_t *vec = malloc(n * sizeof(mpz_t));
-    for (int i = 0; i < n; i++)
+    for (size_t i = 0; i < n; i++)
         mpz_init(vec[i]);
+    return vec;
+}
+
+mpz_t* mpz_vect_create_of_fmpz (fmpz_t *fvec, size_t n)
+{
+    mpz_t *vec = mpz_vect_create(n);
+    for (size_t i = 0; i < n; ++i)
+        fmpz_get_mpz(vec[i], fvec[i]);
     return vec;
 }
 
@@ -119,7 +127,7 @@ void mpz_vect_print(mpz_t *xs, size_t len)
         gmp_printf("[%Zd]", xs[0]);
         return;
     }
-    for (int i = 0; i < len; i++) {
+    for (size_t i = 0; i < len; i++) {
         if (i == 0) {
             gmp_printf("[%Zd,", xs[i]);
         } else if (i == len - 1) {
@@ -132,49 +140,49 @@ void mpz_vect_print(mpz_t *xs, size_t len)
 
 void mpz_vect_destroy (mpz_t *vec, size_t n)
 {
-    for (int i = 0; i < n; i++)
+    for (size_t i = 0; i < n; i++)
         mpz_clear(vec[i]);
     free(vec);
 }
 
 void mpz_vect_set (mpz_t *rop, mpz_t *xs, size_t n)
 {
-    for (int i = 0; i < n; i++)
+    for (size_t i = 0; i < n; i++)
         mpz_set(rop[i], xs[i]);
 }
 
 // set vec to be [x]*n
 void mpz_vect_replicate_ui (mpz_t *vec, size_t x, size_t n)
 {
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
         mpz_set_ui(vec[i], x);
     }
 }
 
 void mpz_urandomm_vect (mpz_t *vec, mpz_t *moduli, size_t n, gmp_randstate_t *rng)
 {
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
         mpz_urandomm(vec[i], *rng, moduli[i]);
     }
 }
 
 void mpz_urandomm_vect_aes (mpz_t *vec, mpz_t *moduli, size_t n, aes_randstate_t rng)
 {
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
         mpz_urandomm_aes(vec[i], rng, moduli[i]);
     }
 }
 
 void mpz_vect_mul (mpz_t *rop, mpz_t *xs, mpz_t *ys, size_t n)
 {
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
         mpz_mul(rop[i], xs[i], ys[i]);
     }
 }
 
 void mpz_vect_mod (mpz_t *rop, mpz_t *xs, mpz_t *moduli, size_t n)
 {
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
         mpz_mod(rop[i], xs[i], moduli[i]);
     }
 }
