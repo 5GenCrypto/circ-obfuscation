@@ -8,12 +8,14 @@ typedef struct {
     obf_params *op;
     encoding ***R_ib;
     encoding ***Z_ib;
-    encoding ***R_hat_ib;
-    encoding ***Z_hat_ib;
+    encoding ****R_hat_ib_o;
+    encoding ****Z_hat_ib_o;
     encoding **R_i;
     encoding **Z_i;
     encoding **R_o_i;
     encoding **Z_o_i;
+    encoding **R_hat_o_i;
+    encoding **Z_hat_o_i;
 } obfuscation;
 
 obfuscation *

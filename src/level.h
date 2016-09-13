@@ -31,9 +31,11 @@ level_create_v_ib(obf_params *p, size_t i, bool b);
 level *
 level_create_v_i(obf_params *p, size_t i);
 level *
-level_create_v_hat_ib(obf_params *p, size_t i, bool b);
+level_create_v_hat_ib_o(obf_params *p, size_t i, bool b, size_t o);
 level *
 level_create_v_0(obf_params *p);
+level *
+level_create_v_hat_o(obf_params *op, size_t o);
 level *
 level_create_v_star(obf_params *p);
 level *

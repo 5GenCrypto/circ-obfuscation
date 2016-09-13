@@ -127,15 +127,17 @@ level_create_v_i(obf_params *op, size_t i)
 }
 
 level *
-level_create_v_hat_ib(obf_params *op, size_t i, bool b)
+level_create_v_hat_ib_o(obf_params *op, size_t i, bool b, size_t o)
 {
     level *lvl = level_new(op);
     if (b)
-        lvl->mat[2][i] = op->types[0][i];
+        lvl->mat[2][i] = op->types[o][i];
     else
-        lvl->mat[0][i] = op->types[0][i];
-    if (!op->simple)
+        lvl->mat[0][i] = op->types[o][i];
+    if (!op->simple) {
         lvl->mat[3][i] = 1;
+        /* lvl->mat[lvl->nrows-1][lvl->ncols-1] = op->types[o][i]; */
+    }
     return lvl;
 }
 
@@ -150,11 +152,31 @@ level_create_v_0(obf_params *op)
 }
 
 level *
+level_create_v_hat_o(obf_params *op, size_t o)
+{
+    level *lvl = level_new(op);
+    for (size_t i = 0; i < lvl->nrows; i++) {
+        for (size_t j = 0; j < lvl->ncols - 1; j++) {
+            lvl->mat[i][j] = op->M - op->types[o][j];
+            if (!op->simple && i == lvl->nrows - 1) {
+                lvl->mat[i][j] = 0;
+                
+            }
+        }
+    }
+    lvl->mat[0][lvl->ncols-1] = 1;
+    lvl->mat[1][lvl->ncols-1] = 1;
+    lvl->mat[2][lvl->ncols-1] = 1;
+    return lvl;
+}
+
+level *
 level_create_v_star(obf_params *op)
 {
     level *lvl = level_new(op);
-    assert(!op->simple);
-    lvl->mat[3][lvl->ncols-1] = 1;
+    if (!op->simple) {
+        lvl->mat[3][lvl->ncols-1] = 1;
+    }
     return lvl;
 }
 
@@ -165,7 +187,7 @@ level_create_vzt(obf_params *op)
     if (op->simple) {
         for (size_t i = 0; i < lvl->nrows; i++) {
             for (size_t j = 0; j < lvl->ncols; j++) {
-                if (i < lvl->ncols - 1)
+                if (j < lvl->ncols - 1)
                     lvl->mat[i][j] = op->M;
                 else
                     lvl->mat[i][j] = 1;
@@ -174,7 +196,7 @@ level_create_vzt(obf_params *op)
     } else {
         for (size_t i = 0; i < lvl->nrows; i++) {
             for (size_t j = 0; j < lvl->ncols; j++) {
-                if (i < lvl->ncols - 1)
+                if (j < lvl->ncols - 1)
                     lvl->mat[i][j] = op->M;
                 else
                     lvl->mat[i][j] = 1;

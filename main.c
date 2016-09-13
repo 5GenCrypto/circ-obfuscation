@@ -42,10 +42,13 @@ main(int argc, char **argv)
 
     const mmap_vtable *mmap = &clt_vtable;
 
-    while ((arg = getopt(argc, argv, "fs:")) != -1) {
+    while ((arg = getopt(argc, argv, "fs")) != -1) {
         switch (arg) {
         case 'f':
             mmap = &dummy_vtable;
+            break;
+        case 's':
+            simple = true;
             break;
         default:
             usage(EXIT_FAILURE);

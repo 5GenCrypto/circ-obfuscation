@@ -6,7 +6,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-sym_id chunker_in_order (input_id id, size_t ninputs, size_t nsyms)
+sym_id
+chunker_in_order(input_id id, size_t ninputs, size_t nsyms)
 {
     size_t chunksize = ceil((double) ninputs / (double) nsyms);
     size_t k = floor((double)id / (double) chunksize);
@@ -15,7 +16,8 @@ sym_id chunker_in_order (input_id id, size_t ninputs, size_t nsyms)
     return sym;
 }
 
-input_id rchunker_in_order (sym_id sym,  size_t ninputs, size_t nsyms)
+input_id
+rchunker_in_order(sym_id sym,  size_t ninputs, size_t nsyms)
 {
     size_t chunksize = ceil((double) ninputs / (double) nsyms);
     input_id id = sym.sym_number * chunksize + sym.bit_number;
@@ -23,62 +25,12 @@ input_id rchunker_in_order (sym_id sym,  size_t ninputs, size_t nsyms)
     return id;
 }
 
-sym_id chunker_mod (input_id id, size_t ninputs, size_t nsyms)
-{
-    (void) ninputs;
-    size_t k = id % nsyms;
-    size_t j = floor((double) id / (double) nsyms);
-    sym_id sym = { k, j };
-    return sym;
-}
-
-input_id rchunker_mod (sym_id sym, size_t ninputs, size_t nsyms)
-{
-    input_id id = sym.sym_number + sym.bit_number * nsyms;
-    assert(id < ninputs);
-    return id;
-}
-
-void test_chunker (
-    input_chunker chunker,
-    reverse_chunker rchunker,
-    size_t ninputs,
-    size_t nsyms
-) {
-    for (int j = 0; j < 100; j++) {
-        input_id id = 1 + (rand() % (ninputs-1));
-        sym_id sym = chunker(id, ninputs, nsyms);
-        input_id id_ = rchunker(sym, ninputs, nsyms);
-        assert(id == id_);
-    }
-}
-
-void test_chunker_rand (input_chunker chunker, reverse_chunker rchunker)
-{
-    srand(time(NULL));
-    for (int i = 0; i < 100; i++) {
-        size_t ninputs = 1 + (rand() % 1000);
-        size_t nsyms   = 1 + (rand() % 100);
-        test_chunker(chunker, rchunker, ninputs, nsyms);
-    }
-}
-
-size_t td (acircref ref, acirc *c, size_t nsyms, input_chunker chunker)
-{
-    size_t deg[nsyms+1];
-    type_degree(deg, ref, c, nsyms, chunker);
-    size_t res = 0;
-    for (size_t i = 0; i < nsyms+1; i++)
-        res += deg[i];
-    return res;
-}
-
-void
-type_degree_helper(size_t *rop, acircref ref, acirc *c, size_t nsyms,
+static void
+type_degree_helper(size_t *rop, acircref ref, const acirc *const c, size_t nsyms,
                    input_chunker chunker, bool *seen, size_t **memo)
 {
     if (seen[ref]) {
-        for (size_t i = 0; i < nsyms+1; i++)
+        for (size_t i = 0; i < nsyms; i++)
             rop[i] = memo[ref][i];
         return;
     }
@@ -87,32 +39,20 @@ type_degree_helper(size_t *rop, acircref ref, acirc *c, size_t nsyms,
 
     if (op == XINPUT) {
         sym_id sym = chunker(c->args[ref][0], c->ninputs, nsyms);
+        assert(sym.sym_number < nsyms);
         rop[sym.sym_number] = 1;
-    }
-
-    else if (op == YINPUT) {
-        rop[nsyms] = 1;
-    }
-
-    else {
-
-        size_t *xtype = lin_calloc(nsyms+1, sizeof(size_t));
-        size_t *ytype = lin_calloc(nsyms+1, sizeof(size_t));
+    } else if (op == YINPUT) {
+        assert(c->ninputs + c->args[ref][0] < nsyms);
+        rop[c->ninputs + c->args[ref][0]] = 1;
+    } else {
+        size_t *xtype = lin_calloc(nsyms, sizeof(size_t));
+        size_t *ytype = lin_calloc(nsyms, sizeof(size_t));
 
         type_degree_helper(xtype, c->args[ref][0], c, nsyms, chunker, seen, memo);
         type_degree_helper(ytype, c->args[ref][1], c, nsyms, chunker, seen, memo);
 
-        int types_eq = ARRAY_EQ(xtype, ytype, nsyms + 1);
-
-        if (types_eq && ((op == ADD) || (op == SUB))) {
-            for (size_t i = 0; i < nsyms+1; i++)
-                rop[i] = xtype[i];
-        }
-
-        else { // types unequal or op == MUL
-            for (size_t i = 0; i < nsyms+1; i++)
-                rop[i] = xtype[i] + ytype[i];
-        }
+        for (size_t i = 0; i < nsyms; i++)
+            rop[i] = xtype[i] + ytype[i];
 
         free(xtype);
         free(ytype);
@@ -120,19 +60,20 @@ type_degree_helper(size_t *rop, acircref ref, acirc *c, size_t nsyms,
 
     seen[ref] = true;
 
-    for (size_t i = 0; i < nsyms+1; i++)
+    for (size_t i = 0; i < nsyms; i++)
         memo[ref][i] = rop[i];
 }
 
 void
-type_degree(size_t *rop, acircref ref, acirc *c, size_t nsyms, input_chunker chunker)
+type_degree(size_t *rop, acircref ref, const acirc *const c, size_t nsyms,
+            input_chunker chunker)
 {
     bool    seen[c->nrefs];
     size_t *memo[c->nrefs];
 
     for (size_t i = 0; i < c->nrefs; i++) {
         seen[i] = false;
-        memo[i] = lin_calloc(nsyms+1, sizeof(size_t));
+        memo[i] = lin_calloc(nsyms, sizeof(size_t));
     }
 
     type_degree_helper(rop, ref, c, nsyms, chunker, seen, memo);
