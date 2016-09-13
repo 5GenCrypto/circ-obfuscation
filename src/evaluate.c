@@ -5,12 +5,13 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct {
     encoding *r;
     encoding *z;
-    int my_r; // whether this wire "owns" r
-    int my_z; // whether this wire "owns" z
+    bool my_r; // whether this wire "owns" r
+    bool my_z; // whether this wire "owns" z
 } wire;
 
 static void
@@ -37,13 +38,12 @@ wire_init(const mmap_vtable *mmap, wire *rop, public_params *pp, bool init_r,
 }
 
 static void
-wire_init_from_encodings(wire *rop, public_params *pp, encoding *r, encoding *z)
+wire_init_from_encodings(wire *rop, encoding *r, encoding *z)
 {
-    (void) pp;
     rop->r = r;
     rop->z = z;
-    rop->my_r = 0;
-    rop->my_z = 0;
+    rop->my_r = false;
+    rop->my_z = false;
 }
 
 static void
@@ -80,14 +80,11 @@ static void
 wire_add(const mmap_vtable *mmap, wire *rop, wire *x, wire *y, public_params *p)
 {
     encoding *tmp;
-
     encoding_mul(mmap, rop->r, x->r, y->r, p);
-
     tmp = encoding_new(mmap, p);
     encoding_mul(mmap, rop->z, x->z, y->r, p);
     encoding_mul(mmap, tmp, y->z, x->r, p);
     encoding_add(mmap, rop->z, rop->z, tmp, p);
-
     encoding_free(mmap, tmp);
 }
 
@@ -95,14 +92,11 @@ static void
 wire_sub(const mmap_vtable *mmap, wire *rop, wire *x, wire *y, public_params *p)
 {
     encoding *tmp;
-
     encoding_mul(mmap, rop->r, x->r, y->r, p);
-
     tmp = encoding_new(mmap, p);
     encoding_mul(mmap, rop->z, x->z, y->r, p);
     encoding_mul(mmap, tmp, y->z, x->r, p);
     encoding_sub(mmap, rop->z, rop->z, tmp, p);
-
     encoding_free(mmap, tmp);
 }
 
@@ -111,18 +105,21 @@ wire_type_eq(wire *x, wire *y)
 {
     if (!level_eq(x->r->lvl, y->r->lvl))
         return 0;
+    if (!level_eq(x->z->lvl, y->z->lvl))
+        return 0;
     return 1;
 }
 
 void
 evaluate(const mmap_vtable *mmap, int *rop, const int *inps, obfuscation *obf,
-         public_params *p, bool simple)
+         public_params *p)
 {
     const obf_params *op = obf->op;
     const acirc *c = op->circ;
-
-    // determine each assignment s \in \Sigma from the input bits
+    int known[c->nrefs];
+    wire *cache[c->nrefs];
     int input_syms[op->n];
+
     for (size_t i = 0; i < op->n; i++) {
         input_syms[i] = 0;
         for (size_t j = 0; j < 1; j++) {
@@ -132,8 +129,8 @@ evaluate(const mmap_vtable *mmap, int *rop, const int *inps, obfuscation *obf,
         }
     }
 
-    int *known = lin_calloc(c->nrefs, sizeof(int));
-    wire **cache = lin_malloc(c->nrefs * sizeof(wire *));
+    memset(known, '\0', sizeof(known));
+    memset(cache, '\0', sizeof(known));
 
     for (size_t o = 0; o < op->circ->noutputs; o++) {
         acircref root = c->outrefs[o];
@@ -152,15 +149,15 @@ evaluate(const mmap_vtable *mmap, int *rop, const int *inps, obfuscation *obf,
                     sym_id sym = op->chunker(xid, c->ninputs, op->n);
                     int k = sym.sym_number;
                     int s = input_syms[k];
-                    wire_init_from_encodings(w, p, obf->R_ib[xid][s], obf->Z_ib[xid][s]);
+                    wire_init_from_encodings(w, obf->R_ib[xid][s], obf->Z_ib[xid][s]);
                 } else if (aop == YINPUT) {
                     size_t yid = args[0];
-                    wire_init_from_encodings(w, p, obf->R_i[yid], obf->Z_i[yid]);
-                } else { // op is some kind of gate
+                    wire_init_from_encodings(w, obf->R_i[yid], obf->Z_i[yid]);
+                } else {
                     wire *x = cache[args[0]];
                     wire *y = cache[args[1]];
 
-                    wire_init(mmap, w, p, 1, 1);
+                    wire_init(mmap, w, p, true, true);
 
                     if (aop == MUL) {
                         wire_mul(mmap, w, x, y, p);
@@ -178,25 +175,27 @@ evaluate(const mmap_vtable *mmap, int *rop, const int *inps, obfuscation *obf,
         acirc_topo_levels_destroy(topo);
 
         wire tmp[1];
+        wire tmp2[1];
         wire outwire[1];
+
         wire_copy(mmap, outwire, cache[root], p);
 
         for (size_t k = 0; k < p->op->n; k++) {
-            wire_init_from_encodings(tmp, p,
+            wire_init_from_encodings(tmp,
                                      obf->R_hat_ib[k][input_syms[k]],
                                      obf->Z_hat_ib[k][input_syms[k]]);
             wire_mul(mmap, outwire, outwire, tmp, p);
         }
 
-        wire tmp2[1];
         wire_copy(mmap, tmp2, outwire, p);
-        wire_init_from_encodings(tmp, p, obf->R_o_i[0], obf->Z_o_i[0]);
+        wire_init_from_encodings(tmp, obf->R_o_i[0], obf->Z_o_i[0]);
         wire_sub(mmap, outwire, tmp2, tmp, p);
 
         rop[o] = encoding_is_zero(mmap, outwire->z, p);
 
         wire_clear(mmap, outwire);
         wire_clear(mmap, tmp);
+        wire_clear(mmap, tmp2);
     }
 
     for (acircref x = 0; x < c->nrefs; x++) {
@@ -205,6 +204,4 @@ evaluate(const mmap_vtable *mmap, int *rop, const int *inps, obfuscation *obf,
             free(cache[x]);
         }
     }
-    free(cache);
-    free(known);
 }

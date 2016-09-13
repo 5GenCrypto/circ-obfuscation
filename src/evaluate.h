@@ -5,6 +5,6 @@
 
 void
 evaluate(const mmap_vtable *mmap, int *rop, const int *inps, obfuscation *obf,
-         public_params *p, bool is_rachel);
+         public_params *p);
 
 #endif

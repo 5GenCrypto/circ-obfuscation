@@ -24,6 +24,8 @@ secret_params_init(const mmap_vtable *mmap, secret_params *p, obf_params *op,
         if (tmp > t)
             t = tmp;
     }
+    printf("%lu\n", t);
+    printf("%lu\n", op->M);
     kappa = 2 + op->m + t + op->M;
     printf("kappa=%lu\n", kappa);
     nzs = (op->n + op->m + 1) * (op->simple ? 3 : 4);

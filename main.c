@@ -101,7 +101,7 @@ main(int argc, char **argv)
     puts("evaluating...");
     int res[c.noutputs];
     for (size_t i = 0; i < c.ntests; i++) {
-        evaluate(mmap, res, c.testinps[i], obf, &pp, simple);
+        evaluate(mmap, res, c.testinps[i], obf, &pp);
         bool test_ok = ARRAY_EQ(res, c.testouts[i], c.noutputs);
         if (!test_ok)
             printf("\033[1;41m");
