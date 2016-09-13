@@ -35,8 +35,8 @@ echo builddir = $builddir
 echo
 
 build libaesrand    https://github.com/5GenCrypto/libaesrand master
-build clt13         https://github.com/5GenCrypto/clt13 dev
-build gghlite       https://github.com/5GenCrypto/gghlite-flint dev
-build libmmap       https://github.com/5GenCrypto/libmmap dev
+build clt13         https://github.com/5GenCrypto/clt13 master
+build gghlite       https://github.com/5GenCrypto/gghlite-flint master
+build libmmap       https://github.com/5GenCrypto/libmmap master
 build libacirc      https://github.com/spaceships/libacirc master
 # build libthreadpool git@github.com:spaceships/libthreadpool.git

@@ -10,29 +10,30 @@
 
 void
 secret_params_init(const mmap_vtable *mmap, secret_params *p, obf_params *op,
-                   level *toplevel, size_t lambda, aes_randstate_t rng)
+                   size_t lambda, aes_randstate_t rng)
 {
     size_t t, kappa, nzs;
 
     p->op = op;
-    p->toplevel = toplevel;
+    p->toplevel = level_create_vzt(op);
+    level_print(p->toplevel);
 
     t = 0;
     for (size_t o = 0; o < op->gamma; o++) {
-        size_t tmp = ARRAY_SUM(op->types[o], op->c+1);
+        size_t tmp = ARRAY_SUM(op->types[o], op->m + 1);
         if (tmp > t)
             t = tmp;
     }
-    kappa = 2 + op->c + t + op->D;
+    kappa = 2 + op->m + t + op->M;
     printf("kappa=%lu\n", kappa);
-    nzs = (op->q+1) * (op->c+2) + op->gamma;
+    nzs = (op->n + op->m + 1) * (op->simple ? 3 : 4);
     printf("nzs=%lu\n", nzs);
 
     {
         int pows[nzs];
-        level_flatten(pows, toplevel);
+        level_flatten(pows, p->toplevel);
         p->sk = lin_malloc(mmap->sk->size);
-        mmap->sk->init(p->sk, lambda, kappa, op->c + 3, nzs, pows, 1, rng, true);
+        mmap->sk->init(p->sk, lambda, kappa, op->nslots, nzs, pows, 1, rng, true);
     }
 }
 
@@ -63,11 +64,10 @@ public_params_clear(const mmap_vtable *mmap, public_params *p)
 // encodings
 
 encoding *
-encoding_new(const mmap_vtable *mmap, public_params *pp, obf_params *p)
+encoding_new(const mmap_vtable *mmap, public_params *pp)
 {
     encoding *x = lin_malloc(sizeof(encoding));
-    x->lvl = level_new(p);
-    x->nslots = p->c+3;
+    x->lvl = level_new(pp->op);
     mmap->enc->init(&x->enc, pp->pp);
     return x;
 }
@@ -82,9 +82,15 @@ encoding_free(const mmap_vtable *mmap, encoding *x)
 }
 
 void
+encoding_print(const mmap_vtable *const mmap, encoding *enc)
+{
+    level_print(enc->lvl);
+    mmap->enc->print(&enc->enc);
+}
+
+void
 encoding_set(const mmap_vtable *mmap, encoding *rop, encoding *x)
 {
-    rop->nslots = x->nslots;
     level_set(rop->lvl, x->lvl);
     mmap->enc->set(&rop->enc, &x->enc);
 }
@@ -96,7 +102,6 @@ encode(const mmap_vtable *mmap, encoding *x, mpz_t *inps, size_t nins,
     fmpz_t finps[nins];
     int pows[mmap->sk->nzs(sp->sk)];
 
-    assert(nins == x->nslots);
     level_set(x->lvl, lvl);
     level_flatten(pows, lvl);
     for (size_t i = 0; i < nins; ++i) {
@@ -180,8 +185,6 @@ encoding_read(const mmap_vtable *mmap, encoding *x, FILE *const fp)
     x->lvl = lin_malloc(sizeof(level));
     level_read(x->lvl, fp);
     GET_SPACE(fp);
-    ulong_read(&x->nslots, fp);
-    GET_SPACE(fp);
     mmap->enc->fread(&x->enc, fp);
 }
 
@@ -189,8 +192,6 @@ void
 encoding_write(const mmap_vtable *mmap, encoding *x, FILE *const fp)
 {
     level_write(fp, x->lvl);
-    (void) PUT_SPACE(fp);
-    ulong_write(fp, x->nslots);
     (void) PUT_SPACE(fp);
     mmap->enc->fwrite(&x->enc, fp);
 }

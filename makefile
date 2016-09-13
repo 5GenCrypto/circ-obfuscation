@@ -1,8 +1,8 @@
 CC 	   = gcc
-CFLAGS = -Wall -g # -fopenmp # -Wextra -Wno-unused-result -Wno-pointer-sign -Wno-switch -std=gnu11 -g
+CFLAGS = -Wall -Wextra -g -std=gnu11
 
-IFLAGS = -Isrc # -Ibuild/include
-LFLAGS = -lacirc -lgmp -lflint -lm -lmmap -laesrand # -Lbuild/lib -Wl,-rpath -Wl,build/lib
+IFLAGS = -Isrc
+LFLAGS = -lacirc -lgmp -lflint -lm -lmmap -laesrand
 
 SRCS   = $(wildcard src/*.c)
 OBJS   = $(addsuffix .o, $(basename $(SRCS)))

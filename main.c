@@ -21,13 +21,12 @@
 // save circuit w/o consts
 // evaluate
 
-void
+static void
 usage(int ret)
 {
     printf("Usage: main [options] [circuit]\n");
     printf("Options:\n");
     printf("\t-f\tUse fake multilinear map\n");
-    printf("\t-s\tSym length\n");
     exit(ret);
 }
 
@@ -37,9 +36,9 @@ main(int argc, char **argv)
     size_t lambda = 16;
     char *fname;
     acirc c;
-    size_t symlen = 1, nsyms;
-    bool is_rachel;
+    obf_params op;
     int arg;
+    bool simple = false;
 
     const mmap_vtable *mmap = &clt_vtable;
 
@@ -47,9 +46,6 @@ main(int argc, char **argv)
         switch (arg) {
         case 'f':
             mmap = &dummy_vtable;
-            break;
-        case 's':
-            symlen = atoi(optarg);
             break;
         default:
             usage(EXIT_FAILURE);
@@ -71,21 +67,10 @@ main(int argc, char **argv)
     printf("reading circuit\n");
     acirc_parse(&c, fname);
 
-    if (c.ninputs % symlen != 0) {
-        fprintf(stderr, "[%s] need ninputs %% symlen == 0\n", __func__);
-        exit(EXIT_FAILURE);
-    }
-    nsyms = c.ninputs / symlen;
+    printf("circuit: ninputs=%lu nconsts=%lu noutputs=%lu ngates=%lu ntests=%lu nrefs=%lu\n",
+           c.ninputs, c.nconsts, c.noutputs, c.ngates, c.ntests, c.nrefs);
 
-    is_rachel = symlen > 1;
-
-    printf("circuit: ninputs=%lu nconsts=%lu ngates=%lu ntests=%lu nrefs=%lu\n",
-                     c.ninputs, c.nconsts, c.ngates, c.ntests, c.nrefs);
-
-    obf_params op;
-    obf_params_init(&op, &c, chunker_in_order, rchunker_in_order, nsyms, is_rachel);
-
-    printf("params: c=%lu ell=%lu q=%lu M=%lu D=%lu\n", op.c, op.ell, op.q, op.M, op.D);
+    obf_params_init(&op, &c, chunker_in_order, rchunker_in_order, simple);
 
     printf("consts: ");
     array_print(c.consts, c.nconsts);
@@ -93,7 +78,7 @@ main(int argc, char **argv)
 
     for (size_t i = 0; i < c.noutputs; i++) {
         printf("output bit %lu: type=", i);
-        array_print_ui(op.types[i], nsyms + 1);
+        array_print_ui(op.types[i], op.n + op.m + 1);
         puts("");
     }
 
@@ -103,33 +88,20 @@ main(int argc, char **argv)
     aes_randinit(rng);
 
     printf("initializing params..\n");
-    level *vzt = level_create_vzt(&op);
     secret_params st;
-    secret_params_init(mmap, &st, &op, vzt, lambda, rng);
+    secret_params_init(mmap, &st, &op, lambda, rng);
     public_params pp;
     public_params_init(mmap, &pp, &st);
 
     printf("obfuscating...\n");
-    obfuscation obf;
-    obfuscation_init(mmap, &obf, &pp);
-    obfuscate(&obf, &st, rng, is_rachel);
-
-    // check obfuscation serialization
-    /*FILE *obf_fp = fopen("test.lin", "w+");*/
-    /*obfuscation_write(obf_fp, &obf);*/
-    /*rewind(obf_fp);*/
-    /*obfuscation obfp;*/
-    /*obfuscation_read(&obfp, obf_fp, &op);*/
-    /*obfuscation_eq(&obf, &obfp);*/
-    /*obfuscation_clear(&obfp);*/
-    /*fclose(obf_fp);*/
-
+    obfuscation *obf;
+    obf = obfuscation_new(mmap, &pp);
+    obfuscate(obf, &st, rng);
 
     puts("evaluating...");
     int res[c.noutputs];
     for (size_t i = 0; i < c.ntests; i++) {
-        /*void evaluate (bool *rop, const bool *inps, obfuscation *obf, public_params *p);*/
-        evaluate(mmap, res, c.testinps[i], &obf, &pp, is_rachel);
+        evaluate(mmap, res, c.testinps[i], obf, &pp, simple);
         bool test_ok = ARRAY_EQ(res, c.testouts[i], c.noutputs);
         if (!test_ok)
             printf("\033[1;41m");
@@ -146,11 +118,11 @@ main(int argc, char **argv)
 
     // free all the things
     aes_randclear(rng);
-    obfuscation_clear(&obf);
+    obfuscation_free(obf);
     public_params_clear(mmap, &pp);
     secret_params_clear(mmap, &st);
-    obf_params_clear(&op);
-    acirc_clear(&c);
+    /* obf_params_clear(&op); */
+    /* acirc_clear(&c); */
 
     return 0;
 }

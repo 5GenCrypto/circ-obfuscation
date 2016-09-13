@@ -1,15 +1,9 @@
 #ifndef __LIN_FAKE_MMAP__
 #define __LIN_FAKE_MMAP__
 
-#define FAKE_MMAP 1
-
 #include "level.h"
 #include "obf_params.h"
 #include "aesrand.h"
-/* #if FAKE_MMAP */
-/* #else */
-/* #include <clt13.h> */
-/* #endif */
 #include <mmap/mmap.h>
 #include <stdlib.h>
 
@@ -27,13 +21,12 @@ typedef struct {
 
 typedef struct {
     level *lvl;
-    size_t nslots;
     mmap_enc enc;
 } encoding;
 
 void
 secret_params_init(const mmap_vtable *mmap, secret_params *p, obf_params *op,
-                   level *toplevel, size_t lambda, aes_randstate_t rng);
+                   size_t lambda, aes_randstate_t rng);
 void
 secret_params_clear(const mmap_vtable *mmap, secret_params *p);
 
@@ -43,9 +36,11 @@ void
 public_params_clear(const mmap_vtable *mmap, public_params *p);
 
 encoding *
-encoding_new(const mmap_vtable *mmap, public_params *pp, obf_params *p);
+encoding_new(const mmap_vtable *mmap, public_params *pp);
 void
 encoding_free(const mmap_vtable *mmap, encoding *x);
+void
+encoding_print(const mmap_vtable *const mmap, encoding *enc);
 void
 encoding_set(const mmap_vtable *mmap, encoding *rop, encoding *x);
 
