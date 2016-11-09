@@ -3,8 +3,9 @@
 #abort if any command fails
 set -e
 
-mkdir -p build
+mkdir -p build/autoconf
 builddir=$(readlink -f build)
+debug='--enable-debug'
 
 export CPPFLAGS=-I$builddir/include
 export CFLAGS=-I$builddir/include
@@ -17,17 +18,15 @@ build () {
     branch=$3
     if [ ! -d $path ]; then
         git clone $url $path;
-    else
-        cd $path; git pull origin $branch; cd ..;
     fi
-    cd $1
-        mkdir -p build/autoconf
-        autoreconf -i
-        ./configure --prefix=$builddir --enable-debug
-        make
-        make install
-    cd ..;  
-    echo
+    pushd $path; git pull origin $branch; popd
+    pushd $1
+    mkdir -p build/autoconf
+    autoreconf -i
+    ./configure --prefix=$builddir $debug
+    make
+    make install
+    popd
 }
 
 echo
@@ -38,5 +37,9 @@ build libaesrand    https://github.com/5GenCrypto/libaesrand master
 build clt13         https://github.com/5GenCrypto/clt13 master
 build gghlite       https://github.com/5GenCrypto/gghlite-flint master
 build libmmap       https://github.com/5GenCrypto/libmmap master
-build libacirc      https://github.com/spaceships/libacirc master
+build libacirc      https://github.com/amaloz/libacirc master
 # build libthreadpool git@github.com:spaceships/libthreadpool.git
+
+autoreconf -i
+./configure --prefix=$builddir
+make

@@ -194,52 +194,58 @@ obfuscation_new(const mmap_vtable *mmap, public_params *p)
 void
 obfuscation_free(obfuscation *obf)
 {
-    /* obf_params *op = obf->op; */
+    obf_params *op = obf->op;
 
-    /* for (size_t i = 0; i < op->n; i++) { */
-    /*     for (size_t b = 0; b < 2; b++) { */
-    /*         encoding_free(obf->mmap, obf->R_ib[i][b]); */
-    /*     } */
-    /*     free(obf->R_ib[i]); */
-    /* } */
-    /* free(obf->R_ib); */
-    /* for (size_t i = 0; i < op->n; i++) { */
-    /*     for (size_t b = 0; b < 2; b++) { */
-    /*         encoding_free(obf->mmap, obf->Z_ib[i][b]); */
-    /*     } */
-    /*     free(obf->Z_ib[i]); */
-    /* } */
-    /* free(obf->Z_ib); */
-    /* for (size_t i = 0; i < op->n; i++) { */
-    /*     for (size_t b = 0; b < 2; b++) { */
-    /*         encoding_free(obf->mmap, obf->R_hat_ib[i][b]); */
-    /*     } */
-    /*     free(obf->R_hat_ib[i]); */
-    /* } */
-    /* free(obf->R_hat_ib); */
-    /* for (size_t i = 0; i < op->n; i++) { */
-    /*     for (size_t b = 0; b < 2; b++) { */
-    /*         encoding_free(obf->mmap, obf->Z_hat_ib[i][b]); */
-    /*     } */
-    /*     free(obf->Z_hat_ib[i]); */
-    /* } */
-    /* free(obf->Z_hat_ib); */
-    /* for (size_t i = 0; i < op->m; i++) { */
-    /*     encoding_free(obf->mmap, obf->R_i[i]); */
-    /* } */
-    /* free(obf->R_i); */
-    /* for (size_t i = 0; i < op->m; i++) { */
-    /*     encoding_free(obf->mmap, obf->Z_i[i]); */
-    /* } */
-    /* free(obf->Z_i); */
-    /* for (size_t i = 0; i < op->gamma; i++) { */
-    /*     encoding_free(obf->mmap, obf->R_o_i[i]); */
-    /* } */
-    /* free(obf->R_o_i); */
-    /* for (size_t i = 0; i < op->gamma; i++) { */
-    /*     encoding_free(obf->mmap, obf->Z_o_i[i]); */
-    /* } */
-    /* free(obf->Z_o_i); */
+    for (size_t i = 0; i < op->n; i++) {
+        for (size_t b = 0; b < 2; b++) {
+            encoding_free(obf->mmap, obf->R_ib[i][b]);
+        }
+        free(obf->R_ib[i]);
+    }
+    free(obf->R_ib);
+    for (size_t i = 0; i < op->n; i++) {
+        for (size_t b = 0; b < 2; b++) {
+            encoding_free(obf->mmap, obf->Z_ib[i][b]);
+        }
+        free(obf->Z_ib[i]);
+    }
+    free(obf->Z_ib);
+    for (size_t o = 0; o < op->gamma; ++o) {
+        for (size_t i = 0; i < op->n; i++) {
+            for (size_t b = 0; b < 2; b++) {
+                encoding_free(obf->mmap, obf->R_hat_ib_o[o][i][b]);
+            }
+            free(obf->R_hat_ib_o[o][i]);
+        }
+        free(obf->R_hat_ib_o[o]);
+    }
+    free(obf->R_hat_ib_o);
+    for (size_t o = 0; o < op->gamma; ++o) {
+        for (size_t i = 0; i < op->n; i++) {
+            for (size_t b = 0; b < 2; b++) {
+                encoding_free(obf->mmap, obf->Z_hat_ib_o[o][i][b]);
+            }
+            free(obf->Z_hat_ib_o[o][i]);
+        }
+        free(obf->Z_hat_ib_o[o]);
+    }
+    free(obf->Z_hat_ib_o);
+    for (size_t i = 0; i < op->m; i++) {
+        encoding_free(obf->mmap, obf->R_i[i]);
+    }
+    free(obf->R_i);
+    for (size_t i = 0; i < op->m; i++) {
+        encoding_free(obf->mmap, obf->Z_i[i]);
+    }
+    free(obf->Z_i);
+    for (size_t i = 0; i < op->gamma; i++) {
+        encoding_free(obf->mmap, obf->R_o_i[i]);
+    }
+    free(obf->R_o_i);
+    for (size_t i = 0; i < op->gamma; i++) {
+        encoding_free(obf->mmap, obf->Z_o_i[i]);
+    }
+    free(obf->Z_o_i);
 
     free(obf);
 }
@@ -254,6 +260,7 @@ obfuscate(obfuscation *obf, secret_params *p, aes_randstate_t rng)
     mpz_t *ys, *w_hats[n];
 
     obf->op = p->op;
+    gmp_printf("%Zd\n", moduli[0]);
 
     ys = mpz_vect_create(obf->op->n + obf->op->m);
     for (size_t i = 0; i < n; ++i) {
@@ -360,6 +367,10 @@ obfuscate(obfuscation *obf, secret_params *p, aes_randstate_t rng)
         mpz_clear(y_0);
     }
 
+    for (size_t i = 0; i < n; ++i) {
+        mpz_vect_destroy(w_hats[i], nslots);
+    }
+    mpz_vect_destroy(ys, obf->op->n + obf->op->m);
     mpz_vect_destroy(moduli, obf->mmap->sk->nslots(p->sk));
 }
 
@@ -368,6 +379,7 @@ obfuscate(obfuscation *obf, secret_params *p, aes_randstate_t rng)
 
 void obfuscation_eq (const obfuscation *x, const obfuscation *y)
 {
+    (void) x, (void) y;
     assert(false);
     /* (void) y; */
     /* obf_params *op = x->op; */

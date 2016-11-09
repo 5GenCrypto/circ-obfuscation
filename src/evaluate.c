@@ -150,22 +150,22 @@ evaluate(const mmap_vtable *mmap, int *rop, const int *inps, obfuscation *obf,
                     int k = sym.sym_number;
                     int s = input_syms[k];
                     wire_init_from_encodings(w, obf->R_ib[xid][s], obf->Z_ib[xid][s]);
-                    printf("X INPUT\n");
-                    wire_print(w);
+                    /* printf("X INPUT\n"); */
+                    /* wire_print(w); */
                 } else if (aop == YINPUT) {
                     size_t yid = args[0];
                     wire_init_from_encodings(w, obf->R_i[yid], obf->Z_i[yid]);
-                    printf("Y INPUT\n");
-                    wire_print(w);
+                    /* printf("Y INPUT\n"); */
+                    /* wire_print(w); */
                 } else {
                     wire *x = cache[args[0]];
                     wire *y = cache[args[1]];
 
                     wire_init(mmap, w, p, true, true);
 
-                    printf("OP\n");
-                    wire_print(x);
-                    wire_print(y);
+                    /* printf("OP\n"); */
+                    /* wire_print(x); */
+                    /* wire_print(y); */
 
                     if (aop == MUL) {
                         wire_mul(mmap, w, x, y, p);
@@ -174,7 +174,7 @@ evaluate(const mmap_vtable *mmap, int *rop, const int *inps, obfuscation *obf,
                     } else if (aop == SUB) {
                         wire_sub(mmap, w, x, y, p);
                     }
-                    wire_print(w);
+                    /* wire_print(w); */
                 }
 
                 known[ref] = true;
@@ -193,22 +193,20 @@ evaluate(const mmap_vtable *mmap, int *rop, const int *inps, obfuscation *obf,
             wire_init_from_encodings(tmp,
                                      obf->R_hat_ib_o[o][k][input_syms[k]],
                                      obf->Z_hat_ib_o[o][k][input_syms[k]]);
-            printf("FINAL MULS!\n");
-            wire_print(tmp);
-            wire_print(outwire);
+            /* printf("FINAL MULS!\n"); */
+            /* wire_print(tmp); */
+            /* wire_print(outwire); */
             wire_mul(mmap, outwire, outwire, tmp, p);
         }
 
         wire_copy(mmap, tmp2, outwire, p);
         wire_init_from_encodings(tmp, obf->R_o_i[o], obf->Z_o_i[o]);
-        printf("FINAL SUB!\n");
-        wire_print(tmp);
-        wire_print(tmp2);
+        /* printf("FINAL SUB!\n"); */
+        /* wire_print(tmp); */
+        /* wire_print(tmp2); */
         wire_sub(mmap, outwire, tmp2, tmp, p);
 
         rop[o] = encoding_is_zero(mmap, outwire->z, p);
-
-        printf("Done\n");
 
         wire_clear(mmap, outwire);
         wire_clear(mmap, tmp);

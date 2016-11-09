@@ -16,16 +16,14 @@ secret_params_init(const mmap_vtable *mmap, secret_params *p, obf_params *op,
 
     p->op = op;
     p->toplevel = level_create_vzt(op);
-    /* printf("Toplevel:\n"); */
-    /* level_print(p->toplevel); */
 
     t = 0;
     for (size_t o = 0; o < op->gamma; o++) {
-        size_t tmp = ARRAY_SUM(op->types[o], op->m + 1);
+        size_t tmp = ARRAY_SUM(op->types[o], op->n + 1);
         if (tmp > t)
             t = tmp;
     }
-    kappa = 2 + op->m + t + op->M;
+    kappa = 2 + op->n + t + op->D;
     printf("kappa=%lu\n", kappa);
     nzs = (op->n + op->m + 1) * (op->simple ? 3 : 4);
     printf("nzs=%lu\n", nzs);

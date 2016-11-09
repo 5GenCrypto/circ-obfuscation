@@ -116,8 +116,11 @@ mpz_t* mpz_vect_create (size_t n)
 mpz_t* mpz_vect_create_of_fmpz (fmpz_t *fvec, size_t n)
 {
     mpz_t *vec = mpz_vect_create(n);
-    for (size_t i = 0; i < n; ++i)
+    for (size_t i = 0; i < n; ++i) {
         fmpz_get_mpz(vec[i], fvec[i]);
+        fmpz_clear(fvec[i]);
+    }
+    free(fvec);
     return vec;
 }
 
