@@ -49,19 +49,21 @@ usage(int ret)
 {
     printf("Usage: main [options] <circuit>\n");
     printf("Options:\n"
-"    --evaluate, -e   evaluate obfuscation\n"
-"    --fake, -f       use dummy multilinear map\n"
-"    --simple, -s     ????\n");
+"    --evaluate, -e    evaluate obfuscation\n"
+"    --dummy, -d       use dummy multilinear map\n"
+"    --lambda, -l <λ>  set security parameter to <λ> when obfuscating\n"
+"    --simple, -s      use SimpleObf scheme\n");
     exit(ret);
 }
 
 static const struct option opts[] = {
     {"evaluate", no_argument, 0, 'e'},
     {"fake", no_argument, 0, 'f'},
+    {"lambda", required_argument, 0, 'l'},
     {"simple", no_argument, 0, 's'},
     {0, 0, 0, 0}
 };
-static const char *short_opts = "fs";
+static const char *short_opts = "efl:s";
 
 static obfuscation *
 _obfuscate(const struct args_t *const args, const obf_params_t *const params)
@@ -114,19 +116,21 @@ run(const struct args_t *const args)
 
     log_info("circuit: ninputs=%lu nconsts=%lu noutputs=%lu ngates=%lu ntests=%lu nrefs=%lu",
              c.ninputs, c.nconsts, c.noutputs, c.ngates, c.ntests, c.nrefs);
-    printf("consts: ");
-    array_print(c.consts, c.nconsts);
-    puts("");
+    /* printf("consts: "); */
+    /* array_print(c.consts, c.nconsts); */
+    /* puts(""); */
 
     obf_params_init(&params, &c, chunker_in_order, rchunker_in_order, args->simple);
 
-    for (size_t i = 0; i < c.noutputs; i++) {
-        printf("output bit %lu: type=", i);
-        array_print_ui(params.types[i], params.n + params.m + 1);
-        puts("");
-    }
+    /* for (size_t i = 0; i < c.noutputs; i++) { */
+    /*     printf("output bit %lu: type=", i); */
+    /*     array_print_ui(params.types[i], params.n + params.m + 1); */
+    /*     puts(""); */
+    /* } */
 
+#ifndef NDEBUG
     acirc_ensure(&c, true);
+#endif
 
     if (!args->evaluate) {
         char fname[strlen(args->circuit) + 5];
@@ -186,6 +190,9 @@ main(int argc, char **argv)
             break;
         case 'f':
             args.mmap = &dummy_vtable;
+            break;
+        case 'l':
+            args.secparam = atoi(optarg);
             break;
         case 's':
             args.simple = true;
