@@ -10,7 +10,7 @@
 // level utils
 
 level *
-level_new(obf_params *op)
+level_new(const obf_params_t *const op)
 {
     level *lvl = calloc(1, sizeof(level));
     lvl->nrows = op->simple ? 3 : 4;
@@ -105,7 +105,7 @@ int level_eq (level *x, level *y)
 }
 
 level *
-level_create_v_ib(obf_params *op, size_t i, bool b)
+level_create_v_ib(const obf_params_t *const op, size_t i, bool b)
 {
     level *lvl = level_new(op);
     lvl->mat[1][i] = 1;
@@ -117,7 +117,7 @@ level_create_v_ib(obf_params *op, size_t i, bool b)
 }
 
 level *
-level_create_v_i(obf_params *op, size_t i)
+level_create_v_i(const obf_params_t *const op, size_t i)
 {
     level *lvl = level_new(op);
     lvl->mat[0][i] = 1;
@@ -127,7 +127,7 @@ level_create_v_i(obf_params *op, size_t i)
 }
 
 level *
-level_create_v_hat_ib_o(obf_params *op, size_t i, bool b, size_t o)
+level_create_v_hat_ib_o(const obf_params_t *const op, size_t i, bool b, size_t o)
 {
     level *lvl = level_new(op);
     if (b)
@@ -142,7 +142,7 @@ level_create_v_hat_ib_o(obf_params *op, size_t i, bool b, size_t o)
 }
 
 level *
-level_create_v_0(obf_params *op)
+level_create_v_0(const obf_params_t *const op)
 {
     level *lvl = level_new(op);
     lvl->mat[0][lvl->ncols-1] = 1;
@@ -152,7 +152,7 @@ level_create_v_0(obf_params *op)
 }
 
 level *
-level_create_v_hat_o(obf_params *op, size_t o)
+level_create_v_hat_o(const obf_params_t *const op, size_t o)
 {
     level *lvl = level_new(op);
     for (size_t i = 0; i < lvl->nrows; i++) {
@@ -171,7 +171,7 @@ level_create_v_hat_o(obf_params *op, size_t o)
 }
 
 level *
-level_create_v_star(obf_params *op)
+level_create_v_star(const obf_params_t *const op)
 {
     level *lvl = level_new(op);
     if (!op->simple) {
@@ -181,7 +181,7 @@ level_create_v_star(obf_params *op)
 }
 
 level *
-level_create_vzt(obf_params *op)
+level_create_vzt(const obf_params_t *const op)
 {
     level *lvl = level_new(op);
     if (op->simple) {
@@ -216,33 +216,35 @@ level_create_vzt(obf_params *op)
     return lvl;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
-void level_write (FILE *const fp, const level *lvl)
+void
+level_fwrite(const level *const lvl, FILE *const fp)
 {
-    ulong_write(fp, lvl->nrows);
-    (void) PUT_SPACE(fp);
-    ulong_write(fp, lvl->ncols);
-    (void) PUT_SPACE(fp);
+    assert(lvl->nrows && lvl->ncols);
+    size_t_fwrite(lvl->nrows, fp);
+    PUT_SPACE(fp);
+    size_t_fwrite(lvl->ncols, fp);
+    PUT_SPACE(fp);
     for (size_t i = 0; i < lvl->nrows; i++) {
         for (size_t j = 0; j < lvl->ncols; j++) {
-            ulong_write(fp, lvl->mat[i][j]);
-            (void) PUT_SPACE(fp);
+            ulong_fwrite(lvl->mat[i][j], fp);
+            PUT_SPACE(fp);
         }
     }
 }
 
-void level_read (level *lvl, FILE *const fp)
+void
+level_fread(level *lvl, FILE *const fp)
 {
-    ulong_read(&lvl->nrows, fp);
+    size_t_fread(&lvl->nrows, fp);
     GET_SPACE(fp);
-    ulong_read(&lvl->ncols, fp);
+    size_t_fread(&lvl->ncols, fp);
     GET_SPACE(fp);
-    lvl->mat = lin_malloc((lvl->nrows) * sizeof(size_t*));
+    assert(lvl->nrows && lvl->ncols);
+    lvl->mat = lin_calloc(lvl->nrows, sizeof(size_t*));
     for (size_t i = 0; i < lvl->nrows; i++) {
         lvl->mat[i] = lin_calloc(lvl->ncols, sizeof(size_t));
         for (size_t j = 0; j < lvl->ncols; j++) {
-            ulong_read(&lvl->mat[i][j], fp);
+            ulong_fread(&lvl->mat[i][j], fp);
             GET_SPACE(fp);
         }
     }

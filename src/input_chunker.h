@@ -1,5 +1,5 @@
-#ifndef __SRC_INPUT_CHUNKER_H__
-#define __SRC_INPUT_CHUNKER_H__
+#ifndef __AB__INPUT_CHUNKER_H__
+#define __AB__INPUT_CHUNKER_H__
 
 #include <acirc.h>
 #include <stddef.h>

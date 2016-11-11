@@ -1,16 +1,24 @@
 #include "mmap.h"
+#include "dbg.h"
 
 #include "util.h"
 #include <assert.h>
 #include <stdio.h>
 #include <clt13.h>
 
-////////////////////////////////////////////////////////////////////////////////
-// parameters
+static inline size_t ARRAY_SUM(size_t *xs, size_t n)
+{
+    size_t res = 0;
+    for (size_t i = 0; i < n; ++i) {
+        res += xs[i];
+    }
+    return res;
+}
 
 void
-secret_params_init(const mmap_vtable *mmap, secret_params *p, obf_params *op,
-                   size_t lambda, aes_randstate_t rng)
+secret_params_init(const mmap_vtable *mmap, secret_params *p,
+                   const obf_params_t *const op, size_t lambda,
+                   aes_randstate_t rng)
 {
     size_t t, kappa, nzs;
 
@@ -24,15 +32,15 @@ secret_params_init(const mmap_vtable *mmap, secret_params *p, obf_params *op,
             t = tmp;
     }
     kappa = 2 + op->n + t + op->D;
-    printf("kappa=%lu\n", kappa);
+    log_info("kappa=%lu", kappa);
     nzs = (op->n + op->m + 1) * (op->simple ? 3 : 4);
-    printf("nzs=%lu\n", nzs);
+    log_info("nzs=%lu", nzs);
 
     {
         int pows[nzs];
         level_flatten(pows, p->toplevel);
         p->sk = lin_malloc(mmap->sk->size);
-        mmap->sk->init(p->sk, lambda, kappa, op->nslots, nzs, pows, 1, rng, true);
+        mmap->sk->init(p->sk, lambda, kappa, nzs, pows, op->nslots, 1, rng, true);
     }
 }
 
@@ -45,11 +53,36 @@ secret_params_clear(const mmap_vtable *mmap, secret_params *p)
 }
 
 void
-public_params_init(const mmap_vtable *mmap, public_params *p, secret_params *s)
+public_params_init(const mmap_vtable *mmap, public_params *pp, secret_params *sp)
 {
-    p->toplevel = s->toplevel;
-    p->op = s->op;
-    p->pp = (mmap_pp *) mmap->sk->pp(s->sk);
+    pp->toplevel = sp->toplevel;
+    pp->op = sp->op;
+    pp->pp = (mmap_pp *) mmap->sk->pp(sp->sk);
+}
+
+int
+public_params_fwrite(const mmap_vtable *mmap, const public_params *const pp,
+                     FILE *const fp)
+{
+    level_fwrite(pp->toplevel, fp);
+    PUT_NEWLINE(fp);
+    mmap->pp->fwrite(pp->pp, fp);
+    PUT_NEWLINE(fp);
+    return 0;
+}
+
+int
+public_params_fread(const mmap_vtable *const mmap, public_params *pp,
+                    const obf_params_t *op, FILE *const fp)
+{
+    pp->toplevel = level_create_vzt(op);
+    level_fread(pp->toplevel, fp);
+    GET_NEWLINE(fp);
+    pp->op = op;
+    pp->pp = malloc(mmap->pp->size);
+    mmap->pp->fread(pp->pp, fp);
+    GET_NEWLINE(fp);
+    return 0;
 }
 
 void
@@ -83,8 +116,8 @@ encoding_free(const mmap_vtable *mmap, encoding *x)
 void
 encoding_print(const mmap_vtable *const mmap, encoding *enc)
 {
+    (void) mmap;
     level_print(enc->lvl);
-    mmap->enc->print(&enc->enc);
 }
 
 void
@@ -95,7 +128,7 @@ encoding_set(const mmap_vtable *mmap, encoding *rop, encoding *x)
 }
 
 void
-encode(const mmap_vtable *mmap, encoding *x, mpz_t *inps, size_t nins,
+encode(const mmap_vtable *const mmap, encoding *x, mpz_t *inps, size_t nins,
        const level *lvl, secret_params *sp)
 {
     fmpz_t finps[nins];
@@ -107,7 +140,7 @@ encode(const mmap_vtable *mmap, encoding *x, mpz_t *inps, size_t nins,
         fmpz_init(finps[i]);
         fmpz_set_mpz(finps[i], inps[i]);
     }
-    mmap->enc->encode(&x->enc, sp->sk, nins, finps, pows);
+    mmap->enc->encode(&x->enc, sp->sk, nins, (fmpz_t *) finps, pows);
     for (size_t i = 0; i < nins; ++i) {
         fmpz_clear(finps[i]);
     }
@@ -173,24 +206,19 @@ encoding_is_zero(const mmap_vtable *mmap, encoding *x, public_params *p)
 ////////////////////////////////////////////////////////////////////////////////
 // serialization
 
-void secret_params_read  (secret_params *x, FILE *const fp);
-void secret_params_write (FILE *const fp, secret_params *x);
-void public_params_read  (public_params *x, FILE *const fp);
-void public_params_write (FILE *const fp, public_params *x);
-
 void
-encoding_read(const mmap_vtable *mmap, encoding *x, FILE *const fp)
+encoding_fread(const mmap_vtable *const mmap, encoding *x, FILE *const fp)
 {
-    x->lvl = lin_malloc(sizeof(level));
-    level_read(x->lvl, fp);
-    GET_SPACE(fp);
+    x->lvl = lin_calloc(1, sizeof(level));
+    level_fread(x->lvl, fp);
+    GET_NEWLINE(fp);
     mmap->enc->fread(&x->enc, fp);
 }
 
 void
-encoding_write(const mmap_vtable *mmap, encoding *x, FILE *const fp)
+encoding_fwrite(const mmap_vtable *const mmap, const encoding *const x, FILE *const fp)
 {
-    level_write(fp, x->lvl);
-    (void) PUT_SPACE(fp);
+    level_fwrite(x->lvl, fp);
+    PUT_NEWLINE(fp);
     mmap->enc->fwrite(&x->enc, fp);
 }

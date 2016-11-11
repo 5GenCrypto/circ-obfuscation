@@ -1,7 +1,7 @@
-#ifndef __IND_OBFUSCATION__UTILS_H__
-#define __IND_OBFUSCATION__UTILS_H__
+#ifndef __AB__UTILS_H__
+#define __AB__UTILS_H__
 
-#include "aesrand.h"
+#include <aesrand.h>
 
 #include <stdbool.h>
 #include <gmp.h>
@@ -19,15 +19,20 @@ void array_printstring_rev (int *bits, size_t n);
 
 void mpz_random_inv(mpz_t rop, gmp_randstate_t rng, mpz_t modulus);
 
-mpz_t* mpz_vect_create     (size_t n);
-mpz_t* mpz_vect_create_of_fmpz (fmpz_t *fvec, size_t n);
-void mpz_vect_print        (mpz_t*, size_t);
-void mpz_vect_destroy      (mpz_t *vec, size_t n);
+mpz_t * mpz_vect_create(size_t n);
+void mpz_vect_init(mpz_t *vec, size_t n);
+mpz_t * mpz_vect_create_of_fmpz(fmpz_t *fvec, size_t n);
+void mpz_vect_print(mpz_t *vec, size_t n);
+void mpz_vect_destroy(mpz_t *vec, size_t n);
+void mpz_vect_clear(mpz_t *vec, size_t n);
+
 void mpz_urandomm_vect     (mpz_t *vec, mpz_t *moduli, size_t n, gmp_randstate_t *rng);
 void mpz_urandomm_vect_aes (mpz_t *vec, mpz_t *moduli, size_t n, aes_randstate_t rng);
 
 void mpz_vect_mul (mpz_t *rop, mpz_t *xs, mpz_t *ys, size_t n);
 void mpz_vect_mod (mpz_t *rop, mpz_t *xs, mpz_t *moduli, size_t n);
+void mpz_vect_mul_mod(mpz_t *rop, mpz_t *xs, mpz_t *ys, mpz_t *moduli, size_t n);
+
 void mpz_vect_set (mpz_t *rop, mpz_t *xs, size_t n);
 
 void mpz_vect_repeat_ui (mpz_t *vec, size_t x, size_t n);
@@ -38,56 +43,67 @@ void* lin_calloc(size_t nmemb, size_t size);
 void* lin_malloc(size_t size);
 void* lin_realloc(void *ptr, size_t size);
 
-void ulong_read (unsigned long *x, FILE *const fp);
-void ulong_write (FILE *const fp, unsigned long x);
+void ulong_fread(unsigned long *x, FILE *const fp);
+void ulong_fwrite(unsigned long x, FILE *const fp);
 
-#define PUT_NEWLINE(fp) (!(fprintf(fp, "\n") > 0))
+void size_t_fread(size_t *x, FILE *const fp);
+void size_t_fwrite(size_t x, FILE *const fp);
+
+void bool_fread(bool *x, FILE *const fp);
+void bool_fwrite(bool x, FILE *const fp);
+
+#define PUT_NEWLINE(fp) fprintf(fp, "\n")
+#define PUT_SPACE(fp) fprintf(fp, " ")
+#ifdef NDEBUG
 #define GET_NEWLINE(fp) fscanf(fp, "\n")
-#define PUT_SPACE(fp) (!(fprintf(fp, " ") > 0))
 #define GET_SPACE(fp) fscanf(fp, " ")
+#else
+#define GET_NEWLINE(fp) fscanf(fp, "\n")
+#define GET_SPACE(fp) fscanf(fp, " ")
+#endif
 
-#define ARRAY_SUM(XS, N) ({     \
-    size_t RES = 0;             \
-    size_t I;                   \
-    for (I = 0; I < N; I++) {   \
-        RES += XS[I];           \
-    }                           \
-    RES;                        \
-})
+/* #define ARRAY_SUM(XS, N) {{                    \ */
+/*         size_t RES = 0;                         \ */
+/*         size_t I;                               \ */
+/*         for (I = 0; I < N; I++) {               \ */
+/*             RES += XS[I];                       \ */
+/*         }                                       \ */
+/*         RES;                                    \ */
+/*         }} */
 
-#define IN_ARRAY(ELEM, XS, N) ({    \
-    size_t I;                       \
-    bool RES = false;               \
-    for (I = 0; I < N; I++) {       \
-        if (ELEM == XS[I]) {        \
-            RES = true;             \
-            break;                  \
-        }                           \
-    }                               \
-    RES;                            \
-}
+/* #define IN_ARRAY(ELEM, XS, N) {                 \ */
+/*         size_t I;                               \ */
+/*         bool RES = false;                       \ */
+/*         for (I = 0; I < N; I++) {               \ */
+/*             if (ELEM == XS[I]) {                \ */
+/*                 RES = true;                     \ */
+/*                 break;                          \ */
+/*             }                                   \ */
+/*         }                                       \ */
+/*         RES;                                    \ */
+/*     } */
 
-#define ANY_IN_ARRAY(XS, XLEN, YS, YLEN) ({ \
-    size_t I;                               \
-    bool RES = false;                       \
-    for (I = 0; I < XLEN; I++) {            \
-        if (in_array(XS[I], YS, YLEN)) {    \
-            RES = true;                     \
-            break;                          \
-        }                                   \
-    }                                       \
-    RES;                                    \
-})
+/* #define ANY_IN_ARRAY(XS, XLEN, YS, YLEN) {      \ */
+/*         size_t I;                               \ */
+/*         bool RES = false;                       \ */
+/*         for (I = 0; I < XLEN; I++) {            \ */
+/*             if (in_array(XS[I], YS, YLEN)) {    \ */
+/*                 RES = true;                     \ */
+/*                 break;                          \ */
+/*             }                                   \ */
+/*         }                                       \ */
+/*         RES;                                    \ */
+/*     } */
 
-#define ARRAY_EQ(XS, YS, N) ({   \
-    size_t I;                   \
-    bool RES = true;            \
-    for (I = 0; I < N; I++)     \
-        if (XS[I] != YS[I]) {   \
-            RES = false;        \
-            break;              \
-        }                       \
-    RES;                        \
-})
+/* #define ARRAY_EQ(XS, YS, N) {                   \ */
+/*         size_t I;                               \ */
+/*         bool RES = true;                        \ */
+/*         for (I = 0; I < N; I++)                 \ */
+/*             if (XS[I] != YS[I]) {               \ */
+/*                 RES = false;                    \ */
+/*                 break;                          \ */
+/*             }                                   \ */
+/*         RES;                                    \ */
+/*     } */
 
 #endif

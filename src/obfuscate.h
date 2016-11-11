@@ -1,36 +1,26 @@
-#ifndef __SRC_OBFUSCATE__
-#define __SRC_OBFUSCATE__
+#ifndef __AB__OBFUSCATE_H__
+#define __AB__OBFUSCATE_H__
 
 #include "mmap.h"
 
-typedef struct {
-    const mmap_vtable *mmap;
-    obf_params *op;
-    encoding ***R_ib;
-    encoding ***Z_ib;
-    encoding ****R_hat_ib_o;
-    encoding ****Z_hat_ib_o;
-    encoding **R_i;
-    encoding **Z_i;
-    encoding **R_o_i;
-    encoding **Z_o_i;
-    encoding **R_hat_o_i;
-    encoding **Z_hat_o_i;
-} obfuscation;
+typedef struct obfuscation obfuscation;
 
 obfuscation *
-obfuscation_new(const mmap_vtable *mmap, public_params *p);
+obfuscation_new(const mmap_vtable *mmap, const obf_params_t *const params,
+                size_t secparam);
 void
 obfuscation_free(obfuscation *obf);
 
 void
-obfuscate(obfuscation *obf, secret_params *p, aes_randstate_t rng);
+obfuscate(obfuscation *obf);
 
 void
-obfuscation_write(const obfuscation *obf, FILE *const fp);
+obfuscation_fwrite(const obfuscation *const obf, FILE *const fp);
+obfuscation *
+obfuscation_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *const fp);
+
 void
-obfuscation_read(obfuscation *obf, FILE *const fp, obf_params *p);
-void
-obfuscation_eq(const obfuscation *x, const obfuscation *y);
+obfuscation_eval(const mmap_vtable *mmap, int *rop, const int *inps,
+                 const obfuscation *const obf);
 
 #endif

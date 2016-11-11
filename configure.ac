@@ -32,6 +32,7 @@ fi
 AC_SUBST(COMMON_CFLAGS)
 AC_SUBST(EXTRA_CFLAGS)
 
+
 AC_SEARCH_LIBS(acirc_init, acirc, [], AC_MSG_ERROR([libacirc not found]))
 AC_SEARCH_LIBS(aes_randinit, aesrand, [], AC_MSG_ERROR([libaesrand not found]))
 AC_SEARCH_LIBS(mmap_enc_mat_init, mmap, [], AC_MSG_ERROR([libmmap not found]))

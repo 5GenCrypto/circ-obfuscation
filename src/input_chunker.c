@@ -35,21 +35,21 @@ type_degree_helper(size_t *rop, acircref ref, const acirc *const c, size_t nsyms
         return;
     }
 
-    acirc_operation op = c->ops[ref];
+    acirc_operation op = c->gates[ref].op;
 
     if (op == XINPUT) {
-        sym_id sym = chunker(c->args[ref][0], c->ninputs, nsyms);
+        sym_id sym = chunker(c->gates[ref].args[0], c->ninputs, nsyms);
         assert(sym.sym_number < nsyms);
         rop[sym.sym_number] = 1;
     } else if (op == YINPUT) {
-        assert(c->ninputs + c->args[ref][0] < nsyms);
-        rop[c->ninputs + c->args[ref][0]] = 1;
+        assert(c->ninputs + c->gates[ref].args[0] < nsyms);
+        rop[c->ninputs + c->gates[ref].args[0]] = 1;
     } else {
         size_t *xtype = lin_calloc(nsyms, sizeof(size_t));
         size_t *ytype = lin_calloc(nsyms, sizeof(size_t));
 
-        type_degree_helper(xtype, c->args[ref][0], c, nsyms, chunker, seen, memo);
-        type_degree_helper(ytype, c->args[ref][1], c, nsyms, chunker, seen, memo);
+        type_degree_helper(xtype, c->gates[ref].args[0], c, nsyms, chunker, seen, memo);
+        type_degree_helper(ytype, c->gates[ref].args[1], c, nsyms, chunker, seen, memo);
 
         for (size_t i = 0; i < nsyms; i++)
             rop[i] = xtype[i] + ytype[i];

@@ -1,8 +1,9 @@
-#ifndef __SRC_LEVEL_H__
-#define __SRC_LEVEL_H__
+#ifndef __AB__LEVEL_H__
+#define __AB__LEVEL_H__
 
 #include "input_chunker.h"
 #include "obf_params.h"
+
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -22,26 +23,28 @@ int  level_eq      (level *x, level *y);
 int  level_eq_z    (level *x, level *y);
 
 level *
-level_new(obf_params *p);
+level_new(const obf_params_t *const p);
 void
 level_free(level *lvl);
 
 level *
-level_create_v_ib(obf_params *p, size_t i, bool b);
+level_create_v_ib(const obf_params_t *const op, size_t i, bool b);
 level *
-level_create_v_i(obf_params *p, size_t i);
+level_create_v_i(const obf_params_t *const op, size_t i);
 level *
-level_create_v_hat_ib_o(obf_params *p, size_t i, bool b, size_t o);
+level_create_v_hat_ib_o(const obf_params_t *const op, size_t i, bool b, size_t o);
 level *
-level_create_v_0(obf_params *p);
+level_create_v_0(const obf_params_t *const op);
 level *
-level_create_v_hat_o(obf_params *op, size_t o);
+level_create_v_hat_o(const obf_params_t *const op, size_t o);
 level *
-level_create_v_star(obf_params *p);
+level_create_v_star(const obf_params_t *const op);
 level *
-level_create_vzt(obf_params *p);
+level_create_vzt(const obf_params_t *const op);
 
-void level_write (FILE *const fp, const level *lvl);
-void level_read  (level *lvl, FILE *const fp);
+void
+level_fwrite(const level *const lvl, FILE *const fp);
+void
+level_fread(level *lvl, FILE *const fp);
 
 #endif

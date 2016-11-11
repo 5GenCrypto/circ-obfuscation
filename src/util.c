@@ -105,12 +105,19 @@ void mpz_random_inv(mpz_t rop, gmp_randstate_t rng, mpz_t modulus) {
     mpz_clear(inv);
 }
 
-mpz_t* mpz_vect_create (size_t n)
+mpz_t *
+mpz_vect_create(size_t n)
 {
     mpz_t *vec = malloc(n * sizeof(mpz_t));
+    mpz_vect_init(vec, n);
+    return vec;
+}
+
+void
+mpz_vect_init(mpz_t *vec, size_t n)
+{
     for (size_t i = 0; i < n; i++)
         mpz_init(vec[i]);
-    return vec;
 }
 
 mpz_t* mpz_vect_create_of_fmpz (fmpz_t *fvec, size_t n)
@@ -141,11 +148,18 @@ void mpz_vect_print(mpz_t *xs, size_t len)
     }
 }
 
-void mpz_vect_destroy (mpz_t *vec, size_t n)
+void
+mpz_vect_destroy(mpz_t *vec, size_t n)
+{
+    mpz_vect_clear(vec, n);
+    free(vec);
+}
+
+void
+mpz_vect_clear(mpz_t *vec, size_t n)
 {
     for (size_t i = 0; i < n; i++)
         mpz_clear(vec[i]);
-    free(vec);
 }
 
 void mpz_vect_set (mpz_t *rop, mpz_t *xs, size_t n)
@@ -154,40 +168,33 @@ void mpz_vect_set (mpz_t *rop, mpz_t *xs, size_t n)
         mpz_set(rop[i], xs[i]);
 }
 
-// set vec to be [x]*n
-void mpz_vect_replicate_ui (mpz_t *vec, size_t x, size_t n)
+void mpz_urandomm_vect_aes(mpz_t *vec, mpz_t *moduli, size_t n, aes_randstate_t rng)
 {
     for (size_t i = 0; i < n; i++) {
-        mpz_set_ui(vec[i], x);
+        do {
+            mpz_urandomm_aes(vec[i], rng, moduli[i]);
+        } while (mpz_cmp_ui(vec[i], 0) == 0);
     }
 }
 
-void mpz_urandomm_vect (mpz_t *vec, mpz_t *moduli, size_t n, gmp_randstate_t *rng)
-{
-    for (size_t i = 0; i < n; i++) {
-        mpz_urandomm(vec[i], *rng, moduli[i]);
-    }
-}
-
-void mpz_urandomm_vect_aes (mpz_t *vec, mpz_t *moduli, size_t n, aes_randstate_t rng)
-{
-    for (size_t i = 0; i < n; i++) {
-        mpz_urandomm_aes(vec[i], rng, moduli[i]);
-    }
-}
-
-void mpz_vect_mul (mpz_t *rop, mpz_t *xs, mpz_t *ys, size_t n)
+void mpz_vect_mul(mpz_t *rop, mpz_t *xs, mpz_t *ys, size_t n)
 {
     for (size_t i = 0; i < n; i++) {
         mpz_mul(rop[i], xs[i], ys[i]);
     }
 }
 
-void mpz_vect_mod (mpz_t *rop, mpz_t *xs, mpz_t *moduli, size_t n)
+void mpz_vect_mod(mpz_t *rop, mpz_t *xs, mpz_t *moduli, size_t n)
 {
     for (size_t i = 0; i < n; i++) {
         mpz_mod(rop[i], xs[i], moduli[i]);
     }
+}
+
+void mpz_vect_mul_mod(mpz_t *rop, mpz_t *xs, mpz_t *ys, mpz_t *moduli, size_t n)
+{
+    mpz_vect_mul(rop, xs, ys, n);
+    mpz_vect_mod(rop, rop, moduli, n);
 }
 
 size_t bit(size_t x, size_t i)
@@ -231,13 +238,41 @@ void* lin_realloc(void *ptr, size_t size)
 ////////////////////////////////////////////////////////////////////////////////
 // serialization
 
-void ulong_read (unsigned long *x, FILE *const fp)
+void
+ulong_fread(unsigned long *x, FILE *const fp)
 {
-    assert(fscanf(fp, "%lu", x) > 0);
+    fscanf(fp, "%lu", x);
 }
 
-void ulong_write (FILE *const fp, unsigned long x)
+void
+ulong_fwrite(unsigned long x, FILE *const fp)
 {
-    assert(fprintf(fp, "%lu", x) > 0);
+    fprintf(fp, "%lu", x);
 }
 
+void
+size_t_fread(size_t *x, FILE *const fp)
+{
+    fscanf(fp, "%lu", x);
+}
+
+void
+size_t_fwrite(size_t x, FILE *const fp)
+{
+    fprintf(fp, "%lu", x);
+}
+
+void
+bool_fread(bool *x, FILE *const fp)
+{
+    int tmp;
+    fscanf(fp, "%d", &tmp);
+    *x = tmp;
+}
+
+void
+bool_fwrite(bool x, FILE *const fp)
+{
+    int tmp = x;
+    fprintf(fp, "%d", tmp);
+}

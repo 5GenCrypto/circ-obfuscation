@@ -1,7 +1,6 @@
 AUTOMAKE_OPTIONS = foreign -Wall
 
 MY_SOURCES = \
-evaluate.c \
 input_chunker.c \
 level.c \
 mmap.c \

@@ -8,8 +8,8 @@
 #include <err.h>
 
 void
-obf_params_init(obf_params *p, acirc *circ, input_chunker chunker,
-                reverse_chunker rchunker, bool simple)
+obf_params_init(obf_params_t *const p, const acirc *const circ,
+                input_chunker chunker, reverse_chunker rchunker, bool simple)
 {
     p->n = circ->ninputs;
     p->m = circ->nconsts;
@@ -38,8 +38,69 @@ obf_params_init(obf_params *p, acirc *circ, input_chunker chunker,
     p->simple = simple;
 }
 
+int
+obf_params_fwrite(const obf_params_t *const params, FILE *const fp)
+{
+    size_t_fwrite(params->n, fp);
+    PUT_SPACE(fp);
+    size_t_fwrite(params->m, fp);
+    PUT_SPACE(fp);
+    size_t_fwrite(params->gamma, fp);
+    PUT_SPACE(fp);
+    size_t_fwrite(params->M, fp);
+    PUT_SPACE(fp);
+    size_t_fwrite(params->d, fp);
+    PUT_SPACE(fp);
+    size_t_fwrite(params->D, fp);
+    PUT_SPACE(fp);
+    size_t_fwrite(params->nslots, fp);
+    PUT_SPACE(fp);
+    for (size_t o = 0; o < params->gamma; ++o) {
+        for (size_t k = 0; k < params->m + params->m + 1; ++k) {
+            size_t_fwrite(params->types[o][k], fp);
+            PUT_SPACE(fp);
+        }
+    }
+    bool_fwrite(params->simple, fp);
+    PUT_SPACE(fp);
+    return 0;
+}
+
+int
+obf_params_fread(obf_params_t *const params, FILE *const fp)
+{
+    size_t_fread(&params->n, fp);
+    GET_SPACE(fp);
+    size_t_fread(&params->m, fp);
+    GET_SPACE(fp);
+    size_t_fread(&params->gamma, fp);
+    GET_SPACE(fp);
+    size_t_fread(&params->M, fp);
+    GET_SPACE(fp);
+    size_t_fread(&params->d, fp);
+    GET_SPACE(fp);
+    size_t_fread(&params->D, fp);
+    GET_SPACE(fp);
+    size_t_fread(&params->nslots, fp);
+    GET_SPACE(fp);
+    params->types = lin_calloc(params->gamma, sizeof(size_t *));
+    for (size_t o = 0; o < params->gamma; ++o) {
+        params->types[o] = lin_calloc(params->n + params->m + 1, sizeof(size_t));
+        for (size_t k = 0; k < params->m + params->m + 1; ++k) {
+            size_t_fread(&params->types[o][k], fp);
+            PUT_SPACE(fp);
+        }
+    }
+    bool_fread(&params->simple, fp);
+    GET_SPACE(fp);
+    params->chunker = chunker_in_order;
+    params->rchunker = rchunker_in_order;
+    return 0;
+}
+
+
 void
-obf_params_clear(obf_params *p)
+obf_params_clear(obf_params_t *p)
 {
     for (size_t i = 0; i < p->gamma; i++) {
         free(p->types[i]);
