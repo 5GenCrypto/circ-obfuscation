@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <clt13.h>
 
+extern unsigned int g_verbose;
+
 static inline size_t ARRAY_SUM(size_t *xs, size_t n)
 {
     size_t res = 0;
@@ -40,7 +42,7 @@ secret_params_init(const mmap_vtable *mmap, secret_params *p,
         int pows[nzs];
         level_flatten(pows, p->toplevel);
         p->sk = lin_malloc(mmap->sk->size);
-        mmap->sk->init(p->sk, lambda, kappa, nzs, pows, op->nslots, 1, rng, true);
+        mmap->sk->init(p->sk, lambda, kappa, nzs, pows, op->nslots, 1, rng, g_verbose);
     }
 }
 

@@ -20,16 +20,16 @@ obf_params_init(obf_params_t *const p, const acirc *const circ,
         p->types[o] = lin_calloc(p->n + p->m + 1, sizeof(size_t));
         type_degree(p->types[o], circ->outrefs[o], circ, p->n + p->m, chunker);
         for (size_t k = 0; k < p->n + p->m; k++) {
-            printf("%lu ", p->types[o][k]);
+            /* printf("%lu ", p->types[o][k]); */
             if (p->types[o][k] > p->M) {
                 p->M = p->types[o][k];
             }
         }
-        printf("\n");
+        /* printf("\n"); */
     }
     p->d = acirc_max_degree(circ);
     p->D = p->d + p->n;
-    printf("%lu %lu\n", p->d, p->D);
+    /* printf("%lu %lu\n", p->d, p->D); */
     p->nslots = simple ? 2 : (p->n + 2);
 
     p->circ = circ;

@@ -26,11 +26,14 @@ static inline bool ARRAY_EQ(int *xs, int *ys, size_t n)
     return true;
 }
 
+unsigned int g_verbose = 0;
+
 struct args_t {
     char *circuit;
     const mmap_vtable *mmap;
     size_t secparam;
     bool evaluate;
+    bool obfuscate;
     bool simple;
 };
 
@@ -39,31 +42,43 @@ args_init(struct args_t *args)
 {
     args->circuit = NULL;
     args->mmap = &clt_vtable;
-    args->secparam = 8;
+    args->secparam = 16;
     args->evaluate = false;
+    args->obfuscate = true;
     args->simple = false;
 }
 
 static void
 usage(int ret)
 {
+    struct args_t defaults;
+    args_init(&defaults);
     printf("Usage: main [options] <circuit>\n");
     printf("Options:\n"
-"    --evaluate, -e    evaluate obfuscation\n"
+"    --all, -a         obfuscate and evaluate\n"
 "    --dummy, -d       use dummy multilinear map\n"
-"    --lambda, -l <λ>  set security parameter to <λ> when obfuscating\n"
-"    --simple, -s      use SimpleObf scheme\n");
+"    --evaluate, -e    evaluate obfuscation\n"
+"    --obfuscate, -o   construct obfuscation (default)\n"
+"    --lambda, -l <λ>  set security parameter to <λ> when obfuscating (default=%lu)\n"
+"    --simple, -s      use SimpleObf scheme\n"
+"    --verbose, -v     be verbose\n"
+"    --help, -h        print this message\n",
+           defaults.secparam);
     exit(ret);
 }
 
 static const struct option opts[] = {
+    {"all", no_argument, 0, 'a'},
+    {"dummy", no_argument, 0, 'd'},
     {"evaluate", no_argument, 0, 'e'},
-    {"fake", no_argument, 0, 'f'},
+    {"obfuscate", no_argument, 0, 'o'},
     {"lambda", required_argument, 0, 'l'},
     {"simple", no_argument, 0, 's'},
+    {"verbose", no_argument, 0, 'v'},
+    {"help", no_argument, 0, 'h'},
     {0, 0, 0, 0}
 };
-static const char *short_opts = "efl:s";
+static const char *short_opts = "adeol:svh";
 
 static obfuscation *
 _obfuscate(const struct args_t *const args, const obf_params_t *const params)
@@ -132,7 +147,7 @@ run(const struct args_t *const args)
     acirc_ensure(&c, true);
 #endif
 
-    if (!args->evaluate) {
+    if (args->obfuscate) {
         char fname[strlen(args->circuit) + 5];
         obfuscation *obf;
         FILE *f;
@@ -147,7 +162,9 @@ run(const struct args_t *const args)
         obfuscation_fwrite(obf, f);
         obfuscation_free(obf);
         fclose(f);
-    } else {
+    }
+
+    if (args->evaluate) {
         char fname[strlen(args->circuit) + 5];
         obfuscation *obf;
         FILE *f;
@@ -185,11 +202,20 @@ main(int argc, char **argv)
 
     while ((c = getopt_long(argc, argv, short_opts, opts, &idx)) != -1) {
         switch (c) {
+        case 'a':
+            args.evaluate = true;
+            args.obfuscate = true;
+            break;
+        case 'd':
+            args.mmap = &dummy_vtable;
+            break;
         case 'e':
             args.evaluate = true;
+            args.obfuscate = false;
             break;
-        case 'f':
-            args.mmap = &dummy_vtable;
+        case 'o':
+            args.obfuscate = true;
+            args.evaluate = false;
             break;
         case 'l':
             args.secparam = atoi(optarg);
@@ -197,8 +223,15 @@ main(int argc, char **argv)
         case 's':
             args.simple = true;
             break;
+        case 'v':
+            g_verbose++;
+            break;
+        case 'h':
+            usage(EXIT_SUCCESS);
+            break;
         default:
             usage(EXIT_FAILURE);
+            break;
         }
     }
 
