@@ -15,7 +15,7 @@ typedef struct {
     size_t gamma;               /* output length */
     size_t M;                   /* max type degree */
     size_t d;                   /* max regular degree of circuit */
-    size_t D;
+    size_t D;                   /* d + n */
     size_t nslots;
     size_t **types;             /* (γ × (m+1))-size array */
     bool simple;

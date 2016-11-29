@@ -149,13 +149,16 @@ obfuscation_new(const mmap_vtable *mmap, const obf_params_t *const op,
 {
     obfuscation *obf;
 
-    obf = malloc(sizeof(obfuscation));
+    obf = calloc(1, sizeof(obfuscation));
     obf->mmap = mmap;
     obf->op = op;
-    obf->sp = malloc(sizeof(secret_params));
-    obf->pp = malloc(sizeof(public_params));
+    obf->sp = calloc(1, sizeof(secret_params));
     aes_randinit(obf->rng);
-    secret_params_init(mmap, obf->sp, op, secparam, obf->rng);
+    if (secret_params_init(mmap, obf->sp, op, secparam, obf->rng)) {
+        obfuscation_free(obf);
+        return NULL;
+    }
+    obf->pp = calloc(1, sizeof(public_params));
     public_params_init(mmap, obf->pp, obf->sp);
 
     obf->R_ib = lin_malloc(op->n * sizeof(encoding **));

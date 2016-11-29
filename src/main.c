@@ -87,7 +87,8 @@ _obfuscate(const struct args_t *const args, const obf_params_t *const params)
 
     log_info("obfuscating...");
     obf = obfuscation_new(args->mmap, params, args->secparam);
-    obfuscate(obf);
+    if (obf)
+        obfuscate(obf);
     return obf;
 }
 
@@ -125,7 +126,7 @@ run(const struct args_t *const args)
     acirc_init(&c);
     log_info("reading circuit '%s'...", args->circuit);
     if (acirc_parse(&c, args->circuit) == ACIRC_ERR) {
-        log_err("parsing circuit failed");
+        log_err("parsing circuit '%s' failed!", args->circuit);
         return 1;
     }
 
@@ -153,6 +154,9 @@ run(const struct args_t *const args)
         FILE *f;
 
         obf = _obfuscate(args, &params);
+        if (obf == NULL)
+            goto cleanup;
+
         snprintf(fname, sizeof fname, "%s.obf", args->circuit);
         f = fopen(fname, "w");
         if (f == NULL) {

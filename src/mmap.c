@@ -17,7 +17,7 @@ static inline size_t ARRAY_SUM(size_t *xs, size_t n)
     return res;
 }
 
-void
+int
 secret_params_init(const mmap_vtable *mmap, secret_params *p,
                    const obf_params_t *const op, size_t lambda,
                    aes_randstate_t rng)
@@ -33,25 +33,37 @@ secret_params_init(const mmap_vtable *mmap, secret_params *p,
         if (tmp > t)
             t = tmp;
     }
-    kappa = 2 + op->n + t + op->D;
+    kappa = acirc_max_total_degree(op->circ) + op->n + 1;
     log_info("kappa=%lu", kappa);
     nzs = (op->n + op->m + 1) * (op->simple ? 3 : 4);
     log_info("nzs=%lu", nzs);
 
     {
         int pows[nzs];
+        int res;
+
         level_flatten(pows, p->toplevel);
         p->sk = lin_malloc(mmap->sk->size);
-        mmap->sk->init(p->sk, lambda, kappa, nzs, pows, op->nslots, 1, rng, g_verbose);
+        res = mmap->sk->init(p->sk, lambda, kappa, nzs, pows, op->nslots, 1,
+                             rng, g_verbose);
+        if (res) {
+            log_err("mmap generation failed\n");
+            free(p->sk);
+            p->sk = NULL;
+            return 1;
+        }
     }
+    return 0;
 }
 
 void
-secret_params_clear(const mmap_vtable *mmap, secret_params *p)
+secret_params_clear(const mmap_vtable *mmap, secret_params *sp)
 {
-    level_free(p->toplevel);
-    mmap->sk->clear(p->sk);
-    free(p->sk);
+    level_free(sp->toplevel);
+    if (sp->sk) {
+        mmap->sk->clear(sp->sk);
+        free(sp->sk);
+    }
 }
 
 void

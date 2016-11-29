@@ -25,7 +25,7 @@ typedef struct {
     mmap_enc enc;
 } encoding;
 
-void
+int
 secret_params_init(const mmap_vtable *mmap, secret_params *p,
                    const obf_params_t *const op, size_t lambda,
                    aes_randstate_t rng);
