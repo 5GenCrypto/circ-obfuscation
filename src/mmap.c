@@ -18,91 +18,55 @@ static inline size_t ARRAY_SUM(size_t *xs, size_t n)
 }
 
 int
-secret_params_init(const mmap_vtable *mmap, secret_params *p,
+secret_params_init(const sp_vtable *const vt, secret_params *const sp,
                    const obf_params_t *const op, size_t lambda,
                    aes_randstate_t rng)
 {
-    size_t t, kappa, nzs;
-
-    p->op = op;
-    p->toplevel = level_create_vzt(op);
-
-    t = 0;
-    for (size_t o = 0; o < op->gamma; o++) {
-        size_t tmp = ARRAY_SUM(op->types[o], op->n + 1);
-        if (tmp > t)
-            t = tmp;
-    }
-    kappa = acirc_max_total_degree(op->circ) + op->n + 1;
-    log_info("kappa=%lu", kappa);
-    nzs = (op->n + op->m + 1) * (op->simple ? 3 : 4);
-    log_info("nzs=%lu", nzs);
-
-    {
-        int pows[nzs];
-        int res;
-
-        level_flatten(pows, p->toplevel);
-        p->sk = lin_malloc(mmap->sk->size);
-        res = mmap->sk->init(p->sk, lambda, kappa, nzs, pows, op->nslots, 1,
-                             rng, g_verbose);
-        if (res) {
-            log_err("mmap generation failed\n");
-            free(p->sk);
-            p->sk = NULL;
-            return 1;
-        }
-    }
-    return 0;
+    return vt->init(vt->mmap, sp, op, lambda, rng);
 }
 
 void
-secret_params_clear(const mmap_vtable *mmap, secret_params *sp)
+secret_params_clear(const sp_vtable *const vt, secret_params *const sp)
 {
-    level_free(sp->toplevel);
-    if (sp->sk) {
-        mmap->sk->clear(sp->sk);
-        free(sp->sk);
-    }
+    vt->clear(vt->mmap, sp);
 }
 
 void
-public_params_init(const mmap_vtable *mmap, public_params *pp, secret_params *sp)
+public_params_init(const pp_vtable *const vt, const sp_vtable *const sp_vt,
+                   public_params *const pp, const secret_params *const sp)
 {
-    pp->toplevel = sp->toplevel;
-    pp->op = sp->op;
-    pp->pp = (mmap_pp *) mmap->sk->pp(sp->sk);
+    vt->init(sp_vt, pp, sp);
+    pp->pp = (mmap_pp *) vt->mmap->sk->pp(sp->sk);
 }
 
 int
-public_params_fwrite(const mmap_vtable *mmap, const public_params *const pp,
+public_params_fwrite(const pp_vtable *const vt, const public_params *const pp,
                      FILE *const fp)
 {
-    level_fwrite(pp->toplevel, fp);
+    vt->fwrite(pp, fp);
     PUT_NEWLINE(fp);
-    mmap->pp->fwrite(pp->pp, fp);
+    vt->mmap->pp->fwrite(pp->pp, fp);
     PUT_NEWLINE(fp);
     return 0;
 }
 
 int
-public_params_fread(const mmap_vtable *const mmap, public_params *pp,
-                    const obf_params_t *op, FILE *const fp)
+public_params_fread(const pp_vtable *const vt, public_params *const pp,
+                    const obf_params_t *const op, FILE *const fp)
 {
-    pp->toplevel = level_create_vzt(op);
-    level_fread(pp->toplevel, fp);
+    vt->fread(pp, op, fp);
     GET_NEWLINE(fp);
-    pp->op = op;
-    pp->pp = malloc(mmap->pp->size);
-    mmap->pp->fread(pp->pp, fp);
+    pp->pp = malloc(vt->mmap->pp->size);
+    vt->mmap->pp->fread(pp->pp, fp);
     GET_NEWLINE(fp);
     return 0;
 }
 
 void
-public_params_clear(const mmap_vtable *mmap, public_params *p)
+public_params_clear(const pp_vtable *const vt, public_params *const pp)
 {
-    mmap->pp->clear(p->pp);
+    vt->clear(pp);
+    vt->mmap->pp->clear(pp->pp);
 }
 
 
@@ -110,129 +74,113 @@ public_params_clear(const mmap_vtable *mmap, public_params *p)
 // encodings
 
 encoding *
-encoding_new(const mmap_vtable *mmap, public_params *pp)
+encoding_new(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
+             const public_params *const pp)
 {
-    encoding *x = lin_malloc(sizeof(encoding));
-    x->lvl = level_new(pp->op);
-    mmap->enc->init(&x->enc, pp->pp);
-    return x;
+    encoding *enc = calloc(1, sizeof(encoding));
+    (void) vt->new(pp_vt, enc, pp);
+    enc->enc = calloc(1, vt->mmap->enc->size);
+    vt->mmap->enc->init(enc->enc, pp->pp);
+    return enc;
 }
 
 void
-encoding_free(const mmap_vtable *mmap, encoding *x)
+encoding_free(const encoding_vtable *const vt, encoding *enc)
 {
-    if (x->lvl)
-        level_free(x->lvl);
-    mmap->enc->clear(&x->enc);
-    free(x);
+    vt->free(enc);
+    vt->mmap->enc->clear(enc->enc);
+    free(enc->enc);
+    free(enc);
 }
 
-void
-encoding_print(const mmap_vtable *const mmap, encoding *enc)
+int
+encoding_print(const encoding_vtable *const vt, const encoding *const enc)
 {
-    (void) mmap;
-    level_print(enc->lvl);
+    return vt->print(enc);
 }
 
-void
-encoding_set(const mmap_vtable *mmap, encoding *rop, encoding *x)
-{
-    level_set(rop->lvl, x->lvl);
-    mmap->enc->set(&rop->enc, &x->enc);
-}
-
-void
-encode(const mmap_vtable *const mmap, encoding *x, mpz_t *inps, size_t nins,
-       const level *lvl, secret_params *sp)
+int
+encode(const encoding_vtable *const vt, encoding *const rop,
+       const mpz_t *const inps, size_t nins, const void *const set,
+       const secret_params *const sp)
 {
     fmpz_t finps[nins];
-    int pows[mmap->sk->nzs(sp->sk)];
+    int pows[vt->mmap->sk->nzs(sp->sk)];
 
-    level_set(x->lvl, lvl);
-    level_flatten(pows, lvl);
+    vt->encode(pows, rop, set);
     for (size_t i = 0; i < nins; ++i) {
         fmpz_init(finps[i]);
         fmpz_set_mpz(finps[i], inps[i]);
     }
-    mmap->enc->encode(&x->enc, sp->sk, nins, (fmpz_t *) finps, pows);
+    vt->mmap->enc->encode(rop->enc, sp->sk, nins, (fmpz_t *) finps, pows);
     for (size_t i = 0; i < nins; ++i) {
         fmpz_clear(finps[i]);
     }
-}
-
-int
-encoding_mul(const mmap_vtable *mmap, encoding *rop, encoding *x, encoding *y,
-             public_params *p)
-{
-    level_add(rop->lvl, x->lvl, y->lvl);
-    mmap->enc->mul(&rop->enc, p->pp, &x->enc, &y->enc);
     return 0;
 }
 
 int
-encoding_add(const mmap_vtable *mmap, encoding *rop, encoding *x, encoding *y,
-             public_params *p)
+encoding_set(const encoding_vtable *const vt, encoding *const rop,
+             const encoding *const x)
 {
-    assert(level_eq(x->lvl, y->lvl));
-    level_set(rop->lvl, x->lvl);
-    mmap->enc->add(&rop->enc, p->pp, &x->enc, &y->enc);
+    (void) vt->set(rop, x);
+    vt->mmap->enc->set(rop->enc, x->enc);
     return 0;
 }
 
 int
-encoding_sub(const mmap_vtable *mmap, encoding *rop, encoding *x, encoding *y,
-             public_params *p)
+encoding_mul(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
+             encoding *const rop, const encoding *const x,
+             const encoding *const y, const public_params *const p)
 {
-    if (!level_eq(x->lvl, y->lvl)) {
-        printf("[encoding_sub] unequal levels!\nx=\n");
-        level_print(x->lvl);
-        printf("y=\n");
-        level_print(y->lvl);
-    }
-    assert(level_eq(x->lvl, y->lvl));
-    level_set(rop->lvl, x->lvl);
-    mmap->enc->sub(&rop->enc, p->pp, &x->enc, &y->enc);
+    (void) vt->mul(pp_vt, rop, x, y, p);
+    vt->mmap->enc->mul(rop->enc, p->pp, x->enc, y->enc);
     return 0;
 }
 
 int
-encoding_eq(encoding *x, encoding *y)
+encoding_add(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
+             encoding *const rop, const encoding *const x,
+             const encoding *const y, const public_params *const p)
 {
-    if (!level_eq(x->lvl, y->lvl))
-        return 0;
-    /* TODO: add equality check to libmmap */
-    return 1;
+    (void) vt->add(pp_vt, rop, x, y, p);
+    vt->mmap->enc->add(rop->enc, p->pp, x->enc, y->enc);
+    return 0;
 }
 
 int
-encoding_is_zero(const mmap_vtable *mmap, encoding *x, public_params *p)
+encoding_sub(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
+             encoding *const rop, const encoding *const x,
+             const encoding *const y, const public_params *const p)
 {
-    if (!level_eq(x->lvl, p->toplevel)) {
-        puts("this level:");
-        level_print(x->lvl);
-        puts("top level:");
-        level_print(p->toplevel);
-    }
-    assert(level_eq(x->lvl, p->toplevel));
-    return mmap->enc->is_zero(&x->enc, p->pp);
+    (void) vt->sub(pp_vt, rop, x, y, p);
+    vt->mmap->enc->sub(rop->enc, p->pp, x->enc, y->enc);
+    return 0;
+}
+
+int
+encoding_is_zero(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
+                 const encoding *const x, const public_params *const p)
+{
+    (void) vt->is_zero(pp_vt, x, p);
+    return vt->mmap->enc->is_zero(x->enc, p->pp);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // serialization
 
 void
-encoding_fread(const mmap_vtable *const mmap, encoding *x, FILE *const fp)
+encoding_fread(const encoding_vtable *const vt, encoding *const x, FILE *const fp)
 {
-    x->lvl = lin_calloc(1, sizeof(level));
-    level_fread(x->lvl, fp);
-    GET_NEWLINE(fp);
-    mmap->enc->fread(&x->enc, fp);
+    vt->fread(x, fp);
+    x->enc = calloc(1, vt->mmap->enc->size);
+    vt->mmap->enc->fread(x->enc, fp);
 }
 
 void
-encoding_fwrite(const mmap_vtable *const mmap, const encoding *const x, FILE *const fp)
+encoding_fwrite(const encoding_vtable *const vt, const encoding *const x,
+                FILE *const fp)
 {
-    level_fwrite(x->lvl, fp);
-    PUT_NEWLINE(fp);
-    mmap->enc->fwrite(&x->enc, fp);
+    vt->fwrite(x, fp);
+    vt->mmap->enc->fwrite(x->enc, fp);
 }

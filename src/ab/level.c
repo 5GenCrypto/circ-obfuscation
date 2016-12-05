@@ -1,4 +1,5 @@
 #include "level.h"
+#include "obf_params.h"
 #include "util.h"
 
 #include "input_chunker.h"

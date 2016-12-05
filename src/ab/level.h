@@ -1,8 +1,8 @@
 #ifndef __AB__LEVEL_H__
 #define __AB__LEVEL_H__
 
+#include "mmap.h"
 #include "input_chunker.h"
-#include "obf_params.h"
 
 #include <stdint.h>
 #include <stddef.h>

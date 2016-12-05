@@ -18,7 +18,7 @@ AC_ARG_ENABLE(debug,
 [], [enable_debug=no])
 
 CFLAGS=                         dnl get rid of default -g -O2
-COMMON_CFLAGS="-Wall -Wformat -Wformat-security -Wextra -Wunused \
+CFLAGS="-Wall -Wformat -Wformat-security -Wextra -Wunused \
 -Wshadow -Wmissing-prototypes -Wfloat-equal -Wpointer-arith -Wcast-align \
 -Wstrict-prototypes -Wredundant-decls -Wendif-labels -Wcast-qual \
 -std=gnu11 -Wpedantic"

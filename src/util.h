@@ -1,5 +1,5 @@
-#ifndef __AB__UTILS_H__
-#define __AB__UTILS_H__
+#ifndef __UTILS_H__
+#define __UTILS_H__
 
 #include <aesrand.h>
 

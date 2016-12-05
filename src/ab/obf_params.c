@@ -1,3 +1,4 @@
+#include "../mmap.h"
 #include "obf_params.h"
 #include "util.h"
 
@@ -7,10 +8,11 @@
 #include <stdio.h>
 #include <err.h>
 
-void
-obf_params_init(obf_params_t *const p, const acirc *const circ,
-                input_chunker chunker, reverse_chunker rchunker, bool simple)
+obf_params_t *
+obf_params_new(const acirc *const circ, input_chunker chunker,
+               reverse_chunker rchunker, bool simple)
 {
+    obf_params_t *p = calloc(1, sizeof(obf_params_t));
     p->n = circ->ninputs;
     p->m = circ->nconsts;
     p->gamma = circ->noutputs;
@@ -36,6 +38,7 @@ obf_params_init(obf_params_t *const p, const acirc *const circ,
     p->chunker = chunker;
     p->rchunker = rchunker;
     p->simple = simple;
+    return p;
 }
 
 int
@@ -100,10 +103,11 @@ obf_params_fread(obf_params_t *const params, FILE *const fp)
 
 
 void
-obf_params_clear(obf_params_t *p)
+obf_params_free(obf_params_t *p)
 {
     for (size_t i = 0; i < p->gamma; i++) {
         free(p->types[i]);
     }
     free(p->types);
+    free(p);
 }

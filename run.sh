@@ -7,5 +7,5 @@ builddir=$(readlink -f build)
 
 export LD_LIBRARY_PATH=$builddir/lib
 
-# gdb --args src/ab_obfuscator "$@"
-src/ab_obfuscator "$@"
+gdb --args src/circ_obfuscator "$@"
+# src/circ_obfuscator "$@"

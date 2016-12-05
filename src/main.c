@@ -1,8 +1,8 @@
 #include "dbg.h"
 #include "mmap.h"
 #include "input_chunker.h"
-#include "level.h"
-#include "obfuscate.h"
+#include "obfuscator.h"
+#include "ab/obfuscator.h"
 #include "util.h"
 
 #include <aesrand.h>
@@ -81,26 +81,28 @@ static const struct option opts[] = {
 static const char *short_opts = "adeol:svh";
 
 static obfuscation *
-_obfuscate(const struct args_t *const args, const obf_params_t *const params)
+_obfuscate(const obfuscator_vtable *const vt, const struct args_t *const args,
+           const obf_params_t *const params)
 {
     obfuscation *obf;
 
     log_info("obfuscating...");
-    obf = obfuscation_new(args->mmap, params, args->secparam);
+    obf = vt->new(args->mmap, params, args->secparam);
     if (obf)
-        obfuscate(obf);
+        vt->obfuscate(obf);
     return obf;
 }
 
 static void
-_evaluate(const struct args_t *const args, const acirc *const c,
-          const obfuscation *const obf)
+_evaluate(const obfuscator_vtable *const vt, const struct args_t *const args,
+          const acirc *const c, const obfuscation *const obf)
 {
+    (void) args;
     int res[c->noutputs];
 
     log_info("evaluating...");
     for (size_t i = 0; i < c->ntests; i++) {
-        obfuscation_eval(args->mmap, res, c->testinps[i], obf);
+        vt->evaluate(res, c->testinps[i], obf);
         bool test_ok = ARRAY_EQ(res, c->testouts[i], c->noutputs);
         if (!test_ok)
             printf("\033[1;41m");
@@ -119,9 +121,10 @@ _evaluate(const struct args_t *const args, const acirc *const c,
 static int
 run(const struct args_t *const args)
 {
-    obf_params_t params;
+    obf_params_t *params;
     acirc c;
     int ret = 1;
+    const obfuscator_vtable *const vt = &ab_obfuscator_vtable;
 
     acirc_init(&c);
     log_info("reading circuit '%s'...", args->circuit);
@@ -136,7 +139,7 @@ run(const struct args_t *const args)
     /* array_print(c.consts, c.nconsts); */
     /* puts(""); */
 
-    obf_params_init(&params, &c, chunker_in_order, rchunker_in_order, args->simple);
+    params = obf_params_new(&c, chunker_in_order, rchunker_in_order, args->simple);
 
     /* for (size_t i = 0; i < c.noutputs; i++) { */
     /*     printf("output bit %lu: type=", i); */
@@ -153,7 +156,7 @@ run(const struct args_t *const args)
         obfuscation *obf;
         FILE *f;
 
-        obf = _obfuscate(args, &params);
+        obf = _obfuscate(vt, args, params);
         if (obf == NULL)
             goto cleanup;
 
@@ -163,8 +166,8 @@ run(const struct args_t *const args)
             log_err("unable to open '%s' for writing", fname);
             goto cleanup;
         }
-        obfuscation_fwrite(obf, f);
-        obfuscation_free(obf);
+        vt->fwrite(obf, f);
+        vt->free(obf);
         fclose(f);
     }
 
@@ -179,18 +182,18 @@ run(const struct args_t *const args)
             log_err("unable to open '%s' for reading", fname);
             goto cleanup;
         }
-        obf = obfuscation_fread(args->mmap, &params, f);
+        obf = vt->fread(args->mmap, params, f);
         fclose(f);
         if (obf == NULL) {
             log_err("unable to read obfuscation");
             goto cleanup;
         }
-        _evaluate(args, &c, obf);
-        obfuscation_free(obf);
+        _evaluate(vt, args, &c, obf);
+        vt->free(obf);
     }
     ret = 0;
 cleanup:
-    obf_params_clear(&params);
+    obf_params_free(params);
     acirc_clear(&c);
 
     return ret;
