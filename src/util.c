@@ -96,17 +96,8 @@ void array_print_ui (size_t *xs, size_t len) {
     }
 }
 
-void mpz_random_inv(mpz_t rop, gmp_randstate_t rng, mpz_t modulus) {
-    mpz_t inv;
-    mpz_init(inv);
-    do {
-        mpz_urandomm(rop, rng, modulus);
-    } while (mpz_invert(inv, rop, modulus) == 0);
-    mpz_clear(inv);
-}
-
 mpz_t *
-mpz_vect_create(size_t n)
+mpz_vect_new(size_t n)
 {
     mpz_t *vec = malloc(n * sizeof(mpz_t));
     mpz_vect_init(vec, n);
@@ -122,7 +113,7 @@ mpz_vect_init(mpz_t *vec, size_t n)
 
 mpz_t* mpz_vect_create_of_fmpz (fmpz_t *fvec, size_t n)
 {
-    mpz_t *vec = mpz_vect_create(n);
+    mpz_t *vec = mpz_vect_new(n);
     for (size_t i = 0; i < n; ++i) {
         fmpz_get_mpz(vec[i], fvec[i]);
         fmpz_clear(fvec[i]);
@@ -149,7 +140,7 @@ void mpz_vect_print(mpz_t *xs, size_t len)
 }
 
 void
-mpz_vect_destroy(mpz_t *vec, size_t n)
+mpz_vect_free(mpz_t *vec, size_t n)
 {
     mpz_vect_clear(vec, n);
     free(vec);
@@ -168,7 +159,16 @@ void mpz_vect_set (mpz_t *rop, mpz_t *xs, size_t n)
         mpz_set(rop[i], xs[i]);
 }
 
-void mpz_urandomm_vect_aes(mpz_t *vec, mpz_t *moduli, size_t n, aes_randstate_t rng)
+void mpz_vect_urandomm(mpz_t *vec, mpz_t modulus, size_t n, aes_randstate_t rng)
+{
+    for (size_t i = 0; i < n; i++) {
+        do {
+            mpz_urandomm_aes(vec[i], rng, modulus);
+        } while (mpz_cmp_ui(vec[i], 0) == 0);
+    }
+}
+
+void mpz_vect_urandomms(mpz_t *vec, mpz_t *moduli, size_t n, aes_randstate_t rng)
 {
     for (size_t i = 0; i < n; i++) {
         do {
@@ -197,6 +197,17 @@ void mpz_vect_mul_mod(mpz_t *rop, mpz_t *xs, mpz_t *ys, mpz_t *moduli, size_t n)
     mpz_vect_mod(rop, rop, moduli, n);
 }
 
+void
+mpz_randomm_inv(mpz_t rop, aes_randstate_t rng, const mpz_t modulus)
+{
+    mpz_t inv;
+    mpz_init(inv);
+    do {
+        mpz_urandomm_aes(rop, rng, modulus);
+    } while (mpz_invert(inv, rop, modulus) == 0);
+    mpz_clear(inv);
+}
+
 size_t bit(size_t x, size_t i)
 {
     return (x & (1 << i)) > 0;
@@ -205,32 +216,39 @@ size_t bit(size_t x, size_t i)
 ////////////////////////////////////////////////////////////////////////////////
 // custom allocators that complain when they fail
 
-void* lin_calloc(size_t nmemb, size_t size)
+void *
+my_calloc(size_t nmemb, size_t size)
 {
     void *ptr = calloc(nmemb, size);
     if (ptr == NULL) {
-        fprintf(stderr, "[lin_calloc] couldn't allocate %lu bytes!\n", nmemb * size);
+        fprintf(stderr, "[%s] couldn't allocate %lu bytes!\n", __func__,
+                nmemb * size);
         assert(false);
+        return NULL;
     }
     return ptr;
 }
 
-void* lin_malloc(size_t size)
+void *
+my_malloc(size_t size)
 {
     void *ptr = malloc(size);
     if (ptr == NULL) {
-        fprintf(stderr, "[lin_malloc] couldn't allocate %lu bytes!\n", size);
+        fprintf(stderr, "[%s] couldn't allocate %lu bytes!\n", __func__, size);
         assert(false);
+        return NULL;
     }
     return ptr;
 }
 
-void* lin_realloc(void *ptr, size_t size)
+void *
+my_realloc(void *ptr, size_t size)
 {
     void *ptr_ = realloc(ptr, size);
     if (ptr_ == NULL) {
-        fprintf(stderr, "[lin_realloc] couldn't reallocate %lu bytes!\n", size);
+        fprintf(stderr, "[%s] couldn't reallocate %lu bytes!\n", __func__, size);
         assert(false);
+        return NULL;
     }
     return ptr_;
 }
@@ -242,12 +260,14 @@ void
 ulong_fread(unsigned long *x, FILE *const fp)
 {
     fscanf(fp, "%lu", x);
+    GET_NEWLINE(fp);
 }
 
 void
 ulong_fwrite(unsigned long x, FILE *const fp)
 {
     fprintf(fp, "%lu", x);
+    PUT_NEWLINE(fp);
 }
 
 void
@@ -275,4 +295,22 @@ bool_fwrite(bool x, FILE *const fp)
 {
     int tmp = x;
     fprintf(fp, "%d", tmp);
+}
+
+#define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+#define PBWIDTH 60
+
+void
+print_progress (size_t cur, size_t total)
+{
+    static int last_val = 0;
+    double percentage = (double) cur / total;
+    int val  = percentage * 100;
+    int lpad = percentage * PBWIDTH;
+    int rpad = PBWIDTH - lpad;
+    if (val != last_val) {
+        fprintf(stdout, "\r\t%3d%% [%.*s%*s] %lu/%lu", val, lpad, PBSTR, rpad, "", cur, total);
+        fflush(stdout);
+        last_val = val;
+    }
 }

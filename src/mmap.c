@@ -1,7 +1,7 @@
 #include "mmap.h"
 #include "dbg.h"
-
 #include "util.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <clt13.h>
@@ -17,6 +17,9 @@ static inline size_t ARRAY_SUM(size_t *xs, size_t n)
     return res;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// secret params
+
 int
 secret_params_init(const sp_vtable *const vt, secret_params *const sp,
                    const obf_params_t *const op, size_t lambda,
@@ -30,6 +33,9 @@ secret_params_clear(const sp_vtable *const vt, secret_params *const sp)
 {
     vt->clear(vt->mmap, sp);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// public params
 
 void
 public_params_init(const pp_vtable *const vt, const sp_vtable *const sp_vt,
@@ -69,7 +75,6 @@ public_params_clear(const pp_vtable *const vt, public_params *const pp)
     vt->mmap->pp->clear(pp->pp);
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // encodings
 
@@ -101,13 +106,13 @@ encoding_print(const encoding_vtable *const vt, const encoding *const enc)
 
 int
 encode(const encoding_vtable *const vt, encoding *const rop,
-       const mpz_t *const inps, size_t nins, const void *const set,
+       mpz_t *const inps, size_t nins, const void *const set,
        const secret_params *const sp)
 {
     fmpz_t finps[nins];
-    int pows[vt->mmap->sk->nzs(sp->sk)];
+    int *pows;
 
-    vt->encode(pows, rop, set);
+    pows = vt->encode(rop, set);
     for (size_t i = 0; i < nins; ++i) {
         fmpz_init(finps[i]);
         fmpz_set_mpz(finps[i], inps[i]);
@@ -116,6 +121,7 @@ encode(const encoding_vtable *const vt, encoding *const rop,
     for (size_t i = 0; i < nins; ++i) {
         fmpz_clear(finps[i]);
     }
+    free(pows);
     return 0;
 }
 
@@ -165,9 +171,6 @@ encoding_is_zero(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
     (void) vt->is_zero(pp_vt, x, p);
     return vt->mmap->enc->is_zero(x->enc, p->pp);
 }
-
-////////////////////////////////////////////////////////////////////////////////
-// serialization
 
 void
 encoding_fread(const encoding_vtable *const vt, encoding *const x, FILE *const fp)

@@ -16,9 +16,9 @@ level_new(const obf_params_t *const op)
     level *lvl = calloc(1, sizeof(level));
     lvl->nrows = op->simple ? 3 : 4;
     lvl->ncols = op->n + op->m + 1;
-    lvl->mat = lin_malloc(lvl->nrows * sizeof(size_t*));
+    lvl->mat = my_malloc(lvl->nrows * sizeof(size_t*));
     for (size_t i = 0; i < lvl->nrows; i++) {
-        lvl->mat[i] = lin_calloc(lvl->ncols, sizeof(size_t));
+        lvl->mat[i] = my_calloc(lvl->ncols, sizeof(size_t));
     }
     return lvl;
 }
@@ -241,9 +241,9 @@ level_fread(level *lvl, FILE *const fp)
     size_t_fread(&lvl->ncols, fp);
     GET_SPACE(fp);
     assert(lvl->nrows && lvl->ncols);
-    lvl->mat = lin_calloc(lvl->nrows, sizeof(size_t*));
+    lvl->mat = my_calloc(lvl->nrows, sizeof(size_t*));
     for (size_t i = 0; i < lvl->nrows; i++) {
-        lvl->mat[i] = lin_calloc(lvl->ncols, sizeof(size_t));
+        lvl->mat[i] = my_calloc(lvl->ncols, sizeof(size_t));
         for (size_t j = 0; j < lvl->ncols; j++) {
             ulong_fread(&lvl->mat[i][j], fp);
             GET_SPACE(fp);

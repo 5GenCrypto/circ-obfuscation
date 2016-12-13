@@ -1,9 +1,10 @@
 #include "dbg.h"
 #include "mmap.h"
-#include "input_chunker.h"
 #include "obfuscator.h"
-#include "ab/obfuscator.h"
 #include "util.h"
+
+#include "ab/obfuscator.h"
+#include "zim/obfuscator.h"
 
 #include <aesrand.h>
 #include <acirc.h>
@@ -17,16 +18,28 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
-static inline bool ARRAY_EQ(int *xs, int *ys, size_t n)
-{
-    for (size_t i = 0; i < n; ++i) {
-        if (xs[i] != ys[i])
-            return false;
-    }
-    return true;
-}
-
 unsigned int g_verbose = 0;
+
+enum scheme_e {
+    SCHEME_AB,
+    SCHEME_ZIM,
+    SCHEME_LIN,
+};
+
+static char *
+scheme_to_string(enum scheme_e scheme)
+{
+    switch (scheme) {
+    case SCHEME_AB:
+        return "Applebaum-Brakerski";
+    case SCHEME_ZIM:
+        return "Zimmerman";
+    case SCHEME_LIN:
+        return "Lin";
+    default:
+        return "?";
+    }
+}
 
 struct args_t {
     char *circuit;
@@ -35,6 +48,7 @@ struct args_t {
     bool evaluate;
     bool obfuscate;
     bool simple;
+    enum scheme_e scheme;
 };
 
 static void
@@ -46,6 +60,29 @@ args_init(struct args_t *args)
     args->evaluate = false;
     args->obfuscate = true;
     args->simple = false;
+    args->scheme = SCHEME_ZIM;
+}
+
+static void
+args_print(const struct args_t *const args)
+{
+    const char *mmap;
+
+    if (args->mmap == &clt_vtable)
+        mmap = "CLT";
+    else if (args->mmap == &dummy_vtable)
+        mmap = "Dummy";
+    else
+        mmap = "?";
+
+    printf("Obfuscation details:\n"
+"* Circuit: %s\n"
+"* Multilinear map: %s\n"
+"* Security parameter: %lu\n"
+"* Obfuscating? %s Evaluating? %s\n"
+"* Scheme: %s\n",
+           args->circuit, mmap, args->secparam, args->obfuscate ? "Y" : "N",
+           args->evaluate ? "Y" : "N", scheme_to_string(args->scheme));
 }
 
 static void
@@ -60,7 +97,8 @@ usage(int ret)
 "    --evaluate, -e    evaluate obfuscation\n"
 "    --obfuscate, -o   construct obfuscation (default)\n"
 "    --lambda, -l <λ>  set security parameter to <λ> when obfuscating (default=%lu)\n"
-"    --simple, -s      use SimpleObf scheme\n"
+"    --scheme <NAME>   set scheme to NAME (options: AB, ZIM, LIN, default: ZIM)\n"
+"    --simple, -s      use SimpleObf scheme when using AB scheme\n"
 "    --verbose, -v     be verbose\n"
 "    --help, -h        print this message\n",
            defaults.secparam);
@@ -73,12 +111,13 @@ static const struct option opts[] = {
     {"evaluate", no_argument, 0, 'e'},
     {"obfuscate", no_argument, 0, 'o'},
     {"lambda", required_argument, 0, 'l'},
+    {"scheme", required_argument, 0, 'S'},
     {"simple", no_argument, 0, 's'},
     {"verbose", no_argument, 0, 'v'},
     {"help", no_argument, 0, 'h'},
     {0, 0, 0, 0}
 };
-static const char *short_opts = "adeol:svh";
+static const char *short_opts = "adeol:sS:vh";
 
 static obfuscation *
 _obfuscate(const obfuscator_vtable *const vt, const struct args_t *const args,
@@ -124,7 +163,25 @@ run(const struct args_t *const args)
     obf_params_t *params;
     acirc c;
     int ret = 1;
-    const obfuscator_vtable *const vt = &ab_obfuscator_vtable;
+    const obfuscator_vtable *vt;
+    const op_vtable *op_vt;
+
+    args_print(args);
+
+    switch (args->scheme) {
+    case SCHEME_AB:
+        vt = &ab_obfuscator_vtable;
+        op_vt = &ab_op_vtable;
+        break;
+    case SCHEME_ZIM:
+        vt = &zim_obfuscator_vtable;
+        op_vt = &zim_op_vtable;
+        break;
+    default:
+        fprintf(stderr, "[%s] missing scheme\n", __func__);
+        assert(false);
+        return 1;
+    }
 
     acirc_init(&c);
     log_info("reading circuit '%s'...", args->circuit);
@@ -139,7 +196,7 @@ run(const struct args_t *const args)
     /* array_print(c.consts, c.nconsts); */
     /* puts(""); */
 
-    params = obf_params_new(&c, chunker_in_order, rchunker_in_order, args->simple);
+    params = op_vt->new(&c, args->simple ? AB_FLAG_SIMPLE : AB_FLAG_NONE);
 
     /* for (size_t i = 0; i < c.noutputs; i++) { */
     /*     printf("output bit %lu: type=", i); */
@@ -193,7 +250,7 @@ run(const struct args_t *const args)
     }
     ret = 0;
 cleanup:
-    obf_params_free(params);
+    op_vt->free(params);
     acirc_clear(&c);
 
     return ret;
@@ -230,6 +287,18 @@ main(int argc, char **argv)
         case 's':
             args.simple = true;
             break;
+        case 'S':
+            if (strcmp(optarg, "AB") == 0) {
+                args.scheme = SCHEME_AB;
+            } else if (strcmp(optarg, "ZIM") == 0) {
+                args.scheme = SCHEME_ZIM;
+            } else if (strcmp(optarg, "LIN") == 0) {
+                args.scheme = SCHEME_LIN;
+            } else {
+                fprintf(stderr, "[%s] error: unknown scheme \"%s\"\n", __func__,
+                        optarg);
+                usage(EXIT_FAILURE);
+            }
         case 'v':
             g_verbose++;
             break;

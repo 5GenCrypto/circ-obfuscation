@@ -6,23 +6,16 @@
 #include <mmap/mmap.h>
 #include <stdlib.h>
 
-#include "input_chunker.h"
+#define OK 0
+#define ERR (-1)
 
 typedef struct obf_params_t obf_params_t;
-
-obf_params_t *
-obf_params_new(const acirc *const circ, input_chunker chunker,
-               reverse_chunker rchunker, bool simple);
-
-int
-obf_params_fwrite(const obf_params_t *const op, FILE *const fp);
-
-int
-obf_params_fread(obf_params_t *const op, FILE *const fp);
-
-void
-obf_params_free(obf_params_t *p);
-
+typedef struct {
+    obf_params_t * (*new)(const acirc *const, int);
+    void (*free)(obf_params_t *);
+    int (*fwrite)(const obf_params_t *const, FILE *const);
+    int (*fread)(obf_params_t *const, FILE *const);
+} op_vtable;
 
 typedef struct sp_info sp_info;
 typedef struct secret_params {
@@ -66,7 +59,7 @@ typedef struct {
     int (*new)(const pp_vtable *const, encoding *const, const public_params *const);
     void (*free)(encoding *const);
     int (*print)(const encoding *const);
-    int (*encode)(int *const, encoding *const, const void *const);
+    int * (*encode)(encoding *const, const void *const);
     int (*set)(encoding *const, const encoding *const);
     int (*mul)(const pp_vtable *const, encoding *const, const encoding *const,
                const encoding *const, const public_params *const);
@@ -78,6 +71,7 @@ typedef struct {
                    const public_params *const);
     void (*fread)(encoding *const, FILE *const);
     void (*fwrite)(const encoding *const, FILE *const);
+    void * (*mmap_set)(const encoding *const);
 } encoding_vtable;
 
 int
@@ -109,7 +103,7 @@ encoding_print(const encoding_vtable *const vt, const encoding *const enc);
 
 int
 encode(const encoding_vtable *const vt, encoding *const rop,
-       const mpz_t *const inps, size_t nins, const void *const set,
+       mpz_t *const inps, size_t nins, const void *const set,
        const secret_params *const sp);
 
 int

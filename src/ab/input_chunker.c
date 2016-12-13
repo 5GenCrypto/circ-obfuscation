@@ -45,8 +45,8 @@ type_degree_helper(size_t *rop, acircref ref, const acirc *const c, size_t nsyms
         assert(c->ninputs + c->gates[ref].args[0] < nsyms);
         rop[c->ninputs + c->gates[ref].args[0]] = 1;
     } else {
-        size_t *xtype = lin_calloc(nsyms, sizeof(size_t));
-        size_t *ytype = lin_calloc(nsyms, sizeof(size_t));
+        size_t *xtype = my_calloc(nsyms, sizeof(size_t));
+        size_t *ytype = my_calloc(nsyms, sizeof(size_t));
 
         type_degree_helper(xtype, c->gates[ref].args[0], c, nsyms, chunker, seen, memo);
         type_degree_helper(ytype, c->gates[ref].args[1], c, nsyms, chunker, seen, memo);
@@ -73,7 +73,7 @@ type_degree(size_t *rop, acircref ref, const acirc *const c, size_t nsyms,
 
     for (size_t i = 0; i < c->nrefs; i++) {
         seen[i] = false;
-        memo[i] = lin_calloc(nsyms, sizeof(size_t));
+        memo[i] = my_calloc(nsyms, sizeof(size_t));
     }
 
     type_degree_helper(rop, ref, c, nsyms, chunker, seen, memo);

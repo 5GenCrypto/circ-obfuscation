@@ -12,6 +12,7 @@ AC_CONFIG_MACRO_DIR([build/autoconf])
 AM_INIT_AUTOMAKE([subdir-objects])
 
 AM_PROG_AR
+AC_PROG_RANLIB
 
 AC_ARG_ENABLE(debug,
 [AS_HELP_STRING([--enable-debug], [enable debugging])],
@@ -36,11 +37,12 @@ AC_SUBST(EXTRA_CFLAGS)
 AC_SEARCH_LIBS(acirc_init, acirc, [], AC_MSG_ERROR([libacirc not found]))
 AC_SEARCH_LIBS(aes_randinit, aesrand, [], AC_MSG_ERROR([libaesrand not found]))
 AC_SEARCH_LIBS(mmap_enc_mat_init, mmap, [], AC_MSG_ERROR([libmmap not found]))
+AC_SEARCH_LIBS(threadpool_create, threadpool, [], AC_MSG_ERROR([libthreadpool not found]))
 
 AC_SEARCH_LIBS(floor, m, [], AC_MSG_ERROR([libm not found]))
 AC_SEARCH_LIBS(_fmpz_clear_mpz, flint, [], AC_MSG_ERROR([libflint not found]))
 AC_SEARCH_LIBS(__gmpz_init, gmp, [], AC_MSG_ERROR([libgmp not found]))
 
-AC_CONFIG_FILES([Makefile src/Makefile])
+AC_CONFIG_FILES([Makefile src/ab/Makefile src/zim/Makefile src/Makefile])
 
 AC_OUTPUT
