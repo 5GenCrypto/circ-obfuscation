@@ -21,18 +21,19 @@ obf_index* obf_index_create(size_t n);
 obf_index* obf_index_copy(const obf_index *ix);
 void obf_index_destroy(obf_index *ix);
 
-void obf_index_add(obf_index *rop, obf_index *x, obf_index *y);
-void obf_index_set(obf_index *rop, const obf_index *x);
-bool obf_index_eq(const obf_index *x, const obf_index *y);
+void obf_index_add(obf_index *const rop, const obf_index *const x,
+                   const obf_index *const y);
+void obf_index_set(obf_index *const rop, const obf_index *const x);
+bool obf_index_eq(const obf_index *const x, const obf_index *const y);
 
-obf_index* obf_index_union(obf_index *x, obf_index *y);
-obf_index* obf_index_difference(obf_index *x, obf_index *y);
+obf_index * obf_index_union(const obf_index *const x, const obf_index *const y);
+obf_index * obf_index_difference(const obf_index *const x, const obf_index *const y);
 
-void obf_index_print(obf_index *ix);
-obf_index *obf_index_read(FILE *fp);
-int obf_index_write(FILE *fp, obf_index *ix);
+void obf_index_print(const obf_index *const ix);
+obf_index * obf_index_fread(FILE *const fp);
+int obf_index_fwrite(const obf_index *const ix, FILE *const fp);
 
 obf_index *
-obf_index_create_toplevel(const acirc *const c);
+obf_index_create_toplevel(acirc *const c);
 
 #endif

@@ -1,7 +1,9 @@
-#include "vtables.h"
+#include "encoding.h"
+
 #include "obf_index.h"
 #include "obf_params.h"
 #include "public_params.h"
+#include "vtables.h"
 
 #include <string.h>
 
@@ -90,27 +92,27 @@ static int
 _encoding_is_zero(const pp_vtable *const vt, const encoding *const x,
                   const public_params *const pp)
 {
-    obf_index *toplevel = vt->toplevel(pp);
+    const obf_index *const toplevel = vt->toplevel(pp);
     if (!obf_index_eq(my(x)->index, toplevel)) {
-        printf("\n");
-        return 1;
+        printf("index sets not equal\n");
+        obf_index_print(my(x)->index);
+        obf_index_print(toplevel);
+        return ERR;
     }
-    return 0;
+    return OK;
 }
 
 static void
 _encoding_fread(encoding *const x, FILE *const fp)
 {
     x->info = calloc(1, sizeof(encoding_info));
-    x->info->index = obf_index_read(fp);
-    GET_NEWLINE(fp);
+    x->info->index = obf_index_fread(fp);
 }
 
 static void
 _encoding_fwrite(const encoding *const x, FILE *const fp)
 {
-    obf_index_write(fp, my(x)->index);
-    PUT_NEWLINE(fp);
+    obf_index_fwrite(my(x)->index, fp);
 }
 
 static void *
@@ -141,4 +143,10 @@ zim_get_encoding_vtable(const mmap_vtable *const mmap)
 {
     zim_encoding_vtable.mmap = mmap;
     return &zim_encoding_vtable;
+}
+
+const obf_index *
+zim_encoding_index(const encoding *const enc)
+{
+    return enc->info->index;
 }

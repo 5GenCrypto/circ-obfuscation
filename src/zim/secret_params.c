@@ -4,7 +4,9 @@
 #include "obf_params.h"
 #include "vtables.h"
 
-extern unsigned int g_verbose;
+#include "dbg.h"
+
+extern bool g_verbose;
 
 struct sp_info {
     obf_index *toplevel;
@@ -23,7 +25,11 @@ _sp_init(const mmap_vtable *const mmap,
     sp->info->toplevel = obf_index_create_toplevel(op->circ);
     sp->info->op = op;
 
-    kappa = acirc_delta(op->circ) + 2 * op->circ->ninputs;
+    kappa = acirc_delta(op->circ) /* + op->circ->ninputs */;
+
+    debug("Δ = %lu", acirc_delta(op->circ));
+    debug("n = %lu", op->circ->ninputs);
+    debug("κ = Δ + n = %lu", kappa);
 
     sp->sk = calloc(1, mmap->sk->size);
     (void) mmap->sk->init(sp->sk, lambda, kappa, my(sp)->toplevel->nzs,

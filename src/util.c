@@ -9,8 +9,6 @@
 #include <stdio.h>
 #include <err.h>
 
-int g_verbose;
-
 // XXX: The use of /dev/urandom is not secure; however, the supercomputer we run
 // on doesn't appear to have enough entropy, and blocks for long periods of
 // time.  Thus, we use /dev/urandom instead.
@@ -309,8 +307,8 @@ print_progress (size_t cur, size_t total)
     int lpad = percentage * PBWIDTH;
     int rpad = PBWIDTH - lpad;
     if (val != last_val) {
-        fprintf(stdout, "\r\t%3d%% [%.*s%*s] %lu/%lu", val, lpad, PBSTR, rpad, "", cur, total);
-        fflush(stdout);
+        /* fprintf(stdout, "\r\t%3d%% [%.*s%*s] %lu/%lu", val, lpad, PBSTR, rpad, "", cur, total); */
+        /* fflush(stdout); */
         last_val = val;
     }
 }

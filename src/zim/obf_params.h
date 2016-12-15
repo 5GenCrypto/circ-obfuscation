@@ -9,7 +9,7 @@ struct obf_params_t {
     size_t nconsts;
     size_t noutputs;
     size_t npowers;
-    const acirc *circ;
+    acirc *circ;
 };
 
 #endif

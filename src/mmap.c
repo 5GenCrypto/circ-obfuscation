@@ -6,17 +6,6 @@
 #include <stdio.h>
 #include <clt13.h>
 
-extern unsigned int g_verbose;
-
-static inline size_t ARRAY_SUM(size_t *xs, size_t n)
-{
-    size_t res = 0;
-    for (size_t i = 0; i < n; ++i) {
-        res += xs[i];
-    }
-    return res;
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 // secret params
 
@@ -101,7 +90,9 @@ encoding_free(const encoding_vtable *const vt, encoding *enc)
 int
 encoding_print(const encoding_vtable *const vt, const encoding *const enc)
 {
-    return vt->print(enc);
+    (void) vt->print(enc);
+    vt->mmap->enc->print(enc->enc);
+    return 0;
 }
 
 int
@@ -116,8 +107,10 @@ encode(const encoding_vtable *const vt, encoding *const rop,
     for (size_t i = 0; i < nins; ++i) {
         fmpz_init(finps[i]);
         fmpz_set_mpz(finps[i], inps[i]);
+        fmpz_print(finps[i]);
+        printf("\n");
     }
-    vt->mmap->enc->encode(rop->enc, sp->sk, nins, (fmpz_t *) finps, pows);
+    vt->mmap->enc->encode(rop->enc, sp->sk, nins, finps, pows);
     for (size_t i = 0; i < nins; ++i) {
         fmpz_clear(finps[i]);
     }
@@ -168,8 +161,10 @@ int
 encoding_is_zero(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
                  const encoding *const x, const public_params *const p)
 {
-    (void) vt->is_zero(pp_vt, x, p);
-    return vt->mmap->enc->is_zero(x->enc, p->pp);
+    if (vt->is_zero(pp_vt, x, p) == ERR)
+        return 1;
+    else
+        return vt->mmap->enc->is_zero(x->enc, p->pp);
 }
 
 void

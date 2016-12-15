@@ -30,7 +30,7 @@ _pp_clear(public_params *const pp)
 static void
 _pp_fwrite(const public_params *const pp, FILE *const fp)
 {
-    obf_index_write(fp, my(pp)->toplevel);
+    obf_index_fwrite(my(pp)->toplevel, fp);
 }
 
 static void
@@ -38,7 +38,7 @@ _pp_fread(public_params *const pp, const obf_params_t *const op,
           FILE *const fp)
 {
     pp->info = calloc(1, sizeof(pp_info));
-    pp->info->toplevel = obf_index_read(fp);
+    pp->info->toplevel = obf_index_fread(fp);
     pp->info->op = op;
     pp->info->local = true;
 }

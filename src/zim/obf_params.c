@@ -13,7 +13,7 @@ _op_new(const acirc *const circ, int flags)
     op->ninputs = circ->ninputs;
     op->nconsts = circ->nconsts;
     op->noutputs = circ->noutputs;
-    op->npowers = 8;            /* XXX: fixme */
+    op->npowers = 1;            /* XXX: fixme */
     op->circ = circ;
     return op;
 }

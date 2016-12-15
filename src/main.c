@@ -18,7 +18,8 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
-unsigned int g_verbose = 0;
+bool g_verbose = true;
+bool g_debug = true;
 
 enum scheme_e {
     SCHEME_AB,
@@ -209,42 +210,42 @@ run(const struct args_t *const args)
 #endif
 
     if (args->obfuscate) {
-        char fname[strlen(args->circuit) + 5];
+        /* char fname[strlen(args->circuit) + 5]; */
         obfuscation *obf;
-        FILE *f;
+        /* FILE *f; */
 
         obf = _obfuscate(vt, args, params);
         if (obf == NULL)
             goto cleanup;
 
-        snprintf(fname, sizeof fname, "%s.obf", args->circuit);
-        f = fopen(fname, "w");
-        if (f == NULL) {
-            log_err("unable to open '%s' for writing", fname);
-            goto cleanup;
-        }
-        vt->fwrite(obf, f);
-        vt->free(obf);
-        fclose(f);
-    }
+    /*     snprintf(fname, sizeof fname, "%s.obf", args->circuit); */
+    /*     f = fopen(fname, "w"); */
+    /*     if (f == NULL) { */
+    /*         log_err("unable to open '%s' for writing", fname); */
+    /*         goto cleanup; */
+    /*     } */
+    /*     vt->fwrite(obf, f); */
+    /*     vt->free(obf); */
+    /*     fclose(f); */
+    /* } */
 
-    if (args->evaluate) {
-        char fname[strlen(args->circuit) + 5];
-        obfuscation *obf;
-        FILE *f;
+    /* if (args->evaluate) { */
+        /* char fname[strlen(args->circuit) + 5]; */
+        /* obfuscation *obf; */
+        /* FILE *f; */
 
-        snprintf(fname, sizeof fname, "%s.obf", args->circuit);
-        f = fopen(fname, "r");
-        if (f == NULL) {
-            log_err("unable to open '%s' for reading", fname);
-            goto cleanup;
-        }
-        obf = vt->fread(args->mmap, params, f);
-        fclose(f);
-        if (obf == NULL) {
-            log_err("unable to read obfuscation");
-            goto cleanup;
-        }
+        /* snprintf(fname, sizeof fname, "%s.obf", args->circuit); */
+        /* f = fopen(fname, "r"); */
+        /* if (f == NULL) { */
+        /*     log_err("unable to open '%s' for reading", fname); */
+        /*     goto cleanup; */
+        /* } */
+        /* obf = vt->fread(args->mmap, params, f); */
+        /* fclose(f); */
+        /* if (obf == NULL) { */
+        /*     log_err("unable to read obfuscation"); */
+        /*     goto cleanup; */
+        /* } */
         _evaluate(vt, args, &c, obf);
         vt->free(obf);
     }
