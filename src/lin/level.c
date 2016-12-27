@@ -43,28 +43,27 @@ level_free(level *lvl)
 }
 
 static void
-level_print(level *lvl)
+level_fprint(FILE *const fp, const level *const lvl)
 {
-    printf("[");
+    fprintf(stderr, "[");
     for (size_t i = 0; i < lvl->q+1; i++) {
         if (i != 0)
-            printf(",");
-        printf("[");
+            fprintf(stderr, ",");
+        fprintf(stderr, "[");
         for (size_t j = 0; j < lvl->c+2; j++) {
-            // print mat[i][j]
-            printf("%lu", lvl->mat[i][j]);
+            fprintf(stderr, "%lu", lvl->mat[i][j]);
             if (j != lvl->c+2-1)
-                printf(",");
+                fprintf(stderr, ",");
         }
-        printf("]\n");
+        fprintf(stderr, "]");
     }
-    printf("],[");
+    fprintf(stderr, "],[");
     for (size_t i = 0; i < lvl->gamma; i++) {
-        printf("%lu", lvl->vec[i]);
+        fprintf(stderr, "%lu", lvl->vec[i]);
         if (i != lvl->gamma-1)
-            printf(",");
+            fprintf(stderr, ",");
     }
-    printf("]\n");
+    fprintf(stderr, "]\n");
 }
 
 static void
@@ -120,41 +119,41 @@ level_flatten(int *pows, const level *lvl)
     }
 }
 
-static int
+static bool
 level_eq(level *x, level *y)
 {
     for (size_t i = 0; i < x->q+1; i++) {
         for (size_t j = 0; j < x->c+2; j++) {
             if (x->mat[i][j] != y->mat[i][j])
-                return 0;
+                return false;
         }
     }
     for (size_t i = 0; i < x->gamma; i++) {
         if (x->vec[i] != y->vec[i])
-            return 0;
+            return false;
     }
-    return 1;
+    return true;
 }
 
 // for testing whether we can use constrained addition, we dont consider the
 // degree (bottom right corner of the level)
-/* static int */
-/* level_eq_z (level *x, level *y) */
-/* { */
-/*     for (size_t i = 0; i < x->q+1; i++) { */
-/*         for (size_t j = 0; j < x->c+2; j++) { */
-/*             if (i == x->q && j == x->c+1) */
-/*                 continue; */
-/*             if (x->mat[i][j] != y->mat[i][j]) */
-/*                 return 0; */
-/*         } */
-/*     } */
-/*     for (size_t i = 0; i < x->gamma; i++) { */
-/*         if (x->vec[i] != y->vec[i]) */
-/*             return 0; */
-/*     } */
-/*     return 1; */
-/* } */
+static bool
+level_eq_z(level *x, level *y)
+{
+    for (size_t i = 0; i < x->q+1; i++) {
+        for (size_t j = 0; j < x->c+2; j++) {
+            if (i == x->q && j == x->c+1)
+                continue;
+            if (x->mat[i][j] != y->mat[i][j])
+                return false;
+        }
+    }
+    for (size_t i = 0; i < x->gamma; i++) {
+        if (x->vec[i] != y->vec[i])
+            return false;
+    }
+    return true;
+}
 
 static level *
 level_create_vstar(const obf_params_t *const op)

@@ -39,7 +39,7 @@ typedef struct obfuscation {
 static void
 zim_encoding_print(const char *const name, mpz_t inps[2], obf_index *ix)
 {
-    if (g_debug >= INFO) {
+    if (LOG_INFO) {
         gmp_printf(
             "=======================\n"
             "\t%s\n"
@@ -173,7 +173,7 @@ _obfuscate(obfuscation *const obf)
 {
     const obf_params_t *const op = obf->op;
     acirc *const c = op->circ;
-    const mpz_t *moduli =
+    mpz_t *const moduli =
         mpz_vect_create_of_fmpz(obf->mmap->sk->plaintext_fields(obf->sp->sk),
                                 obf->mmap->sk->nslots(obf->sp->sk));
     const size_t n = op->ninputs;
@@ -196,7 +196,7 @@ _obfuscate(obfuscation *const obf)
     mpz_set_ui(ones[0], 1);
     mpz_set_ui(ones[1], 1);
 
-    if (g_debug >= DEBUG)
+    if (LOG_DEBUG)
         gmp_printf("%Zd\t%Zd\n", moduli[0], moduli[1]);
 
     assert(obf->mmap->sk->nslots(obf->sp->sk) >= 2);
@@ -221,7 +221,7 @@ _obfuscate(obfuscation *const obf)
     }
 
     unsigned long con_deg[o];
-    unsigned long con_dmax;
+    unsigned long con_dmax = 0;
     unsigned long var_deg[n][o];
     unsigned long var_dmax[n];
 
@@ -234,7 +234,7 @@ _obfuscate(obfuscation *const obf)
         con_deg[k] = acirc_const_degree(c, c->outrefs[k]);
     }
     for (size_t k = 0; k < op->noutputs; k++) {
-        if (k == 0 || con_deg[k] > con_dmax)
+        if (con_deg[k] > con_dmax)
             con_dmax = con_deg[k];
     }
 #pragma omp parallel for schedule(dynamic,1) collapse(2)
@@ -245,7 +245,7 @@ _obfuscate(obfuscation *const obf)
     }
     for (size_t i = 0; i < n; i++) {
         for (size_t k = 0; k < o; k++) {
-            if (i == 0 || var_deg[i][k] > var_dmax[i])
+            if (var_deg[i][k] > var_dmax[i])
                 var_dmax[i] = var_deg[i][k];
         }
     }
@@ -346,12 +346,10 @@ _obfuscate(obfuscation *const obf)
         obf_index_destroy(ix);
     }
 
-    // use memoized circuit evaluation instead of re-eval each time!
     {
         bool  known[c->nrefs];
         mpz_t cache[c->nrefs];
-        for (size_t i = 0; i < c->nrefs; i++)
-            known[i] = false;
+        memset(known, '\0', sizeof known);
         for (size_t k = 0; k < o; k++) {
             mpz_init(Cstar[k]);
             acirc_eval_mpz_mod_memo(Cstar[k], c, c->outrefs[k], alpha, beta, moduli[1], known, cache);
@@ -401,6 +399,8 @@ _obfuscate(obfuscation *const obf)
     for (size_t k = 0; k < o; k++)
         mpz_clear(Cstar[k]);
     mpz_vect_free(moduli, obf->mmap->sk->nslots(obf->sp->sk));
+
+    return OK;
 }
 
 static int
@@ -429,6 +429,7 @@ _obfuscator_fwrite(const obfuscation *const obf, FILE *const fp)
     for (size_t k = 0; k < op->noutputs; k++) {
         encoding_fwrite(obf->enc_vt, obf->Chatstar[k], fp);
     }
+    return OK;
 }
 
 static obfuscation *
@@ -534,7 +535,7 @@ _evaluate(int *rop, const int *const inputs, const obfuscation *const obf)
 {
     const acirc *const c = obf->op->circ;
 
-    if (g_debug >= DEBUG) {
+    if (LOG_DEBUG) {
         fprintf(stderr, "[%s] evaluating on input ", __func__);
         for (size_t i = 0; i < obf->op->ninputs; ++i)
             fprintf(stderr, "%d", inputs[obf->op->ninputs - 1 - i]);
@@ -554,7 +555,7 @@ _evaluate(int *rop, const int *const inputs, const obfuscation *const obf)
     }
 
     // populate dependents lists
-    for (acircref ref = 0; ref < c->nrefs; ref++) {
+    for (size_t ref = 0; ref < c->nrefs; ref++) {
         acirc_operation op = c->gates[ref].op;
         if (op == OP_INPUT || op == OP_CONST)
             continue;
@@ -568,7 +569,7 @@ _evaluate(int *rop, const int *const inputs, const obfuscation *const obf)
 
     // start threads evaluating the circuit inputs- they will signal their
     // parents to start, recursively, until the output is reached.
-    for (acircref ref = 0; ref < c->nrefs; ref++) {
+    for (size_t ref = 0; ref < c->nrefs; ref++) {
         acirc_operation op = c->gates[ref].op;
         if (!(op == OP_INPUT || op == OP_CONST)) {
             continue;
@@ -601,12 +602,14 @@ _evaluate(int *rop, const int *const inputs, const obfuscation *const obf)
         }
     }
 
-    if (g_debug >= DEBUG) {
+    if (LOG_DEBUG) {
         fprintf(stderr, "[%s] result: ", __func__);
         for (size_t i = 0; i < obf->op->noutputs; ++i)
             fprintf(stderr, "%d", rop[obf->op->noutputs - 1 - i]);
         fprintf(stderr, "\n");
     }
+
+    return OK;
 }
 
 void obf_eval_worker(void* wargs)
@@ -729,6 +732,8 @@ void obf_eval_worker(void* wargs)
             encoding_mul(obf->enc_vt, obf->pp_vt, tmp, tmp2,
                          obf->zhat[i][inputs[i]][k], obf->pp);
         }
+        /* encoding_set(obf->enc_vt, tmp2, tmp); */
+        /* encoding_mul(obf->enc_vt, obf->pp_vt, tmp, tmp2, obf->uhat[0][inputs[0]][0], obf->pp); */
         encoding_set(obf->enc_vt, lhs, tmp);
         if (!obf_index_eq(toplevel, zim_encoding_index(lhs))) {
             fprintf(stderr, "lhs != toplevel\n");

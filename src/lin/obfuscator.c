@@ -732,69 +732,89 @@ wire_copy(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
     rop->d = source->d;
 }
 
-static void
+static int
 wire_mul(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
          wire *const rop, const wire *const x, const wire *const y,
          const public_params *const pp)
 {
-    encoding_mul(vt, pp_vt, rop->r, x->r, y->r, pp);
-    encoding_mul(vt, pp_vt, rop->z, x->z, y->z, pp);
+    if (encoding_mul(vt, pp_vt, rop->r, x->r, y->r, pp) == ERR)
+        return ERR;
+    if (encoding_mul(vt, pp_vt, rop->z, x->z, y->z, pp) == ERR)
+        return ERR;
     rop->d = x->d + y->d;
 }
 
 
-static void
+static int
 wire_add(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
          wire *const rop, const wire *const x, const wire *const y,
          const obfuscation *const obf, const public_params *const pp)
 {
+    int ret = ERR;
     if (x->d > y->d) {
-        wire_add(vt, pp_vt, rop, y, x, obf, pp);
+        if (wire_add(vt, pp_vt, rop, y, x, obf, pp) == ERR)
+            return ERR;
+        ret = OK;
     } else {
         encoding *zstar, *tmp;
         size_t d = y->d - x->d;
 
-        encoding_mul(vt, pp_vt, rop->r, x->r, y->r, pp);
+        if (encoding_mul(vt, pp_vt, rop->r, x->r, y->r, pp) == ERR)
+            return ERR;
+
+        tmp = encoding_new(vt, pp_vt, pp);
 
         if (d > 1) {
             /* Compute Zstar^d */
             zstar = encoding_new(vt, pp_vt, pp);
-            encoding_mul(vt, pp_vt, zstar, obf->Zstar, obf->Zstar, pp);
-            for (size_t j = 2; j < d; j++)
-                encoding_mul(vt, pp_vt, zstar, zstar, obf->Zstar, pp);
+            if (encoding_mul(vt, pp_vt, zstar, obf->Zstar, obf->Zstar, pp) == ERR)
+                goto cleanup;
+            for (size_t j = 2; j < d; j++) {
+                if (encoding_mul(vt, pp_vt, zstar, zstar, obf->Zstar, pp) == ERR)
+                    goto cleanup;
+            }
         } else {
             zstar = obf->Zstar;
         }
 
-        tmp = encoding_new(vt, pp_vt, pp);
-        encoding_mul(vt, pp_vt, rop->z, x->z, y->r, pp);
+        if (encoding_mul(vt, pp_vt, rop->z, x->z, y->r, pp) == ERR)
+            goto cleanup;
         if (d > 0)
-            encoding_mul(vt, pp_vt, rop->z, rop->z, zstar, pp);
-        encoding_mul(vt, pp_vt, tmp, y->z, x->r, pp);
-        encoding_add(vt, pp_vt, rop->z, rop->z, tmp, pp);
+            if (encoding_mul(vt, pp_vt, rop->z, rop->z, zstar, pp) == ERR)
+                goto cleanup;
+        if (encoding_mul(vt, pp_vt, tmp, y->z, x->r, pp) == ERR)
+            goto cleanup;
+        if (encoding_add(vt, pp_vt, rop->z, rop->z, tmp, pp) == ERR)
+            goto cleanup;
 
         rop->d = y->d;
 
+        ret = OK;
+    cleanup:
         if (d > 1) {
             encoding_free(vt, zstar);
         }
         encoding_free(vt, tmp);
     }
+    return ret;
 }
 
-static void
+static int
 wire_sub(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
          wire *const rop, const wire *const x, const wire *const y,
          const obfuscation *const obf, const public_params *const pp)
 {
     size_t d = abs((int) y->d - (int) x->d);
     encoding *zstar, *tmp;
+    int ret = ERR;
 
     if (d > 1) {
         zstar = encoding_new(vt, pp_vt, pp);
-        encoding_mul(vt, pp_vt, zstar, obf->Zstar, obf->Zstar, pp);
+        if (encoding_mul(vt, pp_vt, zstar, obf->Zstar, obf->Zstar, pp) == ERR)
+            goto cleanup;
         for (size_t j = 2; j < d; j++)
-            encoding_mul(vt, pp_vt, zstar, zstar, obf->Zstar, pp);
+            if (encoding_mul(vt, pp_vt, zstar, zstar, obf->Zstar, pp) == ERR)
+                goto cleanup;
     } else {
         zstar = obf->Zstar;
     }
@@ -802,34 +822,48 @@ wire_sub(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
     tmp = encoding_new(vt, pp_vt, pp);
 
     if (x->d <= y->d) {
-        encoding_mul(vt, pp_vt, rop->z, x->z, y->r, pp);
+        if (encoding_mul(vt, pp_vt, rop->z, x->z, y->r, pp) == ERR)
+            goto cleanup;
         if (d > 0)
-            encoding_mul(vt, pp_vt, rop->z, rop->z, zstar, pp);
-        encoding_mul(vt, pp_vt, tmp, y->z, x->r, pp);
-        encoding_sub(vt, pp_vt, rop->z, rop->z, tmp, pp);
+            if (encoding_mul(vt, pp_vt, rop->z, rop->z, zstar, pp) == ERR)
+                goto cleanup;
+        if (encoding_mul(vt, pp_vt, tmp, y->z, x->r, pp) == ERR)
+            goto cleanup;
+        if (encoding_sub(vt, pp_vt, rop->z, rop->z, tmp, pp) == ERR)
+            goto cleanup;
         rop->d = y->d;
     } else {
-        encoding_mul(vt, pp_vt, rop->z, x->z, y->r, pp);
-        encoding_mul(vt, pp_vt, tmp, y->z, x->r, pp);
+        if (encoding_mul(vt, pp_vt, rop->z, x->z, y->r, pp) == ERR)
+            goto cleanup;
+        if (encoding_mul(vt, pp_vt, tmp, y->z, x->r, pp) == ERR)
+            goto cleanup;
         if (d > 0)
-            encoding_mul(vt, pp_vt, tmp, tmp, zstar, pp);
-        encoding_sub(vt, pp_vt, rop->z, rop->z, tmp, pp);
+            if (encoding_mul(vt, pp_vt, tmp, tmp, zstar, pp) == ERR)
+                goto cleanup;
+        if (encoding_sub(vt, pp_vt, rop->z, rop->z, tmp, pp) == ERR)
+            goto cleanup;
         rop->d = x->d;
     }
-    encoding_mul(vt, pp_vt, rop->r, x->r, y->r, pp);
+    if (encoding_mul(vt, pp_vt, rop->r, x->r, y->r, pp) == ERR)
+        goto cleanup;
 
+    ret = OK;
+cleanup:
     if (d > 1)
         encoding_free(vt, zstar);
     encoding_free(vt, tmp);
+    return ret;
 }
 
-static void
+static int
 wire_constrained_add(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
                      wire *const rop, const wire *const x, const wire *const y,
                      const obfuscation *const obf, const public_params *const pp)
 {
     if (x->d > y->d) {
-        wire_constrained_add(vt, pp_vt, rop, y, x, obf, pp);
+        if (wire_constrained_add(vt, pp_vt, rop, y, x, obf, pp) == ERR)
+            return ERR;
+        return OK;
     } else {
         size_t d = y->d - x->d;
         encoding *zstar;
@@ -855,9 +889,10 @@ wire_constrained_add(const encoding_vtable *const vt, const pp_vtable *const pp_
         if (d > 1)
             encoding_free(vt, zstar);
     }
+    return OK;
 }
 
-static void
+static int
 wire_constrained_sub(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
                      wire *const rop, const wire *const x, const wire *const y,
                      const obfuscation *const obf, const public_params *const pp)
@@ -894,17 +929,17 @@ wire_constrained_sub(const encoding_vtable *const vt, const pp_vtable *const pp_
 
     if (d > 1)
         encoding_free(vt, zstar);
+    return OK;
 }
 
 static bool
 wire_type_eq(const wire *const x, const wire *const y)
 {
     (void) x; (void) y;
-    /* FIXME: */
-    /* if (!level_eq(x->r->lvl, y->r->lvl)) */
-    /*     return false; */
-    /* if (!level_eq_z(x->z->lvl, y->z->lvl)) */
-    /*     return false; */
+    if (!level_eq(info(x->r)->lvl, info(y->r)->lvl))
+        return false;
+    if (!level_eq_z(info(x->z)->lvl, info(y->z)->lvl))
+        return false;
     return true;
 }
 
@@ -965,29 +1000,41 @@ _evaluate(int *rop, const int *inps, const obfuscation *const obf)
 
                     if (op == OP_MUL) {
                         wire_init(obf->enc_vt, obf->pp_vt, w, pp, true, true);
-                        wire_mul(obf->enc_vt, obf->pp_vt, w, x, y, pp);
+                        if (wire_mul(obf->enc_vt, obf->pp_vt, w, x, y, pp) == ERR)
+                            ret = ERR;
                     } else if (wire_type_eq(x, y)) {
                         wire_init(obf->enc_vt, obf->pp_vt, w, pp, false, true);
                         if (op == OP_ADD) {
-                            wire_constrained_add(obf->enc_vt, obf->pp_vt, w, x, y, obf, pp);
+                            if (wire_constrained_add(obf->enc_vt, obf->pp_vt, w, x, y, obf, pp) == ERR)
+                                ret = ERR;
                         } else if (op == OP_SUB) {
-                            wire_constrained_sub(obf->enc_vt, obf->pp_vt, w, x, y, obf, pp);
+                            if (wire_constrained_sub(obf->enc_vt, obf->pp_vt, w, x, y, obf, pp) == ERR)
+                                ret = ERR;
                         }
                     } else {
                         wire_init(obf->enc_vt, obf->pp_vt, w, pp, true, true);
                         if (op == OP_ADD) {
-                            wire_add(obf->enc_vt, obf->pp_vt, w, x, y, obf, pp);
+                            if (wire_add(obf->enc_vt, obf->pp_vt, w, x, y, obf, pp) == ERR)
+                                ret = ERR;
                         } else if (op == OP_SUB) {
-                            wire_sub(obf->enc_vt, obf->pp_vt, w, x, y, obf, pp);
+                            if (wire_sub(obf->enc_vt, obf->pp_vt, w, x, y, obf, pp) == ERR)
+                                ret = ERR;
                         }
                     }
                 }
+                if (ret == ERR)
+                    break;
 
                 known[ref] = true;
                 cache[ref] = w;
             }
+            if (ret == ERR)
+                break;
         }
         acirc_topo_levels_destroy(topo);
+
+        if (ret == ERR)
+            goto cleanup;
 
         wire tmp[1]; // stack allocated pointers
         wire outwire[1];
@@ -1020,6 +1067,7 @@ _evaluate(int *rop, const int *inps, const obfuscation *const obf)
         wire_clear(obf->enc_vt, outwire);
     }
 
+cleanup:
     for (size_t x = 0; x < c->nrefs; x++) {
         if (known[x]) {
             wire_clear(obf->enc_vt, cache[x]);

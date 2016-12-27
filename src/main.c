@@ -1,4 +1,3 @@
-#include "dbg.h"
 #include "mmap.h"
 #include "obfuscator.h"
 #include "util.h"
@@ -18,6 +17,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 
 enum scheme_e {
@@ -84,7 +84,7 @@ args_init(struct args_t *args)
 static void
 args_print(const struct args_t *const args)
 {
-    printf("Obfuscation details:\n"
+    fprintf(stderr, "Obfuscation details:\n"
 "* Circuit: %s\n"
 "* Multilinear map: %s\n"
 "* Security parameter: %lu\n"
@@ -137,14 +137,17 @@ _evaluate(const obfuscator_vtable *const vt, const struct args_t *const args,
 {
     (void) args;
     int res[c->noutputs];
+    int ret = OK;
 
     for (size_t i = 0; i < c->ntests; i++) {
         if (vt->evaluate(res, c->testinps[i], obf) == ERR)
             return ERR;
         bool ok = true;
         for (size_t j = 0; j < c->noutputs; ++j) {
-            if (!!res[j] != !!c->testouts[i][j])
+            if (!!res[j] != !!c->testouts[i][j]) {
                 ok = false;
+                ret = ERR;
+            }
         }
         if (!ok)
             printf("\033[1;41m");
@@ -158,7 +161,7 @@ _evaluate(const obfuscator_vtable *const vt, const struct args_t *const args,
             printf("\033[0m");
         puts("");
     }
-    return OK;
+    return ret;
 }
 
 static int
@@ -170,6 +173,10 @@ run(const struct args_t *const args)
     const mmap_vtable *mmap;
     const obfuscator_vtable *vt;
     const op_vtable *op_vt;
+    ab_obf_params_t ab_params;
+    lin_obf_params_t lin_params;
+    zim_obf_params_t zim_params;
+    void *vparams;
 
     args_print(args);
 
@@ -184,46 +191,50 @@ run(const struct args_t *const args)
         abort();
     }
 
+    acirc_init(&c);
+    acirc_verbose(g_verbose);
+    fprintf(stderr, "reading circuit '%s'...\n", args->circuit);
+    if (acirc_parse(&c, args->circuit) == ACIRC_ERR) {
+        errx(1, "parsing circuit '%s' failed!", args->circuit);
+    }
+
+    if (LOG_DEBUG) {
+        fprintf(stderr,
+                "circuit: ninputs=%lu nconsts=%lu noutputs=%lu ngates=%lu ntests=%lu nrefs=%lu\n",
+                c.ninputs, c.nconsts, c.noutputs, c.ngates, c.ntests, c.nrefs);
+    }
+
     switch (args->scheme) {
     case SCHEME_AB:
         vt = &ab_obfuscator_vtable;
         op_vt = &ab_op_vtable;
+        ab_params.simple = args->simple;
+        vparams = &ab_params;
+        if (c.noutputs > 1) {
+            errx(0, "Applebaum-Brakerski only supports 1 output bit");
+        }
         break;
     case SCHEME_LIN:
         vt = &lin_obfuscator_vtable;
         op_vt = &lin_op_vtable;
+        lin_params.rachel_input = false;
+        lin_params.num_symbolic_inputs = c.ninputs;
+        vparams = &lin_params;
         break;
     case SCHEME_ZIM:
         vt = &zim_obfuscator_vtable;
         op_vt = &zim_op_vtable;
+        zim_params.npowers = 8; /* XXX: make flag */
+        vparams = &zim_params;
         break;
     default:
         abort();
     }
 
-    acirc_init(&c);
-    log_info("reading circuit '%s'...", args->circuit);
-    if (acirc_parse(&c, args->circuit) == ACIRC_ERR) {
-        log_err("parsing circuit '%s' failed!", args->circuit);
-        return 1;
-    }
-
-    log_info("circuit: ninputs=%lu nconsts=%lu noutputs=%lu ngates=%lu ntests=%lu nrefs=%lu",
-             c.ninputs, c.nconsts, c.noutputs, c.ngates, c.ntests, c.nrefs);
-    /* printf("consts: "); */
-    /* array_print(c.consts, c.nconsts); */
-    /* puts(""); */
-
-    params = op_vt->new(&c, args->simple ? AB_FLAG_SIMPLE : AB_FLAG_NONE);
-
-    /* for (size_t i = 0; i < c.noutputs; i++) { */
-    /*     printf("output bit %lu: type=", i); */
-    /*     array_print_ui(params.types[i], params.n + params.m + 1); */
-    /*     puts(""); */
-    /* } */
+    params = op_vt->new(&c, vparams);
 
 #ifndef NDEBUG
-    acirc_ensure(&c);
+    /* acirc_ensure(&c); */
 #endif
 
     /* if (args->obfuscate) { */
@@ -270,7 +281,7 @@ run(const struct args_t *const args)
             errx(1, "evaluation failed");
         vt->free(obf);
     /* } */
-    ret = 0;
+    ret = OK;
 cleanup:
     op_vt->free(params);
     acirc_clear(&c);
@@ -305,6 +316,7 @@ main(int argc, char **argv)
                 fprintf(stderr, "error: unknown debug level \"%s\"\n", optarg);
                 usage(EXIT_FAILURE);
             }
+            break;
         case 'e':
             args.evaluate = true;
             args.obfuscate = false;
@@ -354,13 +366,12 @@ main(int argc, char **argv)
     }
 
     if (optind >= argc) {
-        fprintf(stderr, "[%s] error: circuit required\n", __func__);
+        fprintf(stderr, "error: circuit required\n");
         usage(EXIT_FAILURE);
     } else if (optind == argc - 1) {
         args.circuit = argv[optind];
     } else {
-        fprintf(stderr, "[%s] error: unexpected argument \"%s\"\n", __func__,
-                argv[optind]);
+        fprintf(stderr, "error: unexpected argument \"%s\"\n", argv[optind]);
         usage(EXIT_FAILURE);
     }
 

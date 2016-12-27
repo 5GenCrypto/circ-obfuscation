@@ -38,9 +38,13 @@ _sp_init(const mmap_vtable *const mmap, secret_params *const sp,
             t = tmp;
     }
     kappa = acirc_max_total_degree(op->circ) + op->n + 1;
-    printf("kappa=%lu\n", kappa);
     nzs = (op->n + op->m + 1) * (op->simple ? 3 : 4);
-    printf("nzs=%lu\n", nzs);
+
+    if (g_verbose) {
+        fprintf(stderr, "Secret parameter settings:\n");
+        fprintf(stderr, "* κ:    %lu\n", kappa);
+        fprintf(stderr, "* # Zs: %lu\n", nzs);
+    }
 
     {
         int pows[nzs];

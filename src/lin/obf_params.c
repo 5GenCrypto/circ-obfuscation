@@ -1,4 +1,5 @@
 #include "obf_params.h"
+#include "obfuscator.h"
 #include "../mmap.h"
 #include "../util.h"
 
@@ -10,15 +11,16 @@
 /* TODO: set num_symbolic_inputs */
 
 static obf_params_t *
-_op_new(acirc *const circ, int flags)
+_op_new(acirc *const circ, void *const vparams)
 {
-    obf_params_t *p = calloc(1, sizeof(obf_params_t));
-    p->rachel_input = (flags & LIN_FLAG_RACHEL_INPUT) > 0;
+    lin_obf_params_t *const params = (lin_obf_params_t *const) vparams;
+    const size_t num_symbolic_inputs = params->num_symbolic_inputs;
+    obf_params_t *const p = calloc(1, sizeof(obf_params_t));
+
+    p->rachel_input = params->rachel_input;
     p->m = circ->nconsts;
     p->gamma = circ->noutputs;
     p->types = my_calloc(p->gamma, sizeof(size_t *));
-
-    int num_symbolic_inputs = 1;
 
     p->ell = ceil((double) circ->ninputs / (double) num_symbolic_inputs); // length of symbols
     if (p->rachel_input)
@@ -40,6 +42,17 @@ _op_new(acirc *const circ, int flags)
     }
     p->d = acirc_max_degree(circ);
     p->D = p->d + num_symbolic_inputs + 1;
+    if (g_verbose) {
+        fprintf(stderr, "Obfuscation parameters:\n");
+        fprintf(stderr, "* # inputs:  %lu\n", p->c);
+        fprintf(stderr, "* # consts:  %lu\n", p->m);
+        fprintf(stderr, "* # outputs: %lu\n", p->gamma);
+        fprintf(stderr, "* # symbols: %lu\n", p->q);
+        fprintf(stderr, "* |symbol|:  %lu\n", p->ell);
+        fprintf(stderr, "* M:         %lu\n", p->M);
+        fprintf(stderr, "* degree:    %lu\n", p->d);
+        fprintf(stderr, "* D:         %lu\n", p->D);
+    }
 
     p->chunker  = chunker_in_order;
     p->rchunker = rchunker_in_order;

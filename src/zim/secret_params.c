@@ -4,10 +4,6 @@
 #include "obf_params.h"
 #include "vtables.h"
 
-#include "dbg.h"
-
-extern bool g_verbose;
-
 struct sp_info {
     obf_index *toplevel;
     const obf_params_t *op;
@@ -27,9 +23,12 @@ _sp_init(const mmap_vtable *const mmap,
 
     kappa = acirc_delta(op->circ) + op->circ->ninputs;
 
-    debug("Δ = %lu", acirc_delta(op->circ));
-    debug("n = %lu", op->circ->ninputs);
-    debug("κ = Δ + n = %lu", kappa);
+    if (g_verbose) {
+        fprintf(stderr, "Secret parameter settings:\n");
+        fprintf(stderr, "* Δ = %lu\n", acirc_delta(op->circ));
+        fprintf(stderr, "* n = %lu\n", op->circ->ninputs);
+        fprintf(stderr, "* κ = Δ + n = %lu\n", kappa);
+    }
 
     sp->sk = calloc(1, mmap->sk->size);
     (void) mmap->sk->init(sp->sk, lambda, kappa, my(sp)->toplevel->nzs,

@@ -34,9 +34,13 @@ _sp_init(const mmap_vtable *mmap, secret_params *const sp,
             t = tmp;
     }
     kappa = 2 + op->c + t + op->D;
-    printf("kappa=%lu\n", kappa);
     nzs = (op->q+1) * (op->c+2) + op->gamma;
-    printf("nzs=%lu\n", nzs);
+
+    if (g_verbose) {
+        fprintf(stderr, "Secret parameter settings:\n");
+        fprintf(stderr, "* κ:    %lu\n", kappa);
+        fprintf(stderr, "* # Zs: %lu\n", nzs);
+    }
 
     {
         int pows[nzs];

@@ -1,11 +1,11 @@
 :test 00 10
 :test 01 01
 :test 10 01
-:test 11 11
+:test 11 12
 0 input 0
 1 input 1
 2 const 0
 3 const 1
-4 gate ADD 0 1
+4 ADD 0 1
 5 output ADD 2 4
 6 output SUB 5 3

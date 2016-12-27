@@ -6,12 +6,12 @@
 #include <mmap/mmap.h>
 #include <stdlib.h>
 
-#define OK 0
+#define OK    0
 #define ERR (-1)
 
 typedef struct obf_params_t obf_params_t;
 typedef struct {
-    obf_params_t * (*new)(const acirc *const, int);
+    obf_params_t * (*new)(const acirc *const, void *const);
     void (*free)(obf_params_t *);
     int (*fwrite)(const obf_params_t *const, FILE *const);
     int (*fread)(obf_params_t *const, FILE *const);

@@ -1,19 +1,20 @@
-#include "../mmap.h"
 #include "obf_params.h"
+#include "obfuscator.h"
+#include "../mmap.h"
 
 #include <assert.h>
 
 static obf_params_t *
-_op_new(const acirc *const circ, int flags)
+_op_new(const acirc *const circ, void *const vparams)
 {
-    (void) flags;
+    zim_obf_params_t *const params = vparams;
     obf_params_t *op;
 
     op = calloc(1, sizeof(obf_params_t));
     op->ninputs = circ->ninputs;
     op->nconsts = circ->nconsts;
     op->noutputs = circ->noutputs;
-    op->npowers = 1;            /* XXX: fixme */
+    op->npowers = params->npowers;
     op->circ = circ;
     return op;
 }

@@ -34,8 +34,8 @@ _encoding_free(encoding *const enc)
 static int
 _encoding_print(const encoding *const enc)
 {
-    printf("Encoding:\n");
-    level_print(info(enc)->lvl);
+    fprintf(stderr, "Encoding: ");
+    level_fprint(stderr, info(enc)->lvl);
     return OK;
 }
 
@@ -74,7 +74,14 @@ _encoding_add(const pp_vtable *const vt, encoding *const rop,
               const public_params *const pp)
 {
     (void) vt; (void) pp;
-    assert(level_eq(info(x)->lvl, info(y)->lvl));
+    if (!level_eq(info(x)->lvl, info(y)->lvl)) {
+        fprintf(stderr, "[%s] unequal levels\n", __func__);
+        fprintf(stderr, "x: ");
+        level_fprint(stderr, x->info->lvl);
+        fprintf(stderr, "y: ");
+        level_fprint(stderr, y->info->lvl);
+        return ERR;
+    }
     level_set(info(rop)->lvl, info(x)->lvl);
     return OK;
 }
@@ -86,11 +93,11 @@ _encoding_sub(const pp_vtable *const vt, encoding *const rop,
 {
     (void) vt; (void) pp;
     if (!level_eq(info(x)->lvl, info(y)->lvl)) {
-        printf("[%s] unequal levels!\nx=\n", __func__);
-        level_print(info(x)->lvl);
-        printf("y=\n");
-        level_print(info(x)->lvl);
-        assert(level_eq(info(x)->lvl, info(y)->lvl));
+        fprintf(stderr, "[%s] unequal levels\n", __func__);
+        fprintf(stderr, "x: ");
+        level_fprint(stderr, info(x)->lvl);
+        fprintf(stderr, "y: ");
+        level_fprint(stderr, info(x)->lvl);
         return ERR;
     }
     level_set(info(rop)->lvl, info(x)->lvl);
@@ -101,11 +108,12 @@ static int
 _encoding_is_zero(const pp_vtable *const vt, const encoding *const x,
                   const public_params *const pp)
 {
-    if (!level_eq(info(x)->lvl, vt->toplevel(pp))) {
-        puts("this level:");
-        level_print(info(x)->lvl);
-        puts("top level:");
-        level_print(vt->toplevel(pp));
+    if (!level_eq(x->info->lvl, vt->toplevel(pp))) {
+        fprintf(stderr, "[%s] unequal levels\n", __func__);
+        fprintf(stderr, "this level: ");
+        level_fprint(stderr, x->info->lvl);
+        fprintf(stderr, "top level:  ");
+        level_fprint(stderr, vt->toplevel(pp));
         return ERR;
     }
     return OK;

@@ -10,9 +10,9 @@
 #include <err.h>
 
 static obf_params_t *
-_op_new(const acirc *const circ, int flags)
+_op_new(const acirc *const circ, void *const vparams)
 {
-    const bool simple = (flags & AB_FLAG_SIMPLE) > 0;
+    ab_obf_params_t *const params = (ab_obf_params_t *const) vparams;
     obf_params_t *p = calloc(1, sizeof(obf_params_t));
     p->n = circ->ninputs;
     p->m = circ->nconsts;
@@ -30,12 +30,13 @@ _op_new(const acirc *const circ, int flags)
     }
     p->d = acirc_max_degree(circ);
     p->D = p->d + p->n;
-    p->nslots = simple ? 2 : (p->n + 2);
+    p->nslots = params->simple ? 2 : (p->n + 2);
     if (g_verbose) {
         fprintf(stderr, "Obfuscation parameters:\n");
         fprintf(stderr, "* # inputs:  %lu\n", p->n);
         fprintf(stderr, "* # consts:  %lu\n", p->m);
         fprintf(stderr, "* # outputs: %lu\n", p->gamma);
+        fprintf(stderr, "* M:         %lu\n", p->M);
         fprintf(stderr, "* degree:    %lu\n", p->d);
         fprintf(stderr, "* D:         %lu\n", p->D);
     }
@@ -43,7 +44,7 @@ _op_new(const acirc *const circ, int flags)
     p->circ = circ;
     p->chunker = chunker_in_order;
     p->rchunker = rchunker_in_order;
-    p->simple = simple;
+    p->simple = params->simple;
     return p;
 }
 
