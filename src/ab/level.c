@@ -1,16 +1,20 @@
-#include "level.h"
 #include "obf_params.h"
-#include "util.h"
+#include "../util.h"
 
-#include "input_chunker.h"
 #include <assert.h>
 #include <math.h>
+#include <stdint.h>
+#include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 
-////////////////////////////////////////////////////////////////////////////////
-// level utils
+typedef struct {
+    size_t nrows;
+    size_t ncols;
+    size_t **mat;
+} level;
 
-level *
+static level *
 level_new(const obf_params_t *const op)
 {
     level *lvl = calloc(1, sizeof(level));
@@ -23,7 +27,7 @@ level_new(const obf_params_t *const op)
     return lvl;
 }
 
-void
+static void
 level_free(level *lvl)
 {
     for (size_t i = 0; i < lvl->nrows; i++) {
@@ -33,27 +37,28 @@ level_free(level *lvl)
     free(lvl);
 }
 
-void
-level_print(level *lvl)
+static void
+level_fprint(FILE *fp, level *lvl)
 {
-    printf("[");
+    fprintf(fp, "[");
     for (size_t i = 0; i < lvl->nrows; i++) {
         if (i != 0)
-            printf(" ");
-        printf("[");
+            fprintf(fp, " ");
+        fprintf(fp, "[");
         for (size_t j = 0; j < lvl->ncols; j++) {
-            printf("%lu", lvl->mat[i][j]);
+            fprintf(fp, "%lu", lvl->mat[i][j]);
             if (j != lvl->ncols - 1)
-                printf(",");
+                fprintf(fp, ",");
         }
-        printf("]");
+        fprintf(fp, "]");
         if (i == lvl->nrows - 1)
-            printf("]");
-        printf("\n");
+            fprintf(fp, "]");
+        /* fprintf(fp, "\n"); */
     }
+    fprintf(fp, "\n");
 }
 
-void
+static void
 level_set(level *rop, const level *lvl)
 {
     for (size_t i = 0; i < lvl->nrows; i++) {
@@ -63,7 +68,7 @@ level_set(level *rop, const level *lvl)
     }
 }
 
-void
+static void
 level_add(level *rop, const level *x, const level *y)
 {
     for (size_t i = 0; i < rop->nrows; i++) {
@@ -73,7 +78,7 @@ level_add(level *rop, const level *x, const level *y)
     }
 }
 
-void
+static void
 level_mul_ui(level *rop, level *op, int x)
 {
     for (size_t i = 0; i < rop->nrows; i++) {
@@ -83,7 +88,7 @@ level_mul_ui(level *rop, level *op, int x)
     }
 }
 
-void
+static void
 level_flatten(int *pows, const level *lvl)
 {
     int z = 0;
@@ -94,7 +99,8 @@ level_flatten(int *pows, const level *lvl)
     }
 }
 
-int level_eq (level *x, level *y)
+static int
+level_eq (level *x, level *y)
 {
     for (size_t i = 0; i < x->nrows; i++) {
         for (size_t j = 0; j < x->ncols; j++) {
@@ -105,7 +111,7 @@ int level_eq (level *x, level *y)
     return 1;
 }
 
-level *
+static level *
 level_create_v_ib(const obf_params_t *const op, size_t i, bool b)
 {
     level *lvl = level_new(op);
@@ -117,7 +123,7 @@ level_create_v_ib(const obf_params_t *const op, size_t i, bool b)
     return lvl;
 }
 
-level *
+static level *
 level_create_v_i(const obf_params_t *const op, size_t i)
 {
     level *lvl = level_new(op);
@@ -127,7 +133,7 @@ level_create_v_i(const obf_params_t *const op, size_t i)
     return lvl;
 }
 
-level *
+static level *
 level_create_v_hat_ib_o(const obf_params_t *const op, size_t i, bool b, size_t o)
 {
     level *lvl = level_new(op);
@@ -142,17 +148,17 @@ level_create_v_hat_ib_o(const obf_params_t *const op, size_t i, bool b, size_t o
     return lvl;
 }
 
-level *
-level_create_v_0(const obf_params_t *const op)
-{
-    level *lvl = level_new(op);
-    lvl->mat[0][lvl->ncols-1] = 1;
-    lvl->mat[1][lvl->ncols-1] = 1;
-    lvl->mat[2][lvl->ncols-1] = 1;
-    return lvl;
-}
+/* static level * */
+/* level_create_v_0(const obf_params_t *const op) */
+/* { */
+/*     level *lvl = level_new(op); */
+/*     lvl->mat[0][lvl->ncols-1] = 1; */
+/*     lvl->mat[1][lvl->ncols-1] = 1; */
+/*     lvl->mat[2][lvl->ncols-1] = 1; */
+/*     return lvl; */
+/* } */
 
-level *
+static level *
 level_create_v_hat_o(const obf_params_t *const op, size_t o)
 {
     level *lvl = level_new(op);
@@ -171,7 +177,7 @@ level_create_v_hat_o(const obf_params_t *const op, size_t o)
     return lvl;
 }
 
-level *
+static level *
 level_create_v_star(const obf_params_t *const op)
 {
     level *lvl = level_new(op);
@@ -181,7 +187,7 @@ level_create_v_star(const obf_params_t *const op)
     return lvl;
 }
 
-level *
+static level *
 level_create_vzt(const obf_params_t *const op)
 {
     level *lvl = level_new(op);
@@ -217,7 +223,7 @@ level_create_vzt(const obf_params_t *const op)
     return lvl;
 }
 
-void
+static void
 level_fwrite(const level *const lvl, FILE *const fp)
 {
     assert(lvl->nrows && lvl->ncols);
@@ -233,7 +239,7 @@ level_fwrite(const level *const lvl, FILE *const fp)
     }
 }
 
-void
+static void
 level_fread(level *lvl, FILE *const fp)
 {
     size_t_fread(&lvl->nrows, fp);

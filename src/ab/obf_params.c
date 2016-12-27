@@ -1,8 +1,7 @@
-#include "../mmap.h"
 #include "obf_params.h"
 #include "obfuscator.h"
-#include "input_chunker.h"
-#include "util.h"
+#include "../mmap.h"
+#include "../util.h"
 
 #include <assert.h>
 #include <math.h>
@@ -32,6 +31,14 @@ _op_new(const acirc *const circ, int flags)
     p->d = acirc_max_degree(circ);
     p->D = p->d + p->n;
     p->nslots = simple ? 2 : (p->n + 2);
+    if (g_verbose) {
+        fprintf(stderr, "Obfuscation parameters:\n");
+        fprintf(stderr, "* # inputs:  %lu\n", p->n);
+        fprintf(stderr, "* # consts:  %lu\n", p->m);
+        fprintf(stderr, "* # outputs: %lu\n", p->gamma);
+        fprintf(stderr, "* degree:    %lu\n", p->d);
+        fprintf(stderr, "* D:         %lu\n", p->D);
+    }
 
     p->circ = circ;
     p->chunker = chunker_in_order;
@@ -54,27 +61,18 @@ static int
 _op_fwrite(const obf_params_t *const params, FILE *const fp)
 {
     size_t_fwrite(params->n, fp);
-    PUT_SPACE(fp);
     size_t_fwrite(params->m, fp);
-    PUT_SPACE(fp);
     size_t_fwrite(params->gamma, fp);
-    PUT_SPACE(fp);
     size_t_fwrite(params->M, fp);
-    PUT_SPACE(fp);
     size_t_fwrite(params->d, fp);
-    PUT_SPACE(fp);
     size_t_fwrite(params->D, fp);
-    PUT_SPACE(fp);
     size_t_fwrite(params->nslots, fp);
-    PUT_SPACE(fp);
     for (size_t o = 0; o < params->gamma; ++o) {
         for (size_t k = 0; k < params->m + params->m + 1; ++k) {
             size_t_fwrite(params->types[o][k], fp);
-            PUT_SPACE(fp);
         }
     }
     bool_fwrite(params->simple, fp);
-    PUT_SPACE(fp);
     return 0;
 }
 
@@ -82,29 +80,20 @@ static int
 _op_fread(obf_params_t *const params, FILE *const fp)
 {
     size_t_fread(&params->n, fp);
-    GET_SPACE(fp);
     size_t_fread(&params->m, fp);
-    GET_SPACE(fp);
     size_t_fread(&params->gamma, fp);
-    GET_SPACE(fp);
     size_t_fread(&params->M, fp);
-    GET_SPACE(fp);
     size_t_fread(&params->d, fp);
-    GET_SPACE(fp);
     size_t_fread(&params->D, fp);
-    GET_SPACE(fp);
     size_t_fread(&params->nslots, fp);
-    GET_SPACE(fp);
     params->types = my_calloc(params->gamma, sizeof(size_t *));
     for (size_t o = 0; o < params->gamma; ++o) {
         params->types[o] = my_calloc(params->n + params->m + 1, sizeof(size_t));
         for (size_t k = 0; k < params->m + params->m + 1; ++k) {
             size_t_fread(&params->types[o][k], fp);
-            PUT_SPACE(fp);
         }
     }
     bool_fread(&params->simple, fp);
-    GET_SPACE(fp);
     params->chunker = chunker_in_order;
     params->rchunker = rchunker_in_order;
     return 0;

@@ -168,7 +168,7 @@ _obfuscator_free(obfuscation *obf)
     free(obf);
 }
 
-static void
+static int
 _obfuscate(obfuscation *const obf)
 {
     const obf_params_t *const op = obf->op;
@@ -403,7 +403,7 @@ _obfuscate(obfuscation *const obf)
     mpz_vect_free(moduli, obf->mmap->sk->nslots(obf->sp->sk));
 }
 
-static void
+static int
 _obfuscator_fwrite(const obfuscation *const obf, FILE *const fp)
 {
     const obf_params_t *const op = obf->op;
@@ -529,7 +529,7 @@ static void raise_encodings(const obfuscation *const obf, encoding *const x,
 static void raise_encoding(const obfuscation *const obf, encoding *const x,
                            const obf_index *const target);
 
-static void
+static int
 _evaluate(int *rop, const int *const inputs, const obfuscation *const obf)
 {
     const acirc *const c = obf->op->circ;

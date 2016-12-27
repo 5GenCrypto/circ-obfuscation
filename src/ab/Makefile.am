@@ -6,11 +6,4 @@ AM_LDFLAGS =
 noinst_LIBRARIES = libab.a
 
 libab_a_SOURCES = \
-level.c \
-input_chunker.c \
-obf_params.c \
-obfuscator.c \
-encoding.c \
-public_params.c \
-secret_params.c
-
+build.c

@@ -9,6 +9,9 @@
 #include <stdio.h>
 #include <err.h>
 
+bool g_verbose = true;
+debug_e g_debug = ERROR;
+
 // XXX: The use of /dev/urandom is not secure; however, the supercomputer we run
 // on doesn't appear to have enough entropy, and blocks for long periods of
 // time.  Thus, we use /dev/urandom instead.
@@ -53,13 +56,13 @@ int max(int x, int y) {
 void array_printstring(int *xs, size_t n)
 {
     for (size_t i = 0; i < n; i++)
-        printf("%d", xs[i] == 1);
+        printf("%d", xs[i]);
 }
 
 void array_printstring_rev(int *xs, size_t n)
 {
     for (size_t i = n; i > 0; i--)
-        printf("%d", xs[i-1] == 1);
+        printf("%d", xs[i-1]);
 }
 
 void array_print(int *xs, size_t len) {
@@ -192,7 +195,7 @@ void mpz_vect_mod(mpz_t *const rop, const mpz_t *const xs, const mpz_t *const mo
 void mpz_vect_mul_mod(mpz_t *const rop, const mpz_t *const xs, const mpz_t *const ys, const mpz_t *const moduli, size_t n)
 {
     mpz_vect_mul(rop, xs, ys, n);
-    mpz_vect_mod(rop, rop, moduli, n);
+    mpz_vect_mod(rop, (const mpz_t *const) rop, moduli, n);
 }
 
 void

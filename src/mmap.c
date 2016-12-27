@@ -42,7 +42,7 @@ public_params_fwrite(const pp_vtable *const vt, const public_params *const pp,
     PUT_NEWLINE(fp);
     vt->mmap->pp->fwrite(pp->pp, fp);
     PUT_NEWLINE(fp);
-    return 0;
+    return OK;
 }
 
 int
@@ -54,7 +54,7 @@ public_params_fread(const pp_vtable *const vt, public_params *const pp,
     pp->pp = malloc(vt->mmap->pp->size);
     vt->mmap->pp->fread(pp->pp, fp);
     GET_NEWLINE(fp);
-    return 0;
+    return OK;
 }
 
 void
@@ -92,7 +92,7 @@ encoding_print(const encoding_vtable *const vt, const encoding *const enc)
 {
     (void) vt->print(enc);
     vt->mmap->enc->print(enc->enc);
-    return 0;
+    return OK;
 }
 
 int
@@ -113,7 +113,7 @@ encode(const encoding_vtable *const vt, encoding *const rop,
         fmpz_clear(finps[i]);
     }
     free(pows);
-    return 0;
+    return OK;
 }
 
 int
@@ -122,7 +122,7 @@ encoding_set(const encoding_vtable *const vt, encoding *const rop,
 {
     (void) vt->set(rop, x);
     vt->mmap->enc->set(rop->enc, x->enc);
-    return 0;
+    return OK;
 }
 
 int
@@ -131,15 +131,16 @@ encoding_mul(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
              const encoding *const y, const public_params *const p)
 {
 
-    (void) vt->mul(pp_vt, rop, x, y, p);
+    if (vt->mul(pp_vt, rop, x, y, p) == ERR)
+        return ERR;
     vt->mmap->enc->mul(rop->enc, p->pp, x->enc, y->enc);
-    if (g_debug >= INFO) {
+    if (LOG_INFO) {
         printf("[%s]\n", __func__);
         encoding_print(vt, x);
         encoding_print(vt, y);
         encoding_print(vt, rop);
     }
-    return 0;
+    return OK;
 }
 
 int
@@ -147,15 +148,16 @@ encoding_add(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
              encoding *const rop, const encoding *const x,
              const encoding *const y, const public_params *const p)
 {
-    (void) vt->add(pp_vt, rop, x, y, p);
+    if (vt->add(pp_vt, rop, x, y, p) == ERR)
+        return ERR;
     vt->mmap->enc->add(rop->enc, p->pp, x->enc, y->enc);
-    if (g_debug >= INFO) {
+    if (LOG_INFO) {
         printf("[%s]\n", __func__);
         encoding_print(vt, x);
         encoding_print(vt, y);
         encoding_print(vt, rop);
     }
-    return 0;
+    return OK;
 }
 
 int
@@ -163,15 +165,16 @@ encoding_sub(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
              encoding *const rop, const encoding *const x,
              const encoding *const y, const public_params *const p)
 {
-    (void) vt->sub(pp_vt, rop, x, y, p);
+    if (vt->sub(pp_vt, rop, x, y, p) == ERR)
+        return ERR;
     vt->mmap->enc->sub(rop->enc, p->pp, x->enc, y->enc);
-    if (g_debug >= INFO) {
+    if (LOG_INFO) {
         printf("[%s]\n", __func__);
         encoding_print(vt, x);
         encoding_print(vt, y);
         encoding_print(vt, rop);
     }
-    return 0;
+    return OK;
 }
 
 int
@@ -179,7 +182,7 @@ encoding_is_zero(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
                  const encoding *const x, const public_params *const p)
 {
     if (vt->is_zero(pp_vt, x, p) == ERR)
-        return 1;
+        return ERR;
     else
         return vt->mmap->enc->is_zero(x->enc, p->pp);
 }

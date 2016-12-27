@@ -13,6 +13,12 @@ typedef enum debug_e {
     INFO = 3
 } debug_e;
 extern debug_e g_debug;
+extern bool g_verbose;
+
+#define LOG_ERROR (g_debug >= ERROR)
+#define LOG_WARN  (g_debug >= WARN)
+#define LOG_DEBUG (g_debug >= DEBUG)
+#define LOG_INFO  (g_debug >= INFO)
 
 double current_time(void);
 

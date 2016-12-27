@@ -1,10 +1,8 @@
-#include "obfuscator.h"
-
-#include "dbg.h"
-#include "util.h"
 #include "vtables.h"
-#include "level.h"
+#include "obfuscator.h"
 #include "obf_params.h"
+
+#include "../util.h"
 
 #include <assert.h>
 #include <gmp.h>
@@ -169,72 +167,71 @@ _obfuscation_new(const mmap_vtable *const mmap, const obf_params_t *const op,
     obfuscation *obf;
 
     if (op->gamma > 1) {
-        fprintf(stderr, "AB currently only supports 1 output bit\n");
-        return NULL;
+        errx(1, "Applebaum-Brakerski currently only supports 1 output bit");
     }
 
-    obf = calloc(1, sizeof(obfuscation));
+    obf = my_calloc(1, sizeof(obfuscation));
     obf->mmap = mmap;
     obf->enc_vt = ab_get_encoding_vtable(mmap);
     obf->pp_vt = ab_get_pp_vtable(mmap);
     obf->sp_vt = ab_get_sp_vtable(mmap);
     obf->op = op;
     aes_randinit(obf->rng);
-    obf->sp = calloc(1, sizeof(secret_params));
+    obf->sp = my_calloc(1, sizeof(secret_params));
     if (secret_params_init(obf->sp_vt, obf->sp, op, secparam, obf->rng)) {
         _obfuscation_free(obf);
         return NULL;
     }
-    obf->pp = calloc(1, sizeof(public_params));
+    obf->pp = my_calloc(1, sizeof(public_params));
     public_params_init(obf->pp_vt, obf->sp_vt, obf->pp, obf->sp);
 
-    obf->R_ib = calloc(op->n, sizeof(encoding ***));
+    obf->R_ib = my_calloc(op->n, sizeof(encoding ***));
     for (size_t i = 0; i < op->n; i++) {
-        obf->R_ib[i] = calloc(2, sizeof(encoding **));
+        obf->R_ib[i] = my_calloc(2, sizeof(encoding **));
         for (size_t b = 0; b < 2; b++) {
             obf->R_ib[i][b] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
         }
     }
-    obf->Z_ib = calloc(op->n, sizeof(encoding ***));
+    obf->Z_ib = my_calloc(op->n, sizeof(encoding ***));
     for (size_t i = 0; i < op->n; i++) {
-        obf->Z_ib[i] = calloc(2, sizeof(encoding **));
+        obf->Z_ib[i] = my_calloc(2, sizeof(encoding **));
         for (size_t b = 0; b < 2; b++) {
             obf->Z_ib[i][b] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
         }
     }
-    obf->R_hat_ib_o = calloc(op->gamma, sizeof(encoding ***));
+    obf->R_hat_ib_o = my_calloc(op->gamma, sizeof(encoding ***));
     for (size_t o = 0; o < op->gamma; ++o) {
-        obf->R_hat_ib_o[o] = calloc(op->n, sizeof(encoding **));
+        obf->R_hat_ib_o[o] = my_calloc(op->n, sizeof(encoding **));
         for (size_t i = 0; i < op->n; i++) {
-            obf->R_hat_ib_o[o][i] = calloc(2, sizeof(encoding *));
+            obf->R_hat_ib_o[o][i] = my_calloc(2, sizeof(encoding *));
             for (size_t b = 0; b < 2; b++) {
                 obf->R_hat_ib_o[o][i][b] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
             }
         }
     }
-    obf->Z_hat_ib_o = calloc(op->gamma, sizeof(encoding ***));
+    obf->Z_hat_ib_o = my_calloc(op->gamma, sizeof(encoding ***));
     for (size_t o = 0; o < op->gamma; ++o) {
-        obf->Z_hat_ib_o[o] = calloc(op->n, sizeof(encoding **));
+        obf->Z_hat_ib_o[o] = my_calloc(op->n, sizeof(encoding **));
         for (size_t i = 0; i < op->n; i++) {
-            obf->Z_hat_ib_o[o][i] = calloc(2, sizeof(encoding *));
+            obf->Z_hat_ib_o[o][i] = my_calloc(2, sizeof(encoding *));
             for (size_t b = 0; b < 2; b++) {
                 obf->Z_hat_ib_o[o][i][b] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
             }
         }
     }
-    obf->R_i = calloc(op->m, sizeof(encoding *));
+    obf->R_i = my_calloc(op->m, sizeof(encoding *));
     for (size_t i = 0; i < op->m; i++) {
         obf->R_i[i] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
     }
-    obf->Z_i = calloc(op->m, sizeof(encoding *));
+    obf->Z_i = my_calloc(op->m, sizeof(encoding *));
     for (size_t i = 0; i < op->m; i++) {
         obf->Z_i[i] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
     }
-    obf->R_o_i = calloc(op->gamma, sizeof(encoding *));
+    obf->R_o_i = my_calloc(op->gamma, sizeof(encoding *));
     for (size_t i = 0; i < op->gamma; i++) {
         obf->R_o_i[i] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
     }
-    obf->Z_o_i = calloc(op->gamma, sizeof(encoding *));
+    obf->Z_o_i = my_calloc(op->gamma, sizeof(encoding *));
     for (size_t i = 0; i < op->gamma; i++) {
         obf->Z_o_i[i] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
     }
@@ -330,27 +327,33 @@ _obfuscation_free(obfuscation *obf)
     free(obf);
 }
 
-static void
+static int
 _obfuscate(obfuscation *const obf)
 {
     const mpz_t *const moduli =
         mpz_vect_create_of_fmpz(obf->mmap->sk->plaintext_fields(obf->sp->sk),
                                 obf->mmap->sk->nslots(obf->sp->sk));
+    const bool simple = obf->op->simple;
     const size_t n = obf->op->n,
                  m = obf->op->m,
                  gamma = obf->op->gamma,
-                 nslots = obf->op->simple ? 2 : (n + 2);
+                 nslots = simple ? 2 : (n + 2);
     mpz_t ys[n + m], w_hats[n][nslots];
 
     mpz_vect_init(ys, n + m);
     mpz_vect_urandomm(ys, moduli[0], n + m, obf->rng);
 
-    gmp_printf("%Zd\t%Zd\n", moduli[0], moduli[1]);
+    if (LOG_DEBUG) {
+        for (size_t i = 0; i < nslots; ++i) {
+            gmp_fprintf(stderr, "%Zd\t", moduli[i]);
+        }
+        fprintf(stderr, "\n");
+    }
 
     for (size_t i = 0; i < n; ++i) {
         mpz_vect_init(w_hats[i], nslots);
         mpz_vect_urandomms(w_hats[i], moduli, nslots, obf->rng);
-        if (!obf->op->simple) {
+        if (!simple) {
             mpz_set_ui(w_hats[i][i + 2], 0);
         }
     }
@@ -364,19 +367,23 @@ _obfuscate(obfuscation *const obf)
             /* Compute R_i,b encodings */
             mpz_vect_urandomms(tmp, moduli, nslots, obf->rng);
             encode_v_ib(obf->enc_vt, obf->op, obf->R_ib[i][b], obf->sp, tmp, i, b);
-            fprintf(stderr, "R_%lu,%lu --------\n", i, b);
-            encoding_print(obf->enc_vt, obf->R_ib[i][b]);
-            fprintf(stderr, "--------------\n");
+            if (LOG_DEBUG) {
+                fprintf(stderr, "R_%lu,%lu --------\n", i, b);
+                encoding_print(obf->enc_vt, obf->R_ib[i][b]);
+                fprintf(stderr, "--------------\n");
+            }
             /* Compute Z_i,b encodings */
-            if (!obf->op->simple)
+            if (!simple)
                 mpz_vect_urandomms(other, moduli, nslots, obf->rng);
             mpz_set   (other[0], ys[i]);
             mpz_set_ui(other[1], b);
             mpz_vect_mul_mod(tmp, tmp, other, moduli, nslots);
             encode_v_ib_v_star(obf->enc_vt, obf->op, obf->Z_ib[i][b], obf->sp, tmp, i, b);
-            printf("Z_%lu,%lu --------\n", i, b);
-            encoding_print(obf->enc_vt, obf->Z_ib[i][b]);
-            printf("--------------\n");
+            if (LOG_DEBUG) {
+                printf("Z_%lu,%lu --------\n", i, b);
+                encoding_print(obf->enc_vt, obf->Z_ib[i][b]);
+                printf("--------------\n");
+            }
             mpz_vect_clear(tmp, nslots);
             mpz_vect_clear(other, nslots);
         }
@@ -391,22 +398,25 @@ _obfuscate(obfuscation *const obf)
                 /* Compute R_hat_i,b encodings */
                 mpz_vect_urandomms(tmp, moduli, nslots, obf->rng);
                 encode_v_hat_ib_o(obf->enc_vt, obf->op, obf->R_hat_ib_o[o][i][b], obf->sp, tmp, i, b, o);
-                printf("R_hat_%lu,%lu --------\n", i, b);
-                encoding_print(obf->enc_vt, obf->R_hat_ib_o[o][i][b]);
-                printf("------------------\n");
+                if (LOG_DEBUG) {
+                    printf("R_hat_%lu,%lu --------\n", i, b);
+                    encoding_print(obf->enc_vt, obf->R_hat_ib_o[o][i][b]);
+                    printf("------------------\n");
+                }
                 /* Compute Z_hat_i,b encodings */
                 mpz_vect_mul_mod(tmp, tmp, w_hats[i], moduli, nslots);
                 encode_v_hat_ib_o_v_star(obf->enc_vt, obf->op, obf->Z_hat_ib_o[o][i][b], obf->sp, tmp, i, b, o);
-                printf("Z_hat_%lu,%lu --------\n", i, b);
-                encoding_print(obf->enc_vt, obf->Z_hat_ib_o[o][i][b]);
-                printf("------------------\n");
+                if (LOG_DEBUG) {
+                    printf("Z_hat_%lu,%lu --------\n", i, b);
+                    encoding_print(obf->enc_vt, obf->Z_hat_ib_o[o][i][b]);
+                    printf("------------------\n");
+                }
                 mpz_vect_clear(tmp, nslots);
             }
         }
     }
 
     /* encode R_i and Z_i */
-    assert(obf->op->circ->nconsts == m);
     for (size_t i = 0; i < m; i++) {
         mpz_t tmp[nslots], other[nslots];
         mpz_vect_init(tmp, nslots);
@@ -414,45 +424,56 @@ _obfuscate(obfuscation *const obf)
         /* Compute R_i encodings */
         mpz_vect_urandomms(tmp, moduli, nslots, obf->rng);
         encode_v_i(obf->enc_vt, obf->op, obf->R_i[i], obf->sp, tmp, i);
-        printf("R_%lu --------\n", i);
-        encoding_print(obf->enc_vt, obf->R_i[i]);
-        printf("------------\n");
+        if (LOG_DEBUG) {
+            printf("R_%lu --------\n", i);
+            encoding_print(obf->enc_vt, obf->R_i[i]);
+            printf("------------\n");
+        }
         /* Compute Z_i encodings */
         mpz_vect_urandomms(other, moduli, nslots, obf->rng);
         mpz_set(   other[0], ys[n + i]);
         mpz_set_ui(other[1], obf->op->circ->consts[i]);
         mpz_vect_mul_mod(tmp, tmp, other, moduli, nslots);
         encode_v_i_v_star(obf->enc_vt, obf->op, obf->Z_i[i], obf->sp, tmp, i);
-        printf("Z_%lu --------\n", i);
-        encoding_print(obf->enc_vt, obf->Z_i[i]);
-        printf("------------\n");
+        if (LOG_DEBUG) {
+            printf("Z_%lu --------\n", i);
+            encoding_print(obf->enc_vt, obf->Z_i[i]);
+            printf("------------\n");
+        }
         mpz_vect_clear(tmp, nslots);
         mpz_vect_clear(other, nslots);
     }
 
     /* encode R_o_i and Z_o_i */
-    for (size_t i = 0; i < gamma; ++i) {
+    for (size_t o = 0; o < gamma; ++o) {
         mpz_t rs[nslots], ws[nslots];
         mpz_vect_init(rs, nslots);
         mpz_vect_init(ws, nslots);
         /* Compute R_o_i encodings */
         mpz_vect_urandomms(rs, moduli, nslots, obf->rng);
-        encode_v_hat_o(obf->enc_vt, obf->op, obf->R_o_i[i], obf->sp, rs, i);
-        printf("R_0 --------\n");
-        encoding_print(obf->enc_vt, obf->R_o_i[i]);
-        printf("------------\n");
+        encode_v_hat_o(obf->enc_vt, obf->op, obf->R_o_i[o], obf->sp, rs, o);
+        if (LOG_DEBUG) {
+            printf("R_0 --------\n");
+            encoding_print(obf->enc_vt, obf->R_o_i[o]);
+            printf("------------\n");
+        }
         /* Compute Z_o_i encodings */
-        acirc_eval_mpz_mod(ws[0], obf->op->circ, obf->op->circ->outrefs[i], ys,
+        acirc_eval_mpz_mod(ws[0], obf->op->circ, obf->op->circ->outrefs[o], ys,
                            ys + n, moduli[0]);
         mpz_set_ui(ws[1], 1);
-        for (size_t j = 0; j < n; ++j) {
-            mpz_vect_mul_mod(rs, rs, w_hats[j], moduli, nslots);
+        for (size_t i = 2; i < nslots; ++i) {
+            mpz_set_ui(ws[i], 0);
+        }
+        for (size_t i = 0; i < n; ++i) {
+            mpz_vect_mul_mod(rs, rs, w_hats[i], moduli, nslots);
         }
         mpz_vect_mul_mod(rs, rs, ws, moduli, nslots);
-        encode_v_hat_o_v_star(obf->enc_vt, obf->op, obf->Z_o_i[i], obf->sp, rs, i);
-        printf("Z_0 --------\n");
-        encoding_print(obf->enc_vt, obf->Z_o_i[i]);
-        printf("------------\n");
+        encode_v_hat_o_v_star(obf->enc_vt, obf->op, obf->Z_o_i[o], obf->sp, rs, o);
+        if (LOG_DEBUG) {
+            printf("Z_0 --------\n");
+            encoding_print(obf->enc_vt, obf->Z_o_i[o]);
+            printf("------------\n");
+        }
         mpz_vect_clear(rs, nslots);
         mpz_vect_clear(ws, nslots);
     }
@@ -461,10 +482,12 @@ _obfuscate(obfuscation *const obf)
         mpz_vect_clear(w_hats[i], nslots);
     }
     mpz_vect_clear(ys, n + m);
-    /* mpz_vect_free(moduli, obf->mmap->sk->nslots(obf->sp->sk)); */
+    mpz_vect_free(moduli, obf->mmap->sk->nslots(obf->sp->sk));
+
+    return OK;
 }
 
-static void
+static int
 _obfuscation_fwrite(const obfuscation *const obf, FILE *const fp)
 {
     const obf_params_t *op = obf->op;
@@ -507,6 +530,8 @@ _obfuscation_fwrite(const obfuscation *const obf, FILE *const fp)
     for (size_t i = 0; i < op->gamma; i++) {
         encoding_fwrite(obf->enc_vt, obf->Z_o_i[i], fp);
     }
+
+    return OK;
 }
 
 static obfuscation *
@@ -514,7 +539,7 @@ _obfuscation_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *const 
 {
     obfuscation *obf;
 
-    obf = calloc(1, sizeof(obfuscation));
+    obf = my_calloc(1, sizeof(obfuscation));
     if (obf == NULL)
         return NULL;
 
@@ -524,14 +549,14 @@ _obfuscation_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *const 
     obf->enc_vt = ab_get_encoding_vtable(mmap);
     obf->op = op;
     obf->sp = NULL;
-    obf->pp = calloc(1, sizeof(public_params));
+    obf->pp = my_calloc(1, sizeof(public_params));
     (void) public_params_fread(obf->pp_vt, obf->pp, op, fp);
 
     obf->R_ib = my_calloc(op->n, sizeof(encoding **));
     for (size_t i = 0; i < op->n; i++) {
         obf->R_ib[i] = my_calloc(2, sizeof(encoding *));
         for (size_t b = 0; b < 2; b++) {
-            obf->R_ib[i][b] = calloc(1, sizeof(encoding));
+            obf->R_ib[i][b] = my_calloc(1, sizeof(encoding));
             encoding_fread(obf->enc_vt, obf->R_ib[i][b], fp);
         }
     }
@@ -599,7 +624,9 @@ typedef struct {
 static void
 wire_print(const encoding_vtable *const vt, const wire *const w)
 {
+    fprintf(stderr, "R: ");
     encoding_print(vt, w->r);
+    fprintf(stderr, "Z: ");
     encoding_print(vt, w->z);
 }
 
@@ -646,48 +673,59 @@ wire_copy(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
     rop->z = encoding_new(vt, pp_vt, pp);
     encoding_set(vt, rop->r, source->r);
     encoding_set(vt, rop->z, source->z);
-    rop->my_r = 1;
-    rop->my_z = 1;
+    rop->my_r = true;
+    rop->my_z = true;
 }
 
-static void
+static int
 wire_mul(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
          wire *const rop, const wire *const x, const wire *const y,
          const public_params *const pp)
 {
-    encoding_mul(vt, pp_vt, rop->r, x->r, y->r, pp);
-    encoding_mul(vt, pp_vt, rop->z, x->z, y->z, pp);
+    if (encoding_mul(vt, pp_vt, rop->r, x->r, y->r, pp) == ERR)
+        return ERR;
+    if (encoding_mul(vt, pp_vt, rop->z, x->z, y->z, pp) == ERR)
+        return ERR;
+    return OK;
 }
 
-static void
+static int
 wire_add(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
          wire *const rop, const wire *const x, const wire *const y,
          const public_params *const pp)
 {
     encoding *tmp = encoding_new(vt, pp_vt, pp);
-    encoding_mul(vt, pp_vt, rop->r, x->r, y->r, pp);
-
-    encoding_mul(vt, pp_vt, rop->z, x->z, y->r, pp);
-    encoding_mul(vt, pp_vt, tmp,    y->z, x->r, pp);
-    encoding_add(vt, pp_vt, rop->z, rop->z, tmp, pp);
+    if (encoding_mul(vt, pp_vt, rop->r, x->r, y->r, pp) == ERR)
+        return ERR;
+    if (encoding_mul(vt, pp_vt, rop->z, x->z, y->r, pp) == ERR)
+        return ERR;
+    if (encoding_mul(vt, pp_vt, tmp,    y->z, x->r, pp) == ERR)
+        return ERR;
+    if (encoding_add(vt, pp_vt, rop->z, rop->z, tmp, pp) == ERR)
+        return ERR;
     encoding_free(vt, tmp);
+    return OK;
 }
 
-static void
+static int
 wire_sub(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
          wire *const rop, const wire *const x, const wire *const y,
          const public_params *const pp)
 {
     encoding *tmp = encoding_new(vt, pp_vt, pp);
-    encoding_mul(vt, pp_vt, rop->r, x->r, y->r, pp);
-
-    encoding_mul(vt, pp_vt, rop->z, x->z, y->r, pp);
-    encoding_mul(vt, pp_vt, tmp,    y->z, x->r, pp);
-    encoding_sub(vt, pp_vt, rop->z, rop->z, tmp, pp);
+    if (encoding_mul(vt, pp_vt, rop->r, x->r, y->r, pp) == ERR)
+        return ERR;
+    if (encoding_mul(vt, pp_vt, rop->z, x->z, y->r, pp) == ERR)
+        return ERR;
+    if (encoding_mul(vt, pp_vt, tmp,    y->z, x->r, pp) == ERR)
+        return ERR;
+    if (encoding_sub(vt, pp_vt, rop->z, rop->z, tmp, pp) == ERR)
+        return ERR;
     encoding_free(vt, tmp);
+    return OK;
 }
 
-static void
+static int
 _evaluate(int *rop, const int *inps, const obfuscation *const obf)
 {
     const obf_params_t *op = obf->op;
@@ -696,6 +734,7 @@ _evaluate(int *rop, const int *inps, const obfuscation *const obf)
     int known[c->nrefs];
     wire *cache[c->nrefs];
     int input_syms[op->n];
+    int ret = OK;
 
     for (size_t i = 0; i < op->n; i++) {
         input_syms[i] = 0;
@@ -727,15 +766,19 @@ _evaluate(int *rop, const int *inps, const obfuscation *const obf)
                     int k = sym.sym_number;
                     int s = input_syms[k];
                     wire_init_from_encodings(w, obf->R_ib[xid][s], obf->Z_ib[xid][s]);
-                    fprintf(stderr, "XINPUT\n");
-                    wire_print(obf->enc_vt, w);
-                    fprintf(stderr, "======\n");
+                    if (LOG_DEBUG) {
+                        fprintf(stderr, "INPUT\n");
+                        wire_print(obf->enc_vt, w);
+                        fprintf(stderr, "=====\n");
+                    }
                 } else if (aop == OP_CONST) {
                     size_t yid = args[0];
                     wire_init_from_encodings(w, obf->R_i[yid], obf->Z_i[yid]);
-                    fprintf(stderr, "YINPUT\n");
-                    wire_print(obf->enc_vt, w);
-                    fprintf(stderr, "======\n");
+                    if (LOG_DEBUG) {
+                        fprintf(stderr, "CONST\n");
+                        wire_print(obf->enc_vt, w);
+                        fprintf(stderr, "=====\n");
+                    }
                 } else {
                     wire *x = cache[args[0]];
                     wire *y = cache[args[1]];
@@ -743,24 +786,36 @@ _evaluate(int *rop, const int *inps, const obfuscation *const obf)
                     wire_init(obf->enc_vt, obf->pp_vt, w, pp, true, true);
 
                     if (aop == OP_MUL) {
-                        wire_mul(obf->enc_vt, obf->pp_vt, w, x, y, pp);
+                        if (wire_mul(obf->enc_vt, obf->pp_vt, w, x, y, pp) == ERR)
+                            ret = ERR;
                     } else if (aop == OP_ADD) {
-                        wire_add(obf->enc_vt, obf->pp_vt, w, x, y, pp);
+                        if (wire_add(obf->enc_vt, obf->pp_vt, w, x, y, pp) == ERR)
+                            ret = ERR;
                     } else if (aop == OP_SUB) {
-                        wire_sub(obf->enc_vt, obf->pp_vt, w, x, y, pp);
+                        if (wire_sub(obf->enc_vt, obf->pp_vt, w, x, y, pp) == ERR)
+                            ret = ERR;
                     }
-                    fprintf(stderr, "OP\n");
-                    wire_print(obf->enc_vt, x);
-                    wire_print(obf->enc_vt, y);
-                    wire_print(obf->enc_vt, w);
-                    fprintf(stderr, "==\n");
+                    if (LOG_DEBUG) {
+                        fprintf(stderr, "OP\n");
+                        wire_print(obf->enc_vt, x);
+                        wire_print(obf->enc_vt, y);
+                        wire_print(obf->enc_vt, w);
+                        fprintf(stderr, "==\n");
+                    }
                 }
+                if (ret == ERR)
+                    break;
 
                 known[ref] = true;
                 cache[ref] = w;
             }
+            if (ret == ERR)
+                break;
         }
         acirc_topo_levels_destroy(topo);
+
+        if (ret == ERR)
+            goto cleanup;
 
         wire tmp[1];
         wire tmp2[1];
@@ -772,36 +827,50 @@ _evaluate(int *rop, const int *inps, const obfuscation *const obf)
             wire_init_from_encodings(tmp,
                                      obf->R_hat_ib_o[o][k][input_syms[k]],
                                      obf->Z_hat_ib_o[o][k][input_syms[k]]);
-            fprintf(stderr, "FINAL MUL\n");
-            wire_print(obf->enc_vt, outwire);
-            wire_print(obf->enc_vt, tmp);
+            if (LOG_DEBUG) {
+                fprintf(stderr, "FINAL MULS\n");
+                wire_print(obf->enc_vt, outwire);
+                wire_print(obf->enc_vt, tmp);
+            }
             wire_mul(obf->enc_vt, obf->pp_vt, outwire, outwire, tmp, pp);
-            wire_print(obf->enc_vt, outwire);
-            fprintf(stderr, "=========\n");
+            if (LOG_DEBUG) {   
+                wire_print(obf->enc_vt, outwire);
+                fprintf(stderr, "==========\n");
+            }
         }
 
         wire_copy(obf->enc_vt, obf->pp_vt, tmp2, outwire, pp);
         wire_init_from_encodings(tmp, obf->R_o_i[o], obf->Z_o_i[o]);
-        wire_sub(obf->enc_vt, obf->pp_vt, outwire, tmp2, tmp, pp);
-        fprintf(stderr, "FINAL SUB\n");
-        wire_print(obf->enc_vt, tmp2);
-        wire_print(obf->enc_vt, tmp);
-        wire_print(obf->enc_vt, outwire);
-        fprintf(stderr, "=========\n");
+        if (wire_sub(obf->enc_vt, obf->pp_vt, outwire, tmp2, tmp, pp) == ERR)
+            ret = ERR;
+        if (LOG_DEBUG) {
+            fprintf(stderr, "FINAL SUB\n");
+            wire_print(obf->enc_vt, tmp2);
+            wire_print(obf->enc_vt, tmp);
+            wire_print(obf->enc_vt, outwire);
+            fprintf(stderr, "=========\n");
+        }
 
-        rop[o] = encoding_is_zero(obf->enc_vt, obf->pp_vt, outwire->z, pp);
+        if (ret == OK) {
+            rop[o] = encoding_is_zero(obf->enc_vt, obf->pp_vt, outwire->z, pp);
+            if (rop[o] == ERR)
+                ret = ERR;
+        }
 
         wire_clear(obf->enc_vt, outwire);
         wire_clear(obf->enc_vt, tmp);
         wire_clear(obf->enc_vt, tmp2);
     }
 
-    for (acircref x = 0; x < c->nrefs; x++) {
+cleanup:
+    for (size_t x = 0; x < c->nrefs; x++) {
         if (known[x]) {
             wire_clear(obf->enc_vt, cache[x]);
             free(cache[x]);
         }
     }
+
+    return ret;
 }
 
 obfuscator_vtable ab_obfuscator_vtable = {

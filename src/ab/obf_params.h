@@ -1,8 +1,6 @@
 #ifndef __AB__OBF_PARAMS_H__
 #define __AB__OBF_PARAMS_H__
 
-#include "input_chunker.h"
-
 #include <acirc.h>
 #include <stdbool.h>
 #include <stddef.h>

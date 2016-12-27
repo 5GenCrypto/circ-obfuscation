@@ -1,12 +1,24 @@
-#include "input_chunker.h"
-#include "util.h"
+#include "../util.h"
 
+#include <acirc.h>
 #include <assert.h>
 #include <math.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <time.h>
 
-sym_id
+typedef struct {
+    size_t sym_number; // k \in [c]
+    size_t bit_number; // j \in [\ell]
+} sym_id;
+
+// takes a particular input id, total number of inputs, total number of symbols
+// returns which symbol this input id belongs to
+typedef sym_id   (*input_chunker)   (input_id id, size_t ninputs, size_t nsyms);
+typedef input_id (*reverse_chunker) (sym_id sym,  size_t ninputs, size_t nsyms);
+
+static sym_id
 chunker_in_order(input_id id, size_t ninputs, size_t nsyms)
 {
     size_t chunksize = ceil((double) ninputs / (double) nsyms);
@@ -16,7 +28,7 @@ chunker_in_order(input_id id, size_t ninputs, size_t nsyms)
     return sym;
 }
 
-input_id
+static input_id
 rchunker_in_order(sym_id sym,  size_t ninputs, size_t nsyms)
 {
     size_t chunksize = ceil((double) ninputs / (double) nsyms);
@@ -64,7 +76,7 @@ type_degree_helper(size_t *rop, acircref ref, const acirc *const c, size_t nsyms
         memo[ref][i] = rop[i];
 }
 
-void
+static void
 type_degree(size_t *rop, acircref ref, const acirc *const c, size_t nsyms,
             input_chunker chunker)
 {

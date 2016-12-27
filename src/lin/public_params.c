@@ -4,10 +4,11 @@ struct pp_info {
     obf_params_t *op;
     level *toplevel;
 };
+#define info(x) (x)->info
 
 static void
 _pp_init(const sp_vtable *const vt, public_params *const pp,
-         const secret_params *const sp)
+           const secret_params *const sp)
 {
     pp->info = calloc(1, sizeof(pp_info));
     pp->info->toplevel = vt->toplevel(sp);
@@ -59,7 +60,7 @@ static pp_vtable _pp_vtable = {
 };
 
 const pp_vtable *
-ab_get_pp_vtable(const mmap_vtable *const mmap)
+lin_get_pp_vtable(const mmap_vtable *const mmap)
 {
     _pp_vtable.mmap = mmap;
     return &_pp_vtable;
