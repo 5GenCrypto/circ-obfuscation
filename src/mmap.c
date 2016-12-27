@@ -81,9 +81,9 @@ encoding_new(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
 void
 encoding_free(const encoding_vtable *const vt, encoding *enc)
 {
-    vt->free(enc);
     vt->mmap->enc->clear(enc->enc);
     free(enc->enc);
+    vt->free(enc);
     free(enc);
 }
 
@@ -107,8 +107,6 @@ encode(const encoding_vtable *const vt, encoding *const rop,
     for (size_t i = 0; i < nins; ++i) {
         fmpz_init(finps[i]);
         fmpz_set_mpz(finps[i], inps[i]);
-        fmpz_print(finps[i]);
-        printf("\n");
     }
     vt->mmap->enc->encode(rop->enc, sp->sk, nins, finps, pows);
     for (size_t i = 0; i < nins; ++i) {
@@ -132,8 +130,15 @@ encoding_mul(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
              encoding *const rop, const encoding *const x,
              const encoding *const y, const public_params *const p)
 {
+
     (void) vt->mul(pp_vt, rop, x, y, p);
     vt->mmap->enc->mul(rop->enc, p->pp, x->enc, y->enc);
+    if (g_debug >= INFO) {
+        printf("[%s]\n", __func__);
+        encoding_print(vt, x);
+        encoding_print(vt, y);
+        encoding_print(vt, rop);
+    }
     return 0;
 }
 
@@ -144,6 +149,12 @@ encoding_add(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
 {
     (void) vt->add(pp_vt, rop, x, y, p);
     vt->mmap->enc->add(rop->enc, p->pp, x->enc, y->enc);
+    if (g_debug >= INFO) {
+        printf("[%s]\n", __func__);
+        encoding_print(vt, x);
+        encoding_print(vt, y);
+        encoding_print(vt, rop);
+    }
     return 0;
 }
 
@@ -154,6 +165,12 @@ encoding_sub(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
 {
     (void) vt->sub(pp_vt, rop, x, y, p);
     vt->mmap->enc->sub(rop->enc, p->pp, x->enc, y->enc);
+    if (g_debug >= INFO) {
+        printf("[%s]\n", __func__);
+        encoding_print(vt, x);
+        encoding_print(vt, y);
+        encoding_print(vt, rop);
+    }
     return 0;
 }
 

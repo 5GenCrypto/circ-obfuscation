@@ -3,7 +3,6 @@
 #include <assert.h>
 
 extern bool g_verbose;
-extern bool g_debug;
 
 static void obf_index_init(obf_index *ix, size_t n)
 {
@@ -17,16 +16,6 @@ obf_index * obf_index_create(size_t n)
     obf_index *ix = my_calloc(1, sizeof(obf_index));
     obf_index_init(ix, n);
     return ix;
-}
-
-obf_index * obf_index_copy(const obf_index *const ix)
-{
-    obf_index *new;
-
-    if ((new = obf_index_create(ix->n)) == NULL)
-        return NULL;
-    obf_index_set(new, ix);
-    return new;
 }
 
 void obf_index_destroy(obf_index *ix)
@@ -45,22 +34,19 @@ obf_index_create_toplevel(acirc *const c)
     if ((ix = obf_index_create(c->ninputs)) == NULL)
         return NULL;
     IX_Y(ix) = acirc_max_const_degree(c);
-/* #pragma omp parallel for */
     for (size_t i = 0; i < ix->n; i++) {
-        size_t d = acirc_max_var_degree(c, i);
+        const size_t d = acirc_max_var_degree(c, i);
         IX_X(ix, i, 0) = d;
-        /* IX_X(ix, i, 1) = d; */
-        /* IX_Z(ix, i) = 1; */
-        /* IX_W(ix, i) = 1; */
+        IX_X(ix, i, 1) = d;
+        IX_Z(ix, i) = 1;
+        IX_W(ix, i) = 1;
     }
-    if (g_debug) {
+    if (g_debug >= DEBUG) {
         fprintf(stderr, "[%s] toplevel: ", __func__);
         obf_index_print(ix);
     }
     return ix;
 }
-
-////////////////////////////////////////////////////////////////////////////////
 
 void obf_index_add(obf_index *const rop, const obf_index *const x,
                    const obf_index *const y)
@@ -82,8 +68,6 @@ bool obf_index_eq(const obf_index *const x, const obf_index *const y)
     assert(x->nzs == y->nzs);
     return ARRAY_EQ(x->pows, y->pows, x->nzs);
 }
-
-////////////////////////////////////////////////////////////////////////////////
 
 obf_index * obf_index_union(const obf_index *const x, const obf_index *const y)
 {
@@ -108,8 +92,6 @@ obf_index * obf_index_difference(const obf_index *const x, const obf_index *cons
     }
     return res;
 }
-
-////////////////////////////////////////////////////////////////////////////////
 
 void obf_index_print(const obf_index *const ix)
 {

@@ -29,6 +29,8 @@ ab_sp_init(const mmap_vtable *const mmap,
     sp->info = calloc(1, sizeof(sp_info));
     sp->info->op = op;
     sp->info->toplevel = level_create_vzt(op);
+    printf("toplevel:\n");
+    level_print(sp->info->toplevel);
 
     t = 0;
     for (size_t o = 0; o < op->gamma; o++) {

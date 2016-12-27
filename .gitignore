@@ -1,14 +1,12 @@
-ab_obfuscator
+circ_obfuscator
 clt13
 libaesrand
 libacirc
 libmmap
 gghlite
+libthreadpool
 build
-src/*.o
-src/parser/*.o
-src/parser/*.tab.*
-src/parser/*.yy.*
+*.o
 circuits/*.acirc.*
 Makefile
 *.in
@@ -20,3 +18,7 @@ src/.deps
 configure
 config.log
 config.status
+.deps/
+.dirstamp
+*.a
+TAGS

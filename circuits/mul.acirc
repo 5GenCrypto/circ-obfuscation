@@ -1,5 +1,7 @@
-# TEST 11 1
-# TEST 00 0
-0 input x0
-1 input x1
+:test 11 1
+:test 10 0
+:test 01 0
+:test 00 0
+0 input 0
+1 input 1
 2 output MUL 0 1

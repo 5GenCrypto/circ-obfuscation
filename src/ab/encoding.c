@@ -31,6 +31,7 @@ _encoding_free(encoding *const enc)
 static int
 _encoding_print(const encoding *const enc)
 {
+    printf("Encoding:\n");
     level_print(enc->info->lvl);
     return 0;
 }

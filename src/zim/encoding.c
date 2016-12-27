@@ -29,6 +29,7 @@ _encoding_free(encoding *const enc)
         if (enc->info->index) {
             obf_index_destroy(enc->info->index);
         }
+        free(enc->info);
     }
 }
 
@@ -45,9 +46,9 @@ _encode(encoding *const rop, const void *const set)
     int *pows;
     const obf_index *const ix = (const obf_index *const) set;
 
-    rop->info->index = obf_index_copy(ix);
-    pows = my_calloc(ix->n, sizeof(int));
-    memcpy(pows, ix->pows, ix->n * sizeof(int));
+    obf_index_set(rop->info->index, ix);
+    pows = my_calloc(ix->nzs, sizeof(int));
+    memcpy(pows, ix->pows, ix->nzs * sizeof(int));
     return pows;
 }
 

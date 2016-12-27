@@ -19,7 +19,7 @@
 #include <sys/stat.h>
 
 bool g_verbose = true;
-bool g_debug = true;
+debug_e g_debug = ERROR;
 
 enum scheme_e {
     SCHEME_AB,
@@ -120,19 +120,6 @@ static const struct option opts[] = {
 };
 static const char *short_opts = "adeol:sS:vh";
 
-static obfuscation *
-_obfuscate(const obfuscator_vtable *const vt, const struct args_t *const args,
-           const obf_params_t *const params)
-{
-    obfuscation *obf;
-
-    log_info("obfuscating...");
-    obf = vt->new(args->mmap, params, args->secparam);
-    if (obf)
-        vt->obfuscate(obf);
-    return obf;
-}
-
 static void
 _evaluate(const obfuscator_vtable *const vt, const struct args_t *const args,
           const acirc *const c, const obfuscation *const obf)
@@ -140,7 +127,6 @@ _evaluate(const obfuscator_vtable *const vt, const struct args_t *const args,
     (void) args;
     int res[c->noutputs];
 
-    log_info("evaluating...");
     for (size_t i = 0; i < c->ntests; i++) {
         vt->evaluate(res, c->testinps[i], obf);
         bool test_ok = ARRAY_EQ(res, c->testouts[i], c->noutputs);
@@ -206,17 +192,18 @@ run(const struct args_t *const args)
     /* } */
 
 #ifndef NDEBUG
-    acirc_ensure(&c, true);
+    acirc_ensure(&c);
 #endif
 
-    if (args->obfuscate) {
+    /* if (args->obfuscate) { */
         /* char fname[strlen(args->circuit) + 5]; */
         obfuscation *obf;
         /* FILE *f; */
 
-        obf = _obfuscate(vt, args, params);
+        obf = vt->new(args->mmap, params, args->secparam);
         if (obf == NULL)
             goto cleanup;
+        vt->obfuscate(obf);
 
     /*     snprintf(fname, sizeof fname, "%s.obf", args->circuit); */
     /*     f = fopen(fname, "w"); */
@@ -248,7 +235,7 @@ run(const struct args_t *const args)
         /* } */
         _evaluate(vt, args, &c, obf);
         vt->free(obf);
-    }
+    /* } */
     ret = 0;
 cleanup:
     op_vt->free(params);

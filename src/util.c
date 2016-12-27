@@ -109,7 +109,7 @@ mpz_vect_init(mpz_t *vec, size_t n)
         mpz_init(vec[i]);
 }
 
-mpz_t* mpz_vect_create_of_fmpz (fmpz_t *fvec, size_t n)
+mpz_t * mpz_vect_create_of_fmpz(fmpz_t *fvec, size_t n)
 {
     mpz_t *vec = mpz_vect_new(n);
     for (size_t i = 0; i < n; ++i) {
@@ -157,7 +157,7 @@ void mpz_vect_set (mpz_t *rop, mpz_t *xs, size_t n)
         mpz_set(rop[i], xs[i]);
 }
 
-void mpz_vect_urandomm(mpz_t *vec, mpz_t modulus, size_t n, aes_randstate_t rng)
+void mpz_vect_urandomm(mpz_t *vec, const mpz_t modulus, size_t n, aes_randstate_t rng)
 {
     for (size_t i = 0; i < n; i++) {
         do {
@@ -166,7 +166,7 @@ void mpz_vect_urandomm(mpz_t *vec, mpz_t modulus, size_t n, aes_randstate_t rng)
     }
 }
 
-void mpz_vect_urandomms(mpz_t *vec, mpz_t *moduli, size_t n, aes_randstate_t rng)
+void mpz_vect_urandomms(mpz_t *vec, const mpz_t *const moduli, size_t n, aes_randstate_t rng)
 {
     for (size_t i = 0; i < n; i++) {
         do {
@@ -175,21 +175,21 @@ void mpz_vect_urandomms(mpz_t *vec, mpz_t *moduli, size_t n, aes_randstate_t rng
     }
 }
 
-void mpz_vect_mul(mpz_t *rop, mpz_t *xs, mpz_t *ys, size_t n)
+void mpz_vect_mul(mpz_t *const rop, const mpz_t *const xs, const mpz_t *const ys, size_t n)
 {
     for (size_t i = 0; i < n; i++) {
         mpz_mul(rop[i], xs[i], ys[i]);
     }
 }
 
-void mpz_vect_mod(mpz_t *rop, mpz_t *xs, mpz_t *moduli, size_t n)
+void mpz_vect_mod(mpz_t *const rop, const mpz_t *const xs, const mpz_t *const moduli, size_t n)
 {
     for (size_t i = 0; i < n; i++) {
         mpz_mod(rop[i], xs[i], moduli[i]);
     }
 }
 
-void mpz_vect_mul_mod(mpz_t *rop, mpz_t *xs, mpz_t *ys, mpz_t *moduli, size_t n)
+void mpz_vect_mul_mod(mpz_t *const rop, const mpz_t *const xs, const mpz_t *const ys, const mpz_t *const moduli, size_t n)
 {
     mpz_vect_mul(rop, xs, ys, n);
     mpz_vect_mod(rop, rop, moduli, n);
@@ -299,7 +299,7 @@ bool_fwrite(bool x, FILE *const fp)
 #define PBWIDTH 60
 
 void
-print_progress (size_t cur, size_t total)
+print_progress(size_t cur, size_t total)
 {
     static int last_val = 0;
     double percentage = (double) cur / total;
@@ -307,8 +307,10 @@ print_progress (size_t cur, size_t total)
     int lpad = percentage * PBWIDTH;
     int rpad = PBWIDTH - lpad;
     if (val != last_val) {
-        /* fprintf(stdout, "\r\t%3d%% [%.*s%*s] %lu/%lu", val, lpad, PBSTR, rpad, "", cur, total); */
-        /* fflush(stdout); */
+        fprintf(stdout, "\r\t%3d%% [%.*s%*s] %lu/%lu", val, lpad, PBSTR, rpad, "", cur, total);
+        if (cur == total)
+            fprintf(stdout, "\n");
+        fflush(stdout);
         last_val = val;
     }
 }

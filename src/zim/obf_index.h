@@ -17,8 +17,7 @@ typedef struct {
     size_t n;       // number of inputs to the circuit
 } obf_index;
 
-obf_index* obf_index_create(size_t n);
-obf_index* obf_index_copy(const obf_index *ix);
+obf_index * obf_index_create(size_t n);
 void obf_index_destroy(obf_index *ix);
 
 void obf_index_add(obf_index *const rop, const obf_index *const x,

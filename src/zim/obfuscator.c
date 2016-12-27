@@ -1,6 +1,5 @@
 #include "obfuscator.h"
 
-#include "dbg.h"
 #include "encoding.h"
 #include "obf_index.h"
 #include "obf_params.h"
@@ -9,7 +8,6 @@
 #include <assert.h>
 #include <string.h>
 #include <threadpool.h>
-/* #include <pthread.h> */
 
 typedef struct obfuscation {
     const mmap_vtable *mmap;
@@ -41,13 +39,14 @@ typedef struct obfuscation {
 static void
 zim_encoding_print(const char *const name, mpz_t inps[2], obf_index *ix)
 {
-    /* (void) name; (void) inps; (void) ix; */
-    gmp_printf(
-"=======================\n"
-"\t%s\n"
-"\t%Zd\t%Zd\n\t", name, inps[0], inps[1]);
-    obf_index_print(ix);
-    printf("=======================\n");
+    if (g_debug >= INFO) {
+        gmp_printf(
+            "=======================\n"
+            "\t%s\n"
+            "\t%Zd\t%Zd\n\t", name, inps[0], inps[1]);
+        obf_index_print(ix);
+        printf("=======================\n");
+    }
 }
 
 static void
@@ -164,11 +163,10 @@ _obfuscator_free(obfuscation *obf)
         secret_params_clear(obf->sp_vt, obf->sp);
         free(obf->sp);
     }
+    aes_randclear(obf->rng);
 
     free(obf);
 }
-
-
 
 static void
 _obfuscate(obfuscation *const obf)
@@ -198,7 +196,8 @@ _obfuscate(obfuscation *const obf)
     mpz_set_ui(ones[0], 1);
     mpz_set_ui(ones[1], 1);
 
-    gmp_printf("%Zd\t%Zd\n", moduli[0], moduli[1]);
+    if (g_debug >= DEBUG)
+        gmp_printf("%Zd\t%Zd\n", moduli[0], moduli[1]);
 
     assert(obf->mmap->sk->nslots(obf->sp->sk) >= 2);
 
@@ -251,15 +250,15 @@ _obfuscate(obfuscation *const obf)
         }
     }
 
+    printf("  Encoding:\n");
     print_progress(encode_ct, encode_n);
 
 #pragma omp parallel for
     for (size_t i = 0; i < n; i++) {
         for (size_t b = 0; b <= 1; b++) {
 
-            mpz_set_ui(inps[0], 0);
-            /* mpz_set   (inps[1], alpha[i]); */
-            mpz_set_ui(inps[1], 0);
+            mpz_set_ui(inps[0], b);
+            mpz_set   (inps[1], alpha[i]);
 
             {
                 // create the xhat and uhat encodings
@@ -269,8 +268,8 @@ _obfuscate(obfuscation *const obf)
                 encode(obf->enc_vt, obf->xhat[i][b], inps, 2, ix, obf->sp);
                 for (size_t p = 0; p < op->npowers; p++) {
                     IX_X(ix, i, b) = 1 << p;
-                    mpz_set_ui(inps[0], 0);
-                    mpz_set_ui(inps[1], 0);
+                    mpz_set_ui(inps[0], 1);
+                    mpz_set_ui(inps[1], 1);
                     zim_encoding_print("uhat[i,b,p]", inps, ix);
                     encode(obf->enc_vt, obf->uhat[i][b][p], inps, 2, ix, obf->sp);
                 }
@@ -282,39 +281,39 @@ _obfuscate(obfuscation *const obf)
                 print_progress(encode_ct, encode_n);
             }
 
-/*             for (size_t k = 0; k < o; k++) { */
-/*                 // create the zhat encodings for each output wire */
-/*                 { */
-/*                     obf_index *ix = obf_index_create(n); */
-/*                     if (i == 0) { */
-/*                         IX_Y(ix) = con_dmax - con_deg[k]; */
-/*                     } */
-/*                     IX_X(ix, i, b)   = var_dmax[i] - var_deg[i][k]; */
-/*                     IX_X(ix, i, 1-b) = var_dmax[i]; */
-/*                     IX_Z(ix, i) = 1; */
-/*                     IX_W(ix, i) = 1; */
-/*                     mpz_set(inps[0], delta[i][b][k]); */
-/*                     mpz_set(inps[1], gamma[i][b][k]); */
-/*                     zim_encoding_print("zhat[i,b,k]", inps, ix); */
-/*                     encode(obf->enc_vt, obf->zhat[i][b][k], inps, 2, ix, obf->sp); */
-/*                     obf_index_destroy(ix); */
-/*                 } */
-/*                 // create the what encodings */
-/*                 { */
-/*                     obf_index *ix = obf_index_create(n); */
-/*                     IX_W(ix, i) = 1; */
-/*                     mpz_set_ui(inps[0], 0); */
-/*                     mpz_set   (inps[1], gamma[i][b][k]); */
-/*                     zim_encoding_print("what[i,b,k]", inps, ix); */
-/*                     encode(obf->enc_vt, obf->what[i][b][k], inps, 2, ix, obf->sp); */
-/*                     obf_index_destroy(ix); */
-/*                 } */
-/* #pragma omp critical */
-/*                 { */
-/*                     encode_ct += 2; */
-/*                     print_progress(encode_ct, encode_n); */
-/*                 } */
-/*             } */
+            for (size_t k = 0; k < o; k++) {
+                // create the zhat encodings for each output wire
+                {
+                    obf_index *ix = obf_index_create(n);
+                    if (i == 0) {
+                        IX_Y(ix) = con_dmax - con_deg[k];
+                    }
+                    IX_X(ix, i, b)   = var_dmax[i] - var_deg[i][k];
+                    IX_X(ix, i, 1-b) = var_dmax[i];
+                    IX_Z(ix, i) = 1;
+                    IX_W(ix, i) = 1;
+                    mpz_set(inps[0], delta[i][b][k]);
+                    mpz_set(inps[1], gamma[i][b][k]);
+                    zim_encoding_print("zhat[i,b,k]", inps, ix);
+                    encode(obf->enc_vt, obf->zhat[i][b][k], inps, 2, ix, obf->sp);
+                    obf_index_destroy(ix);
+                }
+                // create the what encodings
+                {
+                    obf_index *ix = obf_index_create(n);
+                    IX_W(ix, i) = 1;
+                    mpz_set_ui(inps[0], 0);
+                    mpz_set   (inps[1], gamma[i][b][k]);
+                    zim_encoding_print("what[i,b,k]", inps, ix);
+                    encode(obf->enc_vt, obf->what[i][b][k], inps, 2, ix, obf->sp);
+                    obf_index_destroy(ix);
+                }
+#pragma omp critical
+                {
+                    encode_ct += 2;
+                    print_progress(encode_ct, encode_n);
+                }
+            }
         }
     }
 
@@ -335,8 +334,8 @@ _obfuscate(obfuscation *const obf)
         }
         for (size_t p = 0; p < op->npowers; p++) {
             IX_Y(ix) = 1 << p;
-            mpz_set_ui(inps[0], 0);
-            mpz_set_ui(inps[1], 0);
+            mpz_set_ui(inps[0], 1);
+            mpz_set_ui(inps[1], 1);
             zim_encoding_print("vhat[p]", inps, ix);
             encode(obf->enc_vt, obf->vhat[p], inps, 2, ix, obf->sp);
 #pragma omp critical
@@ -375,8 +374,7 @@ _obfuscate(obfuscation *const obf)
         }
 
         mpz_set_ui(inps[0], 0);
-        /* mpz_set   (inps[1], Cstar[k]); */
-        mpz_set_ui(inps[1], 0);
+        mpz_set   (inps[1], Cstar[k]);
 
         zim_encoding_print("Chatstar[k]", inps, ix);
         encode(obf->enc_vt, obf->Chatstar[k], inps, 2, ix, obf->sp);
@@ -402,7 +400,7 @@ _obfuscate(obfuscation *const obf)
         mpz_clear(beta[j]);
     for (size_t k = 0; k < o; k++)
         mpz_clear(Cstar[k]);
-    /* free(moduli); */
+    mpz_vect_free(moduli, obf->mmap->sk->nslots(obf->sp->sk));
 }
 
 static void
@@ -532,9 +530,16 @@ static void raise_encoding(const obfuscation *const obf, encoding *const x,
                            const obf_index *const target);
 
 static void
-_evaluate(int *rop, const int *inputs, const obfuscation *const obf)
+_evaluate(int *rop, const int *const inputs, const obfuscation *const obf)
 {
     const acirc *const c = obf->op->circ;
+
+    if (g_debug >= DEBUG) {
+        fprintf(stderr, "[%s] evaluating on input ", __func__);
+        for (size_t i = 0; i < obf->op->ninputs; ++i)
+            fprintf(stderr, "%d", inputs[obf->op->ninputs - 1 - i]);
+        fprintf(stderr, "\n");
+    }
 
     encoding *cache[c->nrefs];  // evaluated intermediate nodes
     ref_list *deps[c->nrefs]; // each list contains refs of nodes dependent on this one
@@ -551,7 +556,7 @@ _evaluate(int *rop, const int *inputs, const obfuscation *const obf)
     // populate dependents lists
     for (acircref ref = 0; ref < c->nrefs; ref++) {
         acirc_operation op = c->gates[ref].op;
-        if (op == XINPUT || op == YINPUT)
+        if (op == OP_INPUT || op == OP_CONST)
             continue;
         acircref x = c->gates[ref].args[0];
         acircref y = c->gates[ref].args[1];
@@ -565,7 +570,7 @@ _evaluate(int *rop, const int *inputs, const obfuscation *const obf)
     // parents to start, recursively, until the output is reached.
     for (acircref ref = 0; ref < c->nrefs; ref++) {
         acirc_operation op = c->gates[ref].op;
-        if (!(op == XINPUT || op == YINPUT)) {
+        if (!(op == OP_INPUT || op == OP_CONST)) {
             continue;
         }
         // allocate each argstruct here, otherwise we will overwrite
@@ -595,6 +600,13 @@ _evaluate(int *rop, const int *inputs, const obfuscation *const obf)
             encoding_free(obf->enc_vt, cache[i]);
         }
     }
+
+    if (g_debug >= DEBUG) {
+        fprintf(stderr, "[%s] result: ", __func__);
+        for (size_t i = 0; i < obf->op->noutputs; ++i)
+            fprintf(stderr, "%d", rop[obf->op->noutputs - 1 - i]);
+        fprintf(stderr, "\n");
+    }
 }
 
 void obf_eval_worker(void* wargs)
@@ -614,11 +626,11 @@ void obf_eval_worker(void* wargs)
     const acircref *const args = c->gates[ref].args;
     encoding *res;
 
-    if (op == XINPUT) {
+    if (op == OP_INPUT) {
         const size_t xid = args[0];
         res = obf->xhat[xid][inputs[xid]];
         mine[ref] = 0; // the evaluator didn't allocate this encoding
-    } else if (op == YINPUT) {
+    } else if (op == OP_CONST) {
         const size_t yid = args[0];
         res = obf->yhat[yid];
         mine[ref] = 0; // the evaluator didn't allocate this encoding
@@ -631,8 +643,7 @@ void obf_eval_worker(void* wargs)
         const encoding *const y = cache[args[1]];
         assert(x && y);
 
-        if (op == MUL) {
-            debug("multiplying %lu and %lu", args[0], args[1]);
+        if (op == OP_MUL) {
             encoding_mul(obf->enc_vt, obf->pp_vt, res, x, y, obf->pp);
         } else {
             encoding *tmp_x, *tmp_y;
@@ -641,13 +652,10 @@ void obf_eval_worker(void* wargs)
             tmp_y = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
             encoding_set(obf->enc_vt, tmp_x, x);
             encoding_set(obf->enc_vt, tmp_y, y);
-            debug("raising encodings %lu and %lu", args[0], args[1]);
             raise_encodings(obf, tmp_x, tmp_y);
-            if (op == ADD) {
-                debug("adding encodings %lu and %lu", args[0], args[1]);
+            if (op == OP_ADD) {
                 encoding_add(obf->enc_vt, obf->pp_vt, res, tmp_x, tmp_y, obf->pp);
-            } else if (op == SUB) {
-                debug("subtracting encodings %lu and %lu", args[0], args[1]);
+            } else if (op == OP_SUB) {
                 encoding_sub(obf->enc_vt, obf->pp_vt, res, tmp_x, tmp_y, obf->pp);
             } else {
                 abort();
@@ -690,45 +698,55 @@ void obf_eval_worker(void* wargs)
     }
 
     if (ref_is_output) {
-        encoding *outwire, *tmp;
+        encoding *out, *lhs, *rhs, *tmp, *tmp2;
         const obf_index *const toplevel = obf->pp_vt->toplevel(obf->pp);
 
-        outwire = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
+        out = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
+        lhs = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
+        rhs = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
         tmp = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
+        tmp2 = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
         
-        encoding_set(obf->enc_vt, outwire, res);
+        /* Compute RHS */
         encoding_set(obf->enc_vt, tmp, obf->Chatstar[k]);
+        for (size_t i = 0; i < c->ninputs; i++) {
+            encoding_set(obf->enc_vt, tmp2, tmp);
+            encoding_mul(obf->enc_vt, obf->pp_vt, tmp, tmp2,
+                         obf->what[i][inputs[i]][k], obf->pp);
+        }
+        encoding_set(obf->enc_vt, rhs, tmp);
+        if (!obf_index_eq(toplevel, zim_encoding_index(rhs))) {
+            fprintf(stderr, "rhs != toplevel\n");
+            obf_index_print(zim_encoding_index(rhs));
+            obf_index_print(toplevel);
+            rop[k] = 1;
+            goto cleanup;
+        }
+        /* Compute LHS */
+        encoding_set(obf->enc_vt, tmp, res);
+        for (size_t i = 0; i < c->ninputs; i++) {
+            encoding_set(obf->enc_vt, tmp2, tmp);
+            encoding_mul(obf->enc_vt, obf->pp_vt, tmp, tmp2,
+                         obf->zhat[i][inputs[i]][k], obf->pp);
+        }
+        encoding_set(obf->enc_vt, lhs, tmp);
+        if (!obf_index_eq(toplevel, zim_encoding_index(lhs))) {
+            fprintf(stderr, "lhs != toplevel\n");
+            obf_index_print(zim_encoding_index(lhs));
+            obf_index_print(toplevel);
+            rop[k] = 1;
+            goto cleanup;
+        }
 
-        /* for (size_t i = 0; i < c->ninputs; i++) { */
-        /*     encoding_mul(obf->enc_vt, obf->pp_vt, tmp, tmp, */
-        /*                  obf->what[i][inputs[i]][k], obf->pp); */
-        /* } */
-        /* if (!obf_index_eq(toplevel, zim_encoding_index(tmp))) { */
-        /*     fprintf(stderr, "tmp != toplevel\n"); */
-        /*     obf_index_print(zim_encoding_index(tmp)); */
-        /*     obf_index_print(toplevel); */
-        /*     rop[k] = 1; */
-        /*     goto cleanup; */
-        /* } */
-        /* for (size_t i = 0; i < c->ninputs; i++) { */
-        /*     encoding_mul(obf->enc_vt, obf->pp_vt, outwire, outwire, */
-        /*                  obf->zhat[i][inputs[i]][k], obf->pp); */
-        /* } */
-        /* if (!obf_index_eq(toplevel, zim_encoding_index(outwire))) { */
-        /*     fprintf(stderr, "outwire != toplevel\n"); */
-        /*     obf_index_print(zim_encoding_index(outwire)); */
-        /*     obf_index_print(toplevel); */
-        /*     rop[k] = 1; */
-        /*     goto cleanup; */
-        /* } */
-
-        /* encoding_sub(obf->enc_vt, obf->pp_vt, outwire, outwire, tmp, obf->pp); */
-        encoding_print(obf->enc_vt, outwire);
-        rop[k] = !encoding_is_zero(obf->enc_vt, obf->pp_vt, outwire, obf->pp);
+        encoding_sub(obf->enc_vt, obf->pp_vt, out, lhs, rhs, obf->pp);
+        rop[k] = !encoding_is_zero(obf->enc_vt, obf->pp_vt, out, obf->pp);
 
     cleanup:
-        encoding_free(obf->enc_vt, outwire);
+        encoding_free(obf->enc_vt, out);
+        encoding_free(obf->enc_vt, lhs);
+        encoding_free(obf->enc_vt, rhs);
         encoding_free(obf->enc_vt, tmp);
+        encoding_free(obf->enc_vt, tmp2);
     }
 }
 

@@ -25,7 +25,7 @@ _sp_init(const mmap_vtable *const mmap,
     sp->info->toplevel = obf_index_create_toplevel(op->circ);
     sp->info->op = op;
 
-    kappa = acirc_delta(op->circ) /* + op->circ->ninputs */;
+    kappa = acirc_delta(op->circ) + op->circ->ninputs;
 
     debug("Δ = %lu", acirc_delta(op->circ));
     debug("n = %lu", op->circ->ninputs);
@@ -43,6 +43,8 @@ _sp_clear(const mmap_vtable *const mmap, secret_params *sp)
     (void) mmap;
     obf_index_destroy(my(sp)->toplevel);
     free(sp->info);
+    mmap->sk->clear(sp->sk);
+    free(sp->sk);
 }
 
 static void *

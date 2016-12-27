@@ -6,6 +6,14 @@
 #include <stdbool.h>
 #include <gmp.h>
 
+typedef enum debug_e {
+    ERROR = 0,
+    WARN = 1,
+    DEBUG = 2,
+    INFO = 3
+} debug_e;
+extern debug_e g_debug;
+
 double current_time(void);
 
 int seed_rng(gmp_randstate_t *rng);
@@ -26,12 +34,12 @@ void mpz_vect_print(mpz_t *vec, size_t n);
 void mpz_vect_clear(mpz_t *vec, size_t n);
 void mpz_vect_free(mpz_t *vec, size_t n);
 
-void mpz_vect_urandomm(mpz_t *vec, mpz_t modulus, size_t n, aes_randstate_t rng);
-void mpz_vect_urandomms(mpz_t *vec, mpz_t *moduli, size_t n, aes_randstate_t rng);
+void mpz_vect_urandomm(mpz_t *vec, const mpz_t modulus, size_t n, aes_randstate_t rng);
+void mpz_vect_urandomms(mpz_t *vec, const mpz_t *moduli, size_t n, aes_randstate_t rng);
 
-void mpz_vect_mul(mpz_t *rop, mpz_t *xs, mpz_t *ys, size_t n);
-void mpz_vect_mod(mpz_t *rop, mpz_t *xs, mpz_t *moduli, size_t n);
-void mpz_vect_mul_mod(mpz_t *rop, mpz_t *xs, mpz_t *ys, mpz_t *moduli, size_t n);
+void mpz_vect_mul(mpz_t *const rop, const mpz_t *const xs, const mpz_t *const ys, size_t n);
+void mpz_vect_mod(mpz_t *const rop, const mpz_t *const xs, const mpz_t *const moduli, size_t n);
+void mpz_vect_mul_mod(mpz_t *const rop, const mpz_t *const xs, const mpz_t *const ys, const mpz_t *const moduli, size_t n);
 
 void mpz_vect_set(mpz_t *rop, mpz_t *xs, size_t n);
 

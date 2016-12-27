@@ -37,11 +37,11 @@ type_degree_helper(size_t *rop, acircref ref, const acirc *const c, size_t nsyms
 
     acirc_operation op = c->gates[ref].op;
 
-    if (op == XINPUT) {
+    if (op == OP_INPUT) {
         sym_id sym = chunker(c->gates[ref].args[0], c->ninputs, nsyms);
         assert(sym.sym_number < nsyms);
         rop[sym.sym_number] = 1;
-    } else if (op == YINPUT) {
+    } else if (op == OP_CONST) {
         assert(c->ninputs + c->gates[ref].args[0] < nsyms);
         rop[c->ninputs + c->gates[ref].args[0]] = 1;
     } else {
