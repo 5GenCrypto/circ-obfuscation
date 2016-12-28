@@ -133,7 +133,7 @@ _encoding_fwrite(const encoding *const x, FILE *const fp)
     level_fwrite(info(x)->lvl, fp);
 }
 
-static void *
+static const void *
 _encoding_mmap_set(const encoding *const x)
 {
     return info(x)->lvl;

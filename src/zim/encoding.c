@@ -116,7 +116,7 @@ _encoding_fwrite(const encoding *const x, FILE *const fp)
     obf_index_fwrite(my(x)->index, fp);
 }
 
-static void *
+static const void *
 _encoding_mmap_set(const encoding *const enc)
 {
     return my(enc)->index;

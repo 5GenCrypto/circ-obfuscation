@@ -8,8 +8,6 @@
 #include <stdio.h>
 #include <err.h>
 
-/* TODO: set num_symbolic_inputs */
-
 static obf_params_t *
 _op_new(acirc *const circ, void *const vparams)
 {

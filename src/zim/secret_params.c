@@ -27,7 +27,7 @@ _sp_init(const mmap_vtable *const mmap,
         fprintf(stderr, "Secret parameter settings:\n");
         fprintf(stderr, "* Δ = %lu\n", acirc_delta(op->circ));
         fprintf(stderr, "* n = %lu\n", op->circ->ninputs);
-        fprintf(stderr, "* κ = Δ + n = %lu\n", kappa);
+        fprintf(stderr, "* κ = %lu\n", kappa);
     }
 
     sp->sk = calloc(1, mmap->sk->size);

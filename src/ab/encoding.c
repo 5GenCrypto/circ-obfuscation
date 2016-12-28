@@ -142,7 +142,8 @@ static encoding_vtable ab_encoding_vtable =
     .sub = _encoding_sub,
     .is_zero = _encoding_is_zero,
     .fread = _encoding_fread,
-    .fwrite = _encoding_fwrite
+    .fwrite = _encoding_fwrite,
+    .mmap_set = NULL,
 };
 
 const encoding_vtable *

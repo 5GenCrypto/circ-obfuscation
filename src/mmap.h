@@ -68,7 +68,7 @@ typedef struct {
                    const public_params *const);
     void (*fread)(encoding *const, FILE *const);
     void (*fwrite)(const encoding *const, FILE *const);
-    void * (*mmap_set)(const encoding *const);
+    const void * (*mmap_set)(const encoding *const);
 } encoding_vtable;
 
 int

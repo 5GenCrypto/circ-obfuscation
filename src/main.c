@@ -65,8 +65,12 @@ struct args_t {
     size_t secparam;
     bool evaluate;
     bool obfuscate;
-    bool simple;
     enum scheme_e scheme;
+    /* AB specific settings */
+    bool simple;
+    /* Zim specific settings */
+    size_t npowers;
+
 };
 
 static void
@@ -77,8 +81,11 @@ args_init(struct args_t *args)
     args->secparam = 16;
     args->evaluate = false;
     args->obfuscate = true;
-    args->simple = false;
     args->scheme = SCHEME_ZIM;
+    /* AB specific settings */
+    args->simple = false;
+    /* Zim specific settings */
+    args->npowers = 8;
 }
 
 static void
@@ -104,15 +111,22 @@ usage(int ret)
     printf("Options:\n"
 "    --all, -a         obfuscate and evaluate\n"
 "    --debug <LEVEL>   set debug level (options: ERROR, WARN, DEBUG, INFO | default: ERROR)\n"
-"    --evaluate, -e    evaluate obfuscation\n"
-"    --obfuscate, -o   construct obfuscation (default)\n"
-"    --lambda, -l <λ>  set security parameter to <λ> when obfuscating (default=%lu)\n"
+"    --evaluate, -e    evaluate obfuscation (default: %s)\n"
+"    --obfuscate, -o   construct obfuscation (default: %s)\n"
+"    --lambda, -l <λ>  set security parameter to <λ> when obfuscating (default: %lu)\n"
 "    --scheme <NAME>   set scheme to NAME (options: AB, ZIM, LIN | default: ZIM)\n"
 "    --mmap <NAME>     set mmap to NAME (options: CLT, DUMMY | default: CLT)\n"
-"    --simple, -s      use SimpleObf scheme when using AB scheme\n"
 "    --verbose, -v     be verbose\n"
-"    --help, -h        print this message\n",
-           defaults.secparam);
+"    --help, -h        print this message\n"
+"\n"
+"  AB Specific Settings:\n"
+"    --simple          use SimpleObf scheme when using AB scheme\n"
+"\n"
+"  ZIM Specific Settings:\n"
+           "    --npowers <N>     use N powers (default: %lu)\n",
+           defaults.evaluate ? "yes" : "no",
+           defaults.obfuscate ? "yes" : "no",
+           defaults.secparam, defaults.npowers);
     exit(ret);
 }
 
@@ -122,6 +136,7 @@ static const struct option opts[] = {
     {"evaluate", no_argument, 0, 'e'},
     {"obfuscate", no_argument, 0, 'o'},
     {"lambda", required_argument, 0, 'l'},
+    {"npowers", required_argument, 0, 'n'},
     {"mmap", required_argument, 0, 'M'},
     {"scheme", required_argument, 0, 'S'},
     {"simple", no_argument, 0, 's'},
@@ -129,13 +144,12 @@ static const struct option opts[] = {
     {"help", no_argument, 0, 'h'},
     {0, 0, 0, 0}
 };
-static const char *short_opts = "aD:eol:M:sS:vh";
+static const char *short_opts = "aD:eol:n:M:sS:vh";
 
 static int
 _evaluate(const obfuscator_vtable *const vt, const struct args_t *const args,
           const acirc *const c, const obfuscation *const obf)
 {
-    (void) args;
     int res[c->noutputs];
     int ret = OK;
 
@@ -179,7 +193,6 @@ run(const struct args_t *const args)
 {
     obf_params_t *params;
     acirc c;
-    int ret = 1;
     const mmap_vtable *mmap;
     const obfuscator_vtable *vt;
     const op_vtable *op_vt;
@@ -203,7 +216,6 @@ run(const struct args_t *const args)
 
     acirc_init(&c);
     acirc_verbose(g_verbose);
-    fprintf(stderr, "reading circuit '%s'...\n", args->circuit);
     if (acirc_parse(&c, args->circuit) == ACIRC_ERR) {
         errx(1, "parsing circuit '%s' failed!", args->circuit);
     }
@@ -243,58 +255,49 @@ run(const struct args_t *const args)
 
     params = op_vt->new(&c, vparams);
 
-    acirc_ensure(&c);
+    /* acirc_ensure(&c); */
 
-    /* if (args->obfuscate) { */
-        /* char fname[strlen(args->circuit) + 5]; */
+    if (args->obfuscate) {
+        char fname[strlen(args->circuit) + 5];
         obfuscation *obf;
-        /* FILE *f; */
+        FILE *f;
 
+        fprintf(stderr, "obfuscating...\n");
         obf = vt->new(mmap, params, args->secparam);
         if (obf == NULL)
-            goto cleanup;
-        if (vt->obfuscate(obf) == ERR) {
-            errx(1, "obfuscation failed");
-        }
+            errx(1, "error: initializing obfuscator failed");
+        if (vt->obfuscate(obf) == ERR)
+            errx(1, "error: obfuscation failed");
 
-    /*     snprintf(fname, sizeof fname, "%s.obf", args->circuit); */
-    /*     f = fopen(fname, "w"); */
-    /*     if (f == NULL) { */
-    /*         log_err("unable to open '%s' for writing", fname); */
-    /*         goto cleanup; */
-    /*     } */
-    /*     vt->fwrite(obf, f); */
-    /*     vt->free(obf); */
-    /*     fclose(f); */
-    /* } */
-
-    /* if (args->evaluate) { */
-        /* char fname[strlen(args->circuit) + 5]; */
-        /* obfuscation *obf; */
-        /* FILE *f; */
-
-        /* snprintf(fname, sizeof fname, "%s.obf", args->circuit); */
-        /* f = fopen(fname, "r"); */
-        /* if (f == NULL) { */
-        /*     log_err("unable to open '%s' for reading", fname); */
-        /*     goto cleanup; */
-        /* } */
-        /* obf = vt->fread(args->mmap, params, f); */
-        /* fclose(f); */
-        /* if (obf == NULL) { */
-        /*     log_err("unable to read obfuscation"); */
-        /*     goto cleanup; */
-        /* } */
-        if (_evaluate(vt, args, &c, obf) == ERR)
-            errx(1, "evaluation failed");
+        snprintf(fname, sizeof fname, "%s.obf", args->circuit);
+        if ((f = fopen(fname, "w")) == NULL)
+            errx(1, "error: unable to open '%s' for writing", fname);
+        if (vt->fwrite(obf, f) == ERR)
+            errx(1, "error: writing obfuscator failed");
         vt->free(obf);
-    /* } */
-    ret = OK;
-cleanup:
+        fclose(f);
+    }
+
+    if (args->evaluate) {
+        char fname[strlen(args->circuit) + 5];
+        obfuscation *obf;
+        FILE *f;
+
+        fprintf(stderr, "evaluating...\n");
+        snprintf(fname, sizeof fname, "%s.obf", args->circuit);
+        if ((f = fopen(fname, "r")) == NULL)
+            errx(1, "error: unable to open '%s' for reading", fname);
+        if ((obf = vt->fread(mmap, params, f)) == NULL)
+            errx(1, "error: reading obfuscator failed");
+        fclose(f);
+        if (_evaluate(vt, args, &c, obf) == ERR)
+            errx(1, "error: evaluation failed");
+        vt->free(obf);
+    }
     op_vt->free(params);
     acirc_clear(&c);
 
-    return ret;
+    return OK;
 }
 
 int
@@ -335,6 +338,9 @@ main(int argc, char **argv)
             break;
         case 'l':
             args.secparam = atoi(optarg);
+            break;
+        case 'n':
+            args.npowers = atoi(optarg);
             break;
         case 'M':
             if (strcmp(optarg, "CLT") == 0) {
