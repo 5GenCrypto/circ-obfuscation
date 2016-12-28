@@ -46,13 +46,13 @@ _sp_clear(const mmap_vtable *const mmap, secret_params *sp)
     free(sp->sk);
 }
 
-static void *
+static const void *
 _sp_toplevel(const secret_params *const sp)
 {
     return my(sp)->toplevel;
 }
 
-static void *
+static const void *
 _sp_params(const secret_params *const sp)
 {
     (void) sp;

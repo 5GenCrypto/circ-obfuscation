@@ -144,9 +144,19 @@ _evaluate(const obfuscator_vtable *const vt, const struct args_t *const args,
             return ERR;
         bool ok = true;
         for (size_t j = 0; j < c->noutputs; ++j) {
-            if (!!res[j] != !!c->testouts[i][j]) {
-                ok = false;
-                ret = ERR;
+            switch (args->scheme) {
+            case SCHEME_ZIM:
+                if (!!res[j] != !!c->testouts[i][j]) {
+                    ok = false;
+                    ret = ERR;
+                }
+                break;
+            case SCHEME_AB: case SCHEME_LIN:
+                if (res[j] == (c->testouts[i][j] != 1)) {
+                    ok = false;
+                    ret = ERR;
+                }
+                break;
             }
         }
         if (!ok)
@@ -233,9 +243,7 @@ run(const struct args_t *const args)
 
     params = op_vt->new(&c, vparams);
 
-#ifndef NDEBUG
-    /* acirc_ensure(&c); */
-#endif
+    acirc_ensure(&c);
 
     /* if (args->obfuscate) { */
         /* char fname[strlen(args->circuit) + 5]; */

@@ -41,7 +41,7 @@ encode_Zstar(const encoding_vtable *const vt, const obf_params_t *const op,
     mpz_t *inps = mpz_vect_new(op->c+3);
     mpz_set_ui(inps[0], 1);
     mpz_set_ui(inps[1], 1);
-    mpz_vect_urandomm(inps + 2, moduli + 2, op->c+1, rng);
+    mpz_vect_urandomms(inps + 2, moduli + 2, op->c+1, rng);
 
     {
         level *lvl = level_create_vstar(op);
@@ -66,7 +66,7 @@ static void
 encode_Zksj(const encoding_vtable *const vt, const obf_params_t *const op,
             encoding *const enc, const secret_params *const sp,
             aes_randstate_t rng, mpz_t *rs, mpz_t ykj, size_t k, size_t s,
-            size_t j, bool rachel_input, mpz_t *const moduli)
+            size_t j, bool rachel_input, const mpz_t *const moduli)
 {
     mpz_t *w = mpz_vect_new(op->c+3);
 
@@ -75,10 +75,10 @@ encode_Zksj(const encoding_vtable *const vt, const obf_params_t *const op,
         mpz_set_ui(w[1], s == j);
     else
         mpz_set_ui(w[1], bit(s,j));
-    mpz_vect_urandomm(w+2, moduli+2, op->c+1, rng);
+    mpz_vect_urandomms(w+2, moduli+2, op->c+1, rng);
 
-    mpz_vect_mul(w, w, rs, op->c+3);
-    mpz_vect_mod(w, w, moduli, op->c+3);
+    mpz_vect_mul(w, (const mpz_t *) w, (const mpz_t *) rs, op->c+3);
+    mpz_vect_mod(w, (const mpz_t *) w, moduli, op->c+3);
 
     level *lvl = level_create_vks(op, k, s);
     level *vstar = level_create_vstar(op);
@@ -104,15 +104,15 @@ static void
 encode_Zcj(const encoding_vtable *const vt, const obf_params_t *const op,
            encoding *const enc, const secret_params *const sp,
            aes_randstate_t rng, mpz_t *rs, mpz_t ykj, int const_val,
-           mpz_t *const moduli)
+           const mpz_t *const moduli)
 {
     mpz_t *w = mpz_vect_new(op->c+3);
     mpz_set(w[0], ykj);
     mpz_set_ui(w[1], const_val);
-    mpz_vect_urandomm(w+2, moduli+2, op->c+1, rng);
+    mpz_vect_urandomms(w+2, moduli+2, op->c+1, rng);
 
-    mpz_vect_mul(w, w, rs, op->c+3);
-    mpz_vect_mod(w, w, moduli, op->c+3);
+    mpz_vect_mul(w, (const mpz_t *) w, (const mpz_t *) rs, op->c+3);
+    mpz_vect_mod(w, (const mpz_t *) w, moduli, op->c+3);
 
     level *lvl = level_create_vc(op);
     level *vstar = level_create_vstar(op);
@@ -138,12 +138,11 @@ encode_Rhatkso(const encoding_vtable *const vt, const obf_params_t *const op,
 static void
 encode_Zhatkso(const encoding_vtable *const vt, const obf_params_t *const op,
                encoding *const enc, const secret_params *const sp,
-               mpz_t *const rs, mpz_t *const whatk, size_t k, size_t s, size_t o,
-               mpz_t *const moduli)
+               const mpz_t *const rs, const mpz_t *const whatk, size_t k, size_t s, size_t o,
+               const mpz_t *const moduli)
 {
     mpz_t *inp = mpz_vect_new(op->c+3);
-    mpz_vect_mul(inp, whatk, rs, op->c+3);
-    mpz_vect_mod(inp, inp, moduli, op->c+3);
+    mpz_vect_mul_mod(inp, whatk, rs, moduli, op->c+3);
 
     level *lvl   = level_create_vhatkso(op, k, s, o);
     level *vstar = level_create_vstar(op);
@@ -169,11 +168,11 @@ encode_Rhato(const encoding_vtable *const vt, const obf_params_t *const op,
 static void
 encode_Zhato(const encoding_vtable *const vt, const obf_params_t *const op,
              encoding *const enc, const secret_params *const sp,
-             mpz_t *const rs, mpz_t *const what, size_t o, mpz_t *const moduli)
+             const mpz_t *const rs, const mpz_t *const what, size_t o,
+             const mpz_t *const moduli)
 {
     mpz_t *inp = mpz_vect_new(op->c+3);
-    mpz_vect_mul(inp, what, rs, op->c+3);
-    mpz_vect_mod(inp, inp, moduli, op->c+3);
+    mpz_vect_mul_mod(inp, what, rs, moduli, op->c+3);
 
     level *vhato = level_create_vhato(op, o);
     level *lvl = level_create_vstar(op);
@@ -199,40 +198,37 @@ encode_Rbaro(const encoding_vtable *const vt, const obf_params_t *const op,
 static void
 encode_Zbaro(const encoding_vtable *const vt, const obf_params_t *const op,
              encoding *const enc, const secret_params *const sp,
-             mpz_t *const rs, mpz_t *const what, mpz_t *const *const whatk,
-             mpz_t *const *const ykj, acirc *const c,
-             size_t o, mpz_t *const moduli)
+             const mpz_t *const rs, const mpz_t *const what, const mpz_t *const *const whatk,
+             const mpz_t *const *const ykj, acirc *const c,
+             size_t o, const mpz_t *const moduli)
 {
     mpz_t ybar;
     mpz_init(ybar);
 
-    mpz_t *xs = mpz_vect_new(c->ninputs);
+    mpz_t *const xs = mpz_vect_new(c->ninputs);
     for (size_t k = 0; k < op->c; k++) {
         for (size_t j = 0; j < op->ell; j++) {
             sym_id sym = {k, j};
             input_id id = op->rchunker(sym, c->ninputs, op->c);
-            if (id >= c->ninputs)
+            if ((size_t) id >= c->ninputs)
                 continue;
             mpz_set(xs[id], ykj[k][j]);
         }
     }
-    acirc_eval_mpz_mod(ybar, c, c->outrefs[o], xs, ykj[op->c], moduli[0]);
+    acirc_eval_mpz_mod(ybar, c, c->outrefs[o], (const mpz_t *) xs, ykj[op->c], moduli[0]);
 
     mpz_t *tmp = mpz_vect_new(op->c+3);
     mpz_vect_set(tmp, what, op->c+3);
     for (size_t k = 0; k < op->c; k++) {
-        mpz_vect_mul(tmp, tmp, whatk[k], op->c+3);
-        mpz_vect_mod(tmp, tmp, moduli, op->c+3);
+        mpz_vect_mul_mod(tmp, (const mpz_t *) tmp, whatk[k], moduli, op->c+3);
     }
 
     mpz_t *w = mpz_vect_new(op->c+3);
     mpz_set(w[0], ybar);
     mpz_set_ui(w[1], 1);
-    mpz_vect_mul(w, w, tmp, op->c+3);
-    mpz_vect_mod(w, w, moduli, op->c+3);
+    mpz_vect_mul_mod(w, (const mpz_t *) w, (const mpz_t *) tmp, moduli, op->c+3);
 
-    mpz_vect_mul(w, w, rs, op->c+3);
-    mpz_vect_mod(w, w, moduli, op->c+3);
+    mpz_vect_mul_mod(w, (const mpz_t *) w, (const mpz_t *) rs, moduli, op->c+3);
 
     level *lvl   = level_create_vbaro(op, o);
     level *vstar = level_create_vstar(op);
@@ -406,7 +402,7 @@ _obfuscation_free(obfuscation *obf)
     free(obf->Zbaro);
 }
 
-static void
+static int
 _obfuscate(obfuscation *const obf)
 {
     mpz_t *const moduli =
@@ -431,29 +427,29 @@ _obfuscate(obfuscation *const obf)
     }
 
     // create whatk and what
-    mpz_t **whatk = my_calloc(op->c, sizeof(mpz_t *));
+    mpz_t **const whatk = my_calloc(op->c, sizeof(mpz_t *));
     for (size_t k = 0; k < op->c; k++) {
         whatk[k] = mpz_vect_new(op->c+3);
-        mpz_vect_urandomm(whatk[k], moduli, op->c+3, obf->rng);
+        mpz_vect_urandomms(whatk[k], (const mpz_t *) moduli, op->c+3, obf->rng);
         mpz_set_ui(whatk[k][k+2], 0);
     }
-    mpz_t *what = mpz_vect_new(op->c+3);
-    mpz_vect_urandomm(what, moduli, op->c+3, obf->rng);
+    mpz_t *const what = mpz_vect_new(op->c+3);
+    mpz_vect_urandomms(what, (const mpz_t *) moduli, op->c+3, obf->rng);
     mpz_set_ui(what[op->c+2], 0);
 
-    encode_Zstar(obf->enc_vt, obf->op, obf->Zstar, obf->sp, obf->rng, moduli);
+    encode_Zstar(obf->enc_vt, obf->op, obf->Zstar, obf->sp, obf->rng, (const mpz_t *) moduli);
 
     // encode Rks and Zksj
 /* #pragma omp parallel for schedule(dynamic,1) collapse(2) */
     for (size_t k = 0; k < op->c; k++) {
         for (size_t s = 0; s < op->q; s++) {
             mpz_t *tmp = mpz_vect_new(op->c+3);
-            mpz_vect_urandomm(tmp, moduli, op->c+3, obf->rng);
+            mpz_vect_urandomms(tmp, (const mpz_t *) moduli, op->c+3, obf->rng);
             encode_Rks(obf->enc_vt, op, obf->Rks[k][s], obf->sp, tmp, k, s);
             for (size_t j = 0; j < op->ell; j++) {
                 encode_Zksj(obf->enc_vt, op, obf->Zksj[k][s][j], obf->sp,
                             obf->rng, tmp, ykj[k][j], k, s, j, op->rachel_input,
-                            moduli);
+                            (const mpz_t *) moduli);
             }
             mpz_vect_free(tmp, op->c+3);
         }
@@ -462,12 +458,12 @@ _obfuscate(obfuscation *const obf)
     // encode Rc and Zcj
     {
         mpz_t *rs = mpz_vect_new(op->c+3);
-        mpz_vect_urandomm(rs, moduli, op->c+3, obf->rng);
+        mpz_vect_urandomms(rs, (const mpz_t *) moduli, op->c+3, obf->rng);
         encode_Rc(obf->enc_vt, obf->op, obf->Rc, obf->sp, rs);
 /* #pragma omp parallel for */
         for (size_t j = 0; j < op->m; j++) {
             encode_Zcj(obf->enc_vt, obf->op, obf->Zcj[j], obf->sp, obf->rng, rs,
-                       ykj[op->c][j], op->circ->consts[j], moduli);
+                       ykj[op->c][j], op->circ->consts[j], (const mpz_t *) moduli);
         }
         mpz_vect_free(rs, op->c+3);
     }
@@ -478,11 +474,11 @@ _obfuscate(obfuscation *const obf)
         for (size_t k = 0; k < op->c; k++) {
             for (size_t s = 0; s < op->q; s++) {
                 mpz_t *tmp = mpz_vect_new(op->c+3);
-                mpz_vect_urandomm(tmp, moduli, op->c+3, obf->rng);
+                mpz_vect_urandomms(tmp, (const mpz_t *) moduli, op->c+3, obf->rng);
                 encode_Rhatkso(obf->enc_vt, obf->op, obf->Rhatkso[k][s][o],
                                obf->sp, tmp, k, s, o);
                 encode_Zhatkso(obf->enc_vt, obf->op, obf->Zhatkso[k][s][o],
-                               obf->sp, tmp, whatk[k], k, s, o, moduli);
+                               obf->sp, (const mpz_t *) tmp, (const mpz_t *) whatk[k], k, s, o, (const mpz_t *) moduli);
                 mpz_vect_free(tmp, op->c+3);
             }
         }
@@ -492,10 +488,10 @@ _obfuscate(obfuscation *const obf)
 /* #pragma omp parallel for */
     for (size_t o = 0; o < op->gamma; o++) {
         mpz_t *tmp = mpz_vect_new(op->c+3);
-        mpz_vect_urandomm(tmp, moduli, op->c+3, obf->rng);
+        mpz_vect_urandomms(tmp, (const mpz_t *) moduli, op->c+3, obf->rng);
         encode_Rhato(obf->enc_vt, op, obf->Rhato[o], obf->sp, tmp, o);
-        encode_Zhato(obf->enc_vt, op, obf->Zhato[o], obf->sp, tmp, what, o,
-                     moduli);
+        encode_Zhato(obf->enc_vt, op, obf->Zhato[o], obf->sp, (const mpz_t *) tmp, (const mpz_t *) what, o,
+                     (const mpz_t *) moduli);
         mpz_vect_free(tmp, op->c+3);
     }
 
@@ -503,10 +499,10 @@ _obfuscate(obfuscation *const obf)
 /* #pragma omp parallel for */
     for (size_t o = 0; o < op->gamma; o++) {
         mpz_t *tmp = mpz_vect_new(op->c+3);
-        mpz_vect_urandomm(tmp, moduli, op->c+3, obf->rng);
+        mpz_vect_urandomms(tmp, (const mpz_t *) moduli, op->c+3, obf->rng);
         encode_Rbaro(obf->enc_vt, op, obf->Rbaro[o], obf->sp, tmp, o);
-        encode_Zbaro(obf->enc_vt, op, obf->Zbaro[o], obf->sp, tmp, what, whatk,
-                     ykj, op->circ, o, moduli);
+        encode_Zbaro(obf->enc_vt, op, obf->Zbaro[o], obf->sp, (const mpz_t *) tmp, (const mpz_t *) what, (const mpz_t **) whatk,
+                     (const mpz_t **) ykj, op->circ, o, (const mpz_t *) moduli);
         mpz_vect_free(tmp, op->c+3);
     }
 
@@ -699,8 +695,8 @@ wire_init_from_encodings(const encoding_vtable *const vt, const pp_vtable *const
                          wire *const rop, const public_params *const pp,
                          encoding *const r, encoding *const z)
 {
-    obf_params_t *op = pp_vt->params(pp);
-    level *lvl = vt->mmap_set(z);
+    const obf_params_t *const op = pp_vt->params(pp);
+    const level *const lvl = vt->mmap_set(z);
     rop->r = r;
     rop->z = z;
     rop->my_r = false;
@@ -742,6 +738,7 @@ wire_mul(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
     if (encoding_mul(vt, pp_vt, rop->z, x->z, y->z, pp) == ERR)
         return ERR;
     rop->d = x->d + y->d;
+    return OK;
 }
 
 
@@ -950,8 +947,8 @@ static int
 _evaluate(int *rop, const int *inps, const obfuscation *const obf)
 {
     /* const obf_params_t *op = obf->op; */
-    public_params *pp = obf->pp;
-    const acirc *c = obf->op->circ;
+    public_params *const pp = obf->pp;
+    acirc *const c = obf->op->circ;
     int ret = OK;
 
     // determine each assignment s \in \Sigma from the input bits

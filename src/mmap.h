@@ -6,12 +6,9 @@
 #include <mmap/mmap.h>
 #include <stdlib.h>
 
-#define OK    0
-#define ERR (-1)
-
 typedef struct obf_params_t obf_params_t;
 typedef struct {
-    obf_params_t * (*new)(const acirc *const, void *const);
+    obf_params_t * (*new)(acirc *const, void *const);
     void (*free)(obf_params_t *);
     int (*fwrite)(const obf_params_t *const, FILE *const);
     int (*fread)(obf_params_t *const, FILE *const);
@@ -28,8 +25,8 @@ typedef struct {
     int (*init)(const mmap_vtable *const, struct secret_params *const,
                  const obf_params_t *const, size_t, aes_randstate_t);
     void (*clear)(const mmap_vtable *const, struct secret_params *);
-    void * (*toplevel)(const secret_params *const);
-    void * (*params)(const secret_params *const);
+    const void * (*toplevel)(const secret_params *const);
+    const void * (*params)(const secret_params *const);
 } sp_vtable;
 
 typedef struct pp_info pp_info;
@@ -44,8 +41,8 @@ typedef struct {
     void (*fwrite)(const public_params *const, FILE *const);
     void (*fread)(public_params *const, const obf_params_t *const, FILE *const);
     void (*clear)(public_params *const);
-    void * (*toplevel)(const public_params *const);
-    void * (*params)(const public_params *const);
+    const void * (*toplevel)(const public_params *const);
+    const void * (*params)(const public_params *const);
 } pp_vtable;
 
 typedef struct encoding_info encoding_info;

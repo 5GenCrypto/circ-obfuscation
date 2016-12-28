@@ -72,13 +72,13 @@ _sp_clear(const mmap_vtable *const mmap, secret_params *sp)
     }
 }
 
-static void *
+static const void *
 _sp_toplevel(const secret_params *const sp)
 {
     return sp->info->toplevel;
 }
 
-static void *
+static const void *
 _sp_params(const secret_params *const sp)
 {
     return sp->info->op;

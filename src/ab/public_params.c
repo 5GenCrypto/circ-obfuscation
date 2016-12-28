@@ -1,8 +1,8 @@
 #include "vtables.h"
 
 struct pp_info {
-    obf_params_t *op;
-    level *toplevel;
+    const obf_params_t *op;
+    const level *toplevel;
 };
 
 static void
@@ -17,16 +17,16 @@ _pp_init(const sp_vtable *const vt, public_params *const pp,
 static void
 _pp_fwrite(const public_params *const pp, FILE *const fp)
 {
-    level_fwrite(pp->info->toplevel, fp);
+    (void) pp; (void) fp;
 }
 
 static void
 _pp_fread(public_params *const pp, const obf_params_t *const op,
           FILE *const fp)
 {
+    (void) fp;
     pp->info = calloc(1, sizeof(pp_info));
     pp->info->toplevel = level_create_vzt(op);
-    level_fread(pp->info->toplevel, fp);
     pp->info->op = op;
 }
 
@@ -36,13 +36,13 @@ _pp_clear(public_params *const pp)
     free(pp->info);
 }
 
-static void *
+static const void *
 _pp_params(const public_params *const pp)
 {
     return pp->info->op;
 }
 
-static void *
+static const void *
 _pp_toplevel(const public_params *const pp)
 {
     return pp->info->toplevel;

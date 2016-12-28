@@ -10,7 +10,7 @@
 #include <err.h>
 
 static obf_params_t *
-_op_new(const acirc *const circ, void *const vparams)
+_op_new(acirc *const circ, void *const vparams)
 {
     ab_obf_params_t *const params = (ab_obf_params_t *const) vparams;
     obf_params_t *p = calloc(1, sizeof(obf_params_t));

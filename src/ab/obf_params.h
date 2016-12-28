@@ -17,7 +17,7 @@ struct obf_params_t {
     bool simple;
     input_chunker chunker;
     reverse_chunker rchunker;
-    const acirc *circ;
+    acirc *circ;
 };
 
 #endif

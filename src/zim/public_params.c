@@ -6,7 +6,7 @@
 
 struct pp_info {
     const obf_params_t *op;
-    obf_index *toplevel;
+    const obf_index *toplevel;
     bool local;
 };
 #define my(x) x->info
@@ -43,14 +43,14 @@ _pp_fread(public_params *const pp, const obf_params_t *const op,
     pp->info->local = true;
 }
 
-static void *
+static const void *
 _pp_params(const public_params *const pp)
 {
     (void) pp;
     return NULL;
 }
 
-static void *
+static const void *
 _pp_toplevel(const public_params *const pp)
 {
     return pp->info->toplevel;

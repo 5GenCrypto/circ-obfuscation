@@ -1,5 +1,4 @@
 #include "mmap.h"
-#include "dbg.h"
 #include "util.h"
 
 #include <assert.h>
@@ -31,7 +30,7 @@ public_params_init(const pp_vtable *const vt, const sp_vtable *const sp_vt,
                    public_params *const pp, const secret_params *const sp)
 {
     vt->init(sp_vt, pp, sp);
-    pp->pp = (mmap_pp *) vt->mmap->sk->pp(sp->sk);
+    pp->pp = vt->mmap->sk->pp(sp->sk);
 }
 
 int
@@ -108,7 +107,7 @@ encode(const encoding_vtable *const vt, encoding *const rop,
         fmpz_init(finps[i]);
         fmpz_set_mpz(finps[i], inps[i]);
     }
-    vt->mmap->enc->encode(rop->enc, sp->sk, nins, finps, pows);
+    vt->mmap->enc->encode(rop->enc, sp->sk, nins, (const fmpz_t *) finps, pows);
     for (size_t i = 0; i < nins; ++i) {
         fmpz_clear(finps[i]);
     }

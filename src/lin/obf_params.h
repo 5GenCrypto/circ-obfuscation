@@ -22,7 +22,7 @@ struct obf_params_t {
     bool rachel_input;
     input_chunker chunker;
     reverse_chunker rchunker;
-    const acirc *circ;
+    acirc *circ;
 };
 
 #endif

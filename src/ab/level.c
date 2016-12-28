@@ -38,7 +38,7 @@ level_free(level *lvl)
 }
 
 static void
-level_fprint(FILE *fp, level *lvl)
+level_fprint(FILE *const fp, const level *const lvl)
 {
     fprintf(fp, "[");
     for (size_t i = 0; i < lvl->nrows; i++) {
@@ -100,7 +100,7 @@ level_flatten(int *pows, const level *lvl)
 }
 
 static int
-level_eq (level *x, level *y)
+level_eq (const level *const x, const level *const y)
 {
     for (size_t i = 0; i < x->nrows; i++) {
         for (size_t j = 0; j < x->ncols; j++) {
@@ -240,7 +240,7 @@ level_fwrite(const level *const lvl, FILE *const fp)
 }
 
 static void
-level_fread(level *lvl, FILE *const fp)
+level_fread(level *const lvl, FILE *const fp)
 {
     size_t_fread(&lvl->nrows, fp);
     GET_SPACE(fp);

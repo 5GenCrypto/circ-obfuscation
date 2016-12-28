@@ -45,25 +45,25 @@ level_free(level *lvl)
 static void
 level_fprint(FILE *const fp, const level *const lvl)
 {
-    fprintf(stderr, "[");
+    fprintf(fp, "[");
     for (size_t i = 0; i < lvl->q+1; i++) {
         if (i != 0)
-            fprintf(stderr, ",");
-        fprintf(stderr, "[");
+            fprintf(fp, ",");
+        fprintf(fp, "[");
         for (size_t j = 0; j < lvl->c+2; j++) {
-            fprintf(stderr, "%lu", lvl->mat[i][j]);
+            fprintf(fp, "%lu", lvl->mat[i][j]);
             if (j != lvl->c+2-1)
-                fprintf(stderr, ",");
+                fprintf(fp, ",");
         }
-        fprintf(stderr, "]");
+        fprintf(fp, "]");
     }
-    fprintf(stderr, "],[");
+    fprintf(fp, "],[");
     for (size_t i = 0; i < lvl->gamma; i++) {
-        fprintf(stderr, "%lu", lvl->vec[i]);
+        fprintf(fp, "%lu", lvl->vec[i]);
         if (i != lvl->gamma-1)
-            fprintf(stderr, ",");
+            fprintf(fp, ",");
     }
-    fprintf(stderr, "]\n");
+    fprintf(fp, "]\n");
 }
 
 static void
@@ -80,7 +80,7 @@ level_set(level *rop, const level *lvl)
 }
 
 static void
-level_add(level *rop, const level *x, const level *y)
+level_add(level *const rop, const level *const x, const level *const y)
 {
     for (size_t i = 0; i < rop->q+1; i++) {
         for (size_t j = 0; j < rop->c+2; j++) {
@@ -93,7 +93,7 @@ level_add(level *rop, const level *x, const level *y)
 }
 
 static void
-level_mul_ui(level *rop, level *op, int x)
+level_mul_ui(level *const rop, const level *const op, int x)
 {
     for (size_t i = 0; i < rop->q+1; i++) {
         for (size_t j = 0; j < rop->c+2; j++) {
@@ -106,7 +106,7 @@ level_mul_ui(level *rop, level *op, int x)
 }
 
 static void
-level_flatten(int *pows, const level *lvl)
+level_flatten(int *const pows, const level *const lvl)
 {
     int z = 0;
     for (size_t i = 0; i < lvl->q+1; i++) {
@@ -120,7 +120,7 @@ level_flatten(int *pows, const level *lvl)
 }
 
 static bool
-level_eq(level *x, level *y)
+level_eq(const level *const x, const level *const y)
 {
     for (size_t i = 0; i < x->q+1; i++) {
         for (size_t j = 0; j < x->c+2; j++) {

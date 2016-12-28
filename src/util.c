@@ -12,45 +12,32 @@
 bool g_verbose = true;
 debug_e g_debug = ERROR;
 
-// XXX: The use of /dev/urandom is not secure; however, the supercomputer we run
-// on doesn't appear to have enough entropy, and blocks for long periods of
-// time.  Thus, we use /dev/urandom instead.
-#ifndef RANDFILE
-#  define RANDFILE "/dev/urandom"
-#endif
-
 double current_time(void) {
     struct timeval t;
     (void) gettimeofday(&t, NULL);
     return (double) (t.tv_sec + (double) (t.tv_usec / 1000000.0));
 }
-
-int seed_rng(gmp_randstate_t *rng) {
-    int file;
-    if ((file = open(RANDFILE, O_RDONLY)) == -1) {
-        (void) fprintf(stderr, "Error opening %s\n", RANDFILE);
-        return 1;
-    } else {
-        unsigned long seed;
-        if (read(file, &seed, sizeof seed) == -1) {
-            (void) fprintf(stderr, "Error reading from %s\n", RANDFILE);
-            (void) close(file);
-            return 1;
-        } else {
-            gmp_randinit_default(*rng);
-            gmp_randseed_ui(*rng, seed);
-        }
-    }
-    if (file != -1)
-        (void) close(file);
-    return 0;
-}
-
 int max(int x, int y) {
     if (x >= y)
         return x;
     else
         return y;
+}
+
+void array_add(size_t *rop, size_t *xs, size_t *ys, size_t n)
+{
+    for (size_t i = 0; i < n; ++i) {
+        rop[i] = xs[i] + ys[i];
+    }
+}
+
+bool array_eq(size_t *xs, size_t *ys, size_t n)
+{
+    for (size_t i = 0; i < n; ++i) {
+        if (xs[i] != ys[i])
+            return false;
+    }
+    return true;
 }
 
 void array_printstring(int *xs, size_t n)
@@ -154,7 +141,7 @@ mpz_vect_clear(mpz_t *vec, size_t n)
         mpz_clear(vec[i]);
 }
 
-void mpz_vect_set (mpz_t *rop, mpz_t *xs, size_t n)
+void mpz_vect_set(mpz_t *rop, const mpz_t *const xs, size_t n)
 {
     for (size_t i = 0; i < n; i++)
         mpz_set(rop[i], xs[i]);

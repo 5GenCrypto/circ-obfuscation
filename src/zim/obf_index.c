@@ -2,8 +2,6 @@
 
 #include <assert.h>
 
-extern bool g_verbose;
-
 static void obf_index_init(obf_index *ix, size_t n)
 {
     ix->n = n;
@@ -53,7 +51,7 @@ void obf_index_add(obf_index *const rop, const obf_index *const x,
 {
     assert(x->nzs == y->nzs);
     assert(y->nzs == rop->nzs);
-    ARRAY_ADD(rop->pows, x->pows, y->pows, rop->nzs);
+    array_add(rop->pows, x->pows, y->pows, rop->nzs);
 }
 
 void obf_index_set(obf_index *const rop, const obf_index *const x)
@@ -66,7 +64,7 @@ void obf_index_set(obf_index *const rop, const obf_index *const x)
 bool obf_index_eq(const obf_index *const x, const obf_index *const y)
 {
     assert(x->nzs == y->nzs);
-    return ARRAY_EQ(x->pows, y->pows, x->nzs);
+    return array_eq(x->pows, y->pows, x->nzs);
 }
 
 obf_index * obf_index_union(const obf_index *const x, const obf_index *const y)

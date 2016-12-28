@@ -330,7 +330,7 @@ _obfuscation_free(obfuscation *obf)
 static int
 _obfuscate(obfuscation *const obf)
 {
-    const mpz_t *const moduli =
+    mpz_t *const moduli =
         mpz_vect_create_of_fmpz(obf->mmap->sk->plaintext_fields(obf->sp->sk),
                                 obf->mmap->sk->nslots(obf->sp->sk));
     const bool simple = obf->op->simple;
@@ -352,7 +352,7 @@ _obfuscate(obfuscation *const obf)
 
     for (size_t i = 0; i < n; ++i) {
         mpz_vect_init(w_hats[i], nslots);
-        mpz_vect_urandomms(w_hats[i], moduli, nslots, obf->rng);
+        mpz_vect_urandomms(w_hats[i], (const mpz_t *) moduli, nslots, obf->rng);
         if (!simple) {
             mpz_set_ui(w_hats[i][i + 2], 0);
         }
@@ -365,7 +365,7 @@ _obfuscate(obfuscation *const obf)
             mpz_vect_init(tmp, nslots);
             mpz_vect_init(other, nslots);
             /* Compute R_i,b encodings */
-            mpz_vect_urandomms(tmp, moduli, nslots, obf->rng);
+            mpz_vect_urandomms(tmp, (const mpz_t *) moduli, nslots, obf->rng);
             encode_v_ib(obf->enc_vt, obf->op, obf->R_ib[i][b], obf->sp, tmp, i, b);
             if (LOG_DEBUG) {
                 fprintf(stderr, "R_%lu,%lu --------\n", i, b);
@@ -374,10 +374,10 @@ _obfuscate(obfuscation *const obf)
             }
             /* Compute Z_i,b encodings */
             if (!simple)
-                mpz_vect_urandomms(other, moduli, nslots, obf->rng);
+                mpz_vect_urandomms(other, (const mpz_t *) moduli, nslots, obf->rng);
             mpz_set   (other[0], ys[i]);
             mpz_set_ui(other[1], b);
-            mpz_vect_mul_mod(tmp, tmp, other, moduli, nslots);
+            mpz_vect_mul_mod(tmp, (const mpz_t *) tmp, (const mpz_t *) other, (const mpz_t *) moduli, nslots);
             encode_v_ib_v_star(obf->enc_vt, obf->op, obf->Z_ib[i][b], obf->sp, tmp, i, b);
             if (LOG_DEBUG) {
                 printf("Z_%lu,%lu --------\n", i, b);
@@ -396,7 +396,7 @@ _obfuscate(obfuscation *const obf)
                 mpz_t tmp[nslots];
                 mpz_vect_init(tmp, nslots);
                 /* Compute R_hat_i,b encodings */
-                mpz_vect_urandomms(tmp, moduli, nslots, obf->rng);
+                mpz_vect_urandomms(tmp, (const mpz_t *) moduli, nslots, obf->rng);
                 encode_v_hat_ib_o(obf->enc_vt, obf->op, obf->R_hat_ib_o[o][i][b], obf->sp, tmp, i, b, o);
                 if (LOG_DEBUG) {
                     printf("R_hat_%lu,%lu --------\n", i, b);
@@ -404,7 +404,7 @@ _obfuscate(obfuscation *const obf)
                     printf("------------------\n");
                 }
                 /* Compute Z_hat_i,b encodings */
-                mpz_vect_mul_mod(tmp, tmp, w_hats[i], moduli, nslots);
+                mpz_vect_mul_mod(tmp, (const mpz_t *) tmp, (const mpz_t *) w_hats[i], (const mpz_t *) moduli, nslots);
                 encode_v_hat_ib_o_v_star(obf->enc_vt, obf->op, obf->Z_hat_ib_o[o][i][b], obf->sp, tmp, i, b, o);
                 if (LOG_DEBUG) {
                     printf("Z_hat_%lu,%lu --------\n", i, b);
@@ -422,7 +422,7 @@ _obfuscate(obfuscation *const obf)
         mpz_vect_init(tmp, nslots);
         mpz_vect_init(other, nslots);
         /* Compute R_i encodings */
-        mpz_vect_urandomms(tmp, moduli, nslots, obf->rng);
+        mpz_vect_urandomms(tmp, (const mpz_t *) moduli, nslots, obf->rng);
         encode_v_i(obf->enc_vt, obf->op, obf->R_i[i], obf->sp, tmp, i);
         if (LOG_DEBUG) {
             printf("R_%lu --------\n", i);
@@ -430,10 +430,10 @@ _obfuscate(obfuscation *const obf)
             printf("------------\n");
         }
         /* Compute Z_i encodings */
-        mpz_vect_urandomms(other, moduli, nslots, obf->rng);
+        mpz_vect_urandomms(other, (const mpz_t *) moduli, nslots, obf->rng);
         mpz_set(   other[0], ys[n + i]);
         mpz_set_ui(other[1], obf->op->circ->consts[i]);
-        mpz_vect_mul_mod(tmp, tmp, other, moduli, nslots);
+        mpz_vect_mul_mod(tmp, (const mpz_t *) tmp, (const mpz_t *) other, (const mpz_t *) moduli, nslots);
         encode_v_i_v_star(obf->enc_vt, obf->op, obf->Z_i[i], obf->sp, tmp, i);
         if (LOG_DEBUG) {
             printf("Z_%lu --------\n", i);
@@ -450,7 +450,7 @@ _obfuscate(obfuscation *const obf)
         mpz_vect_init(rs, nslots);
         mpz_vect_init(ws, nslots);
         /* Compute R_o_i encodings */
-        mpz_vect_urandomms(rs, moduli, nslots, obf->rng);
+        mpz_vect_urandomms(rs, (const mpz_t *) moduli, nslots, obf->rng);
         encode_v_hat_o(obf->enc_vt, obf->op, obf->R_o_i[o], obf->sp, rs, o);
         if (LOG_DEBUG) {
             printf("R_0 --------\n");
@@ -458,16 +458,16 @@ _obfuscate(obfuscation *const obf)
             printf("------------\n");
         }
         /* Compute Z_o_i encodings */
-        acirc_eval_mpz_mod(ws[0], obf->op->circ, obf->op->circ->outrefs[o], ys,
-                           ys + n, moduli[0]);
+        acirc_eval_mpz_mod(ws[0], obf->op->circ, obf->op->circ->outrefs[o], (const mpz_t *) ys,
+                           (const mpz_t *) ys + n, moduli[0]);
         mpz_set_ui(ws[1], 1);
         for (size_t i = 2; i < nslots; ++i) {
             mpz_set_ui(ws[i], 0);
         }
         for (size_t i = 0; i < n; ++i) {
-            mpz_vect_mul_mod(rs, rs, w_hats[i], moduli, nslots);
+            mpz_vect_mul_mod(rs, (const mpz_t *) rs, (const mpz_t *) w_hats[i], (const mpz_t *) moduli, nslots);
         }
-        mpz_vect_mul_mod(rs, rs, ws, moduli, nslots);
+        mpz_vect_mul_mod(rs, (const mpz_t *) rs, (const mpz_t *) ws, (const mpz_t *) moduli, nslots);
         encode_v_hat_o_v_star(obf->enc_vt, obf->op, obf->Z_o_i[o], obf->sp, rs, o);
         if (LOG_DEBUG) {
             printf("Z_0 --------\n");
@@ -730,7 +730,7 @@ _evaluate(int *rop, const int *inps, const obfuscation *const obf)
 {
     const obf_params_t *op = obf->op;
     public_params *pp = obf->pp;
-    const acirc *c = op->circ;
+    acirc *c = op->circ;
     int known[c->nrefs];
     wire *cache[c->nrefs];
     int input_syms[op->n];

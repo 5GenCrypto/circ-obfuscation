@@ -1,11 +1,12 @@
 #include "obf_params.h"
 #include "obfuscator.h"
 #include "../mmap.h"
+#include "../util.h"
 
 #include <assert.h>
 
 static obf_params_t *
-_op_new(const acirc *const circ, void *const vparams)
+_op_new(acirc *const circ, void *const vparams)
 {
     zim_obf_params_t *const params = vparams;
     obf_params_t *op;

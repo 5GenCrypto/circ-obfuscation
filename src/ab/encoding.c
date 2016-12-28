@@ -12,7 +12,7 @@ _encoding_new(const pp_vtable *const vt, encoding *const enc,
                 const public_params *const pp)
 {
     enc->info = calloc(1, sizeof(encoding_info));
-    enc->info->lvl = level_new((obf_params_t *) vt->params(pp));
+    enc->info->lvl = level_new((const obf_params_t *) vt->params(pp));
     return 0;
 }
 

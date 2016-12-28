@@ -2,9 +2,11 @@
 #define __UTILS_H__
 
 #include <aesrand.h>
-
 #include <stdbool.h>
 #include <gmp.h>
+
+#define OK    0
+#define ERR (-1)
 
 typedef enum debug_e {
     ERROR = 0,
@@ -21,8 +23,6 @@ extern bool g_verbose;
 #define LOG_INFO  (g_debug >= INFO)
 
 double current_time(void);
-
-int seed_rng(gmp_randstate_t *rng);
 
 int max(int, int);
 
@@ -47,7 +47,7 @@ void mpz_vect_mul(mpz_t *const rop, const mpz_t *const xs, const mpz_t *const ys
 void mpz_vect_mod(mpz_t *const rop, const mpz_t *const xs, const mpz_t *const moduli, size_t n);
 void mpz_vect_mul_mod(mpz_t *const rop, const mpz_t *const xs, const mpz_t *const ys, const mpz_t *const moduli, size_t n);
 
-void mpz_vect_set(mpz_t *rop, mpz_t *xs, size_t n);
+void mpz_vect_set(mpz_t *const rop, const mpz_t *const xs, size_t n);
 
 void mpz_vect_repeat_ui(mpz_t *vec, size_t x, size_t n);
 
@@ -71,67 +71,8 @@ void bool_fwrite(bool x, FILE *const fp);
 #define GET_NEWLINE(fp) fscanf(fp, "\n")
 #define GET_SPACE(fp) fscanf(fp, " ")
 
-#define ARRAY_ADD(ROP, XS, YS, N) ({    \
-    size_t I;                           \
-    for (I = 0; I < (N); I++) {         \
-        (ROP)[I] = (XS)[I] + (YS)[I];   \
-    }                                   \
-})
-
-/* #define ARRAY_SUM(XS, N) {{                    \ */
-/*         size_t RES = 0;                         \ */
-/*         size_t I;                               \ */
-/*         for (I = 0; I < N; I++) {               \ */
-/*             RES += XS[I];                       \ */
-/*         }                                       \ */
-/*         RES;                                    \ */
-/*         }} */
-
-/* #define IN_ARRAY(ELEM, XS, N) {                 \ */
-/*         size_t I;                               \ */
-/*         bool RES = false;                       \ */
-/*         for (I = 0; I < N; I++) {               \ */
-/*             if (ELEM == XS[I]) {                \ */
-/*                 RES = true;                     \ */
-/*                 break;                          \ */
-/*             }                                   \ */
-/*         }                                       \ */
-/*         RES;                                    \ */
-/*     } */
-
-/* #define ANY_IN_ARRAY(XS, XLEN, YS, YLEN) {      \ */
-/*         size_t I;                               \ */
-/*         bool RES = false;                       \ */
-/*         for (I = 0; I < XLEN; I++) {            \ */
-/*             if (in_array(XS[I], YS, YLEN)) {    \ */
-/*                 RES = true;                     \ */
-/*                 break;                          \ */
-/*             }                                   \ */
-/*         }                                       \ */
-/*         RES;                                    \ */
-/*     } */
-
-/* #define ARRAY_EQ(XS, YS, N) {                   \ */
-/*         size_t I;                               \ */
-/*         bool RES = true;                        \ */
-/*         for (I = 0; I < N; I++)                 \ */
-/*             if (XS[I] != YS[I]) {               \ */
-/*                 RES = false;                    \ */
-/*                 break;                          \ */
-/*             }                                   \ */
-/*         RES;                                    \ */
-/*     } */
-#define ARRAY_EQ(XS, YS, N) ({      \
-    size_t I;                       \
-    bool RES = true;                \
-    for (I = 0; I < (N); I++)       \
-        if ((XS)[I] != (YS)[I]) {   \
-            RES = false;            \
-            break;                  \
-        }                           \
-    RES;                            \
-})
-
+void array_add(size_t *rop, size_t *xs, size_t *ys, size_t n);
+bool array_eq(size_t *xs, size_t *ys, size_t n);
 
 void
 print_progress (size_t cur, size_t total);

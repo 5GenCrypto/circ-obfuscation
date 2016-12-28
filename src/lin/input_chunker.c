@@ -102,7 +102,7 @@ type_degree_helper(size_t *rop, acircref ref, const acirc *const c, size_t nsyms
         type_degree_helper(xtype, c->gates[ref].args[0], c, nsyms, chunker, seen, memo);
         type_degree_helper(ytype, c->gates[ref].args[1], c, nsyms, chunker, seen, memo);
 
-        int types_eq = ARRAY_EQ(xtype, ytype, nsyms + 1);
+        int types_eq = array_eq(xtype, ytype, nsyms + 1);
 
         if (types_eq && ((op == OP_ADD) || (op == OP_SUB))) {
             for (size_t i = 0; i < nsyms+1; i++)
