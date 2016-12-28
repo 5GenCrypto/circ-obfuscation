@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# set -e
+set -e
 
 run () {
     circuit=$1
@@ -18,16 +18,16 @@ run () {
     ./run.sh --all --mmap $mmap --scheme $scheme --debug $debug --verbose $circuit
 }
 
-# for circuit in $(ls circuits/*.acirc); do
-#     run $circuit ZIM DUMMY ERROR
-#     run $circuit AB  DUMMY ERROR
-#     run $circuit LIN DUMMY ERROR
-#     run $circuit ZIM CLT ERROR
-#     run $circuit AB  CLT ERROR
-#     run $circuit LIN CLT ERROR
-# done
-
-for circuit in $(ls circuits/ggm/*.acirc); do
-    run $circuit ZIM DUMMY ERROR
-    run $circuit LIN DUMMY ERROR
+for circuit in $(ls circuits/*.acirc); do
+    # run $circuit ZIM DUMMY ERROR
+    run $circuit AB  DUMMY ERROR
+    # run $circuit LIN DUMMY ERROR
+    # run $circuit ZIM CLT ERROR
+    run $circuit AB  CLT ERROR
+    # run $circuit LIN CLT ERROR
 done
+
+# for circuit in $(ls circuits/ggm/*.acirc); do
+#     run $circuit ZIM DUMMY ERROR
+#     run $circuit LIN DUMMY ERROR
+# done

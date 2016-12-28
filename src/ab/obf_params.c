@@ -9,6 +9,59 @@
 #include <stdio.h>
 #include <err.h>
 
+static void
+type_degree_helper(size_t *rop, acircref ref, const acirc *c, size_t len,
+                   bool *seen, size_t **memo)
+{
+    if (seen[ref]) {
+        for (size_t i = 0; i < len; i++)
+            rop[i] = memo[ref][i];
+        return;
+    }
+
+    const acirc_operation op = c->gates[ref].op;
+
+    if (op == OP_INPUT) {
+        rop[c->gates[ref].args[0]] = 1;
+    } else if (op == OP_CONST) {
+        rop[c->ninputs + c->gates[ref].args[0]] = 1;
+    } else {
+        size_t *xtype = my_calloc(len, sizeof(size_t));
+        size_t *ytype = my_calloc(len, sizeof(size_t));
+
+        type_degree_helper(xtype, c->gates[ref].args[0], c, len, seen, memo);
+        type_degree_helper(ytype, c->gates[ref].args[1], c, len, seen, memo);
+
+        for (size_t i = 0; i < len; i++)
+            rop[i] = xtype[i] + ytype[i];
+
+        free(xtype);
+        free(ytype);
+    }
+
+    seen[ref] = true;
+
+    for (size_t i = 0; i < len; i++)
+        memo[ref][i] = rop[i];
+}
+
+static void
+type_degree(size_t *rop, acircref ref, const acirc *c, size_t len)
+{
+    bool    seen[c->nrefs];
+    size_t *memo[c->nrefs];
+
+    for (size_t i = 0; i < c->nrefs; i++) {
+        seen[i] = false;
+        memo[i] = my_calloc(len, sizeof(size_t));
+    }
+
+    type_degree_helper(rop, ref, c, len, seen, memo);
+
+    for (size_t i = 0; i < c->nrefs; i++)
+        free(memo[i]);
+}
+
 static obf_params_t *
 _op_new(acirc *circ, void *vparams)
 {
@@ -21,7 +74,7 @@ _op_new(acirc *circ, void *vparams)
     p->types = my_calloc(p->gamma, sizeof(size_t *));
     for (size_t o = 0; o < p->gamma; o++) {
         p->types[o] = my_calloc(p->n + p->m + 1, sizeof(size_t));
-        type_degree(p->types[o], circ->outrefs[o], circ, p->n + p->m, chunker_in_order);
+        type_degree(p->types[o], circ->outrefs[o], circ, p->n + p->m);
         for (size_t k = 0; k < p->n + p->m; k++) {
             if (p->types[o][k] > p->M) {
                 p->M = p->types[o][k];
@@ -42,8 +95,6 @@ _op_new(acirc *circ, void *vparams)
     }
 
     p->circ = circ;
-    p->chunker = chunker_in_order;
-    p->rchunker = rchunker_in_order;
     p->simple = params->simple;
     return p;
 }
@@ -95,8 +146,6 @@ _op_fread(obf_params_t *params, FILE *fp)
         }
     }
     bool_fread(&params->simple, fp);
-    params->chunker = chunker_in_order;
-    params->rchunker = rchunker_in_order;
     return 0;
 }
 

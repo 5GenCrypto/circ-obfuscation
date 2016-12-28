@@ -15,8 +15,6 @@ struct obf_params_t {
     size_t nslots;
     size_t **types;             /* (γ × (m+1))-size array */
     bool simple;
-    input_chunker chunker;
-    reverse_chunker rchunker;
     acirc *circ;
 };
 

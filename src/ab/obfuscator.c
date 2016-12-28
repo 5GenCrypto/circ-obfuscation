@@ -728,22 +728,12 @@ wire_sub(const encoding_vtable *vt, const pp_vtable *pp_vt,
 static int
 _evaluate(int *rop, const int *inps, const obfuscation *obf)
 {
-    const obf_params_t *op = obf->op;
-    public_params *pp = obf->pp;
-    acirc *c = op->circ;
+    const obf_params_t *const op = obf->op;
+    const public_params *const pp = obf->pp;
+    acirc *const c = op->circ;
     int known[c->nrefs];
     wire *cache[c->nrefs];
-    int input_syms[op->n];
     int ret = OK;
-
-    for (size_t i = 0; i < op->n; i++) {
-        input_syms[i] = 0;
-        for (size_t j = 0; j < 1; j++) {
-            sym_id sym = { i, j };
-            acircref inp_bit = op->rchunker(sym, c->ninputs, c->ninputs);
-            input_syms[i] += inps[inp_bit] << j;
-        }
-    }
 
     memset(known, '\0', sizeof(known));
     memset(cache, '\0', sizeof(known));
@@ -753,27 +743,25 @@ _evaluate(int *rop, const int *inps, const obfuscation *obf)
         acirc_topo_levels *topo = acirc_topological_levels(c, root);
         for (int lvl = 0; lvl < topo->nlevels; lvl++) {
             for (int i = 0; i < topo->level_sizes[lvl]; i++) {
-                acircref ref = topo->levels[lvl][i];
+                const acircref ref = topo->levels[lvl][i];
                 if (known[ref])
                     continue;
 
                 acirc_operation aop = c->gates[ref].op;
-                acircref *args = c->gates[ref].args;
-                wire *w = my_malloc(sizeof(wire));
+                const acircref *const args = c->gates[ref].args;
+                wire *const w = my_calloc(1, sizeof(wire));
                 if (aop == OP_INPUT) {
-                    size_t xid = args[0];
-                    sym_id sym = op->chunker(xid, c->ninputs, op->n);
-                    int k = sym.sym_number;
-                    int s = input_syms[k];
-                    wire_init_from_encodings(w, obf->R_ib[xid][s], obf->Z_ib[xid][s]);
+                    const size_t id = args[0];
+                    const int b = inps[id];
+                    wire_init_from_encodings(w, obf->R_ib[id][b], obf->Z_ib[id][b]);
                     if (LOG_DEBUG) {
                         fprintf(stderr, "INPUT\n");
                         wire_print(obf->enc_vt, w);
                         fprintf(stderr, "=====\n");
                     }
                 } else if (aop == OP_CONST) {
-                    size_t yid = args[0];
-                    wire_init_from_encodings(w, obf->R_i[yid], obf->Z_i[yid]);
+                    const size_t id = args[0];
+                    wire_init_from_encodings(w, obf->R_i[id], obf->Z_i[id]);
                     if (LOG_DEBUG) {
                         fprintf(stderr, "CONST\n");
                         wire_print(obf->enc_vt, w);
@@ -825,8 +813,8 @@ _evaluate(int *rop, const int *inps, const obfuscation *obf)
 
         for (size_t k = 0; k < op->n; k++) {
             wire_init_from_encodings(tmp,
-                                     obf->R_hat_ib_o[o][k][input_syms[k]],
-                                     obf->Z_hat_ib_o[o][k][input_syms[k]]);
+                                     obf->R_hat_ib_o[o][k][inps[k]],
+                                     obf->Z_hat_ib_o[o][k][inps[k]]);
             if (LOG_DEBUG) {
                 fprintf(stderr, "FINAL MULS\n");
                 wire_print(obf->enc_vt, outwire);
