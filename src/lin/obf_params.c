@@ -41,7 +41,6 @@ _op_new(acirc *circ, void *vparams)
     p->D = p->d + p->c + 1;
     if (g_verbose) {
         fprintf(stderr, "Obfuscation parameters:\n");
-        /* fprintf(stderr, "* Rachel? %s\n", p->rachel_input ? "Y" : "N"); */
         fprintf(stderr, "* ℓ:      %lu\n", p->ell);
         fprintf(stderr, "* c:      %lu\n", p->c);
         fprintf(stderr, "* m:      %lu\n", p->m);

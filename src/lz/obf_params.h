@@ -1,10 +1,8 @@
-#ifndef __LIN__OBF_PARAMS_H__
-#define __LIN__OBF_PARAMS_H__
+#ifndef __ZIM__OBF_PARAMS_H__
+#define __ZIM__OBF_PARAMS_H__
 
 #include <acirc.h>
 #include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
 
 struct obf_params_t {
     size_t m;       // number of secret bits
