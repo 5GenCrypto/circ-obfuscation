@@ -7,7 +7,7 @@ gghlite
 libthreadpool
 build
 *.o
-circuits/*.acirc.*
+*.obf
 Makefile
 *.in
 *.m4
