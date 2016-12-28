@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <err.h>
 
-bool g_verbose = true;
+bool g_verbose = false;
 debug_e g_debug = ERROR;
 
 double current_time(void) {

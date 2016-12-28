@@ -65,6 +65,7 @@ struct args_t {
     size_t secparam;
     bool evaluate;
     bool obfuscate;
+    bool dry_run;
     enum scheme_e scheme;
     /* AB specific settings */
     bool simple;
@@ -74,13 +75,14 @@ struct args_t {
 };
 
 static void
-args_init(struct args_t *args)
+args_init(struct args_t *const args)
 {
     args->circuit = NULL;
     args->mmap = MMAP_CLT;
     args->secparam = 16;
     args->evaluate = false;
     args->obfuscate = true;
+    args->dry_run = false;
     args->scheme = SCHEME_ZIM;
     /* AB specific settings */
     args->simple = false;
@@ -110,6 +112,7 @@ usage(int ret)
     printf("Usage: main [options] <circuit>\n");
     printf("Options:\n"
 "    --all, -a         obfuscate and evaluate\n"
+"    --dry-run         don't obfuscate/evaluate\n"
 "    --debug <LEVEL>   set debug level (options: ERROR, WARN, DEBUG, INFO | default: ERROR)\n"
 "    --evaluate, -e    evaluate obfuscation (default: %s)\n"
 "    --obfuscate, -o   construct obfuscation (default: %s)\n"
@@ -133,6 +136,7 @@ usage(int ret)
 static const struct option opts[] = {
     {"all", no_argument, 0, 'a'},
     {"debug", required_argument, 0, 'D'},
+    {"dry-run", no_argument, 0, 'd'},
     {"evaluate", no_argument, 0, 'e'},
     {"obfuscate", no_argument, 0, 'o'},
     {"lambda", required_argument, 0, 'l'},
@@ -144,7 +148,7 @@ static const struct option opts[] = {
     {"help", no_argument, 0, 'h'},
     {0, 0, 0, 0}
 };
-static const char *short_opts = "aD:eol:n:M:sS:vh";
+static const char *short_opts = "adD:eol:n:M:sS:vh";
 
 static int
 _evaluate(const obfuscator_vtable *const vt, const struct args_t *const args,
@@ -246,7 +250,7 @@ run(const struct args_t *const args)
     case SCHEME_ZIM:
         vt = &zim_obfuscator_vtable;
         op_vt = &zim_op_vtable;
-        zim_params.npowers = 8; /* XXX: make flag */
+        zim_params.npowers = args->npowers;
         vparams = &zim_params;
         break;
     default:
@@ -255,7 +259,17 @@ run(const struct args_t *const args)
 
     params = op_vt->new(&c, vparams);
 
-    /* acirc_ensure(&c); */
+    if (g_verbose)
+        acirc_ensure(&c);
+
+    if (args->dry_run) {
+        obfuscation *obf;
+        obf = vt->new(mmap, params, args->secparam);
+        if (obf == NULL)
+            errx(1, "error: initializing obfuscator failed");
+        vt->free(obf);
+        return OK;
+    }
 
     if (args->obfuscate) {
         char fname[strlen(args->circuit) + 5];
@@ -310,11 +324,14 @@ main(int argc, char **argv)
 
     while ((c = getopt_long(argc, argv, short_opts, opts, &idx)) != -1) {
         switch (c) {
-        case 'a':
+        case 'a':               /* --all */
             args.evaluate = true;
             args.obfuscate = true;
             break;
-        case 'D':
+        case 'd':               /* --dry-run */
+            args.dry_run = true;
+            break;
+        case 'D':               /* --debug */
             if (strcmp(optarg, "ERROR") == 0) {
                 g_debug = ERROR;
             } else if (strcmp(optarg, "WARN") == 0) {
@@ -328,21 +345,21 @@ main(int argc, char **argv)
                 usage(EXIT_FAILURE);
             }
             break;
-        case 'e':
+        case 'e':               /* --evaluate */
             args.evaluate = true;
             args.obfuscate = false;
             break;
-        case 'o':
+        case 'o':               /* --obfuscate */
             args.obfuscate = true;
             args.evaluate = false;
             break;
-        case 'l':
+        case 'l':               /* --secparam */
             args.secparam = atoi(optarg);
             break;
-        case 'n':
+        case 'n':               /* --npowers */
             args.npowers = atoi(optarg);
             break;
-        case 'M':
+        case 'M':               /* --mmap */
             if (strcmp(optarg, "CLT") == 0) {
                 args.mmap = MMAP_CLT;
             } else if (strcmp(optarg, "DUMMY") == 0) {
@@ -352,10 +369,10 @@ main(int argc, char **argv)
                 usage(EXIT_FAILURE);
             }
             break;
-        case 's':
+        case 's':               /* --simple */
             args.simple = true;
             break;
-        case 'S':
+        case 'S':               /* --scheme */
             if (strcmp(optarg, "AB") == 0) {
                 args.scheme = SCHEME_AB;
             } else if (strcmp(optarg, "ZIM") == 0) {
@@ -367,10 +384,10 @@ main(int argc, char **argv)
                 usage(EXIT_FAILURE);
             }
             break;
-        case 'v':
+        case 'v':               /* --verbose */
             g_verbose = true;
             break;
-        case 'h':
+        case 'h':               /* --help */
             usage(EXIT_SUCCESS);
             break;
         default:
