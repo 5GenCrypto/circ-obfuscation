@@ -17,7 +17,7 @@ typedef struct {
 } level;
 
 static level *
-level_new(const obf_params_t *const op)
+level_new(const obf_params_t *op)
 {
     level *lvl = calloc(1, sizeof(level));
     lvl->q = op->q;
@@ -43,7 +43,7 @@ level_free(level *lvl)
 }
 
 static void
-level_fprint(FILE *const fp, const level *const lvl)
+level_fprint(FILE *fp, const level *lvl)
 {
     fprintf(fp, "[");
     for (size_t i = 0; i < lvl->q+1; i++) {
@@ -80,7 +80,7 @@ level_set(level *rop, const level *lvl)
 }
 
 static void
-level_add(level *const rop, const level *const x, const level *const y)
+level_add(level *rop, const level *x, const level *y)
 {
     for (size_t i = 0; i < rop->q+1; i++) {
         for (size_t j = 0; j < rop->c+2; j++) {
@@ -93,7 +93,7 @@ level_add(level *const rop, const level *const x, const level *const y)
 }
 
 static void
-level_mul_ui(level *const rop, const level *const op, int x)
+level_mul_ui(level *rop, const level *op, int x)
 {
     for (size_t i = 0; i < rop->q+1; i++) {
         for (size_t j = 0; j < rop->c+2; j++) {
@@ -106,7 +106,7 @@ level_mul_ui(level *const rop, const level *const op, int x)
 }
 
 static void
-level_flatten(int *const pows, const level *const lvl)
+level_flatten(int *pows, const level *lvl)
 {
     int z = 0;
     for (size_t i = 0; i < lvl->q+1; i++) {
@@ -120,7 +120,7 @@ level_flatten(int *const pows, const level *const lvl)
 }
 
 static bool
-level_eq(const level *const x, const level *const y)
+level_eq(const level *x, const level *y)
 {
     for (size_t i = 0; i < x->q+1; i++) {
         for (size_t j = 0; j < x->c+2; j++) {
@@ -156,7 +156,7 @@ level_eq_z(level *x, level *y)
 }
 
 static level *
-level_create_vstar(const obf_params_t *const op)
+level_create_vstar(const obf_params_t *op)
 {
     level *lvl = level_new(op);
     lvl->mat[lvl->q][lvl->c+1] = 1;
@@ -164,7 +164,7 @@ level_create_vstar(const obf_params_t *const op)
 }
 
 static level *
-level_create_vks(const obf_params_t *const op, size_t k, size_t s)
+level_create_vks(const obf_params_t *op, size_t k, size_t s)
 {
     assert(s < op->q);
     assert(k < op->c);
@@ -174,7 +174,7 @@ level_create_vks(const obf_params_t *const op, size_t k, size_t s)
 }
 
 static level *
-level_create_vc(const obf_params_t *const op)
+level_create_vc(const obf_params_t *op)
 {
     level *lvl = level_new(op);
     for (size_t i = 0; i < lvl->q; i++) {
@@ -184,7 +184,7 @@ level_create_vc(const obf_params_t *const op)
 }
 
 static level *
-level_create_vhatkso(const obf_params_t *const op, size_t k, size_t s, size_t o)
+level_create_vhatkso(const obf_params_t *op, size_t k, size_t s, size_t o)
 {
     assert(s < op->q);
     assert(o < op->gamma);
@@ -200,7 +200,7 @@ level_create_vhatkso(const obf_params_t *const op, size_t k, size_t s, size_t o)
 }
 
 static level *
-level_create_vhato(const obf_params_t *const op, size_t o)
+level_create_vhato(const obf_params_t *op, size_t o)
 {
     assert(o < op->gamma);
     level *lvl = level_new(op);
@@ -218,7 +218,7 @@ level_create_vhato(const obf_params_t *const op, size_t o)
 }
 
 static level *
-level_create_vbaro(const obf_params_t *const op, size_t o)
+level_create_vbaro(const obf_params_t *op, size_t o)
 {
     assert(o < op->gamma);
     level *lvl = level_new(op);
@@ -229,7 +229,7 @@ level_create_vbaro(const obf_params_t *const op, size_t o)
 }
 
 static level *
-level_create_vzt(const obf_params_t *const op)
+level_create_vzt(const obf_params_t *op)
 {
     level *lvl = level_new(op);
     for (size_t i = 0; i < op->q + 1; i++) {
@@ -251,7 +251,7 @@ level_create_vzt(const obf_params_t *const op)
 }
 
 static void
-level_fwrite(const level *const lvl, FILE *const fp)
+level_fwrite(const level *lvl, FILE *fp)
 {
     ulong_fwrite(lvl->q, fp);
     ulong_fwrite(lvl->c, fp);
@@ -267,7 +267,7 @@ level_fwrite(const level *const lvl, FILE *const fp)
 }
 
 static void
-level_fread(level *const lvl, FILE *const fp)
+level_fread(level *lvl, FILE *fp)
 {
     ulong_fread(&lvl->q, fp);
     ulong_fread(&lvl->c, fp);

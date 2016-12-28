@@ -10,9 +10,9 @@
 #include <err.h>
 
 static obf_params_t *
-_op_new(acirc *const circ, void *const vparams)
+_op_new(acirc *circ, void *vparams)
 {
-    ab_obf_params_t *const params = (ab_obf_params_t *const) vparams;
+    ab_obf_params_t *const params = vparams;
     obf_params_t *p = calloc(1, sizeof(obf_params_t));
     p->n = circ->ninputs;
     p->m = circ->nconsts;
@@ -59,7 +59,7 @@ _op_free(obf_params_t *p)
 }
 
 static int
-_op_fwrite(const obf_params_t *const params, FILE *const fp)
+_op_fwrite(const obf_params_t *params, FILE *fp)
 {
     size_t_fwrite(params->n, fp);
     size_t_fwrite(params->m, fp);
@@ -78,7 +78,7 @@ _op_fwrite(const obf_params_t *const params, FILE *const fp)
 }
 
 static int
-_op_fread(obf_params_t *const params, FILE *const fp)
+_op_fread(obf_params_t *params, FILE *fp)
 {
     size_t_fread(&params->n, fp);
     size_t_fread(&params->m, fp);

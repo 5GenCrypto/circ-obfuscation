@@ -74,7 +74,7 @@ static input_id rchunker_in_order(sym_id sym,  size_t ninputs, size_t nsyms)
 /* } */
 
 static void
-type_degree_helper(size_t *rop, acircref ref, const acirc *const c, size_t nsyms,
+type_degree_helper(size_t *rop, acircref ref, const acirc *c, size_t nsyms,
                    input_chunker chunker, bool *seen, size_t **memo)
 {
     if (seen[ref]) {
@@ -125,7 +125,7 @@ type_degree_helper(size_t *rop, acircref ref, const acirc *const c, size_t nsyms
 }
 
 static void
-type_degree(size_t *rop, acircref ref, const acirc *const c, size_t nsyms, input_chunker chunker)
+type_degree(size_t *rop, acircref ref, const acirc *c, size_t nsyms, input_chunker chunker)
 {
     bool    seen[c->nrefs];
     size_t *memo[c->nrefs];

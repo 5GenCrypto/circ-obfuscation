@@ -9,11 +9,11 @@
 #include <err.h>
 
 static obf_params_t *
-_op_new(acirc *const circ, void *const vparams)
+_op_new(acirc *circ, void *vparams)
 {
-    lin_obf_params_t *const params = (lin_obf_params_t *const) vparams;
+    lin_obf_params_t *const params = vparams;
     const size_t num_symbolic_inputs = params->num_symbolic_inputs;
-    obf_params_t *const p = calloc(1, sizeof(obf_params_t));
+    obf_params_t *p = calloc(1, sizeof(obf_params_t));
 
     p->rachel_input = params->rachel_input;
     p->m = circ->nconsts;
@@ -70,14 +70,14 @@ _op_free(obf_params_t *p)
 }
 
 static int
-_op_fwrite(const obf_params_t *const params, FILE *const fp)
+_op_fwrite(const obf_params_t *params, FILE *fp)
 {
     (void) params; (void) fp;
     return ERR;
 }
 
 static int
-_op_fread(obf_params_t *const params, FILE *const fp)
+_op_fread(obf_params_t *params, FILE *fp)
 {
     (void) params; (void) fp;
     return ERR;

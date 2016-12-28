@@ -59,7 +59,7 @@ _sp_init(const mmap_vtable *mmap, secret_params *const sp,
 }
 
 static void
-_sp_clear(const mmap_vtable *const mmap, secret_params *sp)
+_sp_clear(const mmap_vtable *mmap, secret_params *sp)
 {
     level_free(info(sp)->toplevel);
     free(info(sp));
@@ -70,13 +70,13 @@ _sp_clear(const mmap_vtable *const mmap, secret_params *sp)
 }
 
 static const void *
-_sp_toplevel(const secret_params *const sp)
+_sp_toplevel(const secret_params *sp)
 {
     return info(sp)->toplevel;
 }
 
 static const void *
-_sp_params(const secret_params *const sp)
+_sp_params(const secret_params *sp)
 {
     return info(sp)->op;
 }
@@ -90,7 +90,7 @@ static sp_vtable lin_sp_vtable = {
 };
 
 const sp_vtable *
-lin_get_sp_vtable(const mmap_vtable *const mmap)
+lin_get_sp_vtable(const mmap_vtable *mmap)
 {
     lin_sp_vtable.mmap = mmap;
     return &lin_sp_vtable;

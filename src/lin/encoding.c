@@ -11,10 +11,9 @@ struct encoding_info {
 #define info(x) (x)->info
 
 static int
-_encoding_new(const pp_vtable *const vt, encoding *const enc,
-              const public_params *const pp)
+_encoding_new(const pp_vtable *vt, encoding *enc, const public_params *pp)
 {
-    const obf_params_t *const op = vt->params(pp);
+    const obf_params_t *op = vt->params(pp);
     info(enc) = my_calloc(1, sizeof(encoding_info));
     info(enc)->lvl = level_new(op);
     info(enc)->nslots = op->c+3;
@@ -22,7 +21,7 @@ _encoding_new(const pp_vtable *const vt, encoding *const enc,
 }
 
 static void
-_encoding_free(encoding *const enc)
+_encoding_free(encoding *enc)
 {
     if (info(enc)) {
         if (info(enc)->lvl)
@@ -32,7 +31,7 @@ _encoding_free(encoding *const enc)
 }
 
 static int
-_encoding_print(const encoding *const enc)
+_encoding_print(const encoding *enc)
 {
     fprintf(stderr, "Encoding: ");
     level_fprint(stderr, info(enc)->lvl);
@@ -40,10 +39,10 @@ _encoding_print(const encoding *const enc)
 }
 
 static int *
-_encode(encoding *const rop, const void *const set)
+_encode(encoding *rop, const void *set)
 {
     int *pows;
-    const level *const lvl = (const level *const) set;
+    const level *lvl = (const level *const) set;
     level_set(info(rop)->lvl, lvl);
     pows = my_calloc((lvl->q+1) * (lvl->c+2) + lvl->gamma, sizeof(int));
     level_flatten(pows, lvl);
@@ -51,7 +50,7 @@ _encode(encoding *const rop, const void *const set)
 }
 
 static int
-_encoding_set(encoding *const rop, const encoding *const x)
+_encoding_set(encoding *rop, const encoding *x)
 {
     info(rop)->nslots = info(x)->nslots;
     level_set(info(rop)->lvl, info(x)->lvl);
@@ -59,9 +58,9 @@ _encoding_set(encoding *const rop, const encoding *const x)
 }
 
 static int
-_encoding_mul(const pp_vtable *const vt, encoding *const rop,
-              const encoding *const x, const encoding *const y,
-              const public_params *const pp)
+_encoding_mul(const pp_vtable *vt, encoding *rop,
+              const encoding *x, const encoding *y,
+              const public_params *pp)
 {
     (void) vt; (void) pp;
     level_add(info(rop)->lvl, info(x)->lvl, info(y)->lvl);
@@ -69,9 +68,9 @@ _encoding_mul(const pp_vtable *const vt, encoding *const rop,
 }
 
 static int
-_encoding_add(const pp_vtable *const vt, encoding *const rop,
-              const encoding *const x, const encoding *const y,
-              const public_params *const pp)
+_encoding_add(const pp_vtable *vt, encoding *rop,
+              const encoding *x, const encoding *y,
+              const public_params *pp)
 {
     (void) vt; (void) pp;
     if (!level_eq(info(x)->lvl, info(y)->lvl)) {
@@ -87,9 +86,9 @@ _encoding_add(const pp_vtable *const vt, encoding *const rop,
 }
 
 static int
-_encoding_sub(const pp_vtable *const vt, encoding *const rop,
-              const encoding *const x, const encoding *const y,
-              const public_params *const pp)
+_encoding_sub(const pp_vtable *vt, encoding *rop,
+              const encoding *x, const encoding *y,
+              const public_params *pp)
 {
     (void) vt; (void) pp;
     if (!level_eq(info(x)->lvl, info(y)->lvl)) {
@@ -105,8 +104,8 @@ _encoding_sub(const pp_vtable *const vt, encoding *const rop,
 }
 
 static int
-_encoding_is_zero(const pp_vtable *const vt, const encoding *const x,
-                  const public_params *const pp)
+_encoding_is_zero(const pp_vtable *vt, const encoding *x,
+                  const public_params *pp)
 {
     if (!level_eq(x->info->lvl, vt->toplevel(pp))) {
         fprintf(stderr, "[%s] unequal levels\n", __func__);
@@ -120,7 +119,7 @@ _encoding_is_zero(const pp_vtable *const vt, const encoding *const x,
 }
 
 static void
-_encoding_fread(encoding *const x, FILE *const fp)
+_encoding_fread(encoding *x, FILE *fp)
 {
     info(x) = calloc(1, sizeof(encoding_info));
     info(x)->lvl = calloc(1, sizeof(level));
@@ -128,13 +127,13 @@ _encoding_fread(encoding *const x, FILE *const fp)
 }
 
 static void
-_encoding_fwrite(const encoding *const x, FILE *const fp)
+_encoding_fwrite(const encoding *x, FILE *fp)
 {
     level_fwrite(info(x)->lvl, fp);
 }
 
 static const void *
-_encoding_mmap_set(const encoding *const x)
+_encoding_mmap_set(const encoding *x)
 {
     return info(x)->lvl;
 }
@@ -157,7 +156,7 @@ static encoding_vtable lin_encoding_vtable =
 };
 
 const encoding_vtable *
-lin_get_encoding_vtable(const mmap_vtable *const mmap)
+lin_get_encoding_vtable(const mmap_vtable *mmap)
 {
     lin_encoding_vtable.mmap = mmap;
     return &lin_encoding_vtable;

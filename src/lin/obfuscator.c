@@ -34,9 +34,9 @@ struct obfuscation {
 
 
 static void
-encode_Zstar(const encoding_vtable *const vt, const obf_params_t *const op,
-             encoding *const enc, const secret_params *const sp,
-             aes_randstate_t rng, const mpz_t *const moduli)
+encode_Zstar(const encoding_vtable *vt, const obf_params_t *op,
+             encoding *enc, const secret_params *sp,
+             aes_randstate_t rng, const mpz_t *moduli)
 {
     mpz_t *inps = mpz_vect_new(op->c+3);
     mpz_set_ui(inps[0], 1);
@@ -53,8 +53,8 @@ encode_Zstar(const encoding_vtable *const vt, const obf_params_t *const op,
 }
 
 static void
-encode_Rks(const encoding_vtable *const vt, const obf_params_t *const op,
-           encoding *const enc, const secret_params *const sp, mpz_t *rs,
+encode_Rks(const encoding_vtable *vt, const obf_params_t *op,
+           encoding *enc, const secret_params *sp, mpz_t *rs,
            size_t k, size_t s)
 {
     level *lvl = level_create_vks(op, k, s);
@@ -63,10 +63,10 @@ encode_Rks(const encoding_vtable *const vt, const obf_params_t *const op,
 }
 
 static void
-encode_Zksj(const encoding_vtable *const vt, const obf_params_t *const op,
-            encoding *const enc, const secret_params *const sp,
+encode_Zksj(const encoding_vtable *vt, const obf_params_t *op,
+            encoding *enc, const secret_params *sp,
             aes_randstate_t rng, mpz_t *rs, mpz_t ykj, size_t k, size_t s,
-            size_t j, bool rachel_input, const mpz_t *const moduli)
+            size_t j, bool rachel_input, const mpz_t *moduli)
 {
     mpz_t *w = mpz_vect_new(op->c+3);
 
@@ -92,8 +92,8 @@ encode_Zksj(const encoding_vtable *const vt, const obf_params_t *const op,
 }
 
 static void
-encode_Rc(const encoding_vtable *const vt, const obf_params_t *const op,
-          encoding *const enc, const secret_params *const sp, mpz_t *const rs)
+encode_Rc(const encoding_vtable *vt, const obf_params_t *op,
+          encoding *enc, const secret_params *sp, mpz_t *rs)
 {
     level *lvl = level_create_vc(op);
     encode(vt, enc, rs, op->c+3, lvl, sp);
@@ -101,10 +101,10 @@ encode_Rc(const encoding_vtable *const vt, const obf_params_t *const op,
 }
 
 static void
-encode_Zcj(const encoding_vtable *const vt, const obf_params_t *const op,
-           encoding *const enc, const secret_params *const sp,
+encode_Zcj(const encoding_vtable *vt, const obf_params_t *op,
+           encoding *enc, const secret_params *sp,
            aes_randstate_t rng, mpz_t *rs, mpz_t ykj, int const_val,
-           const mpz_t *const moduli)
+           const mpz_t *moduli)
 {
     mpz_t *w = mpz_vect_new(op->c+3);
     mpz_set(w[0], ykj);
@@ -126,9 +126,9 @@ encode_Zcj(const encoding_vtable *const vt, const obf_params_t *const op,
 }
 
 static void
-encode_Rhatkso(const encoding_vtable *const vt, const obf_params_t *const op,
-               encoding *const enc, const secret_params *const sp,
-               mpz_t *const rs, size_t k, size_t s, size_t o)
+encode_Rhatkso(const encoding_vtable *vt, const obf_params_t *op,
+               encoding *enc, const secret_params *sp,
+               mpz_t *rs, size_t k, size_t s, size_t o)
 {
     level *vhatkso = level_create_vhatkso(op, k, s, o);
     encode(vt, enc, rs, op->c+3, vhatkso, sp);
@@ -136,10 +136,10 @@ encode_Rhatkso(const encoding_vtable *const vt, const obf_params_t *const op,
 }
 
 static void
-encode_Zhatkso(const encoding_vtable *const vt, const obf_params_t *const op,
-               encoding *const enc, const secret_params *const sp,
-               const mpz_t *const rs, const mpz_t *const whatk, size_t k, size_t s, size_t o,
-               const mpz_t *const moduli)
+encode_Zhatkso(const encoding_vtable *vt, const obf_params_t *op,
+               encoding *enc, const secret_params *sp,
+               const mpz_t *rs, const mpz_t *whatk, size_t k, size_t s, size_t o,
+               const mpz_t *moduli)
 {
     mpz_t *inp = mpz_vect_new(op->c+3);
     mpz_vect_mul_mod(inp, whatk, rs, moduli, op->c+3);
@@ -156,9 +156,9 @@ encode_Zhatkso(const encoding_vtable *const vt, const obf_params_t *const op,
 }
 
 static void
-encode_Rhato(const encoding_vtable *const vt, const obf_params_t *const op,
-             encoding *const enc, const secret_params *const sp,
-             mpz_t *const rs, size_t o)
+encode_Rhato(const encoding_vtable *vt, const obf_params_t *op,
+             encoding *enc, const secret_params *sp,
+             mpz_t *rs, size_t o)
 {
     level *vhato = level_create_vhato(op, o);
     encode(vt, enc, rs, op->c+3, vhato, sp);
@@ -166,10 +166,10 @@ encode_Rhato(const encoding_vtable *const vt, const obf_params_t *const op,
 }
 
 static void
-encode_Zhato(const encoding_vtable *const vt, const obf_params_t *const op,
-             encoding *const enc, const secret_params *const sp,
-             const mpz_t *const rs, const mpz_t *const what, size_t o,
-             const mpz_t *const moduli)
+encode_Zhato(const encoding_vtable *vt, const obf_params_t *op,
+             encoding *enc, const secret_params *sp,
+             const mpz_t *rs, const mpz_t *what, size_t o,
+             const mpz_t *moduli)
 {
     mpz_t *inp = mpz_vect_new(op->c+3);
     mpz_vect_mul_mod(inp, what, rs, moduli, op->c+3);
@@ -186,9 +186,9 @@ encode_Zhato(const encoding_vtable *const vt, const obf_params_t *const op,
 }
 
 static void
-encode_Rbaro(const encoding_vtable *const vt, const obf_params_t *const op,
-             encoding *const enc, const secret_params *const sp,
-             mpz_t *const rs, size_t o)
+encode_Rbaro(const encoding_vtable *vt, const obf_params_t *op,
+             encoding *enc, const secret_params *sp,
+             mpz_t *rs, size_t o)
 {
     level *vbaro = level_create_vbaro(op, o);
     encode(vt, enc, rs, op->c+3, vbaro, sp);
@@ -196,16 +196,16 @@ encode_Rbaro(const encoding_vtable *const vt, const obf_params_t *const op,
 }
 
 static void
-encode_Zbaro(const encoding_vtable *const vt, const obf_params_t *const op,
-             encoding *const enc, const secret_params *const sp,
-             const mpz_t *const rs, const mpz_t *const what, const mpz_t *const *const whatk,
-             const mpz_t *const *const ykj, acirc *const c,
-             size_t o, const mpz_t *const moduli)
+encode_Zbaro(const encoding_vtable *vt, const obf_params_t *op,
+             encoding *enc, const secret_params *sp,
+             const mpz_t *rs, const mpz_t *what, const mpz_t **whatk,
+             const mpz_t **ykj, acirc *c,
+             size_t o, const mpz_t *moduli)
 {
     mpz_t ybar;
     mpz_init(ybar);
 
-    mpz_t *const xs = mpz_vect_new(c->ninputs);
+    mpz_t *xs = mpz_vect_new(c->ninputs);
     for (size_t k = 0; k < op->c; k++) {
         for (size_t j = 0; j < op->ell; j++) {
             sym_id sym = {k, j};
@@ -249,7 +249,7 @@ static void
 _obfuscation_free(obfuscation *obf);
 
 static obfuscation *
-_obfuscation_new(const mmap_vtable *const mmap, const obf_params_t *const op,
+_obfuscation_new(const mmap_vtable *mmap, const obf_params_t *op,
                  size_t secparam)
 {
     obfuscation *obf;
@@ -334,7 +334,7 @@ _obfuscation_free(obfuscation *obf)
     if (obf == NULL)
         return;
     
-    const obf_params_t *const op = obf->op;
+    const obf_params_t *op = obf->op;
 
     if (obf->Zstar)
         encoding_free(obf->enc_vt, obf->Zstar);
@@ -403,12 +403,12 @@ _obfuscation_free(obfuscation *obf)
 }
 
 static int
-_obfuscate(obfuscation *const obf)
+_obfuscate(obfuscation *obf)
 {
-    mpz_t *const moduli =
+    mpz_t *moduli =
         mpz_vect_create_of_fmpz(obf->mmap->sk->plaintext_fields(obf->sp->sk),
                                 obf->mmap->sk->nslots(obf->sp->sk));
-    const obf_params_t *const op = obf->op;
+    const obf_params_t *op = obf->op;
 
     // create ykj
     mpz_t **ykj = my_calloc(op->c+1, sizeof(mpz_t *));
@@ -427,13 +427,13 @@ _obfuscate(obfuscation *const obf)
     }
 
     // create whatk and what
-    mpz_t **const whatk = my_calloc(op->c, sizeof(mpz_t *));
+    mpz_t **whatk = my_calloc(op->c, sizeof(mpz_t *));
     for (size_t k = 0; k < op->c; k++) {
         whatk[k] = mpz_vect_new(op->c+3);
         mpz_vect_urandomms(whatk[k], (const mpz_t *) moduli, op->c+3, obf->rng);
         mpz_set_ui(whatk[k][k+2], 0);
     }
-    mpz_t *const what = mpz_vect_new(op->c+3);
+    mpz_t *what = mpz_vect_new(op->c+3);
     mpz_vect_urandomms(what, (const mpz_t *) moduli, op->c+3, obf->rng);
     mpz_set_ui(what[op->c+2], 0);
 
@@ -529,9 +529,9 @@ _obfuscate(obfuscation *const obf)
 }
 
 static int
-_obfuscation_fwrite(const obfuscation *const obf, FILE *const fp)
+_obfuscation_fwrite(const obfuscation *obf, FILE *fp)
 {
-    const obf_params_t *const op = obf->op;
+    const obf_params_t *op = obf->op;
 
     public_params_fwrite(obf->pp_vt, obf->pp, fp);
 
@@ -579,7 +579,7 @@ _obfuscation_fwrite(const obfuscation *const obf, FILE *const fp)
 }
 
 static obfuscation *
-_obfuscation_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *const fp)
+_obfuscation_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
 {
     obfuscation *obf;
 
@@ -675,8 +675,8 @@ typedef struct {
 } wire;
 
 static void
-wire_init(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
-          wire *const rop, const public_params *const pp,
+wire_init(const encoding_vtable *vt, const pp_vtable *pp_vt,
+          wire *rop, const public_params *pp,
           bool init_r, bool init_z)
 {
     if (init_r) {
@@ -691,12 +691,12 @@ wire_init(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
 }
 
 static void
-wire_init_from_encodings(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
-                         wire *const rop, const public_params *const pp,
-                         encoding *const r, encoding *const z)
+wire_init_from_encodings(const encoding_vtable *vt, const pp_vtable *pp_vt,
+                         wire *rop, const public_params *pp,
+                         encoding *r, encoding *z)
 {
-    const obf_params_t *const op = pp_vt->params(pp);
-    const level *const lvl = vt->mmap_set(z);
+    const obf_params_t *op = pp_vt->params(pp);
+    const level *lvl = vt->mmap_set(z);
     rop->r = r;
     rop->z = z;
     rop->my_r = false;
@@ -705,7 +705,7 @@ wire_init_from_encodings(const encoding_vtable *const vt, const pp_vtable *const
 }
 
 static void
-wire_clear(const encoding_vtable *const vt, wire *const rop)
+wire_clear(const encoding_vtable *vt, wire *rop)
 {
     if (rop->my_r) {
         encoding_free(vt, rop->r);
@@ -716,8 +716,8 @@ wire_clear(const encoding_vtable *const vt, wire *const rop)
 }
 
 static void
-wire_copy(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
-          wire *const rop, const wire *const source, const public_params *const pp)
+wire_copy(const encoding_vtable *vt, const pp_vtable *pp_vt,
+          wire *rop, const wire *source, const public_params *pp)
 {
     rop->r = encoding_new(vt, pp_vt, pp);
     rop->z = encoding_new(vt, pp_vt, pp);
@@ -729,9 +729,9 @@ wire_copy(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
 }
 
 static int
-wire_mul(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
-         wire *const rop, const wire *const x, const wire *const y,
-         const public_params *const pp)
+wire_mul(const encoding_vtable *vt, const pp_vtable *pp_vt,
+         wire *rop, const wire *x, const wire *y,
+         const public_params *pp)
 {
     if (encoding_mul(vt, pp_vt, rop->r, x->r, y->r, pp) == ERR)
         return ERR;
@@ -743,9 +743,9 @@ wire_mul(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
 
 
 static int
-wire_add(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
-         wire *const rop, const wire *const x, const wire *const y,
-         const obfuscation *const obf, const public_params *const pp)
+wire_add(const encoding_vtable *vt, const pp_vtable *pp_vt,
+         wire *rop, const wire *x, const wire *y,
+         const obfuscation *obf, const public_params *pp)
 {
     int ret = ERR;
     if (x->d > y->d) {
@@ -797,9 +797,9 @@ wire_add(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
 }
 
 static int
-wire_sub(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
-         wire *const rop, const wire *const x, const wire *const y,
-         const obfuscation *const obf, const public_params *const pp)
+wire_sub(const encoding_vtable *vt, const pp_vtable *pp_vt,
+         wire *rop, const wire *x, const wire *y,
+         const obfuscation *obf, const public_params *pp)
 {
     size_t d = abs((int) y->d - (int) x->d);
     encoding *zstar, *tmp;
@@ -853,9 +853,9 @@ cleanup:
 }
 
 static int
-wire_constrained_add(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
-                     wire *const rop, const wire *const x, const wire *const y,
-                     const obfuscation *const obf, const public_params *const pp)
+wire_constrained_add(const encoding_vtable *vt, const pp_vtable *pp_vt,
+                     wire *rop, const wire *x, const wire *y,
+                     const obfuscation *obf, const public_params *pp)
 {
     if (x->d > y->d) {
         if (wire_constrained_add(vt, pp_vt, rop, y, x, obf, pp) == ERR)
@@ -890,9 +890,9 @@ wire_constrained_add(const encoding_vtable *const vt, const pp_vtable *const pp_
 }
 
 static int
-wire_constrained_sub(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
-                     wire *const rop, const wire *const x, const wire *const y,
-                     const obfuscation *const obf, const public_params *const pp)
+wire_constrained_sub(const encoding_vtable *vt, const pp_vtable *pp_vt,
+                     wire *rop, const wire *x, const wire *y,
+                     const obfuscation *obf, const public_params *pp)
 {
     size_t d = abs((int) y->d - (int) x->d);
     encoding *zstar;
@@ -930,7 +930,7 @@ wire_constrained_sub(const encoding_vtable *const vt, const pp_vtable *const pp_
 }
 
 static bool
-wire_type_eq(const wire *const x, const wire *const y)
+wire_type_eq(const wire *x, const wire *y)
 {
     (void) x; (void) y;
     if (!level_eq(info(x->r)->lvl, info(y->r)->lvl))
@@ -944,11 +944,11 @@ wire_type_eq(const wire *const x, const wire *const y)
 // TODO: save zstar pows for reuse within the circuit
 
 static int
-_evaluate(int *rop, const int *inps, const obfuscation *const obf)
+_evaluate(int *rop, const int *inps, const obfuscation *obf)
 {
     /* const obf_params_t *op = obf->op; */
-    public_params *const pp = obf->pp;
-    acirc *const c = obf->op->circ;
+    public_params *pp = obf->pp;
+    acirc *c = obf->op->circ;
     int ret = OK;
 
     // determine each assignment s \in \Sigma from the input bits

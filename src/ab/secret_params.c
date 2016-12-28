@@ -8,7 +8,7 @@ struct sp_info {
     level *toplevel;
 };
 
-static inline size_t ARRAY_SUM(size_t *xs, size_t n)
+static inline size_t ARRAY_SUM(const size_t *xs, size_t n)
 {
     size_t res = 0;
     for (size_t i = 0; i < n; ++i) {
@@ -18,8 +18,8 @@ static inline size_t ARRAY_SUM(size_t *xs, size_t n)
 }
 
 static int
-_sp_init(const mmap_vtable *const mmap, secret_params *const sp,
-         const obf_params_t *const op, size_t lambda, aes_randstate_t rng)
+_sp_init(const mmap_vtable *mmap, secret_params *sp,
+         const obf_params_t *op, size_t lambda, aes_randstate_t rng)
 {
     size_t t, kappa, nzs;
 
@@ -60,7 +60,7 @@ _sp_init(const mmap_vtable *const mmap, secret_params *const sp,
 }
 
 static void
-_sp_clear(const mmap_vtable *const mmap, secret_params *sp)
+_sp_clear(const mmap_vtable *mmap, secret_params *sp)
 {
     level_free(sp->info->toplevel);
     free(sp->info);
@@ -71,13 +71,13 @@ _sp_clear(const mmap_vtable *const mmap, secret_params *sp)
 }
 
 static const void *
-_sp_toplevel(const secret_params *const sp)
+_sp_toplevel(const secret_params *sp)
 {
     return sp->info->toplevel;
 }
 
 static const void *
-_sp_params(const secret_params *const sp)
+_sp_params(const secret_params *sp)
 {
     return sp->info->op;
 }
@@ -91,7 +91,7 @@ static sp_vtable ab_sp_vtable = {
 };
 
 const sp_vtable *
-ab_get_sp_vtable(const mmap_vtable *const mmap)
+ab_get_sp_vtable(const mmap_vtable *mmap)
 {
     ab_sp_vtable.mmap = mmap;
     return &ab_sp_vtable;

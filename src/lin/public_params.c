@@ -7,8 +7,8 @@ struct pp_info {
 #define info(x) (x)->info
 
 static void
-_pp_init(const sp_vtable *const vt, public_params *const pp,
-           const secret_params *const sp)
+_pp_init(const sp_vtable *vt, public_params *pp,
+           const secret_params *sp)
 {
     pp->info = calloc(1, sizeof(pp_info));
     pp->info->toplevel = vt->toplevel(sp);
@@ -16,14 +16,14 @@ _pp_init(const sp_vtable *const vt, public_params *const pp,
 }
 
 static void
-_pp_fwrite(const public_params *const pp, FILE *const fp)
+_pp_fwrite(const public_params *pp, FILE *fp)
 {
     (void) pp; (void) fp;
 }
 
 static void
-_pp_fread(public_params *const pp, const obf_params_t *const op,
-          FILE *const fp)
+_pp_fread(public_params *pp, const obf_params_t *op,
+          FILE *fp)
 {
     (void) fp;
     pp->info = calloc(1, sizeof(pp_info));
@@ -32,19 +32,19 @@ _pp_fread(public_params *const pp, const obf_params_t *const op,
 }
 
 static void
-_pp_clear(public_params *const pp)
+_pp_clear(public_params *pp)
 {
     free(pp->info);
 }
 
 static const void *
-_pp_params(const public_params *const pp)
+_pp_params(const public_params *pp)
 {
     return pp->info->op;
 }
 
 static const void *
-_pp_toplevel(const public_params *const pp)
+_pp_toplevel(const public_params *pp)
 {
     return pp->info->toplevel;
 }
@@ -60,7 +60,7 @@ static pp_vtable _pp_vtable = {
 };
 
 const pp_vtable *
-lin_get_pp_vtable(const mmap_vtable *const mmap)
+lin_get_pp_vtable(const mmap_vtable *mmap)
 {
     _pp_vtable.mmap = mmap;
     return &_pp_vtable;
