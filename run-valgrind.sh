@@ -7,4 +7,4 @@ builddir=$(readlink -f build)
 
 export LD_LIBRARY_PATH=$builddir/lib
 
-valgrind --leak-check=full src/circ_obfuscator "$@"
+valgrind --leak-check=full src/circobf "$@"

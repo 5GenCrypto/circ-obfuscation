@@ -31,6 +31,8 @@ enum mmap_e {
     MMAP_DUMMY,
 };
 
+static char *progname = "circobf";
+
 static char *
 scheme_to_string(enum scheme_e scheme)
 {
@@ -113,7 +115,7 @@ usage(int ret)
 {
     struct args_t defaults;
     args_init(&defaults);
-    printf("Usage: main [options] <circuit>\n");
+    printf("Usage: %s [options] <circuit>\n\n", progname);
     printf("Options:\n"
 "    --all, -a         obfuscate and evaluate\n"
 "    --dry-run         don't obfuscate/evaluate\n"
@@ -133,7 +135,8 @@ usage(int ret)
 "    --symlen          symbol length (in bits)\n"
 "\n"
 "  ZIM Specific Settings:\n"
-"    --npowers <N>     use N powers (default: %lu)\n",
+"    --npowers <N>     use N powers (default: %lu)\n"
+"\n",
            defaults.evaluate ? "yes" : "no",
            defaults.obfuscate ? "yes" : "no",
            defaults.secparam, defaults.npowers);

@@ -7,4 +7,4 @@ builddir=$(readlink -f build)
 
 export LD_LIBRARY_PATH=$builddir/lib
 
-src/circ_obfuscator "$@"
+src/circobf "$@"
