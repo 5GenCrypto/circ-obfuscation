@@ -1,8 +1,5 @@
-#include "encoding.h"
-
 #include "obf_index.h"
 #include "obf_params.h"
-#include "public_params.h"
 #include "vtables.h"
 
 #include <string.h>
@@ -16,9 +13,9 @@ static int
 _encoding_new(const pp_vtable *const vt, encoding *const enc,
               const public_params *const pp)
 {
-    (void) vt;
+    const obf_params_t *const op = vt->params(pp);
     enc->info = calloc(1, sizeof(encoding_info));
-    enc->info->index = obf_index_create(zim_pp_op(pp)->ninputs);
+    enc->info->index = obf_index_create(op->ninputs);
     return 0;
 }
 
@@ -144,10 +141,4 @@ zim_get_encoding_vtable(const mmap_vtable *const mmap)
 {
     zim_encoding_vtable.mmap = mmap;
     return &zim_encoding_vtable;
-}
-
-const obf_index *
-zim_encoding_index(const encoding *const enc)
-{
-    return enc->info->index;
 }

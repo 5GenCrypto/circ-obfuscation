@@ -1,5 +1,3 @@
-#include "secret_params.h"
-
 #include "obf_index.h"
 #include "obf_params.h"
 #include "vtables.h"
@@ -8,7 +6,7 @@ struct sp_info {
     obf_index *toplevel;
     const obf_params_t *op;
 };
-#define my(x) (x)->info
+#define spinfo(x) (x)->info
 
 static int
 _sp_init(const mmap_vtable *const mmap,
@@ -29,8 +27,8 @@ _sp_init(const mmap_vtable *const mmap,
     fprintf(stderr, "* κ = %lu\n", kappa);
 
     sp->sk = calloc(1, mmap->sk->size);
-    (void) mmap->sk->init(sp->sk, lambda, kappa, my(sp)->toplevel->nzs,
-                          (int *) my(sp)->toplevel->pows, 2, 1, rng, g_verbose);
+    (void) mmap->sk->init(sp->sk, lambda, kappa, spinfo(sp)->toplevel->nzs,
+                          (int *) spinfo(sp)->toplevel->pows, 2, 1, rng, g_verbose);
     return 0;
 }
 
@@ -38,7 +36,7 @@ static void
 _sp_clear(const mmap_vtable *const mmap, secret_params *sp)
 {
     (void) mmap;
-    obf_index_destroy(my(sp)->toplevel);
+    obf_index_destroy(spinfo(sp)->toplevel);
     free(sp->info);
     mmap->sk->clear(sp->sk);
     free(sp->sk);
@@ -47,14 +45,13 @@ _sp_clear(const mmap_vtable *const mmap, secret_params *sp)
 static const void *
 _sp_toplevel(const secret_params *const sp)
 {
-    return my(sp)->toplevel;
+    return spinfo(sp)->toplevel;
 }
 
 static const void *
 _sp_params(const secret_params *const sp)
 {
-    (void) sp;
-    return NULL;
+    return spinfo(sp)->op;
 }
 
 static sp_vtable zim_sp_vtable = {
@@ -70,10 +67,4 @@ zim_get_sp_vtable(const mmap_vtable *const mmap)
 {
     zim_sp_vtable.mmap = mmap;
     return &zim_sp_vtable;
-}
-
-const obf_params_t *
-zim_sp_op(const secret_params *const sp)
-{
-    return my(sp)->op;
 }

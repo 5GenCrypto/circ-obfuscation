@@ -1,4 +1,5 @@
 #include "obf_index.h"
+#include "../util.h"
 
 #include <assert.h>
 
@@ -9,14 +10,14 @@ static void obf_index_init(obf_index *ix, size_t n)
     ix->pows = my_calloc(ix->nzs, sizeof(unsigned long));
 }
 
-obf_index * obf_index_create(size_t n)
+static obf_index * obf_index_create(size_t n)
 {
     obf_index *ix = my_calloc(1, sizeof(obf_index));
     obf_index_init(ix, n);
     return ix;
 }
 
-void obf_index_destroy(obf_index *ix)
+static void obf_index_destroy(obf_index *ix)
 {
     if (ix) {
         if (ix->pows)
@@ -25,7 +26,13 @@ void obf_index_destroy(obf_index *ix)
     }
 }
 
-obf_index *
+static void obf_index_print(const obf_index *const ix)
+{
+    array_print_ui(ix->pows, ix->nzs);
+    printf("\tn=%lu, nzs=%lu\n", ix->n, ix->nzs);
+}
+
+static obf_index *
 obf_index_create_toplevel(acirc *const c)
 {
     obf_index *ix;
@@ -46,28 +53,28 @@ obf_index_create_toplevel(acirc *const c)
     return ix;
 }
 
-void obf_index_add(obf_index *const rop, const obf_index *const x,
-                   const obf_index *const y)
+static void obf_index_add(obf_index *const rop, const obf_index *const x,
+                          const obf_index *const y)
 {
     assert(x->nzs == y->nzs);
     assert(y->nzs == rop->nzs);
     array_add(rop->pows, x->pows, y->pows, rop->nzs);
 }
 
-void obf_index_set(obf_index *const rop, const obf_index *const x)
+static void obf_index_set(obf_index *const rop, const obf_index *const x)
 {
     assert(rop->nzs == x->nzs);
     for (size_t i = 0; i < x->nzs; i++)
         rop->pows[i] = x->pows[i];
 }
 
-bool obf_index_eq(const obf_index *const x, const obf_index *const y)
+static bool obf_index_eq(const obf_index *const x, const obf_index *const y)
 {
     assert(x->nzs == y->nzs);
     return array_eq(x->pows, y->pows, x->nzs);
 }
 
-obf_index * obf_index_union(const obf_index *const x, const obf_index *const y)
+static obf_index * obf_index_union(const obf_index *const x, const obf_index *const y)
 {
     obf_index *res;
     assert(x->nzs == y->nzs);
@@ -79,7 +86,7 @@ obf_index * obf_index_union(const obf_index *const x, const obf_index *const y)
     return res;
 }
 
-obf_index * obf_index_difference(const obf_index *const x, const obf_index *const y)
+static obf_index * obf_index_difference(const obf_index *const x, const obf_index *const y)
 {
     obf_index *res;
     assert(x->nzs == y->nzs);
@@ -91,13 +98,7 @@ obf_index * obf_index_difference(const obf_index *const x, const obf_index *cons
     return res;
 }
 
-void obf_index_print(const obf_index *const ix)
-{
-    array_print_ui(ix->pows, ix->nzs);
-    printf("\tn=%lu, nzs=%lu\n", ix->n, ix->nzs);
-}
-
-obf_index * obf_index_fread(FILE *const fp)
+static obf_index * obf_index_fread(FILE *const fp)
 {
     obf_index *ix = my_calloc(1, sizeof(obf_index));
     ulong_fread(&ix->nzs, fp);
@@ -109,7 +110,7 @@ obf_index * obf_index_fread(FILE *const fp)
     return ix;
 }
 
-int obf_index_fwrite(const obf_index *const ix, FILE *const fp)
+static int obf_index_fwrite(const obf_index *const ix, FILE *const fp)
 {
     ulong_fwrite(ix->nzs, fp);
     ulong_fwrite(ix->n, fp);

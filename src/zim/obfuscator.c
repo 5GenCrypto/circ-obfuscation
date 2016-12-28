@@ -1,6 +1,5 @@
 #include "obfuscator.h"
 
-#include "encoding.h"
 #include "obf_index.h"
 #include "obf_params.h"
 #include "vtables.h"
@@ -718,9 +717,9 @@ void obf_eval_worker(void* wargs)
                          obf->what[i][inputs[i]][k], obf->pp);
         }
         encoding_set(obf->enc_vt, rhs, tmp);
-        if (!obf_index_eq(toplevel, zim_encoding_index(rhs))) {
+        if (!obf_index_eq(toplevel, obf->enc_vt->mmap_set(rhs))) {
             fprintf(stderr, "rhs != toplevel\n");
-            obf_index_print(zim_encoding_index(rhs));
+            obf_index_print(obf->enc_vt->mmap_set(rhs));
             obf_index_print(toplevel);
             rop[k] = 1;
             goto cleanup;
@@ -735,9 +734,9 @@ void obf_eval_worker(void* wargs)
         /* encoding_set(obf->enc_vt, tmp2, tmp); */
         /* encoding_mul(obf->enc_vt, obf->pp_vt, tmp, tmp2, obf->uhat[0][inputs[0]][0], obf->pp); */
         encoding_set(obf->enc_vt, lhs, tmp);
-        if (!obf_index_eq(toplevel, zim_encoding_index(lhs))) {
+        if (!obf_index_eq(toplevel, obf->enc_vt->mmap_set(lhs))) {
             fprintf(stderr, "lhs != toplevel\n");
-            obf_index_print(zim_encoding_index(lhs));
+            obf_index_print(obf->enc_vt->mmap_set(lhs));
             obf_index_print(toplevel);
             rop[k] = 1;
             goto cleanup;
