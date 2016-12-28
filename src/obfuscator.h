@@ -5,12 +5,12 @@
 
 typedef struct obfuscation obfuscation;
 typedef struct {
-    obfuscation * (*new)(const mmap_vtable *const, const obf_params_t *const, size_t);
+    obfuscation * (*new)(const mmap_vtable *, const obf_params_t *, size_t);
     void (*free)(obfuscation *);
-    int (*obfuscate)(obfuscation *const);
-    int (*evaluate)(int *rop, const int *inps, const obfuscation *const);
-    int (*fwrite)(const obfuscation *, FILE *const);
-    obfuscation * (*fread)(const mmap_vtable *const, const obf_params_t *const, FILE *const);
+    int (*obfuscate)(obfuscation *);
+    int (*evaluate)(int *, const int *, const obfuscation *);
+    int (*fwrite)(const obfuscation *, FILE *);
+    obfuscation * (*fread)(const mmap_vtable *, const obf_params_t *, FILE *);
 } obfuscator_vtable;
 
 #endif

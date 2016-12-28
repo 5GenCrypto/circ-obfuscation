@@ -26,14 +26,14 @@ static void obf_index_destroy(obf_index *ix)
     }
 }
 
-static void obf_index_print(const obf_index *const ix)
+static void obf_index_print(const obf_index *ix)
 {
     array_print_ui(ix->pows, ix->nzs);
     printf("\tn=%lu, nzs=%lu\n", ix->n, ix->nzs);
 }
 
 static obf_index *
-obf_index_create_toplevel(acirc *const c)
+obf_index_create_toplevel(acirc *c)
 {
     obf_index *ix;
     if ((ix = obf_index_create(c->ninputs)) == NULL)
@@ -53,28 +53,27 @@ obf_index_create_toplevel(acirc *const c)
     return ix;
 }
 
-static void obf_index_add(obf_index *const rop, const obf_index *const x,
-                          const obf_index *const y)
+static void obf_index_add(obf_index *rop, const obf_index *x, const obf_index *y)
 {
     assert(x->nzs == y->nzs);
     assert(y->nzs == rop->nzs);
     array_add(rop->pows, x->pows, y->pows, rop->nzs);
 }
 
-static void obf_index_set(obf_index *const rop, const obf_index *const x)
+static void obf_index_set(obf_index *rop, const obf_index *x)
 {
     assert(rop->nzs == x->nzs);
     for (size_t i = 0; i < x->nzs; i++)
         rop->pows[i] = x->pows[i];
 }
 
-static bool obf_index_eq(const obf_index *const x, const obf_index *const y)
+static bool obf_index_eq(const obf_index *x, const obf_index *y)
 {
     assert(x->nzs == y->nzs);
     return array_eq(x->pows, y->pows, x->nzs);
 }
 
-static obf_index * obf_index_union(const obf_index *const x, const obf_index *const y)
+static obf_index * obf_index_union(const obf_index *x, const obf_index *y)
 {
     obf_index *res;
     assert(x->nzs == y->nzs);
@@ -86,7 +85,7 @@ static obf_index * obf_index_union(const obf_index *const x, const obf_index *co
     return res;
 }
 
-static obf_index * obf_index_difference(const obf_index *const x, const obf_index *const y)
+static obf_index * obf_index_difference(const obf_index *x, const obf_index *y)
 {
     obf_index *res;
     assert(x->nzs == y->nzs);
@@ -98,7 +97,7 @@ static obf_index * obf_index_difference(const obf_index *const x, const obf_inde
     return res;
 }
 
-static obf_index * obf_index_fread(FILE *const fp)
+static obf_index * obf_index_fread(FILE *fp)
 {
     obf_index *ix = my_calloc(1, sizeof(obf_index));
     ulong_fread(&ix->nzs, fp);
@@ -110,12 +109,12 @@ static obf_index * obf_index_fread(FILE *const fp)
     return ix;
 }
 
-static int obf_index_fwrite(const obf_index *const ix, FILE *const fp)
+static int obf_index_fwrite(const obf_index *ix, FILE *fp)
 {
     ulong_fwrite(ix->nzs, fp);
     ulong_fwrite(ix->n, fp);
     for (size_t i = 0; i < ix->nzs; i++) {
         ulong_fwrite(ix->pows[i], fp);
     }
-    return 0;
+    return OK;
 }

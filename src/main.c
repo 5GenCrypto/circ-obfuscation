@@ -75,7 +75,7 @@ struct args_t {
 };
 
 static void
-args_init(struct args_t *const args)
+args_init(struct args_t *args)
 {
     args->circuit = NULL;
     args->mmap = MMAP_CLT;
@@ -91,7 +91,7 @@ args_init(struct args_t *const args)
 }
 
 static void
-args_print(const struct args_t *const args)
+args_print(const struct args_t *args)
 {
     fprintf(stderr, "Obfuscation details:\n"
 "* Circuit: %s\n"
@@ -151,8 +151,8 @@ static const struct option opts[] = {
 static const char *short_opts = "adD:eol:n:M:sS:vh";
 
 static int
-_evaluate(const obfuscator_vtable *const vt, const struct args_t *const args,
-          const acirc *const c, const obfuscation *const obf)
+_evaluate(const obfuscator_vtable *vt, const struct args_t *args,
+          const acirc *c, const obfuscation *obf)
 {
     int res[c->noutputs];
     int ret = OK;
@@ -193,7 +193,7 @@ _evaluate(const obfuscator_vtable *const vt, const struct args_t *const args,
 }
 
 static int
-run(const struct args_t *const args)
+run(const struct args_t *args)
 {
     obf_params_t *params;
     acirc c;

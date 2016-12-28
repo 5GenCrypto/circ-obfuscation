@@ -6,9 +6,9 @@
 #include <assert.h>
 
 static obf_params_t *
-_op_new(acirc *const circ, void *const vparams)
+_op_new(acirc *circ, void *vparams)
 {
-    zim_obf_params_t *const params = vparams;
+    const zim_obf_params_t *const params = vparams;
     obf_params_t *op;
 
     op = calloc(1, sizeof(obf_params_t));
@@ -27,19 +27,17 @@ _op_free(obf_params_t *op)
 }
 
 static int
-_op_fwrite(const obf_params_t *const op, FILE *const fp)
+_op_fwrite(const obf_params_t *op, FILE *fp)
 {
     (void) op; (void) fp;
-    assert(false);
-    return OK;
+    return ERR;
 }
 
 static int
-_op_fread(obf_params_t *const op, FILE *const fp)
+_op_fread(obf_params_t *op, FILE *fp)
 {
     (void) op; (void) fp;
-    assert(false);
-    return OK;
+    return ERR;
 }
 
 op_vtable zim_op_vtable =

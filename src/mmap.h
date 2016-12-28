@@ -8,10 +8,10 @@
 
 typedef struct obf_params_t obf_params_t;
 typedef struct {
-    obf_params_t * (*new)(acirc *const, void *const);
+    obf_params_t * (*new)(acirc *, void *);
     void (*free)(obf_params_t *);
-    int (*fwrite)(const obf_params_t *const, FILE *const);
-    int (*fread)(obf_params_t *const, FILE *const);
+    int (*fwrite)(const obf_params_t *, FILE *);
+    int (*fread)(obf_params_t *, FILE *);
 } op_vtable;
 
 typedef struct sp_info sp_info;
@@ -22,11 +22,11 @@ typedef struct secret_params {
 
 typedef struct {
     const mmap_vtable *mmap;
-    int (*init)(const mmap_vtable *const, struct secret_params *const,
-                 const obf_params_t *const, size_t, aes_randstate_t);
-    void (*clear)(const mmap_vtable *const, struct secret_params *);
-    const void * (*toplevel)(const secret_params *const);
-    const void * (*params)(const secret_params *const);
+    int (*init)(const mmap_vtable *, struct secret_params *,
+                const obf_params_t *, size_t, aes_randstate_t);
+    void (*clear)(const mmap_vtable *, struct secret_params *);
+    const void * (*toplevel)(const secret_params *);
+    const void * (*params)(const secret_params *);
 } sp_vtable;
 
 typedef struct pp_info pp_info;
@@ -37,12 +37,12 @@ typedef struct public_params {
 
 typedef struct {
     const mmap_vtable *mmap;
-    void (*init)(const sp_vtable *const, public_params *const, const secret_params *const);
-    void (*fwrite)(const public_params *const, FILE *const);
-    void (*fread)(public_params *const, const obf_params_t *const, FILE *const);
-    void (*clear)(public_params *const);
-    const void * (*toplevel)(const public_params *const);
-    const void * (*params)(const public_params *const);
+    void (*init)(const sp_vtable *, public_params *, const secret_params *);
+    void (*fwrite)(const public_params *, FILE *);
+    void (*fread)(public_params *, const obf_params_t *, FILE *);
+    void (*clear)(public_params *);
+    const void * (*toplevel)(const public_params *);
+    const void * (*params)(const public_params *);
 } pp_vtable;
 
 typedef struct encoding_info encoding_info;
@@ -53,79 +53,75 @@ typedef struct {
 
 typedef struct {
     const mmap_vtable *mmap;
-    int (*new)(const pp_vtable *const, encoding *const, const public_params *const);
-    void (*free)(encoding *const);
-    int (*print)(const encoding *const);
-    int * (*encode)(encoding *const, const void *const);
-    int (*set)(encoding *const, const encoding *const);
-    int (*mul)(const pp_vtable *const, encoding *const, const encoding *const,
-               const encoding *const, const public_params *const);
-    int (*add)(const pp_vtable *const, encoding *const, const encoding *const,
-               const encoding *const, const public_params *const);
-    int (*sub)(const pp_vtable *const, encoding *const, const encoding *const,
-               const encoding *const, const public_params *const);
-    int (*is_zero)(const pp_vtable *const, const encoding *const,
-                   const public_params *const);
-    void (*fread)(encoding *const, FILE *const);
-    void (*fwrite)(const encoding *const, FILE *const);
-    const void * (*mmap_set)(const encoding *const);
+    int (*new)(const pp_vtable *, encoding *, const public_params *);
+    void (*free)(encoding *);
+    int (*print)(const encoding *);
+    int * (*encode)(encoding *, const void *);
+    int (*set)(encoding *, const encoding *);
+    int (*mul)(const pp_vtable *, encoding *, const encoding *,
+               const encoding *, const public_params *);
+    int (*add)(const pp_vtable *, encoding *, const encoding *,
+               const encoding *, const public_params *);
+    int (*sub)(const pp_vtable *, encoding *, const encoding *,
+               const encoding *, const public_params *);
+    int (*is_zero)(const pp_vtable *, const encoding *, const public_params *);
+    void (*fread)(encoding *, FILE *);
+    void (*fwrite)(const encoding *, FILE *);
+    const void * (*mmap_set)(const encoding *);
 } encoding_vtable;
 
 int
-secret_params_init(const sp_vtable *const vt, secret_params *const p,
-                   const obf_params_t *const op, size_t lambda,
+secret_params_init(const sp_vtable *vt, secret_params *p,
+                   const obf_params_t *op, size_t lambda,
                    aes_randstate_t rng);
 void
-secret_params_clear(const sp_vtable *const vt, secret_params *const p);
+secret_params_clear(const sp_vtable *vt, secret_params *p);
 
 void
-public_params_init(const pp_vtable *const vt, const sp_vtable *const sp_vt,
-                   public_params *const pp, const secret_params *const sp);
+public_params_init(const pp_vtable *vt, const sp_vtable *sp_vt,
+                   public_params *pp, const secret_params *sp);
 int
-public_params_fwrite(const pp_vtable *const vt, const public_params *const pp,
-                     FILE *const fp);
+public_params_fwrite(const pp_vtable *vt, const public_params *pp,
+                     FILE *fp);
 int
-public_params_fread(const pp_vtable *const vt, public_params *const pp,
-                    const obf_params_t *const op, FILE *const fp);
+public_params_fread(const pp_vtable *vt, public_params *pp,
+                    const obf_params_t *op, FILE *fp);
 void
 public_params_clear(const pp_vtable *vt, public_params *p);
 
 encoding *
-encoding_new(const encoding_vtable *const enc_vt, const pp_vtable *const pp_vt,
-             const public_params *const pp);
+encoding_new(const encoding_vtable *enc_vt, const pp_vtable *pp_vt,
+             const public_params *pp);
 void
-encoding_free(const encoding_vtable *const vt, encoding *x);
+encoding_free(const encoding_vtable *vt, encoding *x);
 int
-encoding_print(const encoding_vtable *const vt, const encoding *const enc);
+encoding_print(const encoding_vtable *vt, const encoding *enc);
 
 int
-encode(const encoding_vtable *const vt, encoding *const rop,
-       mpz_t *const inps, size_t nins, const void *const set,
-       const secret_params *const sp);
+encode(const encoding_vtable *vt, encoding *rop, mpz_t *inps, size_t nins,
+       const void *set, const secret_params *sp);
 
 int
-encoding_set(const encoding_vtable *const vt, encoding *const rop,
-             const encoding *const x);
+encoding_set(const encoding_vtable *vt, encoding *rop, const encoding *x);
 int
-encoding_mul(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
-             encoding *const rop, const encoding *const x,
-             const encoding *const y, const public_params *const p);
+encoding_mul(const encoding_vtable *vt, const pp_vtable *pp_vt,
+             encoding *rop, const encoding *x,
+             const encoding *y, const public_params *p);
 int
-encoding_add(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
-             encoding *const rop, const encoding *const x,
-             const encoding *const y, const public_params *const p);
+encoding_add(const encoding_vtable *vt, const pp_vtable *pp_vt,
+             encoding *rop, const encoding *x,
+             const encoding *y, const public_params *p);
 int
-encoding_sub(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
-             encoding *const rop, const encoding *const x,
-             const encoding *const y, const public_params *const p);
+encoding_sub(const encoding_vtable *vt, const pp_vtable *pp_vt,
+             encoding *rop, const encoding *x,
+             const encoding *y, const public_params *p);
 int
-encoding_is_zero(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
-                 const encoding *const x, const public_params *const p);
+encoding_is_zero(const encoding_vtable *vt, const pp_vtable *pp_vt,
+                 const encoding *x, const public_params *p);
 
 void
-encoding_fread(const encoding_vtable *const vt, encoding *x, FILE *const fp);
+encoding_fread(const encoding_vtable *vt, encoding *x, FILE *fp);
 void
-encoding_fwrite(const encoding_vtable *const vt, const encoding *const x,
-                FILE *const fp);
+encoding_fwrite(const encoding_vtable *vt, const encoding *x, FILE *fp);
 
 #endif

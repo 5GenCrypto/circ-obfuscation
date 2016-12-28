@@ -141,7 +141,7 @@ mpz_vect_clear(mpz_t *vec, size_t n)
         mpz_clear(vec[i]);
 }
 
-void mpz_vect_set(mpz_t *rop, const mpz_t *const xs, size_t n)
+void mpz_vect_set(mpz_t *rop, const mpz_t *xs, size_t n)
 {
     for (size_t i = 0; i < n; i++)
         mpz_set(rop[i], xs[i]);
@@ -156,7 +156,7 @@ void mpz_vect_urandomm(mpz_t *vec, const mpz_t modulus, size_t n, aes_randstate_
     }
 }
 
-void mpz_vect_urandomms(mpz_t *vec, const mpz_t *const moduli, size_t n, aes_randstate_t rng)
+void mpz_vect_urandomms(mpz_t *vec, const mpz_t *moduli, size_t n, aes_randstate_t rng)
 {
     for (size_t i = 0; i < n; i++) {
         do {
@@ -165,21 +165,21 @@ void mpz_vect_urandomms(mpz_t *vec, const mpz_t *const moduli, size_t n, aes_ran
     }
 }
 
-void mpz_vect_mul(mpz_t *const rop, const mpz_t *const xs, const mpz_t *const ys, size_t n)
+void mpz_vect_mul(mpz_t *rop, const mpz_t *xs, const mpz_t *ys, size_t n)
 {
     for (size_t i = 0; i < n; i++) {
         mpz_mul(rop[i], xs[i], ys[i]);
     }
 }
 
-void mpz_vect_mod(mpz_t *const rop, const mpz_t *const xs, const mpz_t *const moduli, size_t n)
+void mpz_vect_mod(mpz_t *rop, const mpz_t *xs, const mpz_t *moduli, size_t n)
 {
     for (size_t i = 0; i < n; i++) {
         mpz_mod(rop[i], xs[i], moduli[i]);
     }
 }
 
-void mpz_vect_mul_mod(mpz_t *const rop, const mpz_t *const xs, const mpz_t *const ys, const mpz_t *const moduli, size_t n)
+void mpz_vect_mul_mod(mpz_t *rop, const mpz_t *xs, const mpz_t *ys, const mpz_t *moduli, size_t n)
 {
     mpz_vect_mul(rop, xs, ys, n);
     mpz_vect_mod(rop, (const mpz_t *const) rop, moduli, n);
@@ -245,33 +245,33 @@ my_realloc(void *ptr, size_t size)
 // serialization
 
 void
-ulong_fread(unsigned long *x, FILE *const fp)
+ulong_fread(unsigned long *x, FILE *fp)
 {
     fscanf(fp, "%lu", x);
     GET_NEWLINE(fp);
 }
 
 void
-ulong_fwrite(unsigned long x, FILE *const fp)
+ulong_fwrite(unsigned long x, FILE *fp)
 {
     fprintf(fp, "%lu", x);
     PUT_NEWLINE(fp);
 }
 
 void
-size_t_fread(size_t *x, FILE *const fp)
+size_t_fread(size_t *x, FILE *fp)
 {
     fscanf(fp, "%lu", x);
 }
 
 void
-size_t_fwrite(size_t x, FILE *const fp)
+size_t_fwrite(size_t x, FILE *fp)
 {
     fprintf(fp, "%lu", x);
 }
 
 void
-bool_fread(bool *x, FILE *const fp)
+bool_fread(bool *x, FILE *fp)
 {
     int tmp;
     fscanf(fp, "%d", &tmp);
@@ -279,7 +279,7 @@ bool_fread(bool *x, FILE *const fp)
 }
 
 void
-bool_fwrite(bool x, FILE *const fp)
+bool_fwrite(bool x, FILE *fp)
 {
     int tmp = x;
     fprintf(fp, "%d", tmp);

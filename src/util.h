@@ -43,11 +43,11 @@ void mpz_vect_free(mpz_t *vec, size_t n);
 void mpz_vect_urandomm(mpz_t *vec, const mpz_t modulus, size_t n, aes_randstate_t rng);
 void mpz_vect_urandomms(mpz_t *vec, const mpz_t *moduli, size_t n, aes_randstate_t rng);
 
-void mpz_vect_mul(mpz_t *const rop, const mpz_t *const xs, const mpz_t *const ys, size_t n);
-void mpz_vect_mod(mpz_t *const rop, const mpz_t *const xs, const mpz_t *const moduli, size_t n);
-void mpz_vect_mul_mod(mpz_t *const rop, const mpz_t *const xs, const mpz_t *const ys, const mpz_t *const moduli, size_t n);
+void mpz_vect_mul(mpz_t *rop, const mpz_t *xs, const mpz_t *ys, size_t n);
+void mpz_vect_mod(mpz_t *rop, const mpz_t *xs, const mpz_t *moduli, size_t n);
+void mpz_vect_mul_mod(mpz_t *rop, const mpz_t *xs, const mpz_t *ys, const mpz_t *moduli, size_t n);
 
-void mpz_vect_set(mpz_t *const rop, const mpz_t *const xs, size_t n);
+void mpz_vect_set(mpz_t *rop, const mpz_t *xs, size_t n);
 
 void mpz_vect_repeat_ui(mpz_t *vec, size_t x, size_t n);
 
@@ -57,14 +57,14 @@ void * my_calloc(size_t nmemb, size_t size);
 void * my_malloc(size_t size);
 void * my_realloc(void *ptr, size_t size);
 
-void ulong_fread(unsigned long *x, FILE *const fp);
-void ulong_fwrite(unsigned long x, FILE *const fp);
+void ulong_fread(unsigned long *x, FILE *fp);
+void ulong_fwrite(unsigned long x, FILE *fp);
 
-void size_t_fread(size_t *x, FILE *const fp);
-void size_t_fwrite(size_t x, FILE *const fp);
+void size_t_fread(size_t *x, FILE *fp);
+void size_t_fwrite(size_t x, FILE *fp);
 
-void bool_fread(bool *x, FILE *const fp);
-void bool_fwrite(bool x, FILE *const fp);
+void bool_fread(bool *x, FILE *fp);
+void bool_fwrite(bool x, FILE *fp);
 
 #define PUT_NEWLINE(fp) fprintf(fp, "\n")
 #define PUT_SPACE(fp) fprintf(fp, " ")

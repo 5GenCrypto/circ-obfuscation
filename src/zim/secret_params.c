@@ -9,8 +9,7 @@ struct sp_info {
 #define spinfo(x) (x)->info
 
 static int
-_sp_init(const mmap_vtable *const mmap,
-         secret_params *const sp, const obf_params_t *const op,
+_sp_init(const mmap_vtable *mmap, secret_params *sp, const obf_params_t *op,
          size_t lambda, aes_randstate_t rng)
 {
     size_t kappa;
@@ -29,11 +28,11 @@ _sp_init(const mmap_vtable *const mmap,
     sp->sk = calloc(1, mmap->sk->size);
     (void) mmap->sk->init(sp->sk, lambda, kappa, spinfo(sp)->toplevel->nzs,
                           (int *) spinfo(sp)->toplevel->pows, 2, 1, rng, g_verbose);
-    return 0;
+    return OK;
 }
 
 static void
-_sp_clear(const mmap_vtable *const mmap, secret_params *sp)
+_sp_clear(const mmap_vtable *mmap, secret_params *sp)
 {
     (void) mmap;
     obf_index_destroy(spinfo(sp)->toplevel);
@@ -43,13 +42,13 @@ _sp_clear(const mmap_vtable *const mmap, secret_params *sp)
 }
 
 static const void *
-_sp_toplevel(const secret_params *const sp)
+_sp_toplevel(const secret_params *sp)
 {
     return spinfo(sp)->toplevel;
 }
 
 static const void *
-_sp_params(const secret_params *const sp)
+_sp_params(const secret_params *sp)
 {
     return spinfo(sp)->op;
 }
@@ -63,7 +62,7 @@ static sp_vtable zim_sp_vtable = {
 };
 
 sp_vtable *
-zim_get_sp_vtable(const mmap_vtable *const mmap)
+zim_get_sp_vtable(const mmap_vtable *mmap)
 {
     zim_sp_vtable.mmap = mmap;
     return &zim_sp_vtable;

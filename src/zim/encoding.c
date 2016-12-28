@@ -10,8 +10,7 @@ struct encoding_info {
 #define my(x) x->info
 
 static int
-_encoding_new(const pp_vtable *const vt, encoding *const enc,
-              const public_params *const pp)
+_encoding_new(const pp_vtable *vt, encoding *enc, const public_params *pp)
 {
     const obf_params_t *const op = vt->params(pp);
     enc->info = calloc(1, sizeof(encoding_info));
@@ -20,7 +19,7 @@ _encoding_new(const pp_vtable *const vt, encoding *const enc,
 }
 
 static void
-_encoding_free(encoding *const enc)
+_encoding_free(encoding *enc)
 {
     if (enc->info) {
         if (enc->info->index) {
@@ -31,17 +30,17 @@ _encoding_free(encoding *const enc)
 }
 
 static int
-_encoding_print(const encoding *const enc)
+_encoding_print(const encoding *enc)
 {
     obf_index_print(enc->info->index);
     return 0;
 }
 
 static int *
-_encode(encoding *const rop, const void *const set)
+_encode(encoding *rop, const void *set)
 {
     int *pows;
-    const obf_index *const ix = (const obf_index *const) set;
+    const obf_index *const ix = set;
 
     obf_index_set(rop->info->index, ix);
     pows = my_calloc(ix->nzs, sizeof(int));
@@ -50,16 +49,15 @@ _encode(encoding *const rop, const void *const set)
 }
 
 static int
-_encoding_set(encoding *const rop, const encoding *const x)
+_encoding_set(encoding *rop, const encoding *x)
 {
     obf_index_set(my(rop)->index, my(x)->index);
     return 0;
 }
 
 static int
-_encoding_mul(const pp_vtable *const vt, encoding *const rop,
-              const encoding *const x, const encoding *const y,
-              const public_params *const pp)
+_encoding_mul(const pp_vtable *vt, encoding *rop, const encoding *x,
+              const encoding *y, const public_params *pp)
 {
     (void) vt; (void) pp;
     obf_index_add(my(rop)->index, my(x)->index, my(y)->index);
@@ -67,9 +65,8 @@ _encoding_mul(const pp_vtable *const vt, encoding *const rop,
 }
 
 static int
-_encoding_add(const pp_vtable *const vt, encoding *const rop,
-              const encoding *const x, const encoding *const y,
-              const public_params *const pp)
+_encoding_add(const pp_vtable *vt, encoding *rop, const encoding *x,
+              const encoding *y, const public_params *pp)
 {
     (void) vt; (void) pp; (void) y;
     obf_index_set(my(rop)->index, my(x)->index);
@@ -77,9 +74,8 @@ _encoding_add(const pp_vtable *const vt, encoding *const rop,
 }
 
 static int
-_encoding_sub(const pp_vtable *const vt, encoding *const rop,
-              const encoding *const x, const encoding *const y,
-              const public_params *const pp)
+_encoding_sub(const pp_vtable *vt, encoding *rop, const encoding *x,
+              const encoding *y, const public_params *pp)
 {
     (void) vt; (void) pp; (void) y;
     obf_index_set(my(rop)->index, my(x)->index);
@@ -87,8 +83,7 @@ _encoding_sub(const pp_vtable *const vt, encoding *const rop,
 }
 
 static int
-_encoding_is_zero(const pp_vtable *const vt, const encoding *const x,
-                  const public_params *const pp)
+_encoding_is_zero(const pp_vtable *vt, const encoding *x, const public_params *pp)
 {
     const obf_index *const toplevel = vt->toplevel(pp);
     if (!obf_index_eq(my(x)->index, toplevel)) {
@@ -101,20 +96,20 @@ _encoding_is_zero(const pp_vtable *const vt, const encoding *const x,
 }
 
 static void
-_encoding_fread(encoding *const x, FILE *const fp)
+_encoding_fread(encoding *x, FILE *fp)
 {
     x->info = calloc(1, sizeof(encoding_info));
     x->info->index = obf_index_fread(fp);
 }
 
 static void
-_encoding_fwrite(const encoding *const x, FILE *const fp)
+_encoding_fwrite(const encoding *x, FILE *fp)
 {
     obf_index_fwrite(my(x)->index, fp);
 }
 
 static const void *
-_encoding_mmap_set(const encoding *const enc)
+_encoding_mmap_set(const encoding *enc)
 {
     return my(enc)->index;
 }
@@ -137,7 +132,7 @@ static encoding_vtable zim_encoding_vtable =
 };
 
 encoding_vtable *
-zim_get_encoding_vtable(const mmap_vtable *const mmap)
+zim_get_encoding_vtable(const mmap_vtable *mmap)
 {
     zim_encoding_vtable.mmap = mmap;
     return &zim_encoding_vtable;

@@ -36,7 +36,7 @@ typedef struct obfuscation {
     )
 
 static void
-zim_encoding_print(const char *const name, mpz_t inps[2], obf_index *ix)
+zim_encoding_print(const char *name, mpz_t inps[2], obf_index *ix)
 {
     if (LOG_INFO) {
         gmp_printf(
@@ -52,8 +52,7 @@ static void
 _obfuscator_free(obfuscation *obf);
 
 static obfuscation *
-_obfuscator_new(const mmap_vtable *mmap, const obf_params_t *const op,
-                size_t secparam)
+_obfuscator_new(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam)
 {
     obfuscation *obf;
 
@@ -168,7 +167,7 @@ _obfuscator_free(obfuscation *obf)
 }
 
 static int
-_obfuscate(obfuscation *const obf)
+_obfuscate(obfuscation *obf)
 {
     const obf_params_t *const op = obf->op;
     acirc *const c = op->circ;
@@ -432,7 +431,7 @@ _obfuscator_fwrite(const obfuscation *const obf, FILE *const fp)
 }
 
 static obfuscation *
-_obfuscator_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *const fp)
+_obfuscator_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
 {
     obfuscation *obf;
 
@@ -524,13 +523,11 @@ static void obf_eval_worker(void *wargs);
 static ref_list *ref_list_create(void);
 static void ref_list_destroy(ref_list *list);
 static void ref_list_push(ref_list *list, acircref ref);
-static void raise_encodings(const obfuscation *const obf, encoding *const x,
-                            encoding *const y);
-static void raise_encoding(const obfuscation *const obf, encoding *const x,
-                           const obf_index *const target);
+static void raise_encodings(const obfuscation *obf, encoding *x, encoding *y);
+static void raise_encoding(const obfuscation *obf, encoding *x, const obf_index *target);
 
 static int
-_evaluate(int *rop, const int *const inputs, const obfuscation *const obf)
+_evaluate(int *rop, const int *inputs, const obfuscation *obf)
 {
     const acirc *const c = obf->op->circ;
 
@@ -758,8 +755,7 @@ void obf_eval_worker(void* wargs)
 // statefully raise encodings to the union of their indices
 
 static void
-raise_encodings(const obfuscation *const obf, encoding *const x,
-                encoding *const y)
+raise_encodings(const obfuscation *obf, encoding *x, encoding *y)
 {
     obf_index *ix = obf_index_union(obf->enc_vt->mmap_set(x),
                                     obf->enc_vt->mmap_set(y));
@@ -768,8 +764,7 @@ raise_encodings(const obfuscation *const obf, encoding *const x,
     obf_index_destroy(ix);
 }
 
-static void raise_encoding(const obfuscation *const obf, encoding *const x,
-                           const obf_index *const target)
+static void raise_encoding(const obfuscation *obf, encoding *x, const obf_index *target)
 {
     obf_index *ix = obf_index_difference(target, obf->enc_vt->mmap_set(x));
     for (size_t i = 0; i < obf->op->ninputs; i++) {
