@@ -26,7 +26,7 @@ _sp_init(const mmap_vtable *mmap, secret_params *sp,
     sp->info = calloc(1, sizeof(sp_info));
     sp->info->op = op;
     sp->info->toplevel = level_create_vzt(op);
-    if (LOG_DEBUG) {
+    if (g_verbose) {
         fprintf(stderr, "toplevel: ");
         level_fprint(stderr, sp->info->toplevel);
     }

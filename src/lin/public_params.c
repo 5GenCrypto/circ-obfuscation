@@ -2,7 +2,8 @@
 
 struct pp_info {
     const obf_params_t *op;
-    const level *toplevel;
+    level *toplevel;
+    bool my_toplevel;
 };
 #define info(x) (x)->info
 
@@ -12,6 +13,7 @@ _pp_init(const sp_vtable *vt, public_params *pp,
 {
     pp->info = calloc(1, sizeof(pp_info));
     pp->info->toplevel = vt->toplevel(sp);
+    pp->info->my_toplevel = false;
     pp->info->op = vt->params(sp);
 }
 
@@ -28,12 +30,15 @@ _pp_fread(public_params *pp, const obf_params_t *op,
     (void) fp;
     pp->info = calloc(1, sizeof(pp_info));
     pp->info->toplevel = level_create_vzt(op);
+    pp->info->my_toplevel = true;
     pp->info->op = op;
 }
 
 static void
 _pp_clear(public_params *pp)
 {
+    if (pp->info->my_toplevel)
+        level_free(pp->info->toplevel);
     free(pp->info);
 }
 

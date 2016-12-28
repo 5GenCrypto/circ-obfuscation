@@ -69,6 +69,8 @@ struct args_t {
     enum scheme_e scheme;
     /* AB specific settings */
     bool simple;
+    /* Lin specific settings */
+    size_t symlen;
     /* Zim specific settings */
     size_t npowers;
 
@@ -86,6 +88,8 @@ args_init(struct args_t *args)
     args->scheme = SCHEME_ZIM;
     /* AB specific settings */
     args->simple = false;
+    /* Lin specific settings */
+    args->symlen = 1;
     /* Zim specific settings */
     args->npowers = 8;
 }
@@ -123,10 +127,13 @@ usage(int ret)
 "    --help, -h        print this message\n"
 "\n"
 "  AB Specific Settings:\n"
-"    --simple          use SimpleObf scheme when using AB scheme\n"
+"    --simple          use the SimpleObf scheme\n"
+"\n"
+"  Lin Specific Settings:\n"
+"    --symlen          symbol length (in bits)\n"
 "\n"
 "  ZIM Specific Settings:\n"
-           "    --npowers <N>     use N powers (default: %lu)\n",
+"    --npowers <N>     use N powers (default: %lu)\n",
            defaults.evaluate ? "yes" : "no",
            defaults.obfuscate ? "yes" : "no",
            defaults.secparam, defaults.npowers);
@@ -142,13 +149,14 @@ static const struct option opts[] = {
     {"lambda", required_argument, 0, 'l'},
     {"npowers", required_argument, 0, 'n'},
     {"mmap", required_argument, 0, 'M'},
+    {"symlen", required_argument, 0, 'L'},
     {"scheme", required_argument, 0, 'S'},
     {"simple", no_argument, 0, 's'},
     {"verbose", no_argument, 0, 'v'},
     {"help", no_argument, 0, 'h'},
     {0, 0, 0, 0}
 };
-static const char *short_opts = "adD:eol:n:M:sS:vh";
+static const char *short_opts = "adD:eolL:n:M:sS:vh";
 
 static int
 _evaluate(const obfuscator_vtable *vt, const struct args_t *args,
@@ -243,8 +251,7 @@ run(const struct args_t *args)
     case SCHEME_LIN:
         vt = &lin_obfuscator_vtable;
         op_vt = &lin_op_vtable;
-        lin_params.rachel_input = false;
-        lin_params.num_symbolic_inputs = c.ninputs;
+        lin_params.symlen = args->symlen;
         vparams = &lin_params;
         break;
     case SCHEME_ZIM:
@@ -258,6 +265,8 @@ run(const struct args_t *args)
     }
 
     params = op_vt->new(&c, vparams);
+    if (params == NULL)
+        errx(1, "error: initialize obfuscator parameters failed");
 
     if (g_verbose)
         acirc_ensure(&c);
@@ -355,6 +364,9 @@ main(int argc, char **argv)
             break;
         case 'l':               /* --secparam */
             args.secparam = atoi(optarg);
+            break;
+        case 'L':               /* --symlen */
+            args.symlen = atoi(optarg);
             break;
         case 'n':               /* --npowers */
             args.npowers = atoi(optarg);

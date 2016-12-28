@@ -36,9 +36,7 @@ encode_v_ib(const encoding_vtable *vt, const obf_params_t *op,
             encoding *enc, const secret_params *sp,
             mpz_t *rs, size_t i, bool b)
 {
-    level *lvl;
-
-    lvl = level_create_v_ib(op, i, b);
+    level *const lvl = level_create_v_ib(op, i, b);
     encode(vt, enc, rs, op->nslots, lvl, sp);
     level_free(lvl);
 }
@@ -48,17 +46,11 @@ encode_v_ib_v_star(const encoding_vtable *vt, const obf_params_t *op,
                    encoding *enc, const secret_params *sp,
                    mpz_t *rs, size_t i, bool b)
 {
-    level *lvl;
-
-    lvl = level_create_v_ib(op, i, b);
-    if (!op->simple) {
-        level *v_star;
-
-        v_star = level_create_v_star(op);
-        level_add(lvl, lvl, v_star);
-        level_free(v_star);
-    }
+    level *const lvl = level_create_v_ib(op, i, b);
+    level *const v_star = level_create_v_star(op);
+    level_add(lvl, lvl, v_star);
     encode(vt, enc, rs, op->nslots, lvl, sp);
+    level_free(v_star);
     level_free(lvl);
 }
 
@@ -67,9 +59,7 @@ encode_v_hat_ib_o(const encoding_vtable *vt, const obf_params_t *op,
                   encoding *enc, const secret_params *sp,
                   mpz_t *rs, size_t i, bool b, size_t o)
 {
-    level *lvl;
-
-    lvl = level_create_v_hat_ib_o(op, i, b, o);
+    level *const lvl = level_create_v_hat_ib_o(op, i, b, o);
     encode(vt, enc, rs, op->nslots, lvl, sp);
     level_free(lvl);
 }
@@ -80,17 +70,11 @@ encode_v_hat_ib_o_v_star(const encoding_vtable *vt,
                          const secret_params *sp, mpz_t *rs,
                          size_t i, bool b, size_t o)
 {
-    level *lvl;
-
-    lvl = level_create_v_hat_ib_o(op, i, b, o);
-    if (!op->simple) {
-        level *v_star;
-
-        v_star = level_create_v_star(op);
-        level_add(lvl, lvl, v_star);
-        level_free(v_star);
-    }
+    level *const lvl = level_create_v_hat_ib_o(op, i, b, o);
+    level *const v_star = level_create_v_star(op);
+    level_add(lvl, lvl, v_star);
     encode(vt, enc, rs, op->nslots, lvl, sp);
+    level_free(v_star);
     level_free(lvl);
 }
 
@@ -99,9 +83,7 @@ encode_v_i(const encoding_vtable *vt, const obf_params_t *op,
            encoding *enc, const secret_params *sp,
            mpz_t *rs, size_t i)
 {
-    level *lvl;
-
-    lvl = level_create_v_i(op, op->n + i);
+    level *const lvl = level_create_v_i(op, op->n + i);
     encode(vt, enc, rs, op->nslots, lvl, sp);
     level_free(lvl);
 }
@@ -111,49 +93,36 @@ encode_v_i_v_star(const encoding_vtable *vt, const obf_params_t *op,
                   encoding *enc, const secret_params *sp,
                   mpz_t *rs, size_t i)
 {
-    level *lvl;
-
-    lvl = level_create_v_i(op, op->n + i);
-    if (!op->simple) {
-        level *v_star;
-
-        v_star = level_create_v_star(op);
-        level_add(lvl, lvl, v_star);
-        level_free(v_star);
-    }
+    level *const lvl = level_create_v_i(op, op->n + i);
+    level *const v_star = level_create_v_star(op);
+    level_add(lvl, lvl, v_star);
+    level_free(v_star);
     encode(vt, enc, rs, op->nslots, lvl, sp);
     level_free(lvl);
 }
 
 static void
-encode_v_hat_o(const encoding_vtable *vt, const obf_params_t *op,
-               encoding *enc, const secret_params *sp,
-               mpz_t *rs, size_t o)
+encode_v_0(const encoding_vtable *vt, const obf_params_t *op,
+           encoding *enc, const secret_params *sp,
+           mpz_t *rs, size_t o)
 {
-    level *lvl;
-    lvl = level_create_v_hat_o(op, o);
+    (void) o;
+    level *const lvl = level_create_v_0(op);
     encode(vt, enc, rs, op->nslots, lvl, sp);
     level_free(lvl);
 }
 
 static void
-encode_v_hat_o_v_star(const encoding_vtable *vt,
-                      const obf_params_t *op, encoding *enc,
-                      const secret_params *sp, mpz_t *rs,
-                      size_t o)
+encode_v_0_v_star(const encoding_vtable *vt, const obf_params_t *op,
+                  encoding *enc, const secret_params *sp, mpz_t *rs, size_t o)
 {
-    level *lvl;
-
-    lvl = level_create_v_hat_o(op, o);
-    if (!op->simple) {
-        level *v_star;
-
-        v_star = level_create_v_star(op);
-        level_mul_ui(v_star, v_star, op->D);
-        level_add(lvl, lvl, v_star);
-        level_free(v_star);
-    }
+    (void) o;
+    level *const lvl = level_create_v_0(op);
+    level *const v_star = level_create_v_star(op);
+    level_mul_ui(v_star, v_star, op->D);
+    level_add(lvl, lvl, v_star);
     encode(vt, enc, rs, op->nslots, lvl, sp);
+    level_free(v_star);
     level_free(lvl);
 }
 
@@ -161,8 +130,7 @@ static void
 _obfuscation_free(obfuscation *obf);
 
 static obfuscation *
-_obfuscation_new(const mmap_vtable *mmap, const obf_params_t *op,
-                 size_t secparam)
+_obfuscation_new(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam)
 {
     obfuscation *obf;
 
@@ -451,7 +419,7 @@ _obfuscate(obfuscation *obf)
         mpz_vect_init(ws, nslots);
         /* Compute R_o_i encodings */
         mpz_vect_urandomms(rs, (const mpz_t *) moduli, nslots, obf->rng);
-        encode_v_hat_o(obf->enc_vt, obf->op, obf->R_o_i[o], obf->sp, rs, o);
+        encode_v_0(obf->enc_vt, obf->op, obf->R_o_i[o], obf->sp, rs, o);
         if (LOG_DEBUG) {
             printf("R_0 --------\n");
             encoding_print(obf->enc_vt, obf->R_o_i[o]);
@@ -468,7 +436,7 @@ _obfuscate(obfuscation *obf)
             mpz_vect_mul_mod(rs, (const mpz_t *) rs, (const mpz_t *) w_hats[i], (const mpz_t *) moduli, nslots);
         }
         mpz_vect_mul_mod(rs, (const mpz_t *) rs, (const mpz_t *) ws, (const mpz_t *) moduli, nslots);
-        encode_v_hat_o_v_star(obf->enc_vt, obf->op, obf->Z_o_i[o], obf->sp, rs, o);
+        encode_v_0_v_star(obf->enc_vt, obf->op, obf->Z_o_i[o], obf->sp, rs, o);
         if (LOG_DEBUG) {
             printf("Z_0 --------\n");
             encoding_print(obf->enc_vt, obf->Z_o_i[o]);

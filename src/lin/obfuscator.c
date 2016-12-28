@@ -66,15 +66,15 @@ static void
 encode_Zksj(const encoding_vtable *vt, const obf_params_t *op,
             encoding *enc, const secret_params *sp,
             aes_randstate_t rng, mpz_t *rs, mpz_t ykj, size_t k, size_t s,
-            size_t j, bool rachel_input, const mpz_t *moduli)
+            size_t j, const mpz_t *moduli)
 {
     mpz_t *w = mpz_vect_new(op->c+3);
 
     mpz_set(w[0], ykj);
-    if (rachel_input)
-        mpz_set_ui(w[1], s == j);
-    else
-        mpz_set_ui(w[1], bit(s,j));
+    /* if (op->rachel_input) */
+    /*     mpz_set_ui(w[1], s == j); */
+    /* else */
+    mpz_set_ui(w[1], bit(s, j));
     mpz_vect_urandomms(w+2, moduli+2, op->c+1, rng);
 
     mpz_vect_mul(w, (const mpz_t *) w, (const mpz_t *) rs, op->c+3);
@@ -208,10 +208,8 @@ encode_Zbaro(const encoding_vtable *vt, const obf_params_t *op,
     mpz_t *xs = mpz_vect_new(c->ninputs);
     for (size_t k = 0; k < op->c; k++) {
         for (size_t j = 0; j < op->ell; j++) {
-            sym_id sym = {k, j};
-            input_id id = op->rchunker(sym, c->ninputs, op->c);
-            if ((size_t) id >= c->ninputs)
-                continue;
+            const sym_id sym = {k, j};
+            const size_t id = op->rchunker(sym, c->ninputs, op->c);
             mpz_set(xs[id], ykj[k][j]);
         }
     }
@@ -336,6 +334,11 @@ _obfuscation_free(obfuscation *obf)
     
     const obf_params_t *op = obf->op;
 
+    secret_params_clear(obf->sp_vt, obf->sp);
+    free(obf->sp);
+    public_params_clear(obf->pp_vt, obf->pp);
+    free(obf->pp);
+
     if (obf->Zstar)
         encoding_free(obf->enc_vt, obf->Zstar);
 
@@ -400,6 +403,7 @@ _obfuscation_free(obfuscation *obf)
     }
     free(obf->Rbaro);
     free(obf->Zbaro);
+    free(obf);
 }
 
 static int
@@ -448,7 +452,7 @@ _obfuscate(obfuscation *obf)
             encode_Rks(obf->enc_vt, op, obf->Rks[k][s], obf->sp, tmp, k, s);
             for (size_t j = 0; j < op->ell; j++) {
                 encode_Zksj(obf->enc_vt, op, obf->Zksj[k][s][j], obf->sp,
-                            obf->rng, tmp, ykj[k][j], k, s, j, op->rachel_input,
+                            obf->rng, tmp, ykj[k][j], k, s, j,
                             (const mpz_t *) moduli);
             }
             mpz_vect_free(tmp, op->c+3);
@@ -946,9 +950,8 @@ wire_type_eq(const wire *x, const wire *y)
 static int
 _evaluate(int *rop, const int *inps, const obfuscation *obf)
 {
-    /* const obf_params_t *op = obf->op; */
-    public_params *pp = obf->pp;
-    acirc *c = obf->op->circ;
+    const public_params *const pp = obf->pp;
+    acirc *const c = obf->op->circ;
     int ret = OK;
 
     // determine each assignment s \in \Sigma from the input bits
@@ -956,12 +959,12 @@ _evaluate(int *rop, const int *inps, const obfuscation *obf)
     for (size_t i = 0; i < obf->op->c; i++) {
         input_syms[i] = 0;
         for (size_t j = 0; j < obf->op->ell; j++) {
-            sym_id sym = { i, j };
-            acircref inp_bit = obf->op->rchunker(sym, c->ninputs, obf->op->c);
-            if (obf->op->rachel_input)
-                input_syms[i] += inps[inp_bit] * j;
-            else
-                input_syms[i] += inps[inp_bit] << j;
+            const sym_id sym = { i, j };
+            const acircref k = obf->op->rchunker(sym, c->ninputs, obf->op->c);
+            /* if (obf->op->rachel_input) */
+            /*     input_syms[i] += inps[k] * j; */
+            /* else */
+                input_syms[i] += inps[k] << j;
         }
     }
 
@@ -969,31 +972,36 @@ _evaluate(int *rop, const int *inps, const obfuscation *obf)
     wire **cache = my_calloc(c->nrefs, sizeof(wire*));
 
     for (size_t o = 0; o < obf->op->circ->noutputs; o++) {
-        acircref root = c->outrefs[o];
-        acirc_topo_levels *topo = acirc_topological_levels(c, root);
+        const acircref root = c->outrefs[o];
+        acirc_topo_levels *const topo = acirc_topological_levels(c, root);
         for (int lvl = 0; lvl < topo->nlevels; lvl++) {
             // #pragma omp parallel for
             for (int i = 0; i < topo->level_sizes[lvl]; i++) {
-                acircref ref = topo->levels[lvl][i];
+                const acircref ref = topo->levels[lvl][i];
                 if (known[ref])
                     continue;
 
-                acirc_operation op = c->gates[ref].op;
-                acircref *args = c->gates[ref].args;
-                wire *w = my_calloc(1, sizeof(wire));
-                if (op == OP_INPUT) {
-                    size_t xid = args[0];
-                    sym_id sym = obf->op->chunker(xid, c->ninputs, obf->op->c);
-                    int k = sym.sym_number;
-                    int j = sym.bit_number;
-                    int s = input_syms[k];
+                const acirc_operation op = c->gates[ref].op;
+                const acircref *const args = c->gates[ref].args;
+                wire *const w = my_calloc(1, sizeof(wire));
+                switch (op) {
+                case OP_INPUT: {
+                    const size_t xid = args[0];
+                    const sym_id sym = obf->op->chunker(xid, c->ninputs, obf->op->c);
+                    const size_t k = sym.sym_number;
+                    const size_t j = sym.bit_number;
+                    const size_t s = input_syms[k];
                     wire_init_from_encodings(obf->enc_vt, obf->pp_vt, w, pp, obf->Rks[k][s], obf->Zksj[k][s][j]);
-                } else if (op == OP_CONST) {
-                    size_t yid = args[0];
+                    break;
+                }
+                case OP_CONST: {
+                    const size_t yid = args[0];
                     wire_init_from_encodings(obf->enc_vt, obf->pp_vt, w, pp, obf->Rc, obf->Zcj[yid]);
-                } else { // op is some kind of gate
-                    wire *x = cache[args[0]];
-                    wire *y = cache[args[1]];
+                    break;
+                }
+                case OP_ADD: case OP_SUB: case OP_MUL: {
+                    const wire *const x = cache[args[0]];
+                    const wire *const y = cache[args[1]];
 
                     if (op == OP_MUL) {
                         wire_init(obf->enc_vt, obf->pp_vt, w, pp, true, true);
@@ -1018,6 +1026,10 @@ _evaluate(int *rop, const int *inps, const obfuscation *obf)
                                 ret = ERR;
                         }
                     }
+                    break;
+                }
+                default:
+                    abort();
                 }
                 if (ret == ERR)
                     break;

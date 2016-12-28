@@ -8,15 +8,6 @@ struct sp_info {
 };
 #define info(x) (x)->info
 
-static inline size_t ARRAY_SUM(size_t *xs, size_t n)
-{
-    size_t res = 0;
-    for (size_t i = 0; i < n; ++i) {
-        res += xs[i];
-    }
-    return res;
-}
-
 static int
 _sp_init(const mmap_vtable *mmap, secret_params *const sp,
          const obf_params_t *const op, size_t lambda, aes_randstate_t rng)
@@ -26,17 +17,22 @@ _sp_init(const mmap_vtable *mmap, secret_params *const sp,
     info(sp) = calloc(1, sizeof(sp_info));
     info(sp)->op = op;
     info(sp)->toplevel = level_create_vzt(op);
+    if (g_verbose) {
+        fprintf(stderr, "toplevel: ");
+        level_fprint(stderr, info(sp)->toplevel);
+    }
 
     t = 0;
     for (size_t o = 0; o < op->gamma; o++) {
-        size_t tmp = ARRAY_SUM(op->types[o], op->c+1);
+        size_t tmp = array_sum(op->types[o], op->c+1);
         if (tmp > t)
             t = tmp;
     }
-    kappa = 2 + op->c + t + op->D;
+    kappa = t + op->D - 1;
     nzs = (op->q+1) * (op->c+2) + op->gamma;
 
     fprintf(stderr, "Secret parameter settings:\n");
+    fprintf(stderr, "* t:    %lu\n", t);
     fprintf(stderr, "* κ:    %lu\n", kappa);
     fprintf(stderr, "* # Zs: %lu\n", nzs);
 
@@ -61,8 +57,12 @@ _sp_init(const mmap_vtable *mmap, secret_params *const sp,
 static void
 _sp_clear(const mmap_vtable *mmap, secret_params *sp)
 {
-    level_free(info(sp)->toplevel);
-    free(info(sp));
+    if (sp == NULL)
+        return;
+    if (info(sp)->toplevel)
+        level_free(info(sp)->toplevel);
+    if (info(sp))
+        free(info(sp));
     if (sp->sk) {
         mmap->sk->clear(sp->sk);
         free(sp->sk);

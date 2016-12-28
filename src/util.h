@@ -71,10 +71,10 @@ void bool_fwrite(bool x, FILE *fp);
 #define GET_NEWLINE(fp) fscanf(fp, "\n")
 #define GET_SPACE(fp) fscanf(fp, " ")
 
-void array_add(size_t *rop, size_t *xs, size_t *ys, size_t n);
-bool array_eq(size_t *xs, size_t *ys, size_t n);
+void array_add(size_t *rop, const size_t *xs, const size_t *ys, size_t n);
+bool array_eq(const size_t *xs, const size_t *ys, size_t n);
+size_t array_sum(const size_t *xs, size_t n);
 
-void
-print_progress (size_t cur, size_t total);
+void print_progress (size_t cur, size_t total);
 
 #endif

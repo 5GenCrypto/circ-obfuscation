@@ -1,0 +1,274 @@
+0 const 1
+1 input 0
+2 input 1
+3 input 2
+4 input 3
+5 input 4
+6 input 5
+7 input 6
+8 const 0
+9 const 0
+10 const 0
+11 const 0
+12 const 0
+13 const 0
+14 const 0
+15 const 0
+16 const 0
+17 const 0
+18 const 0
+19 const 0
+20 const 0
+21 const 0
+22 const 0
+23 const 0
+24 const 0
+25 const 0
+26 const 0
+27 const 0
+28 const 0
+29 const 0
+30 const 0
+31 const 0
+32 const 0
+33 const 0
+34 const 0
+35 const 0
+36 const 0
+37 const 0
+38 const 0
+39 const 0
+40 const 0
+41 const 0
+42 const 0
+43 const 0
+44 const 0
+45 const 0
+46 const 0
+47 const 0
+48 const 0
+49 const 0
+50 const 0
+51 const 0
+52 const 0
+53 const 0
+54 const 0
+55 const 0
+56 const 0
+57 const 0
+58 const 0
+59 const 0
+60 const 0
+61 const 0
+62 const 0
+63 const 0
+64 const 0
+65 const 0
+66 const 0
+67 const 0
+68 const 0
+69 const 0
+70 const 0
+71 const 0
+72 const 0
+73 const 0
+74 const 0
+75 const 0
+76 const 0
+77 const 0
+78 const 0
+79 const 0
+80 const 0
+81 const 0
+82 const 0
+83 const 0
+84 const 0
+85 const 0
+86 const 0
+87 const 0
+88 const 0
+89 const 0
+90 const 0
+91 const 0
+92 const 0
+93 const 0
+94 const 0
+95 const 0
+96 const 0
+97 const 0
+98 const 0
+99 const 0
+100 const 0
+101 const 0
+102 const 0
+103 const 0
+104 const 0
+105 const 0
+106 const 0
+107 const 0
+108 const 0
+109 const 0
+110 const 0
+111 const 0
+112 const 0
+113 const 0
+114 const 0
+115 const 0
+116 const 0
+117 const 0
+118 const 0
+119 const 0
+120 const 0
+121 const 0
+122 const 0
+123 const 0
+124 const 0
+125 const 0
+126 const 0
+127 const 0
+128 const 0
+129 const 0
+130 const 0
+131 const 0
+132 const 0
+133 const 0
+134 const 0
+135 const 0
+136 SUB 0 4
+137 MUL 136 7
+138 SUB 0 137
+139 MUL 138 3
+140 SUB 0 6
+141 SUB 0 5
+142 MUL 140 141
+143 SUB 0 142
+144 MUL 7 5
+145 SUB 0 144
+146 MUL 145 4
+147 MUL 143 146
+148 SUB 0 147
+149 MUL 139 148
+150 SUB 0 149
+151 MUL 150 2
+152 MUL 6 5
+153 SUB 0 152
+154 MUL 153 4
+155 SUB 0 7
+156 MUL 155 140
+157 SUB 0 156
+158 MUL 154 157
+159 SUB 0 158
+160 SUB 0 3
+161 MUL 159 160
+162 MUL 6 141
+163 MUL 162 7
+164 SUB 0 163
+165 MUL 164 136
+166 MUL 140 5
+167 SUB 0 166
+168 MUL 165 167
+169 SUB 0 168
+170 MUL 161 169
+171 SUB 0 170
+172 MUL 151 171
+173 SUB 0 172
+174 SUB 0 1
+175 MUL 173 174
+176 MUL 152 155
+177 SUB 0 176
+178 MUL 177 4
+179 SUB 0 178
+180 MUL 179 3
+181 MUL 155 5
+182 SUB 0 181
+183 MUL 182 167
+184 SUB 0 183
+185 MUL 157 184
+186 SUB 0 185
+187 MUL 165 186
+188 SUB 0 187
+189 MUL 180 188
+190 SUB 0 189
+191 SUB 0 2
+192 MUL 190 191
+193 MUL 155 6
+194 SUB 0 193
+195 MUL 7 140
+196 SUB 0 195
+197 MUL 194 196
+198 MUL 197 5
+199 SUB 0 198
+200 MUL 199 136
+201 SUB 0 200
+202 MUL 183 4
+203 SUB 0 202
+204 MUL 201 203
+205 SUB 0 204
+206 MUL 205 160
+207 SUB 0 206
+208 MUL 192 207
+209 SUB 0 208
+210 MUL 175 209
+211 SUB 0 210
+212 MUL 195 141
+213 SUB 0 212
+214 MUL 154 213
+215 SUB 0 214
+216 MUL 215 160
+217 MUL 184 136
+218 SUB 0 217
+219 MUL 216 218
+220 SUB 0 219
+221 MUL 220 2
+222 MUL 164 4
+223 MUL 181 140
+224 SUB 0 223
+225 MUL 222 224
+226 SUB 0 225
+227 MUL 155 141
+228 SUB 0 227
+229 MUL 228 136
+230 MUL 177 229
+231 SUB 0 230
+232 MUL 226 231
+233 SUB 0 232
+234 MUL 233 3
+235 SUB 0 234
+236 MUL 221 235
+237 SUB 0 236
+238 SUB 0 162
+239 MUL 146 238
+240 SUB 0 239
+241 MUL 240 160
+242 MUL 213 136
+243 MUL 152 7
+244 SUB 0 243
+245 MUL 242 244
+246 SUB 0 245
+247 MUL 241 246
+248 SUB 0 247
+249 MUL 248 191
+250 MUL 197 141
+251 SUB 0 250
+252 MUL 251 202
+253 SUB 0 252
+254 MUL 229 199
+255 SUB 0 254
+256 MUL 253 255
+257 SUB 0 256
+258 MUL 257 3
+259 SUB 0 258
+260 MUL 249 259
+261 SUB 0 260
+262 MUL 237 261
+263 SUB 0 262
+264 MUL 263 1
+265 SUB 0 264
+266 MUL 211 265
+267 SUB 0 266
+268 SUB 0 8
+269 MUL 267 268
+270 SUB 0 269
+271 MUL 266 8
+272 SUB 0 271
+273 output MUL 270 272

@@ -65,12 +65,13 @@ type_degree(size_t *rop, acircref ref, const acirc *c, size_t len)
 static obf_params_t *
 _op_new(acirc *circ, void *vparams)
 {
-    ab_obf_params_t *const params = vparams;
-    obf_params_t *p = calloc(1, sizeof(obf_params_t));
+    const ab_obf_params_t *const params = vparams;
+    obf_params_t *const p = calloc(1, sizeof(obf_params_t));
     p->n = circ->ninputs;
     p->m = circ->nconsts;
     p->gamma = circ->noutputs;
     p->M = 0;
+    assert(p->gamma == 1);      /* XXX: only support one output bit for now */
     p->types = my_calloc(p->gamma, sizeof(size_t *));
     for (size_t o = 0; o < p->gamma; o++) {
         p->types[o] = my_calloc(p->n + p->m + 1, sizeof(size_t));

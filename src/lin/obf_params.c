@@ -11,27 +11,26 @@
 static obf_params_t *
 _op_new(acirc *circ, void *vparams)
 {
-    lin_obf_params_t *const params = vparams;
-    const size_t num_symbolic_inputs = params->num_symbolic_inputs;
-    obf_params_t *p = calloc(1, sizeof(obf_params_t));
+    const lin_obf_params_t *const params = vparams;
+    obf_params_t *const p = calloc(1, sizeof(obf_params_t));
 
-    p->rachel_input = params->rachel_input;
     p->m = circ->nconsts;
     p->gamma = circ->noutputs;
-    p->types = my_calloc(p->gamma, sizeof(size_t *));
-
-    p->ell = ceil((double) circ->ninputs / (double) num_symbolic_inputs); // length of symbols
-    if (p->rachel_input)
-        p->q = p->ell;
-    else
-        p->q = pow((double) 2, (double) p->ell); // 2^ell
-    p->c = num_symbolic_inputs;
+    if (circ->ninputs % params->symlen != 0) {
+        fprintf(stderr, "error: ninputs (%lu) %% symlen (%lu) != 0\n",
+                circ->ninputs, params->symlen);
+        free(p);
+        return NULL;
+    }
+    p->ell = params->symlen;
+    p->c = circ->ninputs / p->ell;
+    p->q = 1 << params->symlen;
 
     p->M = 0;
+    p->types = my_calloc(p->gamma, sizeof(size_t *));
     for (size_t o = 0; o < p->gamma; o++) {
         p->types[o] = my_calloc(p->c+1, sizeof(size_t));
         type_degree(p->types[o], circ->outrefs[o], circ, p->c, chunker_in_order);
-
         for (size_t k = 0; k < p->c+1; k++) {
             if (p->types[o][k] > p->M) {
                 p->M = p->types[o][k];
@@ -39,17 +38,18 @@ _op_new(acirc *circ, void *vparams)
         }
     }
     p->d = acirc_max_degree(circ);
-    p->D = p->d + num_symbolic_inputs + 1;
+    p->D = p->d + p->c + 1;
     if (g_verbose) {
         fprintf(stderr, "Obfuscation parameters:\n");
-        fprintf(stderr, "* # inputs:  %lu\n", p->c);
-        fprintf(stderr, "* # consts:  %lu\n", p->m);
-        fprintf(stderr, "* # outputs: %lu\n", p->gamma);
-        fprintf(stderr, "* # symbols: %lu\n", p->q);
-        fprintf(stderr, "* |symbol|:  %lu\n", p->ell);
-        fprintf(stderr, "* M:         %lu\n", p->M);
-        fprintf(stderr, "* degree:    %lu\n", p->d);
-        fprintf(stderr, "* D:         %lu\n", p->D);
+        /* fprintf(stderr, "* Rachel? %s\n", p->rachel_input ? "Y" : "N"); */
+        fprintf(stderr, "* ℓ:      %lu\n", p->ell);
+        fprintf(stderr, "* c:      %lu\n", p->c);
+        fprintf(stderr, "* m:      %lu\n", p->m);
+        fprintf(stderr, "* γ:      %lu\n", p->gamma);
+        fprintf(stderr, "* q:      %lu\n", p->q);
+        fprintf(stderr, "* M:      %lu\n", p->M);
+        fprintf(stderr, "* deg:    %lu\n", p->d);
+        fprintf(stderr, "* D:      %lu\n", p->D);
     }
 
     p->chunker  = chunker_in_order;

@@ -4,8 +4,7 @@
 #include "../obfuscator.h"
 
 typedef struct lin_obf_params_t {
-    bool rachel_input;
-    size_t num_symbolic_inputs;
+    size_t symlen;
 } lin_obf_params_t;
 
 extern obfuscator_vtable lin_obfuscator_vtable;

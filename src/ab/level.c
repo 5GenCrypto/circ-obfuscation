@@ -100,7 +100,7 @@ level_flatten(int *pows, const level *lvl)
 }
 
 static int
-level_eq (const level *x, const level *y)
+level_eq(const level *x, const level *y)
 {
     for (size_t i = 0; i < x->nrows; i++) {
         for (size_t j = 0; j < x->ncols; j++) {
@@ -143,34 +143,14 @@ level_create_v_hat_ib_o(const obf_params_t *op, size_t i, bool b, size_t o)
         lvl->mat[0][i] = op->types[o][i];
     if (!op->simple) {
         lvl->mat[3][i] = 1;
-        /* lvl->mat[lvl->nrows-1][lvl->ncols-1] = op->types[o][i]; */
     }
     return lvl;
 }
 
-/* static level * */
-/* level_create_v_0(const obf_params_t *op) */
-/* { */
-/*     level *lvl = level_new(op); */
-/*     lvl->mat[0][lvl->ncols-1] = 1; */
-/*     lvl->mat[1][lvl->ncols-1] = 1; */
-/*     lvl->mat[2][lvl->ncols-1] = 1; */
-/*     return lvl; */
-/* } */
-
 static level *
-level_create_v_hat_o(const obf_params_t *op, size_t o)
+level_create_v_0(const obf_params_t *op)
 {
     level *lvl = level_new(op);
-    for (size_t i = 0; i < lvl->nrows; i++) {
-        for (size_t j = 0; j < lvl->ncols - 1; j++) {
-            lvl->mat[i][j] = op->M - op->types[o][j];
-            if (!op->simple && i == lvl->nrows - 1) {
-                lvl->mat[i][j] = 0;
-                
-            }
-        }
-    }
     lvl->mat[0][lvl->ncols-1] = 1;
     lvl->mat[1][lvl->ncols-1] = 1;
     lvl->mat[2][lvl->ncols-1] = 1;
@@ -182,7 +162,7 @@ level_create_v_star(const obf_params_t *op)
 {
     level *lvl = level_new(op);
     if (!op->simple) {
-        lvl->mat[3][lvl->ncols-1] = 1;
+        lvl->mat[lvl->nrows-1][lvl->ncols-1] = 1;
     }
     return lvl;
 }
@@ -195,7 +175,7 @@ level_create_vzt(const obf_params_t *op)
         for (size_t i = 0; i < lvl->nrows; i++) {
             for (size_t j = 0; j < lvl->ncols; j++) {
                 if (j < lvl->ncols - 1)
-                    lvl->mat[i][j] = op->M;
+                    lvl->mat[i][j] = op->types[0][j];
                 else
                     lvl->mat[i][j] = 1;
             }
@@ -204,7 +184,7 @@ level_create_vzt(const obf_params_t *op)
         for (size_t i = 0; i < lvl->nrows; i++) {
             for (size_t j = 0; j < lvl->ncols; j++) {
                 if (j < lvl->ncols - 1)
-                    lvl->mat[i][j] = op->M;
+                    lvl->mat[i][j] = op->types[0][j];
                 else
                     lvl->mat[i][j] = 1;
 

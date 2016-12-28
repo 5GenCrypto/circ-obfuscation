@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 typedef struct {
@@ -13,10 +14,10 @@ typedef struct {
     size_t bit_number; // j \in [\ell]
 } sym_id;
 
-typedef sym_id   (*input_chunker)   (input_id id, size_t ninputs, size_t nsyms);
-typedef input_id (*reverse_chunker) (sym_id sym,  size_t ninputs, size_t nsyms);
+typedef sym_id (*input_chunker)   (size_t id, size_t ninputs, size_t nsyms);
+typedef size_t (*reverse_chunker) (sym_id sym, size_t ninputs, size_t nsyms);
 
-static sym_id chunker_in_order(input_id id, size_t ninputs, size_t nsyms)
+static sym_id chunker_in_order(size_t id, size_t ninputs, size_t nsyms)
 {
     size_t chunksize = ceil((double) ninputs / (double) nsyms);
     size_t k = floor((double)id / (double) chunksize);
@@ -25,11 +26,11 @@ static sym_id chunker_in_order(input_id id, size_t ninputs, size_t nsyms)
     return sym;
 }
 
-static input_id rchunker_in_order(sym_id sym,  size_t ninputs, size_t nsyms)
+static size_t rchunker_in_order(sym_id sym, size_t ninputs, size_t nsyms)
 {
     size_t chunksize = ceil((double) ninputs / (double) nsyms);
-    input_id id = sym.sym_number * chunksize + sym.bit_number;
-    assert((size_t) id < ninputs);
+    size_t id = sym.sym_number * chunksize + sym.bit_number;
+    assert(id < ninputs);
     return id;
 }
 
@@ -80,48 +81,42 @@ type_degree_helper(size_t *rop, acircref ref, const acirc *c, size_t nsyms,
     if (seen[ref]) {
         for (size_t i = 0; i < nsyms+1; i++)
             rop[i] = memo[ref][i];
-        return;
-    }
-
-    acirc_operation op = c->gates[ref].op;
-
-    if (op == OP_INPUT) {
-        sym_id sym = chunker(c->gates[ref].args[0], c->ninputs, nsyms);
-        rop[sym.sym_number] = 1;
-    }
-
-    else if (op == OP_CONST) {
-        rop[nsyms] = 1;
-    }
-
-    else {
-
-        size_t *xtype = my_calloc(nsyms+1, sizeof(size_t));
-        size_t *ytype = my_calloc(nsyms+1, sizeof(size_t));
-
-        type_degree_helper(xtype, c->gates[ref].args[0], c, nsyms, chunker, seen, memo);
-        type_degree_helper(ytype, c->gates[ref].args[1], c, nsyms, chunker, seen, memo);
-
-        int types_eq = array_eq(xtype, ytype, nsyms + 1);
-
-        if (types_eq && ((op == OP_ADD) || (op == OP_SUB))) {
-            for (size_t i = 0; i < nsyms+1; i++)
-                rop[i] = xtype[i];
+    } else {
+        const acirc_operation op = c->gates[ref].op;
+        switch (op) {
+        case OP_INPUT: {
+            sym_id sym = chunker(c->gates[ref].args[0], c->ninputs, nsyms);
+            memset(rop, '\0', sizeof(size_t) * (nsyms+1));
+            assert(sym.sym_number < nsyms);
+            rop[sym.sym_number] = 1;
+            break;
+        }
+        case OP_CONST:
+            memset(rop, '\0', sizeof(size_t) * (nsyms+1));
+            rop[nsyms] = 1;
+            break;
+        case OP_ADD: case OP_SUB: case OP_MUL: {
+            size_t xtype[nsyms+1];
+            size_t ytype[nsyms+1];
+            type_degree_helper(xtype, c->gates[ref].args[0], c, nsyms, chunker, seen, memo);
+            type_degree_helper(ytype, c->gates[ref].args[1], c, nsyms, chunker, seen, memo);
+            const bool eq = array_eq(xtype, ytype, nsyms + 1);
+            if (eq && (op == OP_ADD || op == OP_SUB)) {
+                for (size_t i = 0; i < nsyms+1; i++)
+                    rop[i] = xtype[i];
+            } else { // types unequal or op == MUL
+                array_add(rop, xtype, ytype, nsyms+1);
+            }
+            break;
+        }
+        default:
+            abort();
         }
 
-        else { // types unequal or op == MUL
-            for (size_t i = 0; i < nsyms+1; i++)
-                rop[i] = xtype[i] + ytype[i];
-        }
-
-        free(xtype);
-        free(ytype);
+        seen[ref] = true;
+        for (size_t i = 0; i < nsyms+1; i++)
+            memo[ref][i] = rop[i];
     }
-
-    seen[ref] = true;
-
-    for (size_t i = 0; i < nsyms+1; i++)
-        memo[ref][i] = rop[i];
 }
 
 static void

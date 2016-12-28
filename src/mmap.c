@@ -31,6 +31,7 @@ public_params_init(const pp_vtable *const vt, const sp_vtable *const sp_vt,
 {
     vt->init(sp_vt, pp, sp);
     pp->pp = vt->mmap->sk->pp(sp->sk);
+    pp->my_pp = false;
 }
 
 int
@@ -50,8 +51,9 @@ public_params_fread(const pp_vtable *const vt, public_params *const pp,
 {
     vt->fread(pp, op, fp);
     GET_NEWLINE(fp);
-    pp->pp = malloc(vt->mmap->pp->size);
+    pp->pp = my_calloc(1, vt->mmap->pp->size);
     vt->mmap->pp->fread(pp->pp, fp);
+    pp->my_pp = true;
     GET_NEWLINE(fp);
     return OK;
 }
@@ -61,6 +63,8 @@ public_params_clear(const pp_vtable *const vt, public_params *const pp)
 {
     vt->clear(pp);
     vt->mmap->pp->clear(pp->pp);
+    if (pp->my_pp)
+        free(pp->pp);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
