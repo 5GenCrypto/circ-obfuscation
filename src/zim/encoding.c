@@ -1,6 +1,5 @@
-#include "obf_index.h"
-#include "obf_params.h"
 #include "vtables.h"
+#include "obf_params.h"
 
 #include <string.h>
 

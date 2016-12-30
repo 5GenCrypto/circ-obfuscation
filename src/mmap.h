@@ -14,17 +14,27 @@ typedef struct {
     int (*fread)(obf_params_t *, FILE *);
 } op_vtable;
 
+typedef struct mmap_params_t {
+    size_t kappa;
+    size_t nzs;
+    size_t nslots;
+    size_t *pows;
+    bool my_pows;
+} mmap_params_t;
+
+void
+mmap_params_fprint(FILE *fp, const mmap_params_t *params);
+
 typedef struct sp_info sp_info;
 typedef struct secret_params {
-    sp_info *info;
     mmap_sk *sk;
+    sp_info *info;
 } secret_params;
 
 typedef struct {
     const mmap_vtable *mmap;
-    int (*init)(const mmap_vtable *, struct secret_params *,
-                const obf_params_t *, size_t, aes_randstate_t);
-    void (*clear)(const mmap_vtable *, struct secret_params *);
+    mmap_params_t (*init)(struct secret_params *, const obf_params_t *);
+    void (*clear)(struct secret_params *);
     const void * (*toplevel)(const secret_params *);
     const void * (*params)(const secret_params *);
 } sp_vtable;

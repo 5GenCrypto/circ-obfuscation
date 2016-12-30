@@ -1,6 +1,5 @@
-#include "obf_index.h"
-#include "obf_params.h"
 #include "vtables.h"
+#include "obf_params.h"
 
 struct sp_info {
     obf_index *toplevel;
@@ -8,37 +7,28 @@ struct sp_info {
 };
 #define spinfo(x) (x)->info
 
-static int
-_sp_init(const mmap_vtable *mmap, secret_params *sp, const obf_params_t *op,
-         size_t lambda, aes_randstate_t rng)
+static mmap_params_t
+_sp_init(secret_params *sp, const obf_params_t *op)
 {
-    size_t kappa;
+    mmap_params_t params;
 
-    sp->info = calloc(1, sizeof(sp_info));
-    sp->info->toplevel = obf_index_create_toplevel(op->circ);
-    sp->info->op = op;
+    spinfo(sp) = calloc(1, sizeof(sp_info));
+    spinfo(sp)->toplevel = obf_index_create_toplevel(op->circ);
+    spinfo(sp)->op = op;
 
-    kappa = acirc_delta(op->circ) + op->circ->ninputs;
-
-    fprintf(stderr, "Secret parameter settings:\n");
-    fprintf(stderr, "* Δ = %lu\n", acirc_delta(op->circ));
-    fprintf(stderr, "* n = %lu\n", op->circ->ninputs);
-    fprintf(stderr, "* κ = %lu\n", kappa);
-
-    sp->sk = calloc(1, mmap->sk->size);
-    (void) mmap->sk->init(sp->sk, lambda, kappa, spinfo(sp)->toplevel->nzs,
-                          (int *) spinfo(sp)->toplevel->pows, 2, 1, rng, g_verbose);
-    return OK;
+    params.kappa = acirc_delta(op->circ) + op->circ->ninputs;
+    params.nzs = spinfo(sp)->toplevel->nzs;
+    params.nslots = 2;
+    params.pows = (int *) spinfo(sp)->toplevel->pows;
+    params.my_pows = false;
+    return params;
 }
 
 static void
-_sp_clear(const mmap_vtable *mmap, secret_params *sp)
+_sp_clear(secret_params *sp)
 {
-    (void) mmap;
     obf_index_destroy(spinfo(sp)->toplevel);
     free(sp->info);
-    mmap->sk->clear(sp->sk);
-    free(sp->sk);
 }
 
 static const void *

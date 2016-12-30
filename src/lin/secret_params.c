@@ -1,4 +1,3 @@
-#include "vtables.h"
 #include "obf_params.h"
 #include "../util.h"
 
@@ -6,20 +5,20 @@ struct sp_info {
     const obf_params_t *op;
     level *toplevel;
 };
-#define info(x) (x)->info
+#define spinfo(x) (x)->info
 
-static int
-_sp_init(const mmap_vtable *mmap, secret_params *const sp,
-         const obf_params_t *const op, size_t lambda, aes_randstate_t rng)
+static mmap_params_t
+_sp_init(secret_params *sp, const obf_params_t *op)
 {
-    size_t t, kappa, nzs;
+    mmap_params_t params;
+    size_t t;
 
-    info(sp) = calloc(1, sizeof(sp_info));
-    info(sp)->op = op;
-    info(sp)->toplevel = level_create_vzt(op);
+    spinfo(sp) = my_calloc(1, sizeof(sp_info));
+    spinfo(sp)->op = op;
+    spinfo(sp)->toplevel = level_create_vzt(op);
     if (g_verbose) {
         fprintf(stderr, "toplevel: ");
-        level_fprint(stderr, info(sp)->toplevel);
+        level_fprint(stderr, spinfo(sp)->toplevel);
     }
 
     t = 0;
@@ -28,57 +27,35 @@ _sp_init(const mmap_vtable *mmap, secret_params *const sp,
         if (tmp > t)
             t = tmp;
     }
-    kappa = t + op->D - 1;
-    nzs = (op->q+1) * (op->c+2) + op->gamma;
+    params.kappa = t + op->D;
+    params.nzs = (op->q+1) * (op->c+2) + op->gamma;
+    params.pows = my_calloc(params.nzs, sizeof(int));
+    level_flatten((int *) params.pows, spinfo(sp)->toplevel);
+    params.my_pows = true;
+    params.nslots = op->c + 3;
 
-    fprintf(stderr, "Secret parameter settings:\n");
-    fprintf(stderr, "* t:    %lu\n", t);
-    fprintf(stderr, "* κ:    %lu\n", kappa);
-    fprintf(stderr, "* # Zs: %lu\n", nzs);
-
-    {
-        int pows[nzs];
-        int res;
-
-        level_flatten(pows, info(sp)->toplevel);
-        sp->sk = my_calloc(1, mmap->sk->size);
-        res = mmap->sk->init(sp->sk, lambda, kappa, nzs, pows, op->c + 3, 1,
-                             rng, g_verbose);
-        if (res) {
-            fprintf(stderr, "[%s] mmap generation failed\n", __func__);
-            free(sp->sk);
-            sp->sk = NULL;
-            return 1;
-        }
-    }
-    return 0;
+    return params;
 }
 
 static void
-_sp_clear(const mmap_vtable *mmap, secret_params *sp)
+_sp_clear(secret_params *sp)
 {
-    if (sp == NULL)
-        return;
-    if (info(sp)->toplevel)
-        level_free(info(sp)->toplevel);
-    if (info(sp))
-        free(info(sp));
-    if (sp->sk) {
-        mmap->sk->clear(sp->sk);
-        free(sp->sk);
-    }
+    if (spinfo(sp)->toplevel)
+        level_free(spinfo(sp)->toplevel);
+    if (spinfo(sp))
+        free(spinfo(sp));
 }
 
 static const void *
 _sp_toplevel(const secret_params *sp)
 {
-    return info(sp)->toplevel;
+    return spinfo(sp)->toplevel;
 }
 
 static const void *
 _sp_params(const secret_params *sp)
 {
-    return info(sp)->op;
+    return spinfo(sp)->op;
 }
 
 static sp_vtable lin_sp_vtable = {
@@ -89,8 +66,8 @@ static sp_vtable lin_sp_vtable = {
     .params = _sp_params,
 };
 
-const sp_vtable *
-lin_get_sp_vtable(const mmap_vtable *mmap)
+static const sp_vtable *
+get_sp_vtable(const mmap_vtable *mmap)
 {
     lin_sp_vtable.mmap = mmap;
     return &lin_sp_vtable;

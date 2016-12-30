@@ -1,4 +1,4 @@
-#include "vtables.h"
+#include "obf_params.h"
 
 struct pp_info {
     const obf_params_t *op;
@@ -59,8 +59,8 @@ static pp_vtable zim_pp_vtable = {
     .params = _pp_params,
 };
 
-pp_vtable *
-lz_get_pp_vtable(const mmap_vtable *mmap)
+static pp_vtable *
+get_pp_vtable(const mmap_vtable *mmap)
 {
     zim_pp_vtable.mmap = mmap;
     return &zim_pp_vtable;

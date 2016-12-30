@@ -12,73 +12,80 @@ static obf_params_t *
 _op_new(acirc *circ, void *vparams)
 {
     const lin_obf_params_t *const params = vparams;
-    obf_params_t *const p = calloc(1, sizeof(obf_params_t));
+    obf_params_t *const op = calloc(1, sizeof(obf_params_t));
 
-    p->m = circ->nconsts;
-    p->gamma = circ->noutputs;
+    op->rachel_inputs = params->rachel_inputs;
+    op->m = circ->nconsts;
+    op->gamma = circ->noutputs;
     if (circ->ninputs % params->symlen != 0) {
         fprintf(stderr, "error: ninputs (%lu) %% symlen (%lu) != 0\n",
                 circ->ninputs, params->symlen);
-        free(p);
+        free(op);
         return NULL;
     }
-    p->ell = params->symlen;
-    p->c = circ->ninputs / p->ell;
-    p->q = 1 << params->symlen;
+    op->ell = params->symlen;
+    op->c = circ->ninputs / op->ell;
+    if (op->rachel_inputs)
+        op->q = params->symlen;
+    else
+        op->q = 1 << params->symlen;
 
-    p->M = 0;
-    p->types = my_calloc(p->gamma, sizeof(size_t *));
-    for (size_t o = 0; o < p->gamma; o++) {
-        p->types[o] = my_calloc(p->c+1, sizeof(size_t));
-        type_degree(p->types[o], circ->outrefs[o], circ, p->c, chunker_in_order);
-        for (size_t k = 0; k < p->c+1; k++) {
-            if (p->types[o][k] > p->M) {
-                p->M = p->types[o][k];
+    op->M = 0;
+    op->types = my_calloc(op->gamma, sizeof(size_t *));
+    for (size_t o = 0; o < op->gamma; o++) {
+        op->types[o] = my_calloc(op->c+1, sizeof(size_t));
+        type_degree(op->types[o], circ->outrefs[o], circ, op->c, chunker_in_order);
+        for (size_t k = 0; k < op->c+1; k++) {
+            if (op->types[o][k] > op->M) {
+                op->M = op->types[o][k];
             }
         }
     }
-    p->d = acirc_max_degree(circ);
-    p->D = p->d + p->c + 1;
+    op->d = acirc_max_degree(circ);
+    op->D = op->d + op->c + 1;
     if (g_verbose) {
         fprintf(stderr, "Obfuscation parameters:\n");
-        fprintf(stderr, "* ℓ:      %lu\n", p->ell);
-        fprintf(stderr, "* c:      %lu\n", p->c);
-        fprintf(stderr, "* m:      %lu\n", p->m);
-        fprintf(stderr, "* γ:      %lu\n", p->gamma);
-        fprintf(stderr, "* q:      %lu\n", p->q);
-        fprintf(stderr, "* M:      %lu\n", p->M);
-        fprintf(stderr, "* deg:    %lu\n", p->d);
-        fprintf(stderr, "* D:      %lu\n", p->D);
+        fprintf(stderr, "* Rachel? %s\n", op->rachel_inputs ? "Y" : "N");
+        fprintf(stderr, "* ℓ:      %lu\n", op->ell);
+        fprintf(stderr, "* c:      %lu\n", op->c);
+        fprintf(stderr, "* m:      %lu\n", op->m);
+        fprintf(stderr, "* γ:      %lu\n", op->gamma);
+        fprintf(stderr, "* q:      %lu\n", op->q);
+        fprintf(stderr, "* M:      %lu\n", op->M);
+        fprintf(stderr, "* deg:    %lu\n", op->d);
+        fprintf(stderr, "* D:      %lu\n", op->D);
     }
 
-    p->chunker  = chunker_in_order;
-    p->rchunker = rchunker_in_order;
-    p->circ = circ;
+    op->chunker  = chunker_in_order;
+    op->rchunker = rchunker_in_order;
+    op->circ = circ;
 
-    return p;
+    return op;
 }
 
 static void
-_op_free(obf_params_t *p)
+_op_free(obf_params_t *op)
 {
-    for (size_t i = 0; i < p->gamma; i++) {
-        free(p->types[i]);
+    for (size_t i = 0; i < op->gamma; i++) {
+        free(op->types[i]);
     }
-    free(p->types);
-    free(p);
+    free(op->types);
+    free(op);
 }
 
 static int
-_op_fwrite(const obf_params_t *params, FILE *fp)
+_op_fwrite(const obf_params_t *op, FILE *fp)
 {
-    (void) params; (void) fp;
+    (void) op; (void) fp;
+    abort();
     return ERR;
 }
 
 static int
-_op_fread(obf_params_t *params, FILE *fp)
+_op_fread(obf_params_t *op, FILE *fp)
 {
-    (void) params; (void) fp;
+    (void) op; (void) fp;
+    abort();
     return ERR;
 }
 

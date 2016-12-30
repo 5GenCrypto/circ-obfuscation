@@ -5,6 +5,7 @@
 #include "ab/obfuscator.h"
 #include "lin/obfuscator.h"
 #include "zim/obfuscator.h"
+#include "lz/obfuscator.h"
 
 #include <aesrand.h>
 #include <acirc.h>
@@ -22,8 +23,9 @@
 
 enum scheme_e {
     SCHEME_AB,
-    SCHEME_ZIM,
     SCHEME_LIN,
+    SCHEME_ZIM,
+    SCHEME_LZ,
 };
 
 enum mmap_e {
@@ -39,13 +41,14 @@ scheme_to_string(enum scheme_e scheme)
     switch (scheme) {
     case SCHEME_AB:
         return "Applebaum-Brakerski";
-    case SCHEME_ZIM:
-        return "Zimmerman";
     case SCHEME_LIN:
         return "Lin";
-    default:
-        return "";
+    case SCHEME_ZIM:
+        return "Zimmerman";
+    case SCHEME_LZ:
+        return "Linnerman";
     }
+    abort();
 }
 
 static char *
@@ -56,9 +59,8 @@ mmap_to_string(enum mmap_e mmap)
         return "CLT";
     case MMAP_DUMMY:
         return "Dummy";
-    default:
-        return "";
     }
+    abort();
 }
 
 struct args_t {
@@ -71,9 +73,10 @@ struct args_t {
     enum scheme_e scheme;
     /* AB specific settings */
     bool simple;
-    /* Lin specific settings */
+    /* LIN/LZ specific settings */
     size_t symlen;
-    /* Zim specific settings */
+    bool rachel_inputs;
+    /* ZIM/LZ specific settings */
     size_t npowers;
 
 };
@@ -90,9 +93,10 @@ args_init(struct args_t *args)
     args->scheme = SCHEME_ZIM;
     /* AB specific settings */
     args->simple = false;
-    /* Lin specific settings */
+    /* LIN/LZ specific settings */
     args->symlen = 1;
-    /* Zim specific settings */
+    args->rachel_inputs = false;
+    /* ZIM/LZ specific settings */
     args->npowers = 8;
 }
 
@@ -123,7 +127,7 @@ usage(int ret)
 "    --evaluate, -e    evaluate obfuscation (default: %s)\n"
 "    --obfuscate, -o   construct obfuscation (default: %s)\n"
 "    --lambda, -l <λ>  set security parameter to <λ> when obfuscating (default: %lu)\n"
-"    --scheme <NAME>   set scheme to NAME (options: AB, ZIM, LIN | default: ZIM)\n"
+"    --scheme <NAME>   set scheme to NAME (options: AB, ZIM, LIN, LZ | default: ZIM)\n"
 "    --mmap <NAME>     set mmap to NAME (options: CLT, DUMMY | default: CLT)\n"
 "    --verbose, -v     be verbose\n"
 "    --help, -h        print this message\n"
@@ -131,10 +135,11 @@ usage(int ret)
 "  AB Specific Settings:\n"
 "    --simple          use the SimpleObf scheme\n"
 "\n"
-"  Lin Specific Settings:\n"
+"  LIN/LZ Specific Settings:\n"
 "    --symlen          symbol length (in bits)\n"
+"    --rachel          use rachel inputs\n"
 "\n"
-"  ZIM Specific Settings:\n"
+"  ZIM/LZ Specific Settings:\n"
 "    --npowers <N>     use N powers (default: %lu)\n"
 "\n",
            defaults.evaluate ? "yes" : "no",
@@ -152,6 +157,7 @@ static const struct option opts[] = {
     {"lambda", required_argument, 0, 'l'},
     {"npowers", required_argument, 0, 'n'},
     {"mmap", required_argument, 0, 'M'},
+    {"rachel", no_argument, 0, 'r'},
     {"symlen", required_argument, 0, 'L'},
     {"scheme", required_argument, 0, 'S'},
     {"simple", no_argument, 0, 's'},
@@ -159,7 +165,7 @@ static const struct option opts[] = {
     {"help", no_argument, 0, 'h'},
     {0, 0, 0, 0}
 };
-static const char *short_opts = "adD:eolL:n:M:sS:vh";
+static const char *short_opts = "adD:eolL:n:M:rsS:vh";
 
 static int
 _evaluate(const obfuscator_vtable *vt, const struct args_t *args,
@@ -174,7 +180,7 @@ _evaluate(const obfuscator_vtable *vt, const struct args_t *args,
         bool ok = true;
         for (size_t j = 0; j < c->noutputs; ++j) {
             switch (args->scheme) {
-            case SCHEME_ZIM:
+            case SCHEME_ZIM: case SCHEME_LZ:
                 if (!!res[j] != !!c->testouts[i][j]) {
                     ok = false;
                     ret = ERR;
@@ -214,6 +220,7 @@ run(const struct args_t *args)
     ab_obf_params_t ab_params;
     lin_obf_params_t lin_params;
     zim_obf_params_t zim_params;
+    lz_obf_params_t lz_params;
     void *vparams;
 
     args_print(args);
@@ -255,6 +262,7 @@ run(const struct args_t *args)
         vt = &lin_obfuscator_vtable;
         op_vt = &lin_op_vtable;
         lin_params.symlen = args->symlen;
+        lin_params.rachel_inputs = args->rachel_inputs;
         vparams = &lin_params;
         break;
     case SCHEME_ZIM:
@@ -263,8 +271,14 @@ run(const struct args_t *args)
         zim_params.npowers = args->npowers;
         vparams = &zim_params;
         break;
-    default:
-        abort();
+    case SCHEME_LZ:
+        vt = &lz_obfuscator_vtable;
+        op_vt = &lz_op_vtable;
+        lz_params.npowers = args->npowers;
+        lz_params.symlen = args->symlen;
+        lz_params.rachel_inputs = args->rachel_inputs;
+        vparams = &lz_params;
+        break;
     }
 
     params = op_vt->new(&c, vparams);
@@ -283,10 +297,10 @@ run(const struct args_t *args)
         return OK;
     }
 
-    if (args->obfuscate) {
-        char fname[strlen(args->circuit) + 5];
+    /* if (args->obfuscate) { */
+    /*     char fname[strlen(args->circuit) + 5]; */
         obfuscation *obf;
-        FILE *f;
+        /* FILE *f; */
 
         fprintf(stderr, "obfuscating...\n");
         obf = vt->new(mmap, params, args->secparam);
@@ -295,31 +309,31 @@ run(const struct args_t *args)
         if (vt->obfuscate(obf) == ERR)
             errx(1, "error: obfuscation failed");
 
-        snprintf(fname, sizeof fname, "%s.obf", args->circuit);
-        if ((f = fopen(fname, "w")) == NULL)
-            errx(1, "error: unable to open '%s' for writing", fname);
-        if (vt->fwrite(obf, f) == ERR)
-            errx(1, "error: writing obfuscator failed");
-        vt->free(obf);
-        fclose(f);
-    }
+    /*     snprintf(fname, sizeof fname, "%s.obf", args->circuit); */
+    /*     if ((f = fopen(fname, "w")) == NULL) */
+    /*         errx(1, "error: unable to open '%s' for writing", fname); */
+    /*     if (vt->fwrite(obf, f) == ERR) */
+    /*         errx(1, "error: writing obfuscator failed"); */
+    /*     vt->free(obf); */
+    /*     fclose(f); */
+    /* } */
 
-    if (args->evaluate) {
-        char fname[strlen(args->circuit) + 5];
-        obfuscation *obf;
-        FILE *f;
+    /* if (args->evaluate) { */
+    /*     char fname[strlen(args->circuit) + 5]; */
+    /*     obfuscation *obf; */
+    /*     FILE *f; */
 
         fprintf(stderr, "evaluating...\n");
-        snprintf(fname, sizeof fname, "%s.obf", args->circuit);
-        if ((f = fopen(fname, "r")) == NULL)
-            errx(1, "error: unable to open '%s' for reading", fname);
-        if ((obf = vt->fread(mmap, params, f)) == NULL)
-            errx(1, "error: reading obfuscator failed");
-        fclose(f);
+        /* snprintf(fname, sizeof fname, "%s.obf", args->circuit); */
+        /* if ((f = fopen(fname, "r")) == NULL) */
+        /*     errx(1, "error: unable to open '%s' for reading", fname); */
+        /* if ((obf = vt->fread(mmap, params, f)) == NULL) */
+        /*     errx(1, "error: reading obfuscator failed"); */
+        /* fclose(f); */
         if (_evaluate(vt, args, &c, obf) == ERR)
             errx(1, "error: evaluation failed");
         vt->free(obf);
-    }
+    /* } */
     op_vt->free(params);
     acirc_clear(&c);
 
@@ -344,6 +358,8 @@ main(int argc, char **argv)
             args.dry_run = true;
             break;
         case 'D':               /* --debug */
+            if (optarg == NULL)
+                usage(EXIT_FAILURE);
             if (strcmp(optarg, "ERROR") == 0) {
                 g_debug = ERROR;
             } else if (strcmp(optarg, "WARN") == 0) {
@@ -366,15 +382,23 @@ main(int argc, char **argv)
             args.evaluate = false;
             break;
         case 'l':               /* --secparam */
+            if (optarg == NULL)
+                usage(EXIT_FAILURE);
             args.secparam = atoi(optarg);
             break;
         case 'L':               /* --symlen */
+            if (optarg == NULL)
+                usage(EXIT_FAILURE);
             args.symlen = atoi(optarg);
             break;
         case 'n':               /* --npowers */
+            if (optarg == NULL)
+                usage(EXIT_FAILURE);
             args.npowers = atoi(optarg);
             break;
         case 'M':               /* --mmap */
+            if (optarg == NULL)
+                usage(EXIT_FAILURE);
             if (strcmp(optarg, "CLT") == 0) {
                 args.mmap = MMAP_CLT;
             } else if (strcmp(optarg, "DUMMY") == 0) {
@@ -384,16 +408,23 @@ main(int argc, char **argv)
                 usage(EXIT_FAILURE);
             }
             break;
+        case 'r':               /* --rachel */
+            args.rachel_inputs = true;
+            break;
         case 's':               /* --simple */
             args.simple = true;
             break;
         case 'S':               /* --scheme */
+            if (optarg == NULL)
+                usage(EXIT_FAILURE);
             if (strcmp(optarg, "AB") == 0) {
                 args.scheme = SCHEME_AB;
             } else if (strcmp(optarg, "ZIM") == 0) {
                 args.scheme = SCHEME_ZIM;
             } else if (strcmp(optarg, "LIN") == 0) {
                 args.scheme = SCHEME_LIN;
+            } else if (strcmp(optarg, "LZ") == 0) {
+                args.scheme = SCHEME_LZ;
             } else {
                 fprintf(stderr, "error: unknown scheme \"%s\"\n", optarg);
                 usage(EXIT_FAILURE);

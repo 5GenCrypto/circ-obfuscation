@@ -1,4 +1,3 @@
-#include "obf_index.h"
 #include "vtables.h"
 
 struct pp_info {

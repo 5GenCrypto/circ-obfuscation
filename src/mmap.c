@@ -5,29 +5,60 @@
 #include <stdio.h>
 #include <clt13.h>
 
+void
+mmap_params_fprint(FILE *fp, const mmap_params_t *params)
+{
+    fprintf(fp, "mmap parameter settings:\n");
+    fprintf(fp, "* κ:       %lu\n", params->kappa);
+    fprintf(fp, "* # Zs:    %lu\n", params->nzs);
+    fprintf(fp, "* # slots: %lu\n", params->nslots);
+    fprintf(fp, "* toplevel: ");
+    for (size_t i = 0; i < params->nzs; ++i) {
+        fprintf(fp, "%lu ", params->pows[i]);
+    }
+    fprintf(fp, "\n");
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // secret params
 
 int
-secret_params_init(const sp_vtable *const vt, secret_params *const sp,
-                   const obf_params_t *const op, size_t lambda,
-                   aes_randstate_t rng)
+secret_params_init(const sp_vtable *vt, secret_params *sp, const obf_params_t *op,
+                  size_t lambda, aes_randstate_t rng)
 {
-    return vt->init(vt->mmap, sp, op, lambda, rng);
+    mmap_params_t params;
+    int ret = OK;
+
+    params = vt->init(sp, op);
+    mmap_params_fprint(stderr, &params);
+    sp->sk = calloc(1, vt->mmap->sk->size);
+    if (vt->mmap->sk->init(sp->sk, lambda, params.kappa, params.nzs,
+                           (int *) params.pows, params.nslots, 1, rng, g_verbose)) {
+        ret = ERR;
+    }
+    if (params.my_pows)
+        free(params.pows);
+    return ret;
 }
 
 void
-secret_params_clear(const sp_vtable *const vt, secret_params *const sp)
+secret_params_clear(const sp_vtable *vt, secret_params *sp)
 {
-    vt->clear(vt->mmap, sp);
+    if (sp) {
+        vt->clear(sp);
+        if (sp->sk) {
+            vt->mmap->sk->clear(sp->sk);
+            free(sp->sk);
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // public params
 
 void
-public_params_init(const pp_vtable *const vt, const sp_vtable *const sp_vt,
-                   public_params *const pp, const secret_params *const sp)
+public_params_init(const pp_vtable *vt, const sp_vtable *sp_vt,
+                   public_params *pp, const secret_params *sp)
 {
     vt->init(sp_vt, pp, sp);
     pp->pp = vt->mmap->sk->pp(sp->sk);
@@ -35,8 +66,8 @@ public_params_init(const pp_vtable *const vt, const sp_vtable *const sp_vt,
 }
 
 int
-public_params_fwrite(const pp_vtable *const vt, const public_params *const pp,
-                     FILE *const fp)
+public_params_fwrite(const pp_vtable *vt, const public_params *pp,
+                     FILE *fp)
 {
     vt->fwrite(pp, fp);
     PUT_NEWLINE(fp);
@@ -46,8 +77,8 @@ public_params_fwrite(const pp_vtable *const vt, const public_params *const pp,
 }
 
 int
-public_params_fread(const pp_vtable *const vt, public_params *const pp,
-                    const obf_params_t *const op, FILE *const fp)
+public_params_fread(const pp_vtable *vt, public_params *pp,
+                    const obf_params_t *op, FILE *fp)
 {
     vt->fread(pp, op, fp);
     GET_NEWLINE(fp);
@@ -59,7 +90,7 @@ public_params_fread(const pp_vtable *const vt, public_params *const pp,
 }
 
 void
-public_params_clear(const pp_vtable *const vt, public_params *const pp)
+public_params_clear(const pp_vtable *vt, public_params *pp)
 {
     vt->clear(pp);
     vt->mmap->pp->clear(pp->pp);
@@ -71,8 +102,8 @@ public_params_clear(const pp_vtable *const vt, public_params *const pp)
 // encodings
 
 encoding *
-encoding_new(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
-             const public_params *const pp)
+encoding_new(const encoding_vtable *vt, const pp_vtable *pp_vt,
+             const public_params *pp)
 {
     encoding *enc = calloc(1, sizeof(encoding));
     (void) vt->new(pp_vt, enc, pp);
@@ -82,7 +113,7 @@ encoding_new(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
 }
 
 void
-encoding_free(const encoding_vtable *const vt, encoding *enc)
+encoding_free(const encoding_vtable *vt, encoding *enc)
 {
     vt->mmap->enc->clear(enc->enc);
     free(enc->enc);
@@ -91,7 +122,7 @@ encoding_free(const encoding_vtable *const vt, encoding *enc)
 }
 
 int
-encoding_print(const encoding_vtable *const vt, const encoding *const enc)
+encoding_print(const encoding_vtable *vt, const encoding *enc)
 {
     (void) vt->print(enc);
     vt->mmap->enc->print(enc->enc);
@@ -99,9 +130,9 @@ encoding_print(const encoding_vtable *const vt, const encoding *const enc)
 }
 
 int
-encode(const encoding_vtable *const vt, encoding *const rop,
-       mpz_t *const inps, size_t nins, const void *const set,
-       const secret_params *const sp)
+encode(const encoding_vtable *vt, encoding *rop,
+       mpz_t *inps, size_t nins, const void *set,
+       const secret_params *sp)
 {
     fmpz_t finps[nins];
     int *pows;
@@ -120,8 +151,8 @@ encode(const encoding_vtable *const vt, encoding *const rop,
 }
 
 int
-encoding_set(const encoding_vtable *const vt, encoding *const rop,
-             const encoding *const x)
+encoding_set(const encoding_vtable *vt, encoding *rop,
+             const encoding *x)
 {
     (void) vt->set(rop, x);
     vt->mmap->enc->set(rop->enc, x->enc);
@@ -129,9 +160,9 @@ encoding_set(const encoding_vtable *const vt, encoding *const rop,
 }
 
 int
-encoding_mul(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
-             encoding *const rop, const encoding *const x,
-             const encoding *const y, const public_params *const p)
+encoding_mul(const encoding_vtable *vt, const pp_vtable *pp_vt,
+             encoding *rop, const encoding *x,
+             const encoding *y, const public_params *p)
 {
 
     if (vt->mul(pp_vt, rop, x, y, p) == ERR)
@@ -147,9 +178,9 @@ encoding_mul(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
 }
 
 int
-encoding_add(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
-             encoding *const rop, const encoding *const x,
-             const encoding *const y, const public_params *const p)
+encoding_add(const encoding_vtable *vt, const pp_vtable *pp_vt,
+             encoding *rop, const encoding *x,
+             const encoding *y, const public_params *p)
 {
     if (vt->add(pp_vt, rop, x, y, p) == ERR)
         return ERR;
@@ -164,9 +195,9 @@ encoding_add(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
 }
 
 int
-encoding_sub(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
-             encoding *const rop, const encoding *const x,
-             const encoding *const y, const public_params *const p)
+encoding_sub(const encoding_vtable *vt, const pp_vtable *pp_vt,
+             encoding *rop, const encoding *x,
+             const encoding *y, const public_params *p)
 {
     if (vt->sub(pp_vt, rop, x, y, p) == ERR)
         return ERR;
@@ -181,17 +212,17 @@ encoding_sub(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
 }
 
 int
-encoding_is_zero(const encoding_vtable *const vt, const pp_vtable *const pp_vt,
-                 const encoding *const x, const public_params *const p)
+encoding_is_zero(const encoding_vtable *vt, const pp_vtable *pp_vt,
+                 const encoding *x, const public_params *pp)
 {
-    if (vt->is_zero(pp_vt, x, p) == ERR)
+    if (vt->is_zero(pp_vt, x, pp) == ERR)
         return ERR;
     else
-        return vt->mmap->enc->is_zero(x->enc, p->pp);
+        return vt->mmap->enc->is_zero(x->enc, pp->pp);
 }
 
 void
-encoding_fread(const encoding_vtable *const vt, encoding *const x, FILE *const fp)
+encoding_fread(const encoding_vtable *vt, encoding *x, FILE *fp)
 {
     vt->fread(x, fp);
     x->enc = calloc(1, vt->mmap->enc->size);
@@ -199,8 +230,7 @@ encoding_fread(const encoding_vtable *const vt, encoding *const x, FILE *const f
 }
 
 void
-encoding_fwrite(const encoding_vtable *const vt, const encoding *const x,
-                FILE *const fp)
+encoding_fwrite(const encoding_vtable *vt, const encoding *x, FILE *fp)
 {
     vt->fwrite(x, fp);
     vt->mmap->enc->fwrite(x->enc, fp);

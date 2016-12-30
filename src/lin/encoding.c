@@ -1,4 +1,3 @@
-#include "vtables.h"
 #include "obf_params.h"
 #include "../util.h"
 
@@ -155,8 +154,8 @@ static encoding_vtable lin_encoding_vtable =
     .mmap_set = _encoding_mmap_set
 };
 
-const encoding_vtable *
-lin_get_encoding_vtable(const mmap_vtable *mmap)
+static const encoding_vtable *
+get_encoding_vtable(const mmap_vtable *mmap)
 {
     lin_encoding_vtable.mmap = mmap;
     return &lin_encoding_vtable;

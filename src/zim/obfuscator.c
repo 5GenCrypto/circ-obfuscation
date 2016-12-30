@@ -1,6 +1,4 @@
 #include "obfuscator.h"
-
-#include "obf_index.h"
 #include "obf_params.h"
 #include "vtables.h"
 
@@ -519,12 +517,46 @@ typedef struct work_args {
 } work_args;
 
 static void obf_eval_worker(void *wargs);
-
 static ref_list *ref_list_create(void);
 static void ref_list_destroy(ref_list *list);
 static void ref_list_push(ref_list *list, acircref ref);
-static void raise_encodings(const obfuscation *obf, encoding *x, encoding *y);
-static void raise_encoding(const obfuscation *obf, encoding *x, const obf_index *target);
+
+static void raise_encoding(const obfuscation *obf, encoding *x, const obf_index *target)
+{
+    obf_index *const ix = obf_index_difference(target, obf->enc_vt->mmap_set(x));
+    for (size_t i = 0; i < obf->op->ninputs; i++) {
+        for (size_t b = 0; b <= 1; b++) {
+            size_t diff = IX_X(ix, i, b);
+            while (diff > 0) {
+                // want to find the largest power we obfuscated to multiply by
+                size_t p = 0;
+                while (((size_t) (1 << (p+1)) <= diff) && ((p+1) < obf->op->npowers))
+                    p++;
+                encoding_mul(obf->enc_vt, obf->pp_vt, x, x, obf->uhat[i][b][p], obf->pp);
+                diff -= (1 << p);
+            }
+        }
+    }
+    size_t diff = IX_Y(ix);
+    while (diff > 0) {
+        size_t p = 0;
+        while (((size_t) (1 << (p+1)) <= diff) && ((p+1) < obf->op->npowers))
+            p++;
+        encoding_mul(obf->enc_vt, obf->pp_vt, x, x, obf->vhat[p], obf->pp);
+        diff -= (1 << p);
+    }
+    obf_index_destroy(ix);
+}
+
+static void
+raise_encodings(const obfuscation *obf, encoding *x, encoding *y)
+{
+    obf_index *const ix =
+        obf_index_union(obf->enc_vt->mmap_set(x), obf->enc_vt->mmap_set(y));
+    raise_encoding(obf, x, ix);
+    raise_encoding(obf, y, ix);
+    obf_index_destroy(ix);
+}
 
 static int
 _evaluate(int *rop, const int *inputs, const obfuscation *obf)
@@ -749,46 +781,6 @@ void obf_eval_worker(void* wargs)
         encoding_free(obf->enc_vt, tmp);
         encoding_free(obf->enc_vt, tmp2);
     }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// statefully raise encodings to the union of their indices
-
-static void
-raise_encodings(const obfuscation *obf, encoding *x, encoding *y)
-{
-    obf_index *ix = obf_index_union(obf->enc_vt->mmap_set(x),
-                                    obf->enc_vt->mmap_set(y));
-    raise_encoding(obf, x, ix);
-    raise_encoding(obf, y, ix);
-    obf_index_destroy(ix);
-}
-
-static void raise_encoding(const obfuscation *obf, encoding *x, const obf_index *target)
-{
-    obf_index *ix = obf_index_difference(target, obf->enc_vt->mmap_set(x));
-    for (size_t i = 0; i < obf->op->ninputs; i++) {
-        for (size_t b = 0; b <= 1; b++) {
-            size_t diff = IX_X(ix, i, b);
-            while (diff > 0) {
-                // want to find the largest power we obfuscated to multiply by
-                size_t p = 0;
-                while (((size_t) (1 << (p+1)) <= diff) && ((p+1) < obf->op->npowers))
-                    p++;
-                encoding_mul(obf->enc_vt, obf->pp_vt, x, x, obf->uhat[i][b][p], obf->pp);
-                diff -= (1 << p);
-            }
-        }
-    }
-    size_t diff = IX_Y(ix);
-    while (diff > 0) {
-        size_t p = 0;
-        while (((size_t) (1 << (p+1)) <= diff) && ((p+1) < obf->op->npowers))
-            p++;
-        encoding_mul(obf->enc_vt, obf->pp_vt, x, x, obf->vhat[p], obf->pp);
-        diff -= (1 << p);
-    }
-    obf_index_destroy(ix);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

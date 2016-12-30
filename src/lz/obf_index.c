@@ -1,15 +1,15 @@
 #include "../util.h"
 
 #include <assert.h>
+#include <string.h>
 
-#define IX_Y(IX)       ((IX)->pows[0])
-#define IX_X(IX, I, B) ((IX)->pows[(1 + 2*(I) + (B))])
-#define IX_Z(IX, I)    ((IX)->pows[(1 + (2*(IX)->n) + (I))])
-#define IX_W(IX, I)    ((IX)->pows[(1 + (3*(IX)->n) + (I))])
+#define IX_Y(ix)           (ix)->pows[0]
+#define IX_S(ix, op, k, s) (ix)->pows[1 + (op)->q * (k) + (s)]
+#define IX_Z(ix, op, k)    (ix)->pows[1 + (op)->q * (op)->c + (k)]
+#define IX_W(ix, op, k)    (ix)->pows[1 + (1 + (op)->q) * (op)->c + (k)]
 
 typedef struct {
-    unsigned long *pows;
-    size_t n;
+    size_t *pows;
     size_t nzs;
 } obf_index;
 
@@ -17,9 +17,8 @@ static obf_index *
 obf_index_new(const obf_params_t *op)
 {
     obf_index *ix = my_calloc(1, sizeof(obf_index));
-    ix->n = op->c;
-    ix->nzs = (2 + op->ell) * op->c + 1;
-    ix->pows = my_calloc(ix->nzs, sizeof(unsigned long));
+    ix->nzs = (2 + op->q) * op->c + 1; /* FIXME: might need adjusting */
+    ix->pows = my_calloc(ix->nzs, sizeof(size_t));
     return ix;
 }
 
@@ -34,9 +33,18 @@ obf_index_free(obf_index *ix)
 }
 
 static void
+obf_index_clear(obf_index *ix)
+{
+    memset(ix->pows, '\0', sizeof(unsigned long) * ix->nzs);
+}
+
+static void
 obf_index_print(const obf_index *ix)
 {
-    (void) ix;
+    for (size_t i = 0; i < ix->nzs; ++i) {
+        fprintf(stderr, "%lu ", ix->pows[i]);
+    }
+    fprintf(stderr, "\n");
 }
 
 static obf_index *
@@ -46,13 +54,13 @@ obf_index_new_toplevel(const obf_params_t *op)
     if ((ix = obf_index_new(op)) == NULL)
         return NULL;
     IX_Y(ix) = acirc_max_const_degree(op->circ);
-    for (size_t i = 0; i < op->c; i++) {
-        const size_t d = acirc_max_var_degree(op->circ, i);
-        for (size_t j = 0; j < op->ell; ++j) {
-            IX_X(ix, i, j) = d;            
+    for (size_t k = 0; k < op->c; k++) {
+        /* const sym_id sym = op->chunker(k, op->circ, op->c); */
+        for (size_t s = 0; s < op->q; s++) {
+            IX_S(ix, op, k, s) = acirc_max_var_degree(op->circ, k);
         }
-        IX_Z(ix, i) = 1;
-        IX_W(ix, i) = 1;
+        IX_Z(ix, op, k) = 1;
+        IX_W(ix, op, k) = 1;
     }
     return ix;
 }
@@ -88,7 +96,7 @@ obf_index_union(const obf_params_t *op, const obf_index *x, const obf_index *y)
     if ((res = obf_index_new(op)) == NULL)
         return NULL;
     for (size_t i = 0; i < x->nzs; i++) {
-        res->pows[i] = max(x->pows[i], y->pows[i]);
+        res->pows[i] = x->pows[i] > y->pows[i] ? x->pows[i] : y->pows[i];
     }
     return res;
 }
@@ -111,8 +119,7 @@ obf_index_fread(FILE *fp)
 {
     obf_index *ix = my_calloc(1, sizeof(obf_index));
     ulong_fread(&ix->nzs, fp);
-    ulong_fread(&ix->n, fp);
-    ix->pows = my_calloc(ix->nzs, sizeof(unsigned long));
+    ix->pows = my_calloc(ix->nzs, sizeof(size_t));
     for (size_t i = 0; i < ix->nzs; i++) {
         ulong_fread(&ix->pows[i], fp);
     }
@@ -123,7 +130,6 @@ static int
 obf_index_fwrite(const obf_index *ix, FILE *fp)
 {
     ulong_fwrite(ix->nzs, fp);
-    ulong_fwrite(ix->n, fp);
     for (size_t i = 0; i < ix->nzs; i++) {
         ulong_fwrite(ix->pows[i], fp);
     }

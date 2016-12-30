@@ -1,5 +1,3 @@
-#include "vtables.h"
-
 #include "obfuscator.h"
 #include "obf_params.h"
 
@@ -32,6 +30,21 @@ struct obfuscation {
     encoding **Zbaro;       // o \in \Gamma
 };
 
+static size_t
+num_encodings(const obf_params_t *op)
+{
+    return 1
+        + op->c * op->q
+        + op->c * op->q * op->ell
+        + 1
+        + op->m
+        + op->c * op->q * op->gamma
+        + op->c * op->q * op->gamma
+        + op->gamma
+        + op->gamma
+        + op->gamma
+        + op->gamma;
+}
 
 static void
 encode_Zstar(const encoding_vtable *vt, const obf_params_t *op,
@@ -71,10 +84,10 @@ encode_Zksj(const encoding_vtable *vt, const obf_params_t *op,
     mpz_t *w = mpz_vect_new(op->c+3);
 
     mpz_set(w[0], ykj);
-    /* if (op->rachel_input) */
-    /*     mpz_set_ui(w[1], s == j); */
-    /* else */
-    mpz_set_ui(w[1], bit(s, j));
+    if (op->rachel_inputs)
+        mpz_set_ui(w[1], s == j);
+    else
+        mpz_set_ui(w[1], bit(s, j));
     mpz_vect_urandomms(w+2, moduli+2, op->c+1, rng);
 
     mpz_vect_mul(w, (const mpz_t *) w, (const mpz_t *) rs, op->c+3);
@@ -254,9 +267,9 @@ _obfuscation_new(const mmap_vtable *mmap, const obf_params_t *op,
 
     obf = my_calloc(1, sizeof(obfuscation));
     obf->mmap = mmap;
-    obf->enc_vt = lin_get_encoding_vtable(mmap);
-    obf->pp_vt = lin_get_pp_vtable(mmap);
-    obf->sp_vt = lin_get_sp_vtable(mmap);
+    obf->enc_vt = get_encoding_vtable(mmap);
+    obf->pp_vt = get_pp_vtable(mmap);
+    obf->sp_vt = get_sp_vtable(mmap);
     obf->op = op;
     aes_randinit(obf->rng);
     obf->sp = my_calloc(1, sizeof(secret_params));
@@ -414,7 +427,12 @@ _obfuscate(obfuscation *obf)
                                 obf->mmap->sk->nslots(obf->sp->sk));
     const obf_params_t *op = obf->op;
 
-    // create ykj
+    size_t count = 0;
+    const size_t total = num_encodings(op);
+
+    printf("Encoding:\n");
+    print_progress(count, total);
+
     mpz_t **ykj = my_calloc(op->c+1, sizeof(mpz_t *));
     for (size_t k = 0; k < op->c; k++) {
         ykj[k] = my_calloc(op->ell, sizeof(mpz_t));
@@ -430,7 +448,6 @@ _obfuscate(obfuscation *obf)
         mpz_urandomm_aes(ykj[op->c][j], obf->rng, moduli[0]);
     }
 
-    // create whatk and what
     mpz_t **whatk = my_calloc(op->c, sizeof(mpz_t *));
     for (size_t k = 0; k < op->c; k++) {
         whatk[k] = mpz_vect_new(op->c+3);
@@ -442,38 +459,35 @@ _obfuscate(obfuscation *obf)
     mpz_set_ui(what[op->c+2], 0);
 
     encode_Zstar(obf->enc_vt, obf->op, obf->Zstar, obf->sp, obf->rng, (const mpz_t *) moduli);
+    print_progress(++count, total);
 
-    // encode Rks and Zksj
-/* #pragma omp parallel for schedule(dynamic,1) collapse(2) */
     for (size_t k = 0; k < op->c; k++) {
         for (size_t s = 0; s < op->q; s++) {
             mpz_t *tmp = mpz_vect_new(op->c+3);
             mpz_vect_urandomms(tmp, (const mpz_t *) moduli, op->c+3, obf->rng);
             encode_Rks(obf->enc_vt, op, obf->Rks[k][s], obf->sp, tmp, k, s);
+            print_progress(++count, total);
             for (size_t j = 0; j < op->ell; j++) {
                 encode_Zksj(obf->enc_vt, op, obf->Zksj[k][s][j], obf->sp,
                             obf->rng, tmp, ykj[k][j], k, s, j,
                             (const mpz_t *) moduli);
+                print_progress(++count, total);
             }
             mpz_vect_free(tmp, op->c+3);
         }
     }
 
-    // encode Rc and Zcj
-    {
-        mpz_t *rs = mpz_vect_new(op->c+3);
-        mpz_vect_urandomms(rs, (const mpz_t *) moduli, op->c+3, obf->rng);
-        encode_Rc(obf->enc_vt, obf->op, obf->Rc, obf->sp, rs);
-/* #pragma omp parallel for */
-        for (size_t j = 0; j < op->m; j++) {
-            encode_Zcj(obf->enc_vt, obf->op, obf->Zcj[j], obf->sp, obf->rng, rs,
-                       ykj[op->c][j], op->circ->consts[j], (const mpz_t *) moduli);
-        }
-        mpz_vect_free(rs, op->c+3);
+    mpz_t *rs = mpz_vect_new(op->c+3);
+    mpz_vect_urandomms(rs, (const mpz_t *) moduli, op->c+3, obf->rng);
+    encode_Rc(obf->enc_vt, obf->op, obf->Rc, obf->sp, rs);
+    print_progress(++count, total);
+    for (size_t j = 0; j < op->m; j++) {
+        encode_Zcj(obf->enc_vt, obf->op, obf->Zcj[j], obf->sp, obf->rng, rs,
+                   ykj[op->c][j], op->circ->consts[j], (const mpz_t *) moduli);
+        print_progress(++count, total);
     }
+    mpz_vect_free(rs, op->c+3);
 
-    // encode Rhatkso and Zhatkso
-/* #pragma omp parallel for schedule(dynamic,1) collapse(3) */
     for (size_t o = 0; o < op->gamma; o++) {
         for (size_t k = 0; k < op->c; k++) {
             for (size_t s = 0; s < op->q; s++) {
@@ -481,36 +495,37 @@ _obfuscate(obfuscation *obf)
                 mpz_vect_urandomms(tmp, (const mpz_t *) moduli, op->c+3, obf->rng);
                 encode_Rhatkso(obf->enc_vt, obf->op, obf->Rhatkso[k][s][o],
                                obf->sp, tmp, k, s, o);
+                print_progress(++count, total);
                 encode_Zhatkso(obf->enc_vt, obf->op, obf->Zhatkso[k][s][o],
                                obf->sp, (const mpz_t *) tmp, (const mpz_t *) whatk[k], k, s, o, (const mpz_t *) moduli);
+                print_progress(++count, total);
                 mpz_vect_free(tmp, op->c+3);
             }
         }
     }
 
-    // encode Rhato and Zhato
-/* #pragma omp parallel for */
     for (size_t o = 0; o < op->gamma; o++) {
         mpz_t *tmp = mpz_vect_new(op->c+3);
         mpz_vect_urandomms(tmp, (const mpz_t *) moduli, op->c+3, obf->rng);
         encode_Rhato(obf->enc_vt, op, obf->Rhato[o], obf->sp, tmp, o);
+        print_progress(++count, total);
         encode_Zhato(obf->enc_vt, op, obf->Zhato[o], obf->sp, (const mpz_t *) tmp, (const mpz_t *) what, o,
                      (const mpz_t *) moduli);
+        print_progress(++count, total);
         mpz_vect_free(tmp, op->c+3);
     }
 
-    // encode Rbaro and Zbaro
-/* #pragma omp parallel for */
     for (size_t o = 0; o < op->gamma; o++) {
         mpz_t *tmp = mpz_vect_new(op->c+3);
         mpz_vect_urandomms(tmp, (const mpz_t *) moduli, op->c+3, obf->rng);
         encode_Rbaro(obf->enc_vt, op, obf->Rbaro[o], obf->sp, tmp, o);
+        print_progress(++count, total);
         encode_Zbaro(obf->enc_vt, op, obf->Zbaro[o], obf->sp, (const mpz_t *) tmp, (const mpz_t *) what, (const mpz_t **) whatk,
                      (const mpz_t **) ykj, op->circ, o, (const mpz_t *) moduli);
+        print_progress(++count, total);
         mpz_vect_free(tmp, op->c+3);
     }
 
-    // delete ykj
     for (size_t k = 0; k < op->c; k++) {
         for (size_t j = 0; j < op->ell; j++)
             mpz_clear(ykj[k][j]);
@@ -520,8 +535,6 @@ _obfuscate(obfuscation *obf)
         mpz_clear(ykj[op->c][j]);
     free(ykj[op->c]);
     free(ykj);
-
-    // delete whatk and what
     for (size_t k = 0; k < op->c; k++) {
         mpz_vect_free(whatk[k], op->c+3);
     }
@@ -592,9 +605,9 @@ _obfuscation_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
         return NULL;
 
     obf->mmap = mmap;
-    obf->pp_vt = lin_get_pp_vtable(mmap);
-    obf->sp_vt = lin_get_sp_vtable(mmap);
-    obf->enc_vt = lin_get_encoding_vtable(mmap);
+    obf->pp_vt = get_pp_vtable(mmap);
+    obf->sp_vt = get_sp_vtable(mmap);
+    obf->enc_vt = get_encoding_vtable(mmap);
     obf->op = op;
     obf->sp = NULL;
     obf->pp = my_calloc(1, sizeof(public_params));
@@ -961,9 +974,9 @@ _evaluate(int *rop, const int *inps, const obfuscation *obf)
         for (size_t j = 0; j < obf->op->ell; j++) {
             const sym_id sym = { i, j };
             const acircref k = obf->op->rchunker(sym, c->ninputs, obf->op->c);
-            /* if (obf->op->rachel_input) */
-            /*     input_syms[i] += inps[k] * j; */
-            /* else */
+            if (obf->op->rachel_inputs)
+                input_syms[i] += inps[k] * j;
+            else
                 input_syms[i] += inps[k] << j;
         }
     }
