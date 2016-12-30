@@ -272,13 +272,8 @@ _obfuscation_new(const mmap_vtable *mmap, const obf_params_t *op,
     obf->sp_vt = get_sp_vtable(mmap);
     obf->op = op;
     aes_randinit(obf->rng);
-    obf->sp = my_calloc(1, sizeof(secret_params));
-    if (secret_params_init(obf->sp_vt, obf->sp, op, secparam, kappa, obf->rng)) {
-        _obfuscation_free(obf);
-        return NULL;
-    }
-    obf->pp = my_calloc(1, sizeof(public_params));
-    public_params_init(obf->pp_vt, obf->sp_vt, obf->pp, obf->sp);
+    obf->sp = secret_params_new(obf->sp_vt, op, secparam, kappa, obf->rng);
+    obf->pp = public_params_new(obf->pp_vt, obf->sp_vt, obf->sp);
 
     obf->Zstar = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
 
@@ -347,10 +342,10 @@ _obfuscation_free(obfuscation *obf)
     
     const obf_params_t *op = obf->op;
 
-    secret_params_clear(obf->sp_vt, obf->sp);
-    free(obf->sp);
-    public_params_clear(obf->pp_vt, obf->pp);
-    free(obf->pp);
+    if (obf->sp)
+        secret_params_free(obf->sp_vt, obf->sp);
+    if (obf->pp)
+        public_params_free(obf->pp_vt, obf->pp);
 
     if (obf->Zstar)
         encoding_free(obf->enc_vt, obf->Zstar);
@@ -610,8 +605,7 @@ _obfuscation_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     obf->enc_vt = get_encoding_vtable(mmap);
     obf->op = op;
     obf->sp = NULL;
-    obf->pp = my_calloc(1, sizeof(public_params));
-    (void) public_params_fread(obf->pp_vt, obf->pp, op, fp);
+    obf->pp = public_params_fread(obf->pp_vt, op, fp);
 
     obf->Zstar = encoding_fread(obf->enc_vt, fp);
 

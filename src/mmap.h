@@ -81,22 +81,21 @@ typedef struct {
     const void * (*mmap_set)(const encoding *);
 } encoding_vtable;
 
-int
-secret_params_init(const sp_vtable *vt, secret_params *p, const obf_params_t *op,
-                   size_t lambda, size_t kappa, aes_randstate_t rng);
+secret_params *
+secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
+                  size_t kappa, aes_randstate_t rng);
 void
-secret_params_clear(const sp_vtable *vt, secret_params *p);
+secret_params_free(const sp_vtable *vt, secret_params *p);
 
-void
-public_params_init(const pp_vtable *vt, const sp_vtable *sp_vt,
-                   public_params *pp, const secret_params *sp);
+public_params *
+public_params_new(const pp_vtable *vt, const sp_vtable *sp_vt,
+                  const secret_params *sp);
 int
 public_params_fwrite(const pp_vtable *vt, const public_params *pp, FILE *fp);
-int
-public_params_fread(const pp_vtable *vt, public_params *pp,
-                    const obf_params_t *op, FILE *fp);
+public_params *
+public_params_fread(const pp_vtable *vt, const obf_params_t *op, FILE *fp);
 void
-public_params_clear(const pp_vtable *vt, public_params *p);
+public_params_free(const pp_vtable *vt, public_params *p);
 
 encoding *
 encoding_new(const encoding_vtable *enc_vt, const pp_vtable *pp_vt,

@@ -62,13 +62,8 @@ _obfuscator_new(const mmap_vtable *mmap, const obf_params_t *op,
     obf->sp_vt = zim_get_sp_vtable(mmap);
     obf->op = op;
     aes_randinit(obf->rng);
-    obf->sp = calloc(1, sizeof(secret_params));
-    if (secret_params_init(obf->sp_vt, obf->sp, op, secparam, kappa, obf->rng)) {
-        _obfuscator_free(obf);
-        return NULL;
-    }
-    obf->pp = calloc(1, sizeof(public_params));
-    public_params_init(obf->pp_vt, obf->sp_vt, obf->pp, obf->sp);
+    obf->sp = secret_params_new(obf->sp_vt, op, secparam, kappa, obf->rng);
+    obf->pp = public_params_new(obf->pp_vt, obf->sp_vt, obf->sp);
 
     obf->xhat = calloc(op->ninputs, sizeof(encoding **));
     obf->uhat = calloc(op->ninputs, sizeof(encoding ***));
@@ -152,14 +147,10 @@ _obfuscator_free(obfuscation *obf)
     }
     free(obf->Chatstar);
 
-    if (obf->pp) {
-        public_params_clear(obf->pp_vt, obf->pp);
-        free(obf->pp);
-    }
-    if (obf->sp) {
-        secret_params_clear(obf->sp_vt, obf->sp);
-        free(obf->sp);
-    }
+    if (obf->pp)
+        public_params_free(obf->pp_vt, obf->pp);
+    if (obf->sp)
+        secret_params_free(obf->sp_vt, obf->sp);
     aes_randclear(obf->rng);
 
     free(obf);
@@ -443,8 +434,7 @@ _obfuscator_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     obf->enc_vt = zim_get_encoding_vtable(mmap);
     obf->op = op;
     obf->sp = NULL;
-    obf->pp = calloc(1, sizeof(public_params));
-    public_params_fread(obf->pp_vt, obf->pp, op, fp);
+    obf->pp = public_params_fread(obf->pp_vt, op, fp);
 
     obf->xhat = calloc(op->ninputs, sizeof(encoding **));
     obf->uhat = calloc(op->ninputs, sizeof(encoding ***));

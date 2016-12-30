@@ -22,52 +22,55 @@ mmap_params_fprint(FILE *fp, const mmap_params_t *params)
 ////////////////////////////////////////////////////////////////////////////////
 // secret params
 
-int
-secret_params_init(const sp_vtable *vt, secret_params *sp, const obf_params_t *op,
-                   size_t lambda, size_t kappa, aes_randstate_t rng)
+secret_params *
+secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
+                  size_t kappa, aes_randstate_t rng)
 {
+    secret_params *sp;
     mmap_params_t params;
     int ret = OK;
 
+    sp = my_calloc(1, sizeof(secret_params));
     params = vt->init(sp, op, kappa);
     mmap_params_fprint(stderr, &params);
     sp->sk = calloc(1, vt->mmap->sk->size);
     if (vt->mmap->sk->init(sp->sk, lambda, params.kappa, params.nzs,
                            (int *) params.pows, params.nslots, 1, rng, g_verbose)) {
-        ret = ERR;
+        free(sp);
+        sp = NULL;
     }
     if (params.my_pows)
         free(params.pows);
-    return ret;
+    return sp;
 }
 
 void
-secret_params_clear(const sp_vtable *vt, secret_params *sp)
+secret_params_free(const sp_vtable *vt, secret_params *sp)
 {
-    if (sp) {
-        vt->clear(sp);
-        if (sp->sk) {
-            vt->mmap->sk->clear(sp->sk);
-            free(sp->sk);
-        }
+    vt->clear(sp);
+    if (sp->sk) {
+        vt->mmap->sk->clear(sp->sk);
+        free(sp->sk);
     }
+    free(sp);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // public params
 
-void
-public_params_init(const pp_vtable *vt, const sp_vtable *sp_vt,
-                   public_params *pp, const secret_params *sp)
+public_params *
+public_params_new(const pp_vtable *vt, const sp_vtable *sp_vt,
+                  const secret_params *sp)
 {
+    public_params *pp = my_calloc(1, sizeof(public_params));
     vt->init(sp_vt, pp, sp);
     pp->pp = vt->mmap->sk->pp(sp->sk);
     pp->my_pp = false;
+    return pp;
 }
 
 int
-public_params_fwrite(const pp_vtable *vt, const public_params *pp,
-                     FILE *fp)
+public_params_fwrite(const pp_vtable *vt, const public_params *pp, FILE *fp)
 {
     vt->fwrite(pp, fp);
     PUT_NEWLINE(fp);
@@ -76,26 +79,27 @@ public_params_fwrite(const pp_vtable *vt, const public_params *pp,
     return OK;
 }
 
-int
-public_params_fread(const pp_vtable *vt, public_params *pp,
-                    const obf_params_t *op, FILE *fp)
+public_params *
+public_params_fread(const pp_vtable *vt, const obf_params_t *op, FILE *fp)
 {
+    public_params *pp = my_calloc(1, sizeof(public_params));
     vt->fread(pp, op, fp);
     GET_NEWLINE(fp);
     pp->pp = my_calloc(1, vt->mmap->pp->size);
     vt->mmap->pp->fread(pp->pp, fp);
     pp->my_pp = true;
     GET_NEWLINE(fp);
-    return OK;
+    return pp;
 }
 
 void
-public_params_clear(const pp_vtable *vt, public_params *pp)
+public_params_free(const pp_vtable *vt, public_params *pp)
 {
     vt->clear(pp);
     vt->mmap->pp->clear(pp->pp);
     if (pp->my_pp)
         free(pp->pp);
+    free(pp);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
