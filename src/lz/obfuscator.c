@@ -444,38 +444,31 @@ _obfuscator_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
         for (size_t s = 0; s < op->q; s++) {
             obf->shat[k][s] = my_calloc(op->ell, sizeof(encoding *));
             for (size_t j = 0; j < op->ell; j++) {
-                obf->shat[k][s][j] = my_calloc(1, sizeof(encoding));
-                encoding_fread(obf->enc_vt, obf->shat[k][s][j], fp);
+                obf->shat[k][s][j] = encoding_fread(obf->enc_vt, fp);
             }
             obf->uhat[k][s] = my_calloc(op->npowers, sizeof(encoding *));
             for (size_t p = 0; p < op->npowers; p++) {
-                obf->uhat[k][s][p] = my_calloc(1, sizeof(encoding));
-                encoding_fread(obf->enc_vt, obf->uhat[k][s][p], fp);
+                obf->uhat[k][s][p] = encoding_fread(obf->enc_vt, fp);
             }
             obf->zhat[k][s] = my_calloc(op->gamma, sizeof(encoding *));
             obf->what[k][s] = my_calloc(op->gamma, sizeof(encoding *));
             for (size_t o = 0; o < op->gamma; o++) {
-                obf->zhat[k][s][o] = my_calloc(1, sizeof(encoding));
-                obf->what[k][s][o] = my_calloc(1, sizeof(encoding));
-                encoding_fread(obf->enc_vt, obf->zhat[k][s][o], fp);
-                encoding_fread(obf->enc_vt, obf->what[k][s][o], fp);
+                obf->zhat[k][s][o] = encoding_fread(obf->enc_vt, fp);
+                obf->what[k][s][o] = encoding_fread(obf->enc_vt, fp);
             }
         }
     }
     obf->yhat = my_calloc(op->m, sizeof(encoding *));
     for (size_t i = 0; i < op->m; i++) {
-        obf->yhat[i] = my_calloc(1, sizeof(encoding));
-        encoding_fread(obf->enc_vt, obf->yhat[i], fp);
+        obf->yhat[i] = encoding_fread(obf->enc_vt, fp);
     }
     obf->vhat = my_calloc(op->npowers, sizeof(encoding *));
     for (size_t p = 0; p < op->npowers; p++) {
-        obf->vhat[p] = my_calloc(1, sizeof(encoding));
-        encoding_fread(obf->enc_vt, obf->vhat[p], fp);
+        obf->vhat[p] = encoding_fread(obf->enc_vt, fp);
     }
     obf->Chatstar = my_calloc(op->gamma, sizeof(encoding *));
     for (size_t i = 0; i < op->gamma; i++) {
-        obf->Chatstar[i] = my_calloc(1, sizeof(encoding));
-        encoding_fread(obf->enc_vt, obf->Chatstar[i], fp);
+        obf->Chatstar[i] = encoding_fread(obf->enc_vt, fp);
     }
     return obf;
 }

@@ -613,15 +613,13 @@ _obfuscation_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     obf->pp = my_calloc(1, sizeof(public_params));
     (void) public_params_fread(obf->pp_vt, obf->pp, op, fp);
 
-    obf->Zstar = my_calloc(1, sizeof(encoding));
-    encoding_fread(obf->enc_vt, obf->Zstar, fp);
+    obf->Zstar = encoding_fread(obf->enc_vt, fp);
 
     obf->Rks = my_calloc(op->c, sizeof(encoding**));
     for (size_t k = 0; k < op->c; k++) {
         obf->Rks[k] = my_calloc(op->q, sizeof(encoding*));
         for (size_t s = 0; s < op->q; s++) {
-            obf->Rks[k][s] = my_calloc(1, sizeof(encoding));
-            encoding_fread(obf->enc_vt, obf->Rks[k][s], fp);
+            obf->Rks[k][s] = encoding_fread(obf->enc_vt, fp);
         }
     }
 
@@ -631,18 +629,15 @@ _obfuscation_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
         for (size_t s = 0; s < op->q; s++) {
             obf->Zksj[k][s] = my_calloc(op->ell, sizeof(encoding*));
             for (size_t j = 0; j < op->ell; j++) {
-                obf->Zksj[k][s][j] = my_calloc(1, sizeof(encoding));
-                encoding_fread(obf->enc_vt, obf->Zksj[k][s][j], fp);
+                obf->Zksj[k][s][j] = encoding_fread(obf->enc_vt, fp);
             }
         }
     }
 
-    obf->Rc = my_calloc(1, sizeof(encoding));
-    encoding_fread(obf->enc_vt, obf->Rc, fp);
+    obf->Rc = encoding_fread(obf->enc_vt, fp);
     obf->Zcj = my_calloc(op->m, sizeof(encoding*));
     for (size_t j = 0; j < op->m; j++) {
-        obf->Zcj[j] = my_calloc(1, sizeof(encoding));
-        encoding_fread(obf->enc_vt, obf->Zcj[j], fp);
+        obf->Zcj[j] = encoding_fread(obf->enc_vt, fp);
     }
 
     obf->Rhatkso = my_calloc(op->c, sizeof(encoding***));
@@ -654,10 +649,8 @@ _obfuscation_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
             obf->Rhatkso[k][s] = my_calloc(op->gamma, sizeof(encoding *));
             obf->Zhatkso[k][s] = my_calloc(op->gamma, sizeof(encoding *));
             for (size_t o = 0; o < op->gamma; o++) {
-                obf->Rhatkso[k][s][o] = my_calloc(1, sizeof(encoding));
-                obf->Zhatkso[k][s][o] = my_calloc(1, sizeof(encoding));
-                encoding_fread(obf->enc_vt, obf->Rhatkso[k][s][o], fp);
-                encoding_fread(obf->enc_vt, obf->Zhatkso[k][s][o], fp);
+                obf->Rhatkso[k][s][o] = encoding_fread(obf->enc_vt, fp);
+                obf->Zhatkso[k][s][o] = encoding_fread(obf->enc_vt, fp);
             }
         }
     }
@@ -665,19 +658,15 @@ _obfuscation_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     obf->Rhato = my_calloc(op->gamma, sizeof(encoding*));
     obf->Zhato = my_calloc(op->gamma, sizeof(encoding*));
     for (size_t o = 0; o < op->gamma; o++) {
-        obf->Rhato[o] = my_calloc(1, sizeof(encoding));
-        obf->Zhato[o] = my_calloc(1, sizeof(encoding));
-        encoding_fread(obf->enc_vt, obf->Rhato[o], fp);
-        encoding_fread(obf->enc_vt, obf->Zhato[o], fp);
+        obf->Rhato[o] = encoding_fread(obf->enc_vt, fp);
+        obf->Zhato[o] = encoding_fread(obf->enc_vt, fp);
     }
 
     obf->Rbaro = my_calloc(op->gamma, sizeof(encoding*));
     obf->Zbaro = my_calloc(op->gamma, sizeof(encoding*));
     for (size_t o = 0; o < op->gamma; o++) {
-        obf->Rbaro[o] = my_calloc(1, sizeof(encoding));
-        obf->Zbaro[o] = my_calloc(1, sizeof(encoding));
-        encoding_fread(obf->enc_vt, obf->Rbaro[o], fp);
-        encoding_fread(obf->enc_vt, obf->Zbaro[o], fp);
+        obf->Rbaro[o] = encoding_fread(obf->enc_vt, fp);
+        obf->Zbaro[o] = encoding_fread(obf->enc_vt, fp);
     }
 
     return obf;

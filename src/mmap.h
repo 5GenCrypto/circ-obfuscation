@@ -58,8 +58,8 @@ typedef struct {
 
 typedef struct encoding_info encoding_info;
 typedef struct {
-    encoding_info *info;
     mmap_enc *enc;
+    encoding_info *info;
 } encoding;
 
 typedef struct {
@@ -124,8 +124,8 @@ encoding_sub(const encoding_vtable *vt, const pp_vtable *pp_vt, encoding *rop,
 int
 encoding_is_zero(const encoding_vtable *vt, const pp_vtable *pp_vt,
                  const encoding *x, const public_params *p);
-void
-encoding_fread(const encoding_vtable *vt, encoding *x, FILE *fp);
+encoding *
+encoding_fread(const encoding_vtable *vt, FILE *fp);
 void
 encoding_fwrite(const encoding_vtable *vt, const encoding *x, FILE *fp);
 

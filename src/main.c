@@ -289,8 +289,8 @@ run(const struct args_t *args)
     if (params == NULL)
         errx(1, "error: initialize obfuscator parameters failed");
 
-    if (g_verbose)
-        acirc_ensure(&c);
+    /* if (g_verbose) */
+    /*     acirc_ensure(&c); */
 
     if (args->dry_run) {
         obfuscation *obf;
@@ -301,10 +301,10 @@ run(const struct args_t *args)
         return OK;
     }
 
-    /* if (args->obfuscate) { */
-    /*     char fname[strlen(args->circuit) + 5]; */
+    if (args->obfuscate) {
+        char fname[strlen(args->circuit) + 5];
         obfuscation *obf;
-        /* FILE *f; */
+        FILE *f;
 
         fprintf(stderr, "obfuscating...\n");
         obf = vt->new(mmap, params, args->secparam, args->kappa);
@@ -313,31 +313,31 @@ run(const struct args_t *args)
         if (vt->obfuscate(obf) == ERR)
             errx(1, "error: obfuscation failed");
 
-    /*     snprintf(fname, sizeof fname, "%s.obf", args->circuit); */
-    /*     if ((f = fopen(fname, "w")) == NULL) */
-    /*         errx(1, "error: unable to open '%s' for writing", fname); */
-    /*     if (vt->fwrite(obf, f) == ERR) */
-    /*         errx(1, "error: writing obfuscator failed"); */
-    /*     vt->free(obf); */
-    /*     fclose(f); */
-    /* } */
+        snprintf(fname, sizeof fname, "%s.obf", args->circuit);
+        if ((f = fopen(fname, "w")) == NULL)
+            errx(1, "error: unable to open '%s' for writing", fname);
+        if (vt->fwrite(obf, f) == ERR)
+            errx(1, "error: writing obfuscator failed");
+        vt->free(obf);
+        fclose(f);
+    }
 
-    /* if (args->evaluate) { */
-    /*     char fname[strlen(args->circuit) + 5]; */
-    /*     obfuscation *obf; */
-    /*     FILE *f; */
+    if (args->evaluate) {
+        char fname[strlen(args->circuit) + 5];
+        obfuscation *obf;
+        FILE *f;
 
         fprintf(stderr, "evaluating...\n");
-        /* snprintf(fname, sizeof fname, "%s.obf", args->circuit); */
-        /* if ((f = fopen(fname, "r")) == NULL) */
-        /*     errx(1, "error: unable to open '%s' for reading", fname); */
-        /* if ((obf = vt->fread(mmap, params, f)) == NULL) */
-        /*     errx(1, "error: reading obfuscator failed"); */
-        /* fclose(f); */
+        snprintf(fname, sizeof fname, "%s.obf", args->circuit);
+        if ((f = fopen(fname, "r")) == NULL)
+            errx(1, "error: unable to open '%s' for reading", fname);
+        if ((obf = vt->fread(mmap, params, f)) == NULL)
+            errx(1, "error: reading obfuscator failed");
+        fclose(f);
         if (_evaluate(vt, args, &c, obf) == ERR)
             errx(1, "error: evaluation failed");
         vt->free(obf);
-    /* } */
+    }
     op_vt->free(params);
     acirc_clear(&c);
 

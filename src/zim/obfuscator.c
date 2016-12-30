@@ -247,7 +247,7 @@ _obfuscate(obfuscation *obf)
         }
     }
 
-    printf("  Encoding:\n");
+    printf("Encoding:\n");
     print_progress(encode_ct, encode_n);
 
 #pragma omp parallel for
@@ -456,37 +456,30 @@ _obfuscator_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
         obf->zhat[i] = calloc(2, sizeof(encoding **));
         obf->what[i] = calloc(2, sizeof(encoding **));
         for (size_t b = 0; b <= 1; b++) {
-            obf->xhat[i][b] = calloc(1, sizeof(encoding));
-            encoding_fread(obf->enc_vt, obf->xhat[i][b], fp);
+            obf->xhat[i][b] = encoding_fread(obf->enc_vt, fp);
             obf->uhat[i][b] = calloc(op->npowers, sizeof(encoding *));
             for (size_t p = 0; p < op->npowers; p++) {
-                obf->uhat[i][b][p] = calloc(1, sizeof(encoding));
-                encoding_fread(obf->enc_vt, obf->uhat[i][b][p], fp);
+                obf->uhat[i][b][p] = encoding_fread(obf->enc_vt, fp);
             }
             obf->zhat[i][b] = calloc(op->noutputs, sizeof(encoding *));
             obf->what[i][b] = calloc(op->noutputs, sizeof(encoding *));
             for (size_t k = 0; k < op->noutputs; k++) {
-                obf->zhat[i][b][k] = calloc(1, sizeof(encoding));
-                encoding_fread(obf->enc_vt, obf->zhat[i][b][k], fp);
-                obf->what[i][b][k] = calloc(1, sizeof(encoding));
-                encoding_fread(obf->enc_vt, obf->what[i][b][k], fp);
+                obf->zhat[i][b][k] = encoding_fread(obf->enc_vt, fp);
+                obf->what[i][b][k] = encoding_fread(obf->enc_vt, fp);
             }
         }
     }
     obf->yhat = calloc(op->nconsts, sizeof(encoding *));
     for (size_t j = 0; j < op->nconsts; j++) {
-        obf->yhat[j] = calloc(1, sizeof(encoding));
-        encoding_fread(obf->enc_vt, obf->yhat[j], fp);
+        obf->yhat[j] = encoding_fread(obf->enc_vt, fp);
     }
     obf->vhat = calloc(op->npowers, sizeof(encoding *));
     for (size_t j = 0; j < op->npowers; j++) {
-        obf->vhat[j] = calloc(1, sizeof(encoding));
-        encoding_fread(obf->enc_vt, obf->vhat[j], fp);
+        obf->vhat[j] = encoding_fread(obf->enc_vt, fp);
     }
     obf->Chatstar = calloc(op->noutputs, sizeof(encoding *));
     for (size_t k = 0; k < op->noutputs; k++) {
-        obf->Chatstar[k] = calloc(1, sizeof(encoding));
-        encoding_fread(obf->enc_vt, obf->Chatstar[k], fp);
+        obf->Chatstar[k] = encoding_fread(obf->enc_vt, fp);
     }
     return obf;
 }

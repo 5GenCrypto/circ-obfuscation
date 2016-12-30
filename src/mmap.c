@@ -221,12 +221,14 @@ encoding_is_zero(const encoding_vtable *vt, const pp_vtable *pp_vt,
         return vt->mmap->enc->is_zero(x->enc, pp->pp);
 }
 
-void
-encoding_fread(const encoding_vtable *vt, encoding *x, FILE *fp)
+encoding *
+encoding_fread(const encoding_vtable *vt, FILE *fp)
 {
+    encoding *const x = my_calloc(1, sizeof(encoding));
     vt->fread(x, fp);
     x->enc = calloc(1, vt->mmap->enc->size);
     vt->mmap->enc->fread(x->enc, fp);
+    return x;
 }
 
 void

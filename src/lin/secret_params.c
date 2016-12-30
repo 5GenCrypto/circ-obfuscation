@@ -16,10 +16,6 @@ _sp_init(secret_params *sp, const obf_params_t *op, size_t kappa)
     spinfo(sp) = my_calloc(1, sizeof(sp_info));
     spinfo(sp)->op = op;
     spinfo(sp)->toplevel = level_create_vzt(op);
-    if (g_verbose) {
-        fprintf(stderr, "toplevel: ");
-        level_fprint(stderr, spinfo(sp)->toplevel);
-    }
 
     t = 0;
     for (size_t o = 0; o < op->gamma; o++) {

@@ -525,16 +525,14 @@ _obfuscation_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     for (size_t i = 0; i < op->n; i++) {
         obf->R_ib[i] = my_calloc(2, sizeof(encoding *));
         for (size_t b = 0; b < 2; b++) {
-            obf->R_ib[i][b] = my_calloc(1, sizeof(encoding));
-            encoding_fread(obf->enc_vt, obf->R_ib[i][b], fp);
+            obf->R_ib[i][b] = encoding_fread(obf->enc_vt, fp);
         }
     }
     obf->Z_ib = my_calloc(op->n, sizeof(encoding **));
     for (size_t i = 0; i < op->n; i++) {
         obf->Z_ib[i] = my_calloc(2, sizeof(encoding *));
         for (size_t b = 0; b < 2; b++) {
-            obf->Z_ib[i][b] = my_calloc(1, sizeof(encoding));
-            encoding_fread(obf->enc_vt, obf->Z_ib[i][b], fp);
+            obf->Z_ib[i][b] = encoding_fread(obf->enc_vt, fp);
         }
     }
     obf->R_hat_ib_o = my_calloc(op->gamma, sizeof(encoding ***));
@@ -543,8 +541,7 @@ _obfuscation_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
         for (size_t i = 0; i < op->n; i++) {
             obf->R_hat_ib_o[o][i] = my_calloc(2, sizeof(encoding *));
             for (size_t b = 0; b < 2; b++) {
-                obf->R_hat_ib_o[o][i][b] = my_calloc(1, sizeof(encoding));
-                encoding_fread(obf->enc_vt, obf->R_hat_ib_o[o][i][b], fp);
+                obf->R_hat_ib_o[o][i][b] = encoding_fread(obf->enc_vt, fp);
             }
         }
     }
@@ -554,30 +551,25 @@ _obfuscation_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
         for (size_t i = 0; i < op->n; i++) {
             obf->Z_hat_ib_o[o][i] = my_calloc(2, sizeof(encoding *));
             for (size_t b = 0; b < 2; b++) {
-                obf->Z_hat_ib_o[o][i][b] = my_calloc(1, sizeof(encoding));
-                encoding_fread(obf->enc_vt, obf->Z_hat_ib_o[o][i][b], fp);
+                obf->Z_hat_ib_o[o][i][b] = encoding_fread(obf->enc_vt, fp);
             }
         }
     }
     obf->R_i = my_malloc(op->m * sizeof(encoding *));
     for (size_t i = 0; i < op->m; i++) {
-        obf->R_i[i] = my_calloc(1, sizeof(encoding));
-        encoding_fread(obf->enc_vt, obf->R_i[i], fp);
+        obf->R_i[i] = encoding_fread(obf->enc_vt, fp);
     }
     obf->Z_i = my_malloc(op->m * sizeof(encoding *));
     for (size_t i = 0; i < op->m; i++) {
-        obf->Z_i[i] = my_calloc(1, sizeof(encoding));
-        encoding_fread(obf->enc_vt, obf->Z_i[i], fp);
+        obf->Z_i[i] = encoding_fread(obf->enc_vt, fp);
     }
     obf->R_o_i = my_malloc(op->gamma * sizeof(encoding *));
     for (size_t i = 0; i < op->gamma; i++) {
-        obf->R_o_i[i] = my_calloc(1, sizeof(encoding));
-        encoding_fread(obf->enc_vt, obf->R_o_i[i], fp);
+        obf->R_o_i[i] = encoding_fread(obf->enc_vt, fp);
     }
     obf->Z_o_i = my_malloc(op->gamma * sizeof(encoding *));
     for (size_t i = 0; i < op->gamma; i++) {
-        obf->Z_o_i[i] = my_calloc(1, sizeof(encoding));
-        encoding_fread(obf->enc_vt, obf->Z_o_i[i], fp);
+        obf->Z_o_i[i] = encoding_fread(obf->enc_vt, fp);
     }
 
     return obf;
