@@ -24,12 +24,12 @@ mmap_params_fprint(FILE *fp, const mmap_params_t *params)
 
 int
 secret_params_init(const sp_vtable *vt, secret_params *sp, const obf_params_t *op,
-                  size_t lambda, aes_randstate_t rng)
+                   size_t lambda, size_t kappa, aes_randstate_t rng)
 {
     mmap_params_t params;
     int ret = OK;
 
-    params = vt->init(sp, op);
+    params = vt->init(sp, op, kappa);
     mmap_params_fprint(stderr, &params);
     sp->sk = calloc(1, vt->mmap->sk->size);
     if (vt->mmap->sk->init(sp->sk, lambda, params.kappa, params.nzs,

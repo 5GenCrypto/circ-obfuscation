@@ -33,7 +33,7 @@ typedef struct secret_params {
 
 typedef struct {
     const mmap_vtable *mmap;
-    mmap_params_t (*init)(struct secret_params *, const obf_params_t *);
+    mmap_params_t (*init)(struct secret_params *, const obf_params_t *, size_t);
     void (*clear)(struct secret_params *);
     const void * (*toplevel)(const secret_params *);
     const void * (*params)(const secret_params *);
@@ -82,9 +82,8 @@ typedef struct {
 } encoding_vtable;
 
 int
-secret_params_init(const sp_vtable *vt, secret_params *p,
-                   const obf_params_t *op, size_t lambda,
-                   aes_randstate_t rng);
+secret_params_init(const sp_vtable *vt, secret_params *p, const obf_params_t *op,
+                   size_t lambda, size_t kappa, aes_randstate_t rng);
 void
 secret_params_clear(const sp_vtable *vt, secret_params *p);
 
@@ -92,8 +91,7 @@ void
 public_params_init(const pp_vtable *vt, const sp_vtable *sp_vt,
                    public_params *pp, const secret_params *sp);
 int
-public_params_fwrite(const pp_vtable *vt, const public_params *pp,
-                     FILE *fp);
+public_params_fwrite(const pp_vtable *vt, const public_params *pp, FILE *fp);
 int
 public_params_fread(const pp_vtable *vt, public_params *pp,
                     const obf_params_t *op, FILE *fp);
@@ -115,21 +113,17 @@ encode(const encoding_vtable *vt, encoding *rop, mpz_t *inps, size_t nins,
 int
 encoding_set(const encoding_vtable *vt, encoding *rop, const encoding *x);
 int
-encoding_mul(const encoding_vtable *vt, const pp_vtable *pp_vt,
-             encoding *rop, const encoding *x,
-             const encoding *y, const public_params *p);
+encoding_mul(const encoding_vtable *vt, const pp_vtable *pp_vt, encoding *rop,
+             const encoding *x, const encoding *y, const public_params *p);
 int
-encoding_add(const encoding_vtable *vt, const pp_vtable *pp_vt,
-             encoding *rop, const encoding *x,
-             const encoding *y, const public_params *p);
+encoding_add(const encoding_vtable *vt, const pp_vtable *pp_vt, encoding *rop,
+             const encoding *x, const encoding *y, const public_params *p);
 int
-encoding_sub(const encoding_vtable *vt, const pp_vtable *pp_vt,
-             encoding *rop, const encoding *x,
-             const encoding *y, const public_params *p);
+encoding_sub(const encoding_vtable *vt, const pp_vtable *pp_vt, encoding *rop,
+             const encoding *x, const encoding *y, const public_params *p);
 int
 encoding_is_zero(const encoding_vtable *vt, const pp_vtable *pp_vt,
                  const encoding *x, const public_params *p);
-
 void
 encoding_fread(const encoding_vtable *vt, encoding *x, FILE *fp);
 void

@@ -9,7 +9,7 @@ struct sp_info {
 };
 
 static mmap_params_t
-_sp_init(secret_params *sp, const obf_params_t *op)
+_sp_init(secret_params *sp, const obf_params_t *op, size_t kappa)
 {
     mmap_params_t params;
     size_t t;
@@ -28,7 +28,7 @@ _sp_init(secret_params *sp, const obf_params_t *op)
         if (tmp > t)
             t = tmp;
     }
-    params.kappa = acirc_max_total_degree(op->circ) + op->n + 1;
+    params.kappa = kappa ? kappa : (acirc_max_total_degree(op->circ) + op->n + 1);
     params.nzs = (op->n + op->m + 1) * (op->simple ? 3 : 4);
     params.nslots = op->nslots;
     params.pows = my_calloc(params.nzs, sizeof(int));

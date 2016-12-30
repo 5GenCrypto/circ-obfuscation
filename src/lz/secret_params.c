@@ -1,5 +1,7 @@
 #include "obf_params.h"
 
+#include <err.h>
+
 struct sp_info {
     obf_index *toplevel;
     const obf_params_t *op;
@@ -7,7 +9,7 @@ struct sp_info {
 #define spinfo(x) (x)->info
 
 static mmap_params_t
-_sp_init(secret_params *sp, const obf_params_t *op)
+_sp_init(secret_params *sp, const obf_params_t *op, size_t kappa)
 {
     mmap_params_t params;
 
@@ -15,13 +17,11 @@ _sp_init(secret_params *sp, const obf_params_t *op)
     spinfo(sp)->toplevel = obf_index_new_toplevel(op);
     spinfo(sp)->op = op;
 
-    params.kappa = acirc_max_const_degree(op->circ) + op->c;
-    for (size_t k = 0; k < op->c; k++) {
-        sym_id sym = {k, 0};
-        params.kappa +=
-            acirc_max_var_degree(op->circ, rchunker_in_order(sym, op->circ->ninputs, op->c));
+    if (kappa == 0) {
+        warnx("warning: need to specify kappa, defaulting to 1");
+        kappa = 1;
     }
-    params.kappa = 115;
+    params.kappa = kappa;
     params.nzs = spinfo(sp)->toplevel->nzs;
     params.pows = spinfo(sp)->toplevel->pows;
     params.my_pows = false;

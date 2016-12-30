@@ -28,20 +28,6 @@ _op_new(acirc *circ, void *vparams)
         op->q = 1 << params->symlen;
     op->npowers = params->npowers;
 
-    /* op->M = 0; */
-    /* op->types = my_calloc(op->gamma, sizeof(size_t *)); */
-    /* for (size_t o = 0; o < op->gamma; o++) { */
-    /*     op->types[o] = my_calloc(op->c+1, sizeof(size_t)); */
-    /*     type_degree(op->types[o], circ->outrefs[o], circ, op->c, chunker_in_order); */
-    /*     for (size_t k = 0; k < op->c+1; k++) { */
-    /*         if (op->types[o][k] > op->M) { */
-    /*             op->M = op->types[o][k]; */
-    /*         } */
-    /*     } */
-    /* } */
-    /* op->d = acirc_max_degree(circ); */
-    /* op->D = op->d + op->c + 1; */
-
     if (g_verbose) {
         fprintf(stderr, "Obfuscation parameters:\n");
         fprintf(stderr, "* ℓ:        %lu\n", op->ell);
@@ -49,9 +35,6 @@ _op_new(acirc *circ, void *vparams)
         fprintf(stderr, "* m:        %lu\n", op->m);
         fprintf(stderr, "* γ:        %lu\n", op->gamma);
         fprintf(stderr, "* q:        %lu\n", op->q);
-        /* fprintf(stderr, "* M:        %lu\n", op->M); */
-        /* fprintf(stderr, "* d:        %lu\n", op->d); */
-        /* fprintf(stderr, "* D:        %lu\n", op->D); */
         fprintf(stderr, "* # powers: %lu\n", op->npowers);
     }
 

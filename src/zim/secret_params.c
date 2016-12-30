@@ -8,7 +8,7 @@ struct sp_info {
 #define spinfo(x) (x)->info
 
 static mmap_params_t
-_sp_init(secret_params *sp, const obf_params_t *op)
+_sp_init(secret_params *sp, const obf_params_t *op, size_t kappa)
 {
     mmap_params_t params;
 
@@ -16,7 +16,7 @@ _sp_init(secret_params *sp, const obf_params_t *op)
     spinfo(sp)->toplevel = obf_index_create_toplevel(op->circ);
     spinfo(sp)->op = op;
 
-    params.kappa = acirc_delta(op->circ) + op->circ->ninputs;
+    params.kappa = kappa ? kappa : (acirc_delta(op->circ) + op->circ->ninputs);
     params.nzs = spinfo(sp)->toplevel->nzs;
     params.nslots = 2;
     params.pows = (int *) spinfo(sp)->toplevel->pows;

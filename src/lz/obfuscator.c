@@ -52,7 +52,8 @@ static void
 _obfuscator_free(obfuscation *obf);
 
 static obfuscation *
-_obfuscator_new(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam)
+_obfuscator_new(const mmap_vtable *mmap, const obf_params_t *op,
+                size_t secparam, size_t kappa)
 {
     obfuscation *obf;
 
@@ -64,7 +65,7 @@ _obfuscator_new(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam
     obf->op = op;
     aes_randinit(obf->rng);
     obf->sp = my_calloc(1, sizeof(secret_params));
-    if (secret_params_init(obf->sp_vt, obf->sp, op, secparam, obf->rng)) {
+    if (secret_params_init(obf->sp_vt, obf->sp, op, secparam, kappa, obf->rng)) {
         _obfuscator_free(obf);
         return NULL;
     }
@@ -248,7 +249,7 @@ _obfuscate(obfuscation *obf)
         }
     }
     
-    printf("  Encoding:\n");
+    printf("Encoding:\n");
     print_progress(count, total);
     char tmp[1024];
 
@@ -392,96 +393,91 @@ _obfuscate(obfuscation *obf)
 static int
 _obfuscator_fwrite(const obfuscation *const obf, FILE *const fp)
 {
-    (void) obf; (void) fp;
-    abort();
-    /* const obf_params_t *const op = obf->op; */
-    /* public_params_fwrite(obf->pp_vt, obf->pp, fp); */
-    /* for (size_t i = 0; i < op->c; i++) { */
-    /*     for (size_t b = 0; b <= 1; b++) { */
-    /*         encoding_fwrite(obf->enc_vt, obf->xhat[i][b], fp); */
-    /*         for (size_t p = 0; p < op->npowers; p++) { */
-    /*             encoding_fwrite(obf->enc_vt, obf->uhat[i][b][p], fp); */
-    /*         } */
-    /*         for (size_t k = 0; k < op->gamma; k++) { */
-    /*             encoding_fwrite(obf->enc_vt, obf->zhat[i][b][k], fp); */
-    /*             encoding_fwrite(obf->enc_vt, obf->what[i][b][k], fp); */
-    /*         } */
-    /*     } */
-    /* } */
-    /* for (size_t j = 0; j < op->m; j++) { */
-    /*     encoding_fwrite(obf->enc_vt, obf->yhat[j], fp); */
-    /* } */
-    /* for (size_t p = 0; p < op->npowers; p++) { */
-    /*     encoding_fwrite(obf->enc_vt, obf->vhat[p], fp); */
-    /* } */
-    /* for (size_t k = 0; k < op->gamma; k++) { */
-    /*     encoding_fwrite(obf->enc_vt, obf->Chatstar[k], fp); */
-    /* } */
-    /* return OK; */
+    const obf_params_t *const op = obf->op;
+    public_params_fwrite(obf->pp_vt, obf->pp, fp);
+    for (size_t k = 0; k < op->c; k++) {
+        for (size_t s = 0; s < op->q; s++) {
+            for (size_t j = 0; j < op->ell; j++)
+                encoding_fwrite(obf->enc_vt, obf->shat[k][s][j], fp);
+            for (size_t p = 0; p < op->npowers; p++)
+                encoding_fwrite(obf->enc_vt, obf->uhat[k][s][p], fp);
+            for (size_t o = 0; o < op->gamma; o++) {
+                encoding_fwrite(obf->enc_vt, obf->zhat[k][s][o], fp);
+                encoding_fwrite(obf->enc_vt, obf->what[k][s][o], fp);
+            }
+        }
+    }
+    for (size_t j = 0; j < op->m; j++)
+        encoding_fwrite(obf->enc_vt, obf->yhat[j], fp);
+    for (size_t p = 0; p < op->npowers; p++)
+        encoding_fwrite(obf->enc_vt, obf->vhat[p], fp);
+    for (size_t k = 0; k < op->gamma; k++) {
+        encoding_fwrite(obf->enc_vt, obf->Chatstar[k], fp);
+    }
+    return OK;
 }
 
 static obfuscation *
 _obfuscator_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
 {
-    (void) mmap; (void) op; (void) fp;
-    abort();
-    /* obfuscation *obf; */
+    obfuscation *const obf = my_calloc(1, sizeof(obfuscation));
+    if (obf == NULL)
+        return NULL;
+    obf->mmap = mmap;
+    obf->pp_vt = get_pp_vtable(mmap);
+    obf->sp_vt = get_sp_vtable(mmap);
+    obf->enc_vt = get_encoding_vtable(mmap);
+    obf->op = op;
+    obf->sp = NULL;
+    obf->pp = my_calloc(1, sizeof(public_params));
+    public_params_fread(obf->pp_vt, obf->pp, op, fp);
 
-    /* obf = calloc(1, sizeof(obfuscation)); */
-    /* if (obf == NULL) */
-    /*     return NULL; */
-    /* obf->mmap = mmap; */
-    /* obf->pp_vt = get_pp_vtable(mmap); */
-    /* obf->sp_vt = get_sp_vtable(mmap); */
-    /* obf->enc_vt = get_encoding_vtable(mmap); */
-    /* obf->op = op; */
-    /* obf->sp = NULL; */
-    /* obf->pp = calloc(1, sizeof(public_params)); */
-    /* public_params_fread(obf->pp_vt, obf->pp, op, fp); */
-
-    /* obf->xhat = calloc(op->c, sizeof(encoding **)); */
-    /* obf->uhat = calloc(op->c, sizeof(encoding ***)); */
-    /* obf->zhat = calloc(op->c, sizeof(encoding ***)); */
-    /* obf->what = calloc(op->c, sizeof(encoding ***)); */
-    /* for (size_t i = 0; i < op->c; i++) { */
-    /*     obf->xhat[i] = calloc(2, sizeof(encoding *)); */
-    /*     obf->uhat[i] = calloc(2, sizeof(encoding **)); */
-    /*     obf->zhat[i] = calloc(2, sizeof(encoding **)); */
-    /*     obf->what[i] = calloc(2, sizeof(encoding **)); */
-    /*     for (size_t b = 0; b <= 1; b++) { */
-    /*         obf->xhat[i][b] = calloc(1, sizeof(encoding)); */
-    /*         encoding_fread(obf->enc_vt, obf->xhat[i][b], fp); */
-    /*         obf->uhat[i][b] = calloc(op->npowers, sizeof(encoding *)); */
-    /*         for (size_t p = 0; p < op->npowers; p++) { */
-    /*             obf->uhat[i][b][p] = calloc(1, sizeof(encoding)); */
-    /*             encoding_fread(obf->enc_vt, obf->uhat[i][b][p], fp); */
-    /*         } */
-    /*         obf->zhat[i][b] = calloc(op->gamma, sizeof(encoding *)); */
-    /*         obf->what[i][b] = calloc(op->gamma, sizeof(encoding *)); */
-    /*         for (size_t k = 0; k < op->gamma; k++) { */
-    /*             obf->zhat[i][b][k] = calloc(1, sizeof(encoding)); */
-    /*             encoding_fread(obf->enc_vt, obf->zhat[i][b][k], fp); */
-    /*             obf->what[i][b][k] = calloc(1, sizeof(encoding)); */
-    /*             encoding_fread(obf->enc_vt, obf->what[i][b][k], fp); */
-    /*         } */
-    /*     } */
-    /* } */
-    /* obf->yhat = calloc(op->m, sizeof(encoding *)); */
-    /* for (size_t j = 0; j < op->m; j++) { */
-    /*     obf->yhat[j] = calloc(1, sizeof(encoding)); */
-    /*     encoding_fread(obf->enc_vt, obf->yhat[j], fp); */
-    /* } */
-    /* obf->vhat = calloc(op->npowers, sizeof(encoding *)); */
-    /* for (size_t j = 0; j < op->npowers; j++) { */
-    /*     obf->vhat[j] = calloc(1, sizeof(encoding)); */
-    /*     encoding_fread(obf->enc_vt, obf->vhat[j], fp); */
-    /* } */
-    /* obf->Chatstar = calloc(op->gamma, sizeof(encoding *)); */
-    /* for (size_t k = 0; k < op->gamma; k++) { */
-    /*     obf->Chatstar[k] = calloc(1, sizeof(encoding)); */
-    /*     encoding_fread(obf->enc_vt, obf->Chatstar[k], fp); */
-    /* } */
-    /* return obf; */
+    obf->shat = my_calloc(op->c, sizeof(encoding ***));
+    obf->uhat = my_calloc(op->c, sizeof(encoding ***));
+    obf->zhat = my_calloc(op->c, sizeof(encoding ***));
+    obf->what = my_calloc(op->c, sizeof(encoding ***));
+    for (size_t k = 0; k < op->c; k++) {
+        obf->shat[k] = my_calloc(op->q, sizeof(encoding **));
+        obf->uhat[k] = my_calloc(op->q, sizeof(encoding **));
+        obf->zhat[k] = my_calloc(op->q, sizeof(encoding **));
+        obf->what[k] = my_calloc(op->q, sizeof(encoding **));
+        for (size_t s = 0; s < op->q; s++) {
+            obf->shat[k][s] = my_calloc(op->ell, sizeof(encoding *));
+            for (size_t j = 0; j < op->ell; j++) {
+                obf->shat[k][s][j] = my_calloc(1, sizeof(encoding));
+                encoding_fread(obf->enc_vt, obf->shat[k][s][j], fp);
+            }
+            obf->uhat[k][s] = my_calloc(op->npowers, sizeof(encoding *));
+            for (size_t p = 0; p < op->npowers; p++) {
+                obf->uhat[k][s][p] = my_calloc(1, sizeof(encoding));
+                encoding_fread(obf->enc_vt, obf->uhat[k][s][p], fp);
+            }
+            obf->zhat[k][s] = my_calloc(op->gamma, sizeof(encoding *));
+            obf->what[k][s] = my_calloc(op->gamma, sizeof(encoding *));
+            for (size_t o = 0; o < op->gamma; o++) {
+                obf->zhat[k][s][o] = my_calloc(1, sizeof(encoding));
+                obf->what[k][s][o] = my_calloc(1, sizeof(encoding));
+                encoding_fread(obf->enc_vt, obf->zhat[k][s][o], fp);
+                encoding_fread(obf->enc_vt, obf->what[k][s][o], fp);
+            }
+        }
+    }
+    obf->yhat = my_calloc(op->m, sizeof(encoding *));
+    for (size_t i = 0; i < op->m; i++) {
+        obf->yhat[i] = my_calloc(1, sizeof(encoding));
+        encoding_fread(obf->enc_vt, obf->yhat[i], fp);
+    }
+    obf->vhat = my_calloc(op->npowers, sizeof(encoding *));
+    for (size_t p = 0; p < op->npowers; p++) {
+        obf->vhat[p] = my_calloc(1, sizeof(encoding));
+        encoding_fread(obf->enc_vt, obf->vhat[p], fp);
+    }
+    obf->Chatstar = my_calloc(op->gamma, sizeof(encoding *));
+    for (size_t i = 0; i < op->gamma; i++) {
+        obf->Chatstar[i] = my_calloc(1, sizeof(encoding));
+        encoding_fread(obf->enc_vt, obf->Chatstar[i], fp);
+    }
+    return obf;
 }
 
 /*******************************************************************************/

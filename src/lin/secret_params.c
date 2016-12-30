@@ -8,7 +8,7 @@ struct sp_info {
 #define spinfo(x) (x)->info
 
 static mmap_params_t
-_sp_init(secret_params *sp, const obf_params_t *op)
+_sp_init(secret_params *sp, const obf_params_t *op, size_t kappa)
 {
     mmap_params_t params;
     size_t t;
@@ -27,7 +27,7 @@ _sp_init(secret_params *sp, const obf_params_t *op)
         if (tmp > t)
             t = tmp;
     }
-    params.kappa = t + op->D;
+    params.kappa = kappa ? kappa : (t + op->D);
     params.nzs = (op->q+1) * (op->c+2) + op->gamma;
     params.pows = my_calloc(params.nzs, sizeof(int));
     level_flatten((int *) params.pows, spinfo(sp)->toplevel);

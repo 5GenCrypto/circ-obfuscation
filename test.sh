@@ -20,24 +20,20 @@ run () {
 
 for circuit in $(ls circuits/*.acirc); do
     echo $circuit
-#     run $circuit ZIM DUMMY ERROR
-#     run $circuit AB  DUMMY ERROR
-#     run $circuit LIN DUMMY ERROR
-    run $circuit LZ DUMMY ERROR
-#     run $circuit ZIM CLT ERROR
-#     run $circuit AB  CLT ERROR
-#     run $circuit LIN CLT ERROR
-done
-
-for circuit in $(ls circuits/ggm/*.acirc); do
-    echo $circuit
-#     run $circuit ZIM DUMMY ERROR
-#     run $circuit LIN DUMMY ERROR
+    run $circuit ZIM DUMMY ERROR
+    run $circuit AB  DUMMY ERROR
+    run $circuit LIN DUMMY ERROR
+    run $circuit LZ  DUMMY ERROR
 done
 
 for circuit in $(ls circuits/all-circuits/*.acirc); do
     echo $circuit
-    # run $circuit ZIM DUMMY ERROR
-    # run $circuit AB  DUMMY ERROR
-    # run $circuit LIN DUMMY ERROR
+    run $circuit ZIM DUMMY ERROR
+    run $circuit LIN DUMMY ERROR
+done
+
+for circuit in $(ls circuits/all-circuits/ggm_rachel/*.acirc); do
+    echo $circuit
+    run $circuit LIN DUMMY ERROR
+    run $circuit LZ  DUMMY ERROR
 done

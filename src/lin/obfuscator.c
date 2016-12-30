@@ -261,7 +261,7 @@ _obfuscation_free(obfuscation *obf);
 
 static obfuscation *
 _obfuscation_new(const mmap_vtable *mmap, const obf_params_t *op,
-                 size_t secparam)
+                 size_t secparam, size_t kappa)
 {
     obfuscation *obf;
 
@@ -273,7 +273,7 @@ _obfuscation_new(const mmap_vtable *mmap, const obf_params_t *op,
     obf->op = op;
     aes_randinit(obf->rng);
     obf->sp = my_calloc(1, sizeof(secret_params));
-    if (secret_params_init(obf->sp_vt, obf->sp, op, secparam, obf->rng)) {
+    if (secret_params_init(obf->sp_vt, obf->sp, op, secparam, kappa, obf->rng)) {
         _obfuscation_free(obf);
         return NULL;
     }

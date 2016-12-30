@@ -67,6 +67,7 @@ struct args_t {
     char *circuit;
     enum mmap_e mmap;
     size_t secparam;
+    size_t kappa;
     bool evaluate;
     bool obfuscate;
     bool dry_run;
@@ -87,6 +88,7 @@ args_init(struct args_t *args)
     args->circuit = NULL;
     args->mmap = MMAP_CLT;
     args->secparam = 16;
+    args->kappa = 0;
     args->evaluate = false;
     args->obfuscate = true;
     args->dry_run = false;
@@ -126,7 +128,8 @@ usage(int ret)
 "    --debug <LEVEL>   set debug level (options: ERROR, WARN, DEBUG, INFO | default: ERROR)\n"
 "    --evaluate, -e    evaluate obfuscation (default: %s)\n"
 "    --obfuscate, -o   construct obfuscation (default: %s)\n"
-"    --lambda, -l <λ>  set security parameter to <λ> when obfuscating (default: %lu)\n"
+"    --kappa, -k <κ>   set kappa to κ when obfuscating (default: as chosen by scheme)\n"
+"    --lambda, -l <λ>  set security parameter to λ when obfuscating (default: %lu)\n"
 "    --scheme <NAME>   set scheme to NAME (options: AB, ZIM, LIN, LZ | default: ZIM)\n"
 "    --mmap <NAME>     set mmap to NAME (options: CLT, DUMMY | default: CLT)\n"
 "    --verbose, -v     be verbose\n"
@@ -154,6 +157,7 @@ static const struct option opts[] = {
     {"dry-run", no_argument, 0, 'd'},
     {"evaluate", no_argument, 0, 'e'},
     {"obfuscate", no_argument, 0, 'o'},
+    {"kappa", required_argument, 0, 'k'},
     {"lambda", required_argument, 0, 'l'},
     {"npowers", required_argument, 0, 'n'},
     {"mmap", required_argument, 0, 'M'},
@@ -165,7 +169,7 @@ static const struct option opts[] = {
     {"help", no_argument, 0, 'h'},
     {0, 0, 0, 0}
 };
-static const char *short_opts = "adD:eolL:n:M:rsS:vh";
+static const char *short_opts = "adD:ek:lL:M:n:orsS:vh";
 
 static int
 _evaluate(const obfuscator_vtable *vt, const struct args_t *args,
@@ -290,50 +294,50 @@ run(const struct args_t *args)
 
     if (args->dry_run) {
         obfuscation *obf;
-        obf = vt->new(mmap, params, args->secparam);
+        obf = vt->new(mmap, params, args->secparam, args->kappa);
         if (obf == NULL)
             errx(1, "error: initializing obfuscator failed");
         vt->free(obf);
         return OK;
     }
 
-    /* if (args->obfuscate) { */
-    /*     char fname[strlen(args->circuit) + 5]; */
+    if (args->obfuscate) {
+        char fname[strlen(args->circuit) + 5];
         obfuscation *obf;
-        /* FILE *f; */
+        FILE *f;
 
         fprintf(stderr, "obfuscating...\n");
-        obf = vt->new(mmap, params, args->secparam);
+        obf = vt->new(mmap, params, args->secparam, args->kappa);
         if (obf == NULL)
             errx(1, "error: initializing obfuscator failed");
         if (vt->obfuscate(obf) == ERR)
             errx(1, "error: obfuscation failed");
 
-    /*     snprintf(fname, sizeof fname, "%s.obf", args->circuit); */
-    /*     if ((f = fopen(fname, "w")) == NULL) */
-    /*         errx(1, "error: unable to open '%s' for writing", fname); */
-    /*     if (vt->fwrite(obf, f) == ERR) */
-    /*         errx(1, "error: writing obfuscator failed"); */
-    /*     vt->free(obf); */
-    /*     fclose(f); */
-    /* } */
+        snprintf(fname, sizeof fname, "%s.obf", args->circuit);
+        if ((f = fopen(fname, "w")) == NULL)
+            errx(1, "error: unable to open '%s' for writing", fname);
+        if (vt->fwrite(obf, f) == ERR)
+            errx(1, "error: writing obfuscator failed");
+        vt->free(obf);
+        fclose(f);
+    }
 
-    /* if (args->evaluate) { */
-    /*     char fname[strlen(args->circuit) + 5]; */
-    /*     obfuscation *obf; */
-    /*     FILE *f; */
+    if (args->evaluate) {
+        char fname[strlen(args->circuit) + 5];
+        obfuscation *obf;
+        FILE *f;
 
         fprintf(stderr, "evaluating...\n");
-        /* snprintf(fname, sizeof fname, "%s.obf", args->circuit); */
-        /* if ((f = fopen(fname, "r")) == NULL) */
-        /*     errx(1, "error: unable to open '%s' for reading", fname); */
-        /* if ((obf = vt->fread(mmap, params, f)) == NULL) */
-        /*     errx(1, "error: reading obfuscator failed"); */
-        /* fclose(f); */
+        snprintf(fname, sizeof fname, "%s.obf", args->circuit);
+        if ((f = fopen(fname, "r")) == NULL)
+            errx(1, "error: unable to open '%s' for reading", fname);
+        if ((obf = vt->fread(mmap, params, f)) == NULL)
+            errx(1, "error: reading obfuscator failed");
+        fclose(f);
         if (_evaluate(vt, args, &c, obf) == ERR)
             errx(1, "error: evaluation failed");
         vt->free(obf);
-    /* } */
+    }
     op_vt->free(params);
     acirc_clear(&c);
 
@@ -377,9 +381,10 @@ main(int argc, char **argv)
             args.evaluate = true;
             args.obfuscate = false;
             break;
-        case 'o':               /* --obfuscate */
-            args.obfuscate = true;
-            args.evaluate = false;
+        case 'k':               /* --kappa */
+            if (optarg == NULL)
+                usage(EXIT_FAILURE);
+            args.kappa = atoi(optarg);
             break;
         case 'l':               /* --secparam */
             if (optarg == NULL)
@@ -390,11 +395,6 @@ main(int argc, char **argv)
             if (optarg == NULL)
                 usage(EXIT_FAILURE);
             args.symlen = atoi(optarg);
-            break;
-        case 'n':               /* --npowers */
-            if (optarg == NULL)
-                usage(EXIT_FAILURE);
-            args.npowers = atoi(optarg);
             break;
         case 'M':               /* --mmap */
             if (optarg == NULL)
@@ -407,6 +407,15 @@ main(int argc, char **argv)
                 fprintf(stderr, "error: unknown mmap \"%s\"\n", optarg);
                 usage(EXIT_FAILURE);
             }
+            break;
+        case 'n':               /* --npowers */
+            if (optarg == NULL)
+                usage(EXIT_FAILURE);
+            args.npowers = atoi(optarg);
+            break;
+        case 'o':               /* --obfuscate */
+            args.obfuscate = true;
+            args.evaluate = false;
             break;
         case 'r':               /* --rachel */
             args.rachel_inputs = true;
