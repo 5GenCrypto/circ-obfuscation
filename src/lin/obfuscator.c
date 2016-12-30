@@ -347,42 +347,29 @@ _obfuscation_free(obfuscation *obf)
     if (obf->pp)
         public_params_free(obf->pp_vt, obf->pp);
 
-    if (obf->Zstar)
-        encoding_free(obf->enc_vt, obf->Zstar);
-
-    if (obf->Rks) {
-        for (size_t k = 0; k < op->c; k++) {
-            for (size_t s = 0; s < op->q; s++) {
-                encoding_free(obf->enc_vt, obf->Rks[k][s]);
+    encoding_free(obf->enc_vt, obf->Zstar);
+    for (size_t k = 0; k < op->c; k++) {
+        for (size_t s = 0; s < op->q; s++) {
+            encoding_free(obf->enc_vt, obf->Rks[k][s]);
+        }
+        free(obf->Rks[k]);
+    }
+    free(obf->Rks);
+    for (size_t k = 0; k < op->c; k++) {
+        for (size_t s = 0; s < op->q; s++) {
+            for (size_t j = 0; j < op->ell; j++) {
+                encoding_free(obf->enc_vt, obf->Zksj[k][s][j]);
             }
-            free(obf->Rks[k]);
+            free(obf->Zksj[k][s]);
         }
-        free(obf->Rks);
+        free(obf->Zksj[k]);
     }
-
-    if (obf->Zksj) {
-        for (size_t k = 0; k < op->c; k++) {
-            for (size_t s = 0; s < op->q; s++) {
-                for (size_t j = 0; j < op->ell; j++) {
-                    encoding_free(obf->enc_vt, obf->Zksj[k][s][j]);
-                }
-                free(obf->Zksj[k][s]);
-            }
-            free(obf->Zksj[k]);
-        }
-        free(obf->Zksj);
+    free(obf->Zksj);
+    encoding_free(obf->enc_vt, obf->Rc);
+    for (size_t j = 0; j < op->m; j++) {
+        encoding_free(obf->enc_vt, obf->Zcj[j]);
     }
-
-    if (obf->Rc)
-        encoding_free(obf->enc_vt, obf->Rc);
-
-    if (obf->Zcj) {
-        for (size_t j = 0; j < op->m; j++) {
-            encoding_free(obf->enc_vt, obf->Zcj[j]);
-        }
-        free(obf->Zcj);
-    }
-
+    free(obf->Zcj);
     for (size_t k = 0; k < op->c; k++) {
         for (size_t s = 0; s < op->q; s++) {
             for (size_t o = 0; o < op->gamma; o++) {
@@ -397,14 +384,12 @@ _obfuscation_free(obfuscation *obf)
     }
     free(obf->Rhatkso);
     free(obf->Zhatkso);
-
     for (size_t o = 0; o < op->gamma; o++) {
         encoding_free(obf->enc_vt, obf->Rhato[o]);
         encoding_free(obf->enc_vt, obf->Zhato[o]);
     }
     free(obf->Rhato);
     free(obf->Zhato);
-
     for (size_t o = 0; o < op->gamma; o++) {
         encoding_free(obf->enc_vt, obf->Rbaro[o]);
         encoding_free(obf->enc_vt, obf->Zbaro[o]);
@@ -951,7 +936,7 @@ _evaluate(int *rop, const int *inps, const obfuscation *obf)
     int ret = OK;
 
     // determine each assignment s \in \Sigma from the input bits
-    int input_syms[obf->op->c];
+    size_t input_syms[obf->op->c];
     for (size_t i = 0; i < obf->op->c; i++) {
         input_syms[i] = 0;
         for (size_t j = 0; j < obf->op->ell; j++) {

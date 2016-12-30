@@ -26,16 +26,12 @@ secret_params *
 secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
                   size_t kappa, aes_randstate_t rng)
 {
-    secret_params *sp;
-    mmap_params_t params;
-    int ret = OK;
-
-    sp = my_calloc(1, sizeof(secret_params));
-    params = vt->init(sp, op, kappa);
+    secret_params *sp = my_calloc(1, sizeof(secret_params));
+    const mmap_params_t params = vt->init(sp, op, kappa);
     mmap_params_fprint(stderr, &params);
     sp->sk = calloc(1, vt->mmap->sk->size);
     if (vt->mmap->sk->init(sp->sk, lambda, params.kappa, params.nzs,
-                           (int *) params.pows, params.nslots, 1, rng, g_verbose)) {
+                           params.pows, params.nslots, 1, rng, g_verbose)) {
         free(sp);
         sp = NULL;
     }
@@ -134,9 +130,8 @@ encoding_print(const encoding_vtable *vt, const encoding *enc)
 }
 
 int
-encode(const encoding_vtable *vt, encoding *rop,
-       mpz_t *inps, size_t nins, const void *set,
-       const secret_params *sp)
+encode(const encoding_vtable *vt, encoding *rop, mpz_t *inps, size_t nins,
+       const void *set, const secret_params *sp)
 {
     fmpz_t finps[nins];
     int *pows;
@@ -155,8 +150,7 @@ encode(const encoding_vtable *vt, encoding *rop,
 }
 
 int
-encoding_set(const encoding_vtable *vt, encoding *rop,
-             const encoding *x)
+encoding_set(const encoding_vtable *vt, encoding *rop, const encoding *x)
 {
     (void) vt->set(rop, x);
     vt->mmap->enc->set(rop->enc, x->enc);
@@ -164,9 +158,8 @@ encoding_set(const encoding_vtable *vt, encoding *rop,
 }
 
 int
-encoding_mul(const encoding_vtable *vt, const pp_vtable *pp_vt,
-             encoding *rop, const encoding *x,
-             const encoding *y, const public_params *p)
+encoding_mul(const encoding_vtable *vt, const pp_vtable *pp_vt, encoding *rop,
+             const encoding *x, const encoding *y, const public_params *p)
 {
 
     if (vt->mul(pp_vt, rop, x, y, p) == ERR)
@@ -182,9 +175,8 @@ encoding_mul(const encoding_vtable *vt, const pp_vtable *pp_vt,
 }
 
 int
-encoding_add(const encoding_vtable *vt, const pp_vtable *pp_vt,
-             encoding *rop, const encoding *x,
-             const encoding *y, const public_params *p)
+encoding_add(const encoding_vtable *vt, const pp_vtable *pp_vt, encoding *rop,
+             const encoding *x, const encoding *y, const public_params *p)
 {
     if (vt->add(pp_vt, rop, x, y, p) == ERR)
         return ERR;
@@ -199,9 +191,8 @@ encoding_add(const encoding_vtable *vt, const pp_vtable *pp_vt,
 }
 
 int
-encoding_sub(const encoding_vtable *vt, const pp_vtable *pp_vt,
-             encoding *rop, const encoding *x,
-             const encoding *y, const public_params *p)
+encoding_sub(const encoding_vtable *vt, const pp_vtable *pp_vt, encoding *rop,
+             const encoding *x, const encoding *y, const public_params *p)
 {
     if (vt->sub(pp_vt, rop, x, y, p) == ERR)
         return ERR;
