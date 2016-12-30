@@ -18,7 +18,7 @@ typedef struct mmap_params_t {
     size_t kappa;
     size_t nzs;
     size_t nslots;
-    size_t *pows;
+    int *pows;
     bool my_pows;
 } mmap_params_t;
 

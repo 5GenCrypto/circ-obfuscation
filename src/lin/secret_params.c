@@ -30,7 +30,7 @@ _sp_init(secret_params *sp, const obf_params_t *op, size_t kappa)
     params.kappa = kappa ? kappa : (t + op->D);
     params.nzs = (op->q+1) * (op->c+2) + op->gamma;
     params.pows = my_calloc(params.nzs, sizeof(int));
-    level_flatten((int *) params.pows, spinfo(sp)->toplevel);
+    level_flatten(params.pows, spinfo(sp)->toplevel);
     params.my_pows = true;
     params.nslots = op->c + 3;
 

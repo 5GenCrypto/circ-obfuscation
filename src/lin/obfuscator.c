@@ -979,6 +979,10 @@ _evaluate(int *rop, const int *inps, const obfuscation *obf)
             else
                 input_syms[i] += inps[k] << j;
         }
+        if (input_syms[i] >= obf->op->q) {
+            fprintf(stderr, "error: invalid input (%d > |Σ|)\n", input_syms[i]);
+            return ERR;
+        }
     }
 
     int *known = my_calloc(c->nrefs, sizeof(int));
@@ -999,17 +1003,20 @@ _evaluate(int *rop, const int *inps, const obfuscation *obf)
                 wire *const w = my_calloc(1, sizeof(wire));
                 switch (op) {
                 case OP_INPUT: {
-                    const size_t xid = args[0];
-                    const sym_id sym = obf->op->chunker(xid, c->ninputs, obf->op->c);
+                    const size_t id = args[0];
+                    const sym_id sym = obf->op->chunker(id, c->ninputs, obf->op->c);
                     const size_t k = sym.sym_number;
                     const size_t j = sym.bit_number;
+                    assert(k < obf->op->c && j < obf->op->ell);
                     const size_t s = input_syms[k];
-                    wire_init_from_encodings(obf->enc_vt, obf->pp_vt, w, pp, obf->Rks[k][s], obf->Zksj[k][s][j]);
+                    wire_init_from_encodings(obf->enc_vt, obf->pp_vt, w, pp,
+                                             obf->Rks[k][s], obf->Zksj[k][s][j]);
                     break;
                 }
                 case OP_CONST: {
-                    const size_t yid = args[0];
-                    wire_init_from_encodings(obf->enc_vt, obf->pp_vt, w, pp, obf->Rc, obf->Zcj[yid]);
+                    const size_t id = args[0];
+                    wire_init_from_encodings(obf->enc_vt, obf->pp_vt, w, pp,
+                                             obf->Rc, obf->Zcj[id]);
                     break;
                 }
                 case OP_ADD: case OP_SUB: case OP_MUL: {

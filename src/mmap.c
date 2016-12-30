@@ -14,7 +14,7 @@ mmap_params_fprint(FILE *fp, const mmap_params_t *params)
     fprintf(fp, "* # slots: %lu\n", params->nslots);
     fprintf(fp, "* toplevel: ");
     for (size_t i = 0; i < params->nzs; ++i) {
-        fprintf(fp, "%lu ", params->pows[i]);
+        fprintf(fp, "%d ", params->pows[i]);
     }
     fprintf(fp, "\n");
 }

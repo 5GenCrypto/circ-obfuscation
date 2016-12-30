@@ -26,11 +26,11 @@ for circuit in $(ls circuits/*.acirc); do
     run $circuit LZ  DUMMY ERROR
 done
 
-for circuit in $(ls circuits/all-circuits/*.acirc); do
-    echo $circuit
-    run $circuit ZIM DUMMY ERROR
-    run $circuit LIN DUMMY ERROR
-done
+# for circuit in $(ls circuits/all-circuits/*.acirc); do
+#     echo $circuit
+#     run $circuit ZIM DUMMY ERROR
+#     run $circuit LIN DUMMY ERROR
+# done
 
 for circuit in $(ls circuits/all-circuits/ggm_rachel/*.acirc); do
     echo $circuit

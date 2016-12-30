@@ -565,16 +565,42 @@ _evaluate(int *rop, const int *inputs, const obfuscation *obf)
         fprintf(stderr, "\n");
     }
 
-    encoding *cache[c->nrefs];  // evaluated intermediate nodes
-    ref_list *deps[c->nrefs]; // each list contains refs of nodes dependent on this one
-    int mine[c->nrefs];  // whether the evaluator allocated an encoding in cache
-    int ready[c->nrefs];   // number of children who have been evaluated already
+    encoding **cache;
+    ref_list **deps;
+    int *mine, *ready;
+
+    // evaluated intermediate nodes
+    cache = my_calloc(c->nrefs, sizeof(encoding *));
+    // each list contains refs of nodes dependent on this one
+    deps = my_calloc(c->nrefs, sizeof(ref_list));
+    // whether the evaluator allocated an encoding in cache
+    mine = my_calloc(c->nrefs, sizeof(int));
+    // number of children who have been evaluated already
+    ready = my_calloc(c->nrefs, sizeof(int));
 
     for (size_t i = 0; i < c->nrefs; i++) {
         cache[i] = NULL;
         deps [i] = ref_list_create();
         mine [i] = 0;
         ready[i] = 0;
+    }
+
+    /* Make sure inputs are valid */
+    int input_syms[obf->op->c];
+    for (size_t i = 0; i < obf->op->c; i++) {
+        input_syms[i] = 0;
+        for (size_t j = 0; j < obf->op->ell; j++) {
+            const sym_id sym = { i, j };
+            const acircref k = obf->op->rchunker(sym, c->ninputs, obf->op->c);
+            if (obf->op->rachel_inputs)
+                input_syms[i] += inputs[k] * j;
+            else
+                input_syms[i] += inputs[k] << j;
+        }
+        if (input_syms[i] >= obf->op->q) {
+            fprintf(stderr, "error: invalid input (%d > |Σ|)\n", input_syms[i]);
+            return ERR;
+        }
     }
 
     // populate dependents lists
@@ -624,6 +650,11 @@ _evaluate(int *rop, const int *inputs, const obfuscation *obf)
             encoding_free(obf->enc_vt, cache[i]);
         }
     }
+
+    free(cache);
+    free(deps);
+    free(mine);
+    free(ready);
 
     if (LOG_DEBUG) {
         fprintf(stderr, "[%s] result: ", __func__);
