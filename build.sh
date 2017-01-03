@@ -37,7 +37,7 @@ build libaesrand    https://github.com/5GenCrypto/libaesrand master
 build clt13         https://github.com/5GenCrypto/clt13 master
 build gghlite       https://github.com/5GenCrypto/gghlite-flint master
 build libmmap       https://github.com/5GenCrypto/libmmap master
-build libacirc      https://github.com/amaloz/libacirc master
+build libacirc      https://github.com/5GenCrypto/libacirc master
 build libthreadpool https://github.com/spaceships/libthreadpool master
 
 autoreconf -i
