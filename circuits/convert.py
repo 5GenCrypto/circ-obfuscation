@@ -8,6 +8,7 @@ def main(argv):
         sys.exit(1)
     fname = argv[1]
     newfile = tempfile.TemporaryFile()
+    outputs = []
     with open(fname, 'r') as f:
         while True:
             try:
@@ -31,7 +32,10 @@ def main(argv):
                 items = line.split()
                 newfile.write('%s %s %s %s\n' % (items[0], items[2], items[3], items[4]))
             if 'output' in line:
-                newfile.write('%s\n' % line)
+                n, _, rest = line.split(' ', 2)
+                outputs.append(n)
+                newfile.write('%s\n' % (' '.join([n, rest])))
+    newfile.write(':outputs ' + ' '.join(outputs) + '\n')
     newfile.seek(0)
     with open(fname, 'w') as f:
         for line in newfile:

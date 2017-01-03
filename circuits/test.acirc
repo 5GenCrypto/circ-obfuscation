@@ -6,5 +6,6 @@
 2 const 0
 3 const 1
 4 ADD 0 1
-5 output ADD 2 4
-6 output SUB 5 3
+5 ADD 2 4
+6 SUB 5 3
+:outputs 5 6
