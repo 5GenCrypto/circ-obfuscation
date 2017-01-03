@@ -3,10 +3,11 @@
 
 #include "../util.h"
 
+#include <assert.h>
 #include <gmp.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
+#include <string.h>
 
 struct obfuscation {
     const mmap_vtable *mmap;
@@ -209,49 +210,27 @@ encode_Rbaro(const encoding_vtable *vt, const obf_params_t *op,
 }
 
 static void
-encode_Zbaro(const encoding_vtable *vt, const obf_params_t *op,
-             encoding *enc, const secret_params *sp,
-             const mpz_t *rs, const mpz_t *what, const mpz_t **whatk,
-             const mpz_t **ykj, acirc *c,
-             size_t o, const mpz_t *moduli)
+encode_Zbaro(const encoding_vtable *vt, obfuscation *obf, encoding *enc,
+             const secret_params *sp, const mpz_t ybar, const mpz_t *rs,
+             const mpz_t *tmp, size_t o, const mpz_t *moduli)
 {
-    mpz_t ybar;
-    mpz_init(ybar);
+    const obf_params_t *const op = obf->op;
 
-    mpz_t *xs = mpz_vect_new(c->ninputs);
-    for (size_t k = 0; k < op->c; k++) {
-        for (size_t j = 0; j < op->ell; j++) {
-            const sym_id sym = {k, j};
-            const size_t id = op->rchunker(sym, c->ninputs, op->c);
-            mpz_set(xs[id], ykj[k][j]);
-        }
-    }
-    acirc_eval_mpz_mod(ybar, c, c->outrefs[o], (const mpz_t *) xs, ykj[op->c], moduli[0]);
-
-    mpz_t *tmp = mpz_vect_new(op->c+3);
-    mpz_vect_set(tmp, what, op->c+3);
-    for (size_t k = 0; k < op->c; k++) {
-        mpz_vect_mul_mod(tmp, (const mpz_t *) tmp, whatk[k], moduli, op->c+3);
-    }
-
-    mpz_t *w = mpz_vect_new(op->c+3);
-    mpz_set(w[0], ybar);
+    mpz_t w[op->c + 3];
+    mpz_vect_init(w, op->c + 3);
+    mpz_set   (w[0], ybar);
     mpz_set_ui(w[1], 1);
     mpz_vect_mul_mod(w, (const mpz_t *) w, (const mpz_t *) tmp, moduli, op->c+3);
-
-    mpz_vect_mul_mod(w, (const mpz_t *) w, (const mpz_t *) rs, moduli, op->c+3);
+    mpz_vect_mul_mod(w, (const mpz_t *) w, (const mpz_t *) rs,  moduli, op->c+3);
 
     level *lvl   = level_create_vbaro(op, o);
     level *vstar = level_create_vstar(op);
     level_mul_ui(vstar, vstar, op->D);
     level_add(lvl, lvl, vstar);
 
-    encode(vt, enc, w, op->c+3, lvl, sp);
+    encode(vt, enc, w, op->c + 3, lvl, sp);
 
-    mpz_clear(ybar);
-    mpz_vect_free(tmp, op->c+3);
-    mpz_vect_free(xs, c->ninputs);
-    mpz_vect_free(w, op->c+3);
+    mpz_vect_clear(w, op->c + 3);
     level_free(vstar);
     level_free(lvl);
 }
@@ -405,7 +384,8 @@ _obfuscate(obfuscation *obf)
     mpz_t *moduli =
         mpz_vect_create_of_fmpz(obf->mmap->sk->plaintext_fields(obf->sp->sk),
                                 obf->mmap->sk->nslots(obf->sp->sk));
-    const obf_params_t *op = obf->op;
+    const obf_params_t *const op = obf->op;
+    acirc *const c = op->circ;
 
     size_t count = 0;
     const size_t total = num_encodings(op);
@@ -457,16 +437,18 @@ _obfuscate(obfuscation *obf)
         }
     }
 
-    mpz_t *rs = mpz_vect_new(op->c+3);
-    mpz_vect_urandomms(rs, (const mpz_t *) moduli, op->c+3, obf->rng);
-    encode_Rc(obf->enc_vt, obf->op, obf->Rc, obf->sp, rs);
-    print_progress(++count, total);
-    for (size_t j = 0; j < op->m; j++) {
-        encode_Zcj(obf->enc_vt, obf->op, obf->Zcj[j], obf->sp, obf->rng, rs,
-                   ykj[op->c][j], op->circ->consts[j], (const mpz_t *) moduli);
+    {
+        mpz_t *rs = mpz_vect_new(op->c+3);
+        mpz_vect_urandomms(rs, (const mpz_t *) moduli, op->c+3, obf->rng);
+        encode_Rc(obf->enc_vt, obf->op, obf->Rc, obf->sp, rs);
         print_progress(++count, total);
+        for (size_t j = 0; j < op->m; j++) {
+            encode_Zcj(obf->enc_vt, obf->op, obf->Zcj[j], obf->sp, obf->rng, rs,
+                       ykj[op->c][j], c->consts[j], (const mpz_t *) moduli);
+            print_progress(++count, total);
+        }
+        mpz_vect_free(rs, op->c+3);
     }
-    mpz_vect_free(rs, op->c+3);
 
     for (size_t o = 0; o < op->gamma; o++) {
         for (size_t k = 0; k < op->c; k++) {
@@ -495,15 +477,48 @@ _obfuscate(obfuscation *obf)
         mpz_vect_free(tmp, op->c+3);
     }
 
-    for (size_t o = 0; o < op->gamma; o++) {
-        mpz_t *tmp = mpz_vect_new(op->c+3);
-        mpz_vect_urandomms(tmp, (const mpz_t *) moduli, op->c+3, obf->rng);
-        encode_Rbaro(obf->enc_vt, op, obf->Rbaro[o], obf->sp, tmp, o);
-        print_progress(++count, total);
-        encode_Zbaro(obf->enc_vt, op, obf->Zbaro[o], obf->sp, (const mpz_t *) tmp, (const mpz_t *) what, (const mpz_t **) whatk,
-                     (const mpz_t **) ykj, op->circ, o, (const mpz_t *) moduli);
-        print_progress(++count, total);
-        mpz_vect_free(tmp, op->c+3);
+    {
+        mpz_t ybars[op->gamma];
+        mpz_t xs[c->ninputs];
+        mpz_t rs[op->c + 3];
+        mpz_t tmp[op->c + 3];
+        bool known[c->nrefs];
+        mpz_t cache[c->nrefs];
+
+        mpz_vect_init(rs, op->c + 3);
+        memset(known, 0, sizeof known);
+        mpz_vect_init(tmp, op->c + 3);
+        mpz_vect_set(tmp, what, op->c+3);
+        for (size_t k = 0; k < op->c; k++) {
+            mpz_vect_mul_mod(tmp, (const mpz_t *) tmp, whatk[k], moduli, op->c+3);
+        }
+
+        for (size_t k = 0; k < op->c; k++) {
+            for (size_t j = 0; j < op->ell; j++) {
+                const sym_id sym = {k, j};
+                const size_t id = op->rchunker(sym, c->ninputs, op->c);
+                mpz_init_set(xs[id], ykj[k][j]);
+            }
+        }
+        for (size_t o = 0; o < op->gamma; o++) {
+            mpz_init(ybars[o]);
+            acirc_eval_mpz_mod_memo(ybars[o], c, c->outrefs[o], (const mpz_t *) xs,
+                                    ykj[op->c], moduli[0], known, cache);
+            mpz_vect_urandomms(rs, (const mpz_t *) moduli, op->c+3, obf->rng);
+            encode_Rbaro(obf->enc_vt, op, obf->Rbaro[o], obf->sp, rs, o);
+            print_progress(++count, total);
+            encode_Zbaro(obf->enc_vt, obf, obf->Zbaro[o], obf->sp, ybars[o], rs,
+                         tmp, o, (const mpz_t *) moduli);
+            print_progress(++count, total);
+        }
+        mpz_vect_clear(ybars, op->gamma);
+        mpz_vect_clear(xs, c->ninputs);
+        mpz_vect_clear(rs, op->c + 3);
+        mpz_vect_clear(tmp, op->c + 3);
+        for (size_t i = 0; i < c->nrefs; ++i) {
+            if (known[i])
+                mpz_clear(cache[i]);
+        }
     }
 
     for (size_t k = 0; k < op->c; k++) {
@@ -948,7 +963,7 @@ _evaluate(int *rop, const int *inps, const obfuscation *obf)
                 input_syms[i] += inps[k] << j;
         }
         if (input_syms[i] >= obf->op->q) {
-            fprintf(stderr, "error: invalid input (%d > |Σ|)\n", input_syms[i]);
+            fprintf(stderr, "error: invalid input (%lu > |Σ|)\n", input_syms[i]);
             return ERR;
         }
     }
