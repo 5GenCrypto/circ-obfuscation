@@ -77,6 +77,13 @@ static void obf_index_set(obf_index *rop, const obf_index *x)
         rop->pows[i] = x->pows[i];
 }
 
+static obf_index * obf_index_copy(obf_index *ix)
+{
+    obf_index *new = obf_index_create(ix->n);
+    obf_index_set(new, ix);
+    return new;
+}
+
 static bool obf_index_eq(const obf_index *x, const obf_index *y)
 {
     assert(x->nzs == y->nzs);

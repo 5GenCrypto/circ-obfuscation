@@ -377,8 +377,9 @@ _obfuscation_free(obfuscation *obf)
 }
 
 static int
-_obfuscate(obfuscation *obf)
+_obfuscate(obfuscation *obf, size_t nthreads)
 {
+    (void) nthreads;
     mpz_t *moduli =
         mpz_vect_create_of_fmpz(obf->mmap->sk->plaintext_fields(obf->sp->sk),
                                 obf->mmap->sk->nslots(obf->sp->sk));
@@ -926,8 +927,9 @@ wire_type_eq(const wire *x, const wire *y)
 // TODO: save zstar pows for reuse within the circuit
 
 static int
-_evaluate(int *rop, const int *inps, const obfuscation *obf)
+_evaluate(int *rop, const int *inps, const obfuscation *obf, size_t nthreads)
 {
+    (void) nthreads;
     const public_params *const pp = obf->pp;
     acirc *const c = obf->op->circ;
     int ret = OK;

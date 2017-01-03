@@ -17,7 +17,7 @@ static obf_index *
 obf_index_new(const obf_params_t *op)
 {
     obf_index *ix = my_calloc(1, sizeof(obf_index));
-    ix->nzs = (2 + op->q) * op->c + 1; /* FIXME: might need adjusting */
+    ix->nzs = (2 + op->q) * op->c + 1;
     ix->pows = my_calloc(ix->nzs, sizeof(size_t));
     return ix;
 }
@@ -79,6 +79,14 @@ obf_index_set(obf_index *rop, const obf_index *x)
     assert(rop->nzs == x->nzs);
     for (size_t i = 0; i < x->nzs; i++)
         rop->pows[i] = x->pows[i];
+}
+
+static obf_index *
+obf_index_copy(const obf_index *x, const obf_params_t *op)
+{
+    obf_index *rop = obf_index_new(op);
+    obf_index_set(rop, x);
+    return rop;
 }
 
 static bool

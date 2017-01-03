@@ -68,6 +68,7 @@ struct args_t {
     enum mmap_e mmap;
     size_t secparam;
     size_t kappa;
+    size_t nthreads;
     bool evaluate;
     bool obfuscate;
     bool dry_run;
@@ -89,6 +90,7 @@ args_init(struct args_t *args)
     args->mmap = MMAP_CLT;
     args->secparam = 16;
     args->kappa = 0;
+    args->nthreads = 1;
     args->evaluate = false;
     args->obfuscate = true;
     args->dry_run = false;
@@ -106,14 +108,17 @@ static void
 args_print(const struct args_t *args)
 {
     fprintf(stderr, "Obfuscation details:\n"
-"* Circuit: %s\n"
-"* Multilinear map: %s\n"
-"* Security parameter: %lu\n"
-"* Obfuscating? %s Evaluating? %s\n"
-"* Scheme: %s\n",
-           args->circuit, mmap_to_string(args->mmap), args->secparam,
-           args->obfuscate ? "Y" : "N",
-           args->evaluate ? "Y" : "N", scheme_to_string(args->scheme));
+            "* Circuit: %s\n"
+            "* Multilinear map: %s\n"
+            "* Security parameter: %lu\n"
+            "* Obfuscating? %s Evaluating? %s\n"
+            "* Scheme: %s\n"
+            "* # threads: %lu\n"
+            ,
+            args->circuit, mmap_to_string(args->mmap), args->secparam,
+            args->obfuscate ? "Y" : "N",
+            args->evaluate ? "Y" : "N", scheme_to_string(args->scheme),
+            args->nthreads);
 }
 
 static void
@@ -130,6 +135,7 @@ usage(int ret)
 "    --obfuscate, -o   construct obfuscation (default: %s)\n"
 "    --kappa, -k <κ>   set kappa to κ when obfuscating (default: as chosen by scheme)\n"
 "    --lambda, -l <λ>  set security parameter to λ when obfuscating (default: %lu)\n"
+"    --nthreads <N>    set the number of threads to N (default: %lu)\n"
 "    --scheme <NAME>   set scheme to NAME (options: AB, ZIM, LIN, LZ | default: ZIM)\n"
 "    --mmap <NAME>     set mmap to NAME (options: CLT, DUMMY | default: CLT)\n"
 "    --verbose, -v     be verbose\n"
@@ -147,7 +153,7 @@ usage(int ret)
 "\n",
            defaults.evaluate ? "yes" : "no",
            defaults.obfuscate ? "yes" : "no",
-           defaults.secparam, defaults.npowers);
+           defaults.secparam, defaults.nthreads, defaults.npowers);
     exit(ret);
 }
 
@@ -160,6 +166,7 @@ static const struct option opts[] = {
     {"kappa", required_argument, 0, 'k'},
     {"lambda", required_argument, 0, 'l'},
     {"npowers", required_argument, 0, 'n'},
+    {"nthreads", required_argument, 0, 't'},
     {"mmap", required_argument, 0, 'M'},
     {"rachel", no_argument, 0, 'r'},
     {"symlen", required_argument, 0, 'L'},
@@ -169,7 +176,7 @@ static const struct option opts[] = {
     {"help", no_argument, 0, 'h'},
     {0, 0, 0, 0}
 };
-static const char *short_opts = "adD:ek:lL:M:n:orsS:vh";
+static const char *short_opts = "adD:ek:lL:M:n:orsS:t:vh";
 
 static int
 _evaluate(const obfuscator_vtable *vt, const struct args_t *args,
@@ -177,10 +184,15 @@ _evaluate(const obfuscator_vtable *vt, const struct args_t *args,
 {
     int res[c->noutputs];
     int ret = OK;
+    double start, end;
 
     for (size_t i = 0; i < c->ntests; i++) {
-        if (vt->evaluate(res, c->testinps[i], obf) == ERR)
+        start = current_time();
+        if (vt->evaluate(res, c->testinps[i], obf, args->nthreads) == ERR)
             return ERR;
+        end = current_time();
+        fprintf(stderr, "evaluation: %.2fs\n", end - start);
+
         bool ok = true;
         for (size_t j = 0; j < c->noutputs; ++j) {
             switch (args->scheme) {
@@ -304,20 +316,27 @@ run(const struct args_t *args)
     if (args->obfuscate) {
         char fname[strlen(args->circuit) + 5];
         obfuscation *obf;
+        double start, end;
         FILE *f;
 
         fprintf(stderr, "obfuscating...\n");
+        start = current_time();
         obf = vt->new(mmap, params, args->secparam, args->kappa);
         if (obf == NULL)
             errx(1, "error: initializing obfuscator failed");
-        if (vt->obfuscate(obf) == ERR)
+        if (vt->obfuscate(obf, args->nthreads) == ERR)
             errx(1, "error: obfuscation failed");
+        end = current_time();
+        fprintf(stderr, "obfuscation: %.2fs\n", end - start);
 
+        start = current_time();
         snprintf(fname, sizeof fname, "%s.obf", args->circuit);
         if ((f = fopen(fname, "w")) == NULL)
             errx(1, "error: unable to open '%s' for writing", fname);
         if (vt->fwrite(obf, f) == ERR)
             errx(1, "error: writing obfuscator failed");
+        end = current_time();
+        fprintf(stderr, "write to disk: %.2fs\n", end - start);
         vt->free(obf);
         fclose(f);
     }
@@ -325,15 +344,21 @@ run(const struct args_t *args)
     if (args->evaluate) {
         char fname[strlen(args->circuit) + 5];
         obfuscation *obf;
+        double start, end;
         FILE *f;
 
         fprintf(stderr, "evaluating...\n");
+        start = current_time();
+        obf = vt->new(mmap, params, args->secparam, args->kappa);
         snprintf(fname, sizeof fname, "%s.obf", args->circuit);
         if ((f = fopen(fname, "r")) == NULL)
             errx(1, "error: unable to open '%s' for reading", fname);
         if ((obf = vt->fread(mmap, params, f)) == NULL)
             errx(1, "error: reading obfuscator failed");
         fclose(f);
+        end = current_time();
+        fprintf(stderr, "read from disk: %.2fs\n", end - start);
+
         if (_evaluate(vt, args, &c, obf) == ERR)
             errx(1, "error: evaluation failed");
         vt->free(obf);
@@ -438,6 +463,11 @@ main(int argc, char **argv)
                 fprintf(stderr, "error: unknown scheme \"%s\"\n", optarg);
                 usage(EXIT_FAILURE);
             }
+            break;
+        case 't':               /* --nthreads */
+            if (optarg == NULL)
+                usage(EXIT_FAILURE);
+            args.nthreads = atoi(optarg);
             break;
         case 'v':               /* --verbose */
             g_verbose = true;
