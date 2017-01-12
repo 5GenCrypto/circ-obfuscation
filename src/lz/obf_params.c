@@ -51,24 +51,8 @@ _op_free(obf_params_t *op)
     free(op);
 }
 
-static int
-_op_fwrite(const obf_params_t *op, FILE *fp)
-{
-    (void) op; (void) fp;
-    return ERR;
-}
-
-static int
-_op_fread(obf_params_t *op, FILE *fp)
-{
-    (void) op; (void) fp;
-    return ERR;
-}
-
 op_vtable lz_op_vtable =
 {
     .new = _op_new,
     .free = _op_free,
-    .fwrite = _op_fwrite,
-    .fread = _op_fread,
 };

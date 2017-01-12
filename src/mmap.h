@@ -10,8 +10,6 @@ typedef struct obf_params_t obf_params_t;
 typedef struct {
     obf_params_t * (*new)(acirc *, void *);
     void (*free)(obf_params_t *);
-    int (*fwrite)(const obf_params_t *, FILE *);
-    int (*fread)(obf_params_t *, FILE *);
 } op_vtable;
 
 typedef struct mmap_params_t {
