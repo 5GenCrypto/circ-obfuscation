@@ -1,4 +1,7 @@
+#include "obf_index.h"
 #include "obf_params.h"
+#include "vtables.h"
+#include "../util.h"
 
 #include <string.h>
 
@@ -112,7 +115,7 @@ _encoding_mmap_set(const encoding *enc)
     return my(enc)->index;
 }
 
-static encoding_vtable zim_encoding_vtable =
+static encoding_vtable _encoding_vtable =
 {
     .mmap = NULL,
     .new = _encoding_new,
@@ -129,9 +132,9 @@ static encoding_vtable zim_encoding_vtable =
     .mmap_set = _encoding_mmap_set,
 };
 
-static encoding_vtable *
+PRIVATE const encoding_vtable *
 get_encoding_vtable(const mmap_vtable *mmap)
 {
-    zim_encoding_vtable.mmap = mmap;
-    return &zim_encoding_vtable;
+    _encoding_vtable.mmap = mmap;
+    return &_encoding_vtable;
 }

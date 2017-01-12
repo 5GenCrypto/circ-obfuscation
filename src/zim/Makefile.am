@@ -1,9 +1,12 @@
-AUTOMAKE_OPTIONS = foreign -Wall
+lib_LTLIBRARIES=libobf_zim.la
 
-AM_CFLAGS = $(EXTRA_CFLAGS) -I$(top_srcdir)
-AM_LDFLAGS =
+libobf_zim_la_LDFLAGS=-no-undefined -version-info 0:0:0
+libobf_zim_la_CFLAGS=$(EXTRA_CFLAGS) -I$(top_srcdir)
 
-noinst_LIBRARIES = libzim.a
-
-libzim_a_SOURCES = \
-build.c
+libobf_zim_la_SOURCES = \
+encoding.c \
+obf_index.c \
+obf_params.c \
+obfuscator.c \
+public_params.c \
+secret_params.c

@@ -1,3 +1,4 @@
+#include "obf_index.h"
 #include "vtables.h"
 
 struct pp_info {
@@ -49,7 +50,7 @@ _pp_toplevel(const public_params *pp)
     return pp->info->toplevel;
 }
 
-static pp_vtable zim_pp_vtable = {
+static pp_vtable _pp_vtable = {
     .mmap = NULL,
     .init = _pp_init,
     .clear = _pp_clear,
@@ -60,8 +61,8 @@ static pp_vtable zim_pp_vtable = {
 };
 
 pp_vtable *
-zim_get_pp_vtable(const mmap_vtable *mmap)
+get_pp_vtable(const mmap_vtable *mmap)
 {
-    zim_pp_vtable.mmap = mmap;
-    return &zim_pp_vtable;
+    _pp_vtable.mmap = mmap;
+    return &_pp_vtable;
 }

@@ -1,5 +1,6 @@
-#include "vtables.h"
+#include "obf_index.h"
 #include "obf_params.h"
+#include "vtables.h"
 
 struct sp_info {
     obf_index *toplevel;
@@ -13,7 +14,7 @@ _sp_init(secret_params *sp, const obf_params_t *op, size_t kappa)
     mmap_params_t params;
 
     spinfo(sp) = calloc(1, sizeof(sp_info));
-    spinfo(sp)->toplevel = obf_index_create_toplevel(op->circ);
+    spinfo(sp)->toplevel = obf_index_new_toplevel(op->circ);
     spinfo(sp)->op = op;
 
     params.kappa = kappa ? kappa : (acirc_delta(op->circ) + op->circ->ninputs);
@@ -27,7 +28,7 @@ _sp_init(secret_params *sp, const obf_params_t *op, size_t kappa)
 static void
 _sp_clear(secret_params *sp)
 {
-    obf_index_destroy(spinfo(sp)->toplevel);
+    obf_index_free(spinfo(sp)->toplevel);
     free(sp->info);
 }
 
@@ -43,7 +44,7 @@ _sp_params(const secret_params *sp)
     return spinfo(sp)->op;
 }
 
-static sp_vtable zim_sp_vtable = {
+static sp_vtable _sp_vtable = {
     .mmap = NULL,
     .init = _sp_init,
     .clear = _sp_clear,
@@ -52,8 +53,8 @@ static sp_vtable zim_sp_vtable = {
 };
 
 sp_vtable *
-zim_get_sp_vtable(const mmap_vtable *mmap)
+get_sp_vtable(const mmap_vtable *mmap)
 {
-    zim_sp_vtable.mmap = mmap;
-    return &zim_sp_vtable;
+    _sp_vtable.mmap = mmap;
+    return &_sp_vtable;
 }

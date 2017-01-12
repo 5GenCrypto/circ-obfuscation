@@ -1,4 +1,7 @@
 #include "obf_params.h"
+#include "level.h"
+#include "vtables.h"
+#include "../mmap.h"
 #include "../util.h"
 
 struct sp_info {
@@ -54,7 +57,7 @@ _sp_params(const secret_params *sp)
     return spinfo(sp)->op;
 }
 
-static sp_vtable lin_sp_vtable = {
+static sp_vtable _sp_vtable = {
     .mmap = NULL,
     .init = _sp_init,
     .clear = _sp_clear,
@@ -62,10 +65,10 @@ static sp_vtable lin_sp_vtable = {
     .params = _sp_params,
 };
 
-static const sp_vtable *
+PRIVATE const sp_vtable *
 get_sp_vtable(const mmap_vtable *mmap)
 {
-    lin_sp_vtable.mmap = mmap;
-    return &lin_sp_vtable;
+    _sp_vtable.mmap = mmap;
+    return &_sp_vtable;
 }
 

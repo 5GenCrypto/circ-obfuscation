@@ -1,5 +1,4 @@
-#ifndef __ZIM__OBF_PARAMS_H__
-#define __ZIM__OBF_PARAMS_H__
+#pragma once
 
 #include <acirc.h>
 #include <stddef.h>
@@ -11,5 +10,3 @@ struct obf_params_t {
     size_t npowers;
     acirc *circ;
 };
-
-#endif

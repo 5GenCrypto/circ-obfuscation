@@ -14,7 +14,6 @@ Makefile
 autom4te.cache/
 src/config.h
 src/stamp-h1
-src/.deps
 configure
 config.log
 config.status
@@ -22,3 +21,8 @@ config.status
 .dirstamp
 *.a
 TAGS
+*.lo
+*.la
+libtool
+config.h.in~
+.libs/

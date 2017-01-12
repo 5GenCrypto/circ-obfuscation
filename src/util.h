@@ -8,6 +8,8 @@
 #define OK    0
 #define ERR (-1)
 
+#define PRIVATE __attribute__ ((visibility ("hidden")))
+
 typedef enum debug_e {
     ERROR = 0,
     WARN = 1,

@@ -1,5 +1,7 @@
 #include "vtables.h"
+#include "obf_index.h"
 #include "obf_params.h"
+#include "../util.h"
 
 #include <string.h>
 
@@ -13,8 +15,8 @@ _encoding_new(const pp_vtable *vt, encoding *enc, const public_params *pp)
 {
     const obf_params_t *const op = vt->params(pp);
     enc->info = calloc(1, sizeof(encoding_info));
-    enc->info->index = obf_index_create(op->ninputs);
-    return 0;
+    enc->info->index = obf_index_new(op->ninputs);
+    return OK;
 }
 
 static void
@@ -22,7 +24,7 @@ _encoding_free(encoding *enc)
 {
     if (enc->info) {
         if (enc->info->index) {
-            obf_index_destroy(enc->info->index);
+            obf_index_free(enc->info->index);
         }
         free(enc->info);
     }
@@ -32,7 +34,7 @@ static int
 _encoding_print(const encoding *enc)
 {
     obf_index_print(enc->info->index);
-    return 0;
+    return OK;
 }
 
 static int *
@@ -51,7 +53,7 @@ static int
 _encoding_set(encoding *rop, const encoding *x)
 {
     obf_index_set(my(rop)->index, my(x)->index);
-    return 0;
+    return OK;
 }
 
 static int
@@ -60,7 +62,7 @@ _encoding_mul(const pp_vtable *vt, encoding *rop, const encoding *x,
 {
     (void) vt; (void) pp;
     obf_index_add(my(rop)->index, my(x)->index, my(y)->index);
-    return 0;
+    return OK;
 }
 
 static int
@@ -69,7 +71,7 @@ _encoding_add(const pp_vtable *vt, encoding *rop, const encoding *x,
 {
     (void) vt; (void) pp; (void) y;
     obf_index_set(my(rop)->index, my(x)->index);
-    return 0;
+    return OK;
 }
 
 static int
@@ -78,7 +80,7 @@ _encoding_sub(const pp_vtable *vt, encoding *rop, const encoding *x,
 {
     (void) vt; (void) pp; (void) y;
     obf_index_set(my(rop)->index, my(x)->index);
-    return 0;
+    return OK;
 }
 
 static int
@@ -113,7 +115,7 @@ _encoding_mmap_set(const encoding *enc)
     return my(enc)->index;
 }
 
-static encoding_vtable zim_encoding_vtable =
+static encoding_vtable _encoding_vtable =
 {
     .mmap = NULL,
     .new = _encoding_new,
@@ -131,8 +133,8 @@ static encoding_vtable zim_encoding_vtable =
 };
 
 encoding_vtable *
-zim_get_encoding_vtable(const mmap_vtable *mmap)
+get_encoding_vtable(const mmap_vtable *mmap)
 {
-    zim_encoding_vtable.mmap = mmap;
-    return &zim_encoding_vtable;
+    _encoding_vtable.mmap = mmap;
+    return &_encoding_vtable;
 }

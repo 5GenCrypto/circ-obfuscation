@@ -1,4 +1,7 @@
 #include "obf_params.h"
+#include "level.h"
+#include "../mmap.h"
+#include "../util.h"
 
 struct pp_info {
     const obf_params_t *op;
@@ -64,7 +67,7 @@ static pp_vtable _pp_vtable = {
     .params = _pp_params,
 };
 
-static const pp_vtable *
+PRIVATE const pp_vtable *
 get_pp_vtable(const mmap_vtable *mmap)
 {
     _pp_vtable.mmap = mmap;

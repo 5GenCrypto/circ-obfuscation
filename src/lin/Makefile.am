@@ -1,9 +1,12 @@
-AUTOMAKE_OPTIONS = foreign -Wall
+lib_LTLIBRARIES=libobf_lin.la
 
-AM_CFLAGS = $(EXTRA_CFLAGS) -I$(top_srcdir)
-AM_LDFLAGS = -Wl,--version-script=liblin.version
+libobf_lin_la_LDFLAGS=-no-undefined -version-info 0:0:0
+libobf_lin_la_CFLAGS=$(EXTRA_CFLAGS) -I$(top_srcdir)
 
-noinst_LIBRARIES = liblin.a
-
-liblin_a_SOURCES = \
-build.c
+libobf_lin_la_SOURCES = \
+encoding.c \
+level.c \
+obf_params.c \
+obfuscator.c \
+public_params.c \
+secret_params.c

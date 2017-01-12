@@ -12,7 +12,9 @@ AC_CONFIG_MACRO_DIR([build/autoconf])
 AM_INIT_AUTOMAKE([subdir-objects])
 
 AM_PROG_AR
-AC_PROG_RANLIB
+dnl AC_PROG_RANLIB
+
+LT_INIT
 
 AC_ARG_ENABLE(debug,
 [AS_HELP_STRING([--enable-debug], [enable debugging])],
@@ -43,6 +45,6 @@ AC_SEARCH_LIBS(floor, m, [], AC_MSG_ERROR([libm not found]))
 AC_SEARCH_LIBS(_fmpz_clear_mpz, flint, [], AC_MSG_ERROR([libflint not found]))
 AC_SEARCH_LIBS(__gmpz_init, gmp, [], AC_MSG_ERROR([libgmp not found]))
 
-AC_CONFIG_FILES([Makefile src/ab/Makefile src/lin/Makefile src/lz/Makefile src/zim/Makefile src/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile src/lin/Makefile src/lz/Makefile])
 
 AC_OUTPUT

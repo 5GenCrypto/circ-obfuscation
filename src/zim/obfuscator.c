@@ -1,6 +1,9 @@
 #include "obfuscator.h"
+#include "obf_index.h"
 #include "obf_params.h"
 #include "vtables.h"
+#include "../reflist.h"
+#include "../util.h"
 
 #include <assert.h>
 #include <string.h>
@@ -36,7 +39,7 @@ num_encodings(const acirc *c, const obf_params_t *op)
 }
 
 static void
-zim_encoding_print(const char *name, mpz_t inps[2], obf_index *ix)
+_encoding_print(const char *name, mpz_t inps[2], obf_index *ix)
 {
     if (LOG_INFO) {
         gmp_printf(
@@ -58,16 +61,16 @@ typedef struct obf_args {
 
 static void obf_worker(void *wargs)
 {
-    const obf_args *const args = wargs;
+    obf_args *const args = wargs;
 
     encode(args->vt, args->enc, args->inps, 2, args->ix, args->sp);
     mpz_vect_clear(args->inps, 2);
-    obf_index_destroy(args->ix);
+    obf_index_free(args->ix);
     free(args);
 }
 
 static void
-__encode(threadpool *pool, const encoding_vtable *vt, encoding *enc, mpz_t inps[2],
+_encode(threadpool *pool, const encoding_vtable *vt, encoding *enc, mpz_t inps[2],
          obf_index *ix, const secret_params *sp)
 {
     obf_args *args = my_calloc(1, sizeof(obf_args));
@@ -90,11 +93,11 @@ _obfuscator_new(const mmap_vtable *mmap, const obf_params_t *op,
 {
     obfuscation *obf;
 
-    obf = calloc(1, sizeof(obfuscation));
+    obf = my_calloc(1, sizeof(obfuscation));
     obf->mmap = mmap;
-    obf->enc_vt = zim_get_encoding_vtable(mmap);
-    obf->pp_vt = zim_get_pp_vtable(mmap);
-    obf->sp_vt = zim_get_sp_vtable(mmap);
+    obf->enc_vt = get_encoding_vtable(mmap);
+    obf->pp_vt = get_pp_vtable(mmap);
+    obf->sp_vt = get_sp_vtable(mmap);
     obf->op = op;
     aes_randinit(obf->rng);
     obf->sp = secret_params_new(obf->sp_vt, op, secparam, kappa, obf->rng);
@@ -211,7 +214,7 @@ _obfuscate(obfuscation *obf, size_t nthreads)
     mpz_t delta[n][2][o];
     mpz_t Cstar[o];
 
-    threadpool *pool = threadpool_create(nthreads);
+    threadpool *const pool = threadpool_create(nthreads);
 
     size_t encode_ct = 0;
     const size_t encode_n  = num_encodings(op->circ, op);
@@ -282,18 +285,18 @@ _obfuscate(obfuscation *obf, size_t nthreads)
 
             {
                 // create the xhat and uhat encodings
-                obf_index *ix = obf_index_create(n);
+                obf_index *ix = obf_index_new(n);
                 IX_X(ix, i, b) = 1;
-                zim_encoding_print("xhat[i,b]", inps, ix);
-                __encode(pool, obf->enc_vt, obf->xhat[i][b], inps, ix, obf->sp);
+                _encoding_print("xhat[i,b]", inps, ix);
+                _encode(pool, obf->enc_vt, obf->xhat[i][b], inps, ix, obf->sp);
                 for (size_t p = 0; p < op->npowers; p++) {
                     IX_X(ix, i, b) = 1 << p;
                     mpz_set_ui(inps[0], 1);
                     mpz_set_ui(inps[1], 1);
-                    zim_encoding_print("uhat[i,b,p]", inps, ix);
-                    __encode(pool, obf->enc_vt, obf->uhat[i][b][p], inps, ix, obf->sp);
+                    _encoding_print("uhat[i,b,p]", inps, ix);
+                    _encode(pool, obf->enc_vt, obf->uhat[i][b][p], inps, ix, obf->sp);
                 }
-                obf_index_destroy(ix);
+                obf_index_free(ix);
             }
             encode_ct += 1 + op->npowers;
             print_progress(encode_ct, encode_n);
@@ -301,7 +304,7 @@ _obfuscate(obfuscation *obf, size_t nthreads)
             for (size_t k = 0; k < o; k++) {
                 // create the zhat encodings for each output wire
                 {
-                    obf_index *ix = obf_index_create(n);
+                    obf_index *ix = obf_index_new(n);
                     if (i == 0) {
                         IX_Y(ix) = con_dmax - con_deg[k];
                     }
@@ -311,19 +314,19 @@ _obfuscate(obfuscation *obf, size_t nthreads)
                     IX_W(ix, i) = 1;
                     mpz_set(inps[0], delta[i][b][k]);
                     mpz_set(inps[1], gamma[i][b][k]);
-                    zim_encoding_print("zhat[i,b,k]", inps, ix);
-                    __encode(pool, obf->enc_vt, obf->zhat[i][b][k], inps, ix, obf->sp);
-                    obf_index_destroy(ix);
+                    _encoding_print("zhat[i,b,k]", inps, ix);
+                    _encode(pool, obf->enc_vt, obf->zhat[i][b][k], inps, ix, obf->sp);
+                    obf_index_free(ix);
                 }
                 // create the what encodings
                 {
-                    obf_index *ix = obf_index_create(n);
+                    obf_index *ix = obf_index_new(n);
                     IX_W(ix, i) = 1;
                     mpz_set_ui(inps[0], 0);
                     mpz_set   (inps[1], gamma[i][b][k]);
-                    zim_encoding_print("what[i,b,k]", inps, ix);
-                    __encode(pool, obf->enc_vt, obf->what[i][b][k], inps, ix, obf->sp);
-                    obf_index_destroy(ix);
+                    _encoding_print("what[i,b,k]", inps, ix);
+                    _encode(pool, obf->enc_vt, obf->what[i][b][k], inps, ix, obf->sp);
+                    obf_index_free(ix);
                 }
                 encode_ct += 2;
                 print_progress(encode_ct, encode_n);
@@ -333,24 +336,24 @@ _obfuscate(obfuscation *obf, size_t nthreads)
 
     // create the yhat and vhat encodings
     {
-        obf_index *ix = obf_index_create(n);
+        obf_index *ix = obf_index_new(n);
         IX_Y(ix) = 1;
         for (size_t j = 0; j < m; j++) {
             mpz_set_ui(inps[0], c->consts[j]);
             mpz_set   (inps[1], beta[j]);
-            zim_encoding_print("yhat[j]", inps, ix);
-            __encode(pool, obf->enc_vt, obf->yhat[j], inps, ix, obf->sp);
+            _encoding_print("yhat[j]", inps, ix);
+            _encode(pool, obf->enc_vt, obf->yhat[j], inps, ix, obf->sp);
             print_progress(++encode_ct, encode_n);
         }
         for (size_t p = 0; p < op->npowers; p++) {
             IX_Y(ix) = 1 << p;
             mpz_set_ui(inps[0], 1);
             mpz_set_ui(inps[1], 1);
-            zim_encoding_print("vhat[p]", inps, ix);
-            __encode(pool, obf->enc_vt, obf->vhat[p], inps, ix, obf->sp);
+            _encoding_print("vhat[p]", inps, ix);
+            _encode(pool, obf->enc_vt, obf->vhat[p], inps, ix, obf->sp);
             print_progress(++encode_ct, encode_n);
         }
-        obf_index_destroy(ix);
+        obf_index_free(ix);
     }
 
     {
@@ -368,7 +371,7 @@ _obfuscate(obfuscation *obf, size_t nthreads)
     }
 
     for (size_t k = 0; k < o; k++) {
-        obf_index *ix = obf_index_create(n);
+        obf_index *ix = obf_index_new(n);
         IX_Y(ix) = con_dmax; // acirc_max_const_degree(c);
         for (size_t i = 0; i < n; i++) {
             unsigned long d = var_dmax[i]; // acirc_max_var_degree(c, i);
@@ -380,10 +383,10 @@ _obfuscate(obfuscation *obf, size_t nthreads)
         mpz_set_ui(inps[0], 0);
         mpz_set   (inps[1], Cstar[k]);
 
-        zim_encoding_print("Chatstar[k]", inps, ix);
-        __encode(pool, obf->enc_vt, obf->Chatstar[k], inps, ix, obf->sp);
+        _encoding_print("Chatstar[k]", inps, ix);
+        _encode(pool, obf->enc_vt, obf->Chatstar[k], inps, ix, obf->sp);
         print_progress(++encode_ct, encode_n);
-        obf_index_destroy(ix);
+        obf_index_free(ix);
     }
 
     threadpool_destroy(pool);
@@ -409,7 +412,7 @@ _obfuscate(obfuscation *obf, size_t nthreads)
 }
 
 static int
-_obfuscator_fwrite(const obfuscation *const obf, FILE *const fp)
+_obfuscator_fwrite(const obfuscation *obf, FILE *fp)
 {
     const obf_params_t *const op = obf->op;
     public_params_fwrite(obf->pp_vt, obf->pp, fp);
@@ -446,9 +449,9 @@ _obfuscator_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     if (obf == NULL)
         return NULL;
     obf->mmap = mmap;
-    obf->pp_vt = zim_get_pp_vtable(mmap);
-    obf->sp_vt = zim_get_sp_vtable(mmap);
-    obf->enc_vt = zim_get_encoding_vtable(mmap);
+    obf->pp_vt = get_pp_vtable(mmap);
+    obf->sp_vt = get_sp_vtable(mmap);
+    obf->enc_vt = get_encoding_vtable(mmap);
     obf->op = op;
     obf->sp = NULL;
     obf->pp = public_params_fread(obf->pp_vt, op, fp);
@@ -493,16 +496,6 @@ _obfuscator_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
 
 /*******************************************************************************/
 
-typedef struct ref_list_node {
-    acircref ref;
-    struct ref_list_node *next;
-} ref_list_node;
-
-typedef struct {
-    ref_list_node *first;
-    pthread_mutex_t *lock;
-} ref_list;
-
 typedef struct work_args {
     const mmap_vtable *mmap;
     acircref ref;
@@ -518,9 +511,6 @@ typedef struct work_args {
 } work_args;
 
 static void eval_worker(void *wargs);
-static ref_list *ref_list_create(void);
-static void ref_list_destroy(ref_list *list);
-static void ref_list_push(ref_list *list, acircref ref);
 
 static void raise_encoding(const obfuscation *obf, encoding *x, const obf_index *target)
 {
@@ -546,7 +536,7 @@ static void raise_encoding(const obfuscation *obf, encoding *x, const obf_index 
         encoding_mul(obf->enc_vt, obf->pp_vt, x, x, obf->vhat[p], obf->pp);
         diff -= (1 << p);
     }
-    obf_index_destroy(ix);
+    obf_index_free(ix);
 }
 
 static void
@@ -556,7 +546,7 @@ raise_encodings(const obfuscation *obf, encoding *x, encoding *y)
         obf_index_union(obf->enc_vt->mmap_set(x), obf->enc_vt->mmap_set(y));
     raise_encoding(obf, x, ix);
     raise_encoding(obf, y, ix);
-    obf_index_destroy(ix);
+    obf_index_free(ix);
 }
 
 static int
@@ -761,8 +751,6 @@ static void eval_worker(void* wargs)
             encoding_mul(obf->enc_vt, obf->pp_vt, tmp, tmp2,
                          obf->zhat[i][inputs[i]][k], obf->pp);
         }
-        /* encoding_set(obf->enc_vt, tmp2, tmp); */
-        /* encoding_mul(obf->enc_vt, obf->pp_vt, tmp, tmp2, obf->uhat[0][inputs[0]][0], obf->pp); */
         encoding_set(obf->enc_vt, lhs, tmp);
         if (!obf_index_eq(toplevel, obf->enc_vt->mmap_set(lhs))) {
             fprintf(stderr, "lhs != toplevel\n");
@@ -781,59 +769,6 @@ static void eval_worker(void* wargs)
         encoding_free(obf->enc_vt, rhs);
         encoding_free(obf->enc_vt, tmp);
         encoding_free(obf->enc_vt, tmp2);
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// ref list utils
-
-static ref_list *
-ref_list_create(void)
-{
-    ref_list *list = calloc(1, sizeof(ref_list));
-    list->first = NULL;
-    list->lock = calloc(1, sizeof(pthread_mutex_t));
-    pthread_mutex_init(list->lock, NULL);
-    return list;
-}
-
-static void
-ref_list_destroy(ref_list *list)
-{
-    ref_list_node *cur = list->first;
-    while (cur != NULL) {
-        ref_list_node *tmp = cur;
-        cur = cur->next;
-        free(tmp);
-    }
-    pthread_mutex_destroy(list->lock);
-    free(list->lock);
-    free(list);
-}
-
-static ref_list_node *
-ref_list_node_create(acircref ref)
-{
-    ref_list_node *new = calloc(1, sizeof(ref_list_node));
-    new->next = NULL;
-    new->ref  = ref;
-    return new;
-}
-
-static void
-ref_list_push(ref_list *list, acircref ref)
-{
-    ref_list_node *cur = list->first;
-    if (cur == NULL) {
-        list->first = ref_list_node_create(ref);
-        return;
-    }
-    while (1) {
-        if (cur->next == NULL) {
-            cur->next = ref_list_node_create(ref);
-            return;
-        }
-        cur = cur->next;
     }
 }
 

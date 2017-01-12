@@ -2,9 +2,7 @@
 #include "obfuscator.h"
 #include "util.h"
 
-#include "ab/obfuscator.h"
 #include "lin/obfuscator.h"
-#include "zim/obfuscator.h"
 #include "lz/obfuscator.h"
 
 #include <aesrand.h>
@@ -22,9 +20,7 @@
 #include <sys/stat.h>
 
 enum scheme_e {
-    SCHEME_AB,
     SCHEME_LIN,
-    SCHEME_ZIM,
     SCHEME_LZ,
 };
 
@@ -39,12 +35,8 @@ static char *
 scheme_to_string(enum scheme_e scheme)
 {
     switch (scheme) {
-    case SCHEME_AB:
-        return "Applebaum-Brakerski";
     case SCHEME_LIN:
         return "Lin";
-    case SCHEME_ZIM:
-        return "Zimmerman";
     case SCHEME_LZ:
         return "Linnerman";
     }
@@ -73,8 +65,6 @@ struct args_t {
     bool obfuscate;
     bool dry_run;
     enum scheme_e scheme;
-    /* AB specific settings */
-    bool simple;
     /* LIN/LZ specific settings */
     size_t symlen;
     bool rachel_inputs;
@@ -94,9 +84,7 @@ args_init(struct args_t *args)
     args->evaluate = false;
     args->obfuscate = true;
     args->dry_run = false;
-    args->scheme = SCHEME_ZIM;
-    /* AB specific settings */
-    args->simple = false;
+    args->scheme = SCHEME_LZ;
     /* LIN/LZ specific settings */
     args->symlen = 1;
     args->rachel_inputs = false;
@@ -136,19 +124,16 @@ usage(int ret)
 "    --kappa, -k <κ>   set kappa to κ when obfuscating (default: as chosen by scheme)\n"
 "    --lambda, -l <λ>  set security parameter to λ when obfuscating (default: %lu)\n"
 "    --nthreads <N>    set the number of threads to N (default: %lu)\n"
-"    --scheme <NAME>   set scheme to NAME (options: AB, ZIM, LIN, LZ | default: ZIM)\n"
+"    --scheme <NAME>   set scheme to NAME (options: LIN, LZ | default: LZ)\n"
 "    --mmap <NAME>     set mmap to NAME (options: CLT, DUMMY | default: CLT)\n"
 "    --verbose, -v     be verbose\n"
 "    --help, -h        print this message\n"
-"\n"
-"  AB Specific Settings:\n"
-"    --simple          use the SimpleObf scheme\n"
 "\n"
 "  LIN/LZ Specific Settings:\n"
 "    --symlen          symbol length (in bits)\n"
 "    --rachel          use rachel inputs\n"
 "\n"
-"  ZIM/LZ Specific Settings:\n"
+"  LZ Specific Settings:\n"
 "    --npowers <N>     use N powers (default: %lu)\n"
 "\n",
            defaults.evaluate ? "yes" : "no",
@@ -171,7 +156,6 @@ static const struct option opts[] = {
     {"rachel", no_argument, 0, 'r'},
     {"symlen", required_argument, 0, 'L'},
     {"scheme", required_argument, 0, 'S'},
-    {"simple", no_argument, 0, 's'},
     {"verbose", no_argument, 0, 'v'},
     {"help", no_argument, 0, 'h'},
     {0, 0, 0, 0}
@@ -196,13 +180,13 @@ _evaluate(const obfuscator_vtable *vt, const struct args_t *args,
         bool ok = true;
         for (size_t j = 0; j < c->noutputs; ++j) {
             switch (args->scheme) {
-            case SCHEME_ZIM: case SCHEME_LZ:
+            case SCHEME_LZ:
                 if (!!res[j] != !!c->testouts[i][j]) {
                     ok = false;
                     ret = ERR;
                 }
                 break;
-            case SCHEME_AB: case SCHEME_LIN:
+            case SCHEME_LIN:
                 if (res[j] == (c->testouts[i][j] != 1)) {
                     ok = false;
                     ret = ERR;
@@ -233,9 +217,7 @@ run(const struct args_t *args)
     const mmap_vtable *mmap;
     const obfuscator_vtable *vt;
     const op_vtable *op_vt;
-    ab_obf_params_t ab_params;
     lin_obf_params_t lin_params;
-    zim_obf_params_t zim_params;
     lz_obf_params_t lz_params;
     void *vparams;
 
@@ -265,27 +247,12 @@ run(const struct args_t *args)
     }
 
     switch (args->scheme) {
-    case SCHEME_AB:
-        vt = &ab_obfuscator_vtable;
-        op_vt = &ab_op_vtable;
-        ab_params.simple = args->simple;
-        vparams = &ab_params;
-        if (c.noutputs > 1) {
-            errx(0, "Applebaum-Brakerski only supports 1 output bit");
-        }
-        break;
     case SCHEME_LIN:
         vt = &lin_obfuscator_vtable;
         op_vt = &lin_op_vtable;
         lin_params.symlen = args->symlen;
         lin_params.rachel_inputs = args->rachel_inputs;
         vparams = &lin_params;
-        break;
-    case SCHEME_ZIM:
-        vt = &zim_obfuscator_vtable;
-        op_vt = &zim_op_vtable;
-        zim_params.npowers = args->npowers;
-        vparams = &zim_params;
         break;
     case SCHEME_LZ:
         vt = &lz_obfuscator_vtable;
@@ -445,17 +412,10 @@ main(int argc, char **argv)
         case 'r':               /* --rachel */
             args.rachel_inputs = true;
             break;
-        case 's':               /* --simple */
-            args.simple = true;
-            break;
         case 'S':               /* --scheme */
             if (optarg == NULL)
                 usage(EXIT_FAILURE);
-            if (strcmp(optarg, "AB") == 0) {
-                args.scheme = SCHEME_AB;
-            } else if (strcmp(optarg, "ZIM") == 0) {
-                args.scheme = SCHEME_ZIM;
-            } else if (strcmp(optarg, "LIN") == 0) {
+            if (strcmp(optarg, "LIN") == 0) {
                 args.scheme = SCHEME_LIN;
             } else if (strcmp(optarg, "LZ") == 0) {
                 args.scheme = SCHEME_LZ;

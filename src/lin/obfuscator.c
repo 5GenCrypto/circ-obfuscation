@@ -1,5 +1,7 @@
 #include "obfuscator.h"
-#include "obf_params.h"
+#include "encoding.h"
+#include "level.h"
+#include "vtables.h"
 
 #include "../util.h"
 
@@ -912,14 +914,19 @@ wire_constrained_sub(const encoding_vtable *vt, const pp_vtable *pp_vt,
     return OK;
 }
 
+#define info(x) (x)->info
 static bool
 wire_type_eq(const wire *x, const wire *y)
 {
-    (void) x; (void) y;
-    if (!level_eq(info(x->r)->lvl, info(y->r)->lvl))
+    if (!encoding_equal(x->r, y->r))
         return false;
-    if (!level_eq_z(info(x->z)->lvl, info(y->z)->lvl))
+    if (!encoding_equal_z(x->z, y->z))
         return false;
+    
+    /* if (!level_eq(info(x->r)->lvl, info(y->r)->lvl)) */
+    /*     return false; */
+    /* if (!level_eq_z(info(x->z)->lvl, info(y->z)->lvl)) */
+    /*     return false; */
     return true;
 }
 

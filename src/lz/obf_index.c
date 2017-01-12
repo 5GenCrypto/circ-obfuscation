@@ -1,19 +1,10 @@
+#include "obf_index.h"
 #include "../util.h"
 
 #include <assert.h>
 #include <string.h>
 
-#define IX_Y(ix)           (ix)->pows[0]
-#define IX_S(ix, op, k, s) (ix)->pows[1 + (op)->q * (k) + (s)]
-#define IX_Z(ix, op, k)    (ix)->pows[1 + (op)->q * (op)->c + (k)]
-#define IX_W(ix, op, k)    (ix)->pows[1 + (1 + (op)->q) * (op)->c + (k)]
-
-typedef struct {
-    size_t *pows;
-    size_t nzs;
-} obf_index;
-
-static obf_index *
+PRIVATE obf_index *
 obf_index_new(const obf_params_t *op)
 {
     obf_index *ix = my_calloc(1, sizeof(obf_index));
@@ -22,7 +13,7 @@ obf_index_new(const obf_params_t *op)
     return ix;
 }
 
-static void
+PRIVATE void
 obf_index_free(obf_index *ix)
 {
     if (ix) {
@@ -32,13 +23,13 @@ obf_index_free(obf_index *ix)
     }
 }
 
-static void
+PRIVATE void
 obf_index_clear(obf_index *ix)
 {
     memset(ix->pows, '\0', sizeof(unsigned long) * ix->nzs);
 }
 
-static void
+PRIVATE void
 obf_index_print(const obf_index *ix)
 {
     for (size_t i = 0; i < ix->nzs; ++i) {
@@ -47,7 +38,7 @@ obf_index_print(const obf_index *ix)
     fprintf(stderr, "\n");
 }
 
-static obf_index *
+PRIVATE obf_index *
 obf_index_new_toplevel(const obf_params_t *op)
 {
     obf_index *ix;
@@ -65,7 +56,7 @@ obf_index_new_toplevel(const obf_params_t *op)
     return ix;
 }
 
-static void
+PRIVATE void
 obf_index_add(obf_index *rop, const obf_index *x, const obf_index *y)
 {
     assert(x->nzs == y->nzs);
@@ -73,7 +64,7 @@ obf_index_add(obf_index *rop, const obf_index *x, const obf_index *y)
     array_add(rop->pows, x->pows, y->pows, rop->nzs);
 }
 
-static void
+PRIVATE void
 obf_index_set(obf_index *rop, const obf_index *x)
 {
     assert(rop->nzs == x->nzs);
@@ -81,7 +72,7 @@ obf_index_set(obf_index *rop, const obf_index *x)
         rop->pows[i] = x->pows[i];
 }
 
-static obf_index *
+PRIVATE obf_index *
 obf_index_copy(const obf_index *x, const obf_params_t *op)
 {
     obf_index *rop = obf_index_new(op);
@@ -89,14 +80,14 @@ obf_index_copy(const obf_index *x, const obf_params_t *op)
     return rop;
 }
 
-static bool
+PRIVATE bool
 obf_index_eq(const obf_index *x, const obf_index *y)
 {
     assert(x->nzs == y->nzs);
     return array_eq(x->pows, y->pows, x->nzs);
 }
 
-static obf_index *
+PRIVATE obf_index *
 obf_index_union(const obf_params_t *op, const obf_index *x, const obf_index *y)
 {
     obf_index *res;
@@ -109,7 +100,7 @@ obf_index_union(const obf_params_t *op, const obf_index *x, const obf_index *y)
     return res;
 }
 
-static obf_index *
+PRIVATE obf_index *
 obf_index_difference(const obf_params_t *op, const obf_index *x, const obf_index *y)
 {
     obf_index *res;
@@ -122,7 +113,7 @@ obf_index_difference(const obf_params_t *op, const obf_index *x, const obf_index
     return res;
 }
 
-static obf_index *
+PRIVATE obf_index *
 obf_index_fread(FILE *fp)
 {
     obf_index *ix = my_calloc(1, sizeof(obf_index));
@@ -134,7 +125,7 @@ obf_index_fread(FILE *fp)
     return ix;
 }
 
-static int
+PRIVATE int
 obf_index_fwrite(const obf_index *ix, FILE *fp)
 {
     ulong_fwrite(ix->nzs, fp);

@@ -1,4 +1,6 @@
-#include "obf_params.h"
+#include "encoding.h"
+#include "level.h"
+#include "vtables.h"
 #include "../util.h"
 
 #include <assert.h>
@@ -8,6 +10,18 @@ struct encoding_info {
     size_t nslots;
 };
 #define info(x) (x)->info
+
+bool
+encoding_equal(const encoding *x, const encoding *y)
+{
+    return level_eq(info(x)->lvl, info(y)->lvl);
+}
+
+bool
+encoding_equal_z(const encoding *x, const encoding *y)
+{
+    return level_eq_z(info(x)->lvl, info(y)->lvl);
+}
 
 static int
 _encoding_new(const pp_vtable *vt, encoding *enc, const public_params *pp)
@@ -137,7 +151,7 @@ _encoding_mmap_set(const encoding *x)
     return info(x)->lvl;
 }
 
-static encoding_vtable lin_encoding_vtable =
+static encoding_vtable _encoding_vtable =
 {
     .mmap = NULL,
     .new = _encoding_new,
@@ -154,9 +168,9 @@ static encoding_vtable lin_encoding_vtable =
     .mmap_set = _encoding_mmap_set
 };
 
-static const encoding_vtable *
+PRIVATE const encoding_vtable *
 get_encoding_vtable(const mmap_vtable *mmap)
 {
-    lin_encoding_vtable.mmap = mmap;
-    return &lin_encoding_vtable;
+    _encoding_vtable.mmap = mmap;
+    return &_encoding_vtable;
 }

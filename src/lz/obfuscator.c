@@ -1,5 +1,9 @@
 #include "obfuscator.h"
+#include "obf_index.h"
 #include "obf_params.h"
+#include "vtables.h"
+#include "../reflist.h"
+#include "../util.h"
 
 #include <assert.h>
 #include <string.h>
@@ -58,7 +62,7 @@ typedef struct obf_args {
 
 static void obf_worker(void *wargs)
 {
-    const obf_args *const args = wargs;
+    obf_args *const args = wargs;
 
     encode(args->vt, args->enc, args->inps, 2, args->ix, args->sp);
     mpz_vect_clear(args->inps, 2);
@@ -501,18 +505,6 @@ _obfuscator_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     return obf;
 }
 
-/*******************************************************************************/
-
-typedef struct ref_list_node {
-    acircref ref;
-    struct ref_list_node *next;
-} ref_list_node;
-
-typedef struct {
-    ref_list_node *first;
-    pthread_mutex_t *lock;
-} ref_list;
-
 typedef struct work_args {
     const mmap_vtable *mmap;
     acircref ref;
@@ -528,10 +520,6 @@ typedef struct work_args {
 } work_args;
 
 static void obf_eval_worker(void *wargs);
-
-static ref_list *ref_list_create(void);
-static void ref_list_destroy(ref_list *list);
-static void ref_list_push(ref_list *list, acircref ref);
 
 static void raise_encoding(const obfuscation *obf, encoding *x, const obf_index *target)
 {
@@ -851,60 +839,6 @@ void obf_eval_worker(void* wargs)
         encoding_free(obf->enc_vt, rhs);
         encoding_free(obf->enc_vt, tmp);
         encoding_free(obf->enc_vt, tmp2);
-    }
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// ref list utils
-
-static ref_list *
-ref_list_create(void)
-{
-    ref_list *list = calloc(1, sizeof(ref_list));
-    list->first = NULL;
-    list->lock = calloc(1, sizeof(pthread_mutex_t));
-    pthread_mutex_init(list->lock, NULL);
-    return list;
-}
-
-static void
-ref_list_destroy(ref_list *list)
-{
-    ref_list_node *cur = list->first;
-    while (cur != NULL) {
-        ref_list_node *tmp = cur;
-        cur = cur->next;
-        free(tmp);
-    }
-    pthread_mutex_destroy(list->lock);
-    free(list->lock);
-    free(list);
-}
-
-static ref_list_node *
-ref_list_node_create(acircref ref)
-{
-    ref_list_node *new = calloc(1, sizeof(ref_list_node));
-    new->next = NULL;
-    new->ref  = ref;
-    return new;
-}
-
-static void
-ref_list_push(ref_list *list, acircref ref)
-{
-    ref_list_node *cur = list->first;
-    if (cur == NULL) {
-        list->first = ref_list_node_create(ref);
-        return;
-    }
-    while (1) {
-        if (cur->next == NULL) {
-            cur->next = ref_list_node_create(ref);
-            return;
-        }
-        cur = cur->next;
     }
 }
 

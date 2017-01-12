@@ -1,4 +1,7 @@
+#include "obf_index.h"
 #include "obf_params.h"
+#include "vtables.h"
+#include "../util.h"
 
 #include <err.h>
 
@@ -17,11 +20,7 @@ _sp_init(secret_params *sp, const obf_params_t *op, size_t kappa)
     spinfo(sp)->toplevel = obf_index_new_toplevel(op);
     spinfo(sp)->op = op;
 
-    if (kappa == 0) {
-        warnx("warning: need to specify kappa, defaulting to 1");
-        kappa = 1;
-    }
-    params.kappa = kappa;
+    params.kappa = kappa ? kappa : acirc_delta(op->circ) + op->circ->ninputs;
     params.nzs = spinfo(sp)->toplevel->nzs;
     params.pows = spinfo(sp)->toplevel->pows;
     params.my_pows = false;
@@ -49,7 +48,7 @@ _sp_params(const secret_params *sp)
     return spinfo(sp)->op;
 }
 
-static sp_vtable zim_sp_vtable = {
+static sp_vtable _sp_vtable = {
     .mmap = NULL,
     .init = _sp_init,
     .clear = _sp_clear,
@@ -57,9 +56,9 @@ static sp_vtable zim_sp_vtable = {
     .params = _sp_params,
 };
 
-static sp_vtable *
+PRIVATE const sp_vtable *
 get_sp_vtable(const mmap_vtable *mmap)
 {
-    zim_sp_vtable.mmap = mmap;
-    return &zim_sp_vtable;
+    _sp_vtable.mmap = mmap;
+    return &_sp_vtable;
 }

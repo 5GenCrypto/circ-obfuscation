@@ -1,5 +1,4 @@
-#ifndef __LIN__OBF_PARAMS_H__
-#define __LIN__OBF_PARAMS_H__
+#pragma once
 
 #include <acirc.h>
 #include <stddef.h>
@@ -23,5 +22,3 @@ struct obf_params_t {
     reverse_chunker rchunker;
     acirc *circ;
 };
-
-#endif

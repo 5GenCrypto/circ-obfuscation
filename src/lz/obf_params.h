@@ -1,10 +1,10 @@
-#ifndef __LZ__OBF_PARAMS_H__
-#define __LZ__OBF_PARAMS_H__
+#pragma once
+
+#include "../input_chunker.h"
+#include "../mmap.h"
 
 #include <acirc.h>
 #include <stddef.h>
-
-#include "../input_chunker.h"
 
 struct obf_params_t {
     size_t m;       // number of secret bits
@@ -22,5 +22,3 @@ struct obf_params_t {
     reverse_chunker rchunker;
     acirc *circ;
 };
-
-#endif
