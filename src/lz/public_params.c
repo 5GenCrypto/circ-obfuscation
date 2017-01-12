@@ -28,14 +28,15 @@ _pp_clear(public_params *pp)
 static void
 _pp_fwrite(const public_params *pp, FILE *fp)
 {
-    obf_index_fwrite(ppinfo(pp)->toplevel, fp);
+    (void) pp; (void) fp;
 }
 
 static void
 _pp_fread(public_params *pp, const obf_params_t *op, FILE *fp)
 {
+    (void) fp;
     pp->info = calloc(1, sizeof(pp_info));
-    pp->info->toplevel = obf_index_fread(fp);
+    pp->info->toplevel = obf_index_new_toplevel(op);
     pp->info->op = op;
     pp->info->local = true;
 }
