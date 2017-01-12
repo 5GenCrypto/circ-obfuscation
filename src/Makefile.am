@@ -12,4 +12,4 @@ AM_LDFLAGS =
 bin_PROGRAMS = circobf
 circobf_SOURCES  =  main.c $(MY_SOURCES)
 circobf_LDADD = lin/libobf_lin.la lz/libobf_lz.la
-SUBDIRS = ab lin lz zim
+SUBDIRS = lin lz
