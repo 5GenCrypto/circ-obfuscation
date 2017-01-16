@@ -5,7 +5,7 @@
 
 struct pp_info {
     const obf_params_t *op;
-    const obf_index *toplevel;
+    obf_index *toplevel;
     bool local;
 };
 #define ppinfo(x) x->info
@@ -22,6 +22,8 @@ _pp_init(const sp_vtable *vt, public_params *pp, const secret_params *sp)
 static void
 _pp_clear(public_params *pp)
 {
+    if (pp->info->local)
+        free(pp->info->toplevel);
     free(pp->info);
 }
 

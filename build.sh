@@ -12,10 +12,18 @@ export CFLAGS=-I$builddir/include
 export LDFLAGS=-L$builddir/lib
 
 build () {
-    echo building $1
     path=$1
     url=$2
     branch=$3
+    flags=$debug
+    if [ $path = "libmmap" ]; then
+        flags+=" --disable-gghlite"
+    fi
+
+    echo
+    echo "building $path ($url $branch) [flags=$flags]"
+    echo
+
     if [ ! -d $path ]; then
         git clone $url $path;
     fi
@@ -23,7 +31,7 @@ build () {
         git pull origin $branch
         mkdir -p build/autoconf
         autoreconf -i
-        ./configure --prefix=$builddir $debug
+        ./configure --prefix=$builddir $flags
         make
         make install
     popd
@@ -33,13 +41,12 @@ echo
 echo builddir = $builddir
 echo
 
-# build libaesrand    https://github.com/5GenCrypto/libaesrand master
-# build clt13         https://github.com/5GenCrypto/clt13 master
-# build gghlite       https://github.com/5GenCrypto/gghlite-flint master
-# build libmmap       https://github.com/5GenCrypto/libmmap master
-# build libacirc      https://github.com/5GenCrypto/libacirc master
-# build libthreadpool https://github.com/5GenCrypto/libthreadpool master
+build libaesrand    https://github.com/5GenCrypto/libaesrand master
+build clt13         https://github.com/5GenCrypto/clt13 master
+build libmmap       https://github.com/5GenCrypto/libmmap master
+build libacirc      https://github.com/5GenCrypto/libacirc master
+build libthreadpool https://github.com/5GenCrypto/libthreadpool master
 
-# autoreconf -i
+autoreconf -i
 ./configure --prefix=$builddir $debug
 make

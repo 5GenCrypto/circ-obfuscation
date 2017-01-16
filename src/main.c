@@ -316,7 +316,6 @@ run(const struct args_t *args)
 
         fprintf(stderr, "evaluating...\n");
         start = current_time();
-        obf = vt->new(mmap, params, args->secparam, args->kappa);
         snprintf(fname, sizeof fname, "%s.obf", args->circuit);
         if ((f = fopen(fname, "r")) == NULL)
             errx(1, "error: unable to open '%s' for reading", fname);

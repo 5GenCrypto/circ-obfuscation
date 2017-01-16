@@ -309,7 +309,6 @@ _obfuscation_new(const mmap_vtable *mmap, const obf_params_t *op,
         obf->Rbaro[o] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
         obf->Zbaro[o] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
     }
-
     return obf;
 }
 

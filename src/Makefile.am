@@ -6,7 +6,7 @@ mmap.c \
 reflist.c \
 util.c
 
-AM_CFLAGS = $(EXTRA_CFLAGS) -I$(top_srcdir)
+AM_CFLAGS = $(MY_CFLAGS) -I$(top_srcdir)
 AM_LDFLAGS =
 
 bin_PROGRAMS = circobf
