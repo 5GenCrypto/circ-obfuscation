@@ -511,7 +511,7 @@ typedef struct work_args {
     const acirc *c;
     const int *inputs;
     const obfuscation *obf;
-    int *mine;
+    bool *mine;
     int *ready;
     encoding **cache;
     ref_list **deps;
@@ -576,26 +576,27 @@ _evaluate(int *rop, const int *inputs, const obfuscation *obf, size_t nthreads)
 
     encoding **cache;
     ref_list **deps;
-    int *mine, *ready;
+    bool *mine;
+    int *ready;
 
     // evaluated intermediate nodes
-    cache = my_calloc(c->nrefs, sizeof(encoding *));
+    cache = my_calloc(c->nrefs, sizeof cache[0]);
     // each list contains refs of nodes dependent on this one
-    deps = my_calloc(c->nrefs, sizeof(ref_list));
+    deps = my_calloc(c->nrefs, sizeof deps[0]);
     // whether the evaluator allocated an encoding in cache
-    mine = my_calloc(c->nrefs, sizeof(int));
+    mine = my_calloc(c->nrefs, sizeof mine[0]);
     // number of children who have been evaluated already
-    ready = my_calloc(c->nrefs, sizeof(int));
+    ready = my_calloc(c->nrefs, sizeof ready[0]);
 
     for (size_t i = 0; i < c->nrefs; i++) {
         cache[i] = NULL;
         deps [i] = ref_list_create();
-        mine [i] = 0;
+        mine [i] = false;
         ready[i] = 0;
     }
 
     /* Make sure inputs are valid */
-    int input_syms[obf->op->c];
+    size_t input_syms[obf->op->c];
     for (size_t i = 0; i < obf->op->c; i++) {
         input_syms[i] = 0;
         for (size_t j = 0; j < obf->op->ell; j++) {
@@ -607,7 +608,8 @@ _evaluate(int *rop, const int *inputs, const obfuscation *obf, size_t nthreads)
                 input_syms[i] += inputs[k] << j;
         }
         if (input_syms[i] >= obf->op->q) {
-            fprintf(stderr, "error: invalid input (%d > |Σ|)\n", input_syms[i]);
+            fprintf(stderr, "error: invalid input (%lu > |Σ|)\n", input_syms[i]);
+            free(cache); free(deps); free(mine); free(ready);
             return ERR;
         }
     }
@@ -629,9 +631,8 @@ _evaluate(int *rop, const int *inputs, const obfuscation *obf, size_t nthreads)
     // parents to start, recursively, until the output is reached.
     for (size_t ref = 0; ref < c->nrefs; ref++) {
         acirc_operation op = c->gates[ref].op;
-        if (!(op == OP_INPUT || op == OP_CONST)) {
+        if (!(op == OP_INPUT || op == OP_CONST))
             continue;
-        }
         // allocate each argstruct here, otherwise we will overwrite
         // it each time we add to the job list. The worker will free.
         work_args *args = calloc(1, sizeof(work_args));
@@ -649,10 +650,8 @@ _evaluate(int *rop, const int *inputs, const obfuscation *obf, size_t nthreads)
         threadpool_add_job(pool, obf_eval_worker, args);
     }
 
-    // threadpool_destroy waits for all the jobs to finish
     threadpool_destroy(pool);
 
-    // cleanup
     for (size_t i = 0; i < c->nrefs; i++) {
         ref_list_destroy(deps[i]);
         if (mine[i]) {
@@ -675,18 +674,19 @@ _evaluate(int *rop, const int *inputs, const obfuscation *obf, size_t nthreads)
     return OK;
 }
 
-void obf_eval_worker(void* wargs)
+void obf_eval_worker(void *vargs)
 {
-    const acircref ref = ((work_args*)wargs)->ref;
-    const acirc *const c = ((work_args*)wargs)->c;
-    const int *const inputs = ((work_args*)wargs)->inputs;
-    const obfuscation *const obf = ((work_args*)wargs)->obf;
-    int *const mine  = ((work_args*)wargs)->mine;
-    int *const ready = ((work_args*)wargs)->ready;
-    encoding **cache = ((work_args*)wargs)->cache;
-    ref_list **deps  = ((work_args*)wargs)->deps;
-    threadpool *pool = ((work_args*)wargs)->pool;
-    int *const rop   = ((work_args*)wargs)->rop;
+    work_args *const wargs = vargs;
+    const acircref ref = wargs->ref;
+    const acirc *const c = wargs->c;
+    const int *const inputs = wargs->inputs;
+    const obfuscation *const obf = wargs->obf;
+    bool *const mine = wargs->mine;
+    int *const ready = wargs->ready;
+    encoding **cache = wargs->cache;
+    ref_list *const *const deps = wargs->deps;
+    threadpool *const pool = wargs->pool;
+    int *const rop = wargs->rop;
 
     const acirc_operation op = c->gates[ref].op;
     const acircref *const args = c->gates[ref].args;
@@ -723,6 +723,7 @@ void obf_eval_worker(void* wargs)
         break;
     }
     case OP_ADD: case OP_SUB: case OP_MUL: {
+        assert(c->gates[ref].nargs == 2);
         res = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
         mine[ref] = true;
 
@@ -734,7 +735,6 @@ void obf_eval_worker(void* wargs)
             encoding_mul(obf->enc_vt, obf->pp_vt, res, x, y, obf->pp);
         } else {
             encoding *tmp_x, *tmp_y;
-
             tmp_x = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
             tmp_y = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
             encoding_set(obf->enc_vt, tmp_x, x);
@@ -756,39 +756,34 @@ void obf_eval_worker(void* wargs)
         abort();
     }        
 
-    // set the result in the cache
     cache[ref] = res;
 
     // signal parents that this ref is done
     ref_list_node *cur = deps[ref]->first;
     while (cur != NULL) {
-        pthread_mutex_lock(deps[cur->ref]->lock);
-        ready[cur->ref] += 1; // ready[ref] indicates how many of ref's children are evaluated
-        if (ready[cur->ref] == 2) {
-            pthread_mutex_unlock(deps[cur->ref]->lock);
+        const int num = __sync_add_and_fetch(&ready[cur->ref], 1);
+        if (num == 2) {
             work_args *newargs = calloc(1, sizeof(work_args));
-            *newargs = *(work_args*)wargs;
+            memcpy(newargs, wargs, sizeof(work_args));
             newargs->ref = cur->ref;
-            threadpool_add_job(pool, obf_eval_worker, (void*)newargs);
+            threadpool_add_job(pool, obf_eval_worker, newargs);
         } else {
-            pthread_mutex_unlock(deps[cur->ref]->lock);
             cur = cur->next;
         }
     }
+
     free(wargs);
 
     // addendum: is this ref an output bit? if so, we should zero test it.
-    size_t output;
-    bool is_output = false;
+    ssize_t output = -1;
     for (size_t i = 0; i < obf->op->gamma; i++) {
         if (ref == c->outrefs[i]) {
             output = i;
-            is_output = true;
             break;
         }
     }
 
-    if (is_output) {
+    if (output != -1) {
         encoding *out, *lhs, *rhs, *tmp, *tmp2;
         const obf_index *const toplevel = obf->pp_vt->toplevel(obf->pp);
 

@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 enum scheme_e {
     SCHEME_LIN,
@@ -68,7 +69,7 @@ struct args_t {
     /* LIN/LZ specific settings */
     size_t symlen;
     bool rachel_inputs;
-    /* ZIM/LZ specific settings */
+    /* LZ specific settings */
     size_t npowers;
 
 };
@@ -80,7 +81,7 @@ args_init(struct args_t *args)
     args->mmap = MMAP_CLT;
     args->secparam = 16;
     args->kappa = 0;
-    args->nthreads = 1;
+    args->nthreads = sysconf(_SC_NPROCESSORS_ONLN);
     args->evaluate = false;
     args->obfuscate = true;
     args->dry_run = false;
@@ -88,7 +89,7 @@ args_init(struct args_t *args)
     /* LIN/LZ specific settings */
     args->symlen = 1;
     args->rachel_inputs = false;
-    /* ZIM/LZ specific settings */
+    /* LZ specific settings */
     args->npowers = 8;
 }
 

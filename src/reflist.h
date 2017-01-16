@@ -1,7 +1,6 @@
 #pragma once
 
 #include <acirc.h>
-#include <pthread.h>
 
 typedef struct ref_list_node {
     acircref ref;
@@ -10,7 +9,6 @@ typedef struct ref_list_node {
 
 typedef struct {
     ref_list_node *first;
-    pthread_mutex_t *lock;
 } ref_list;
 
 ref_list *ref_list_create(void);

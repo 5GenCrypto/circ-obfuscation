@@ -54,6 +54,6 @@ done
 
 for circuit in $(ls circuits/all-circuits/ggm_rachel/*.acirc); do
     echo $circuit
-    run_rachel $circuit LZ  DUMMY ERROR
     run_rachel $circuit LIN DUMMY ERROR
+    run_rachel $circuit LZ  DUMMY ERROR
 done
