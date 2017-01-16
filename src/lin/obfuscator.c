@@ -390,8 +390,10 @@ _obfuscate(obfuscation *obf, size_t nthreads)
     size_t count = 0;
     const size_t total = num_encodings(op);
 
-    printf("Encoding:\n");
-    print_progress(count, total);
+    if (g_verbose) {
+        printf("Encoding:\n");
+        print_progress(count, total);
+    }
 
     mpz_t ykj[op->c][op->ell];
     for (size_t k = 0; k < op->c; k++) {
@@ -421,28 +423,33 @@ _obfuscate(obfuscation *obf, size_t nthreads)
     mpz_vect_init(rs, op->c + 3);
 
     encode_Zstar(obf->enc_vt, obf->op, obf->Zstar, obf->sp, obf->rng, moduli);
-    print_progress(++count, total);
+    if (g_verbose)
+        print_progress(++count, total);
 
     for (size_t k = 0; k < op->c; k++) {
         for (size_t s = 0; s < op->q; s++) {
             mpz_vect_urandomms(rs, moduli, op->c+3, obf->rng);
             encode_Rks(obf->enc_vt, op, obf->Rks[k][s], obf->sp, rs, k, s);
-            print_progress(++count, total);
+            if (g_verbose)
+                print_progress(++count, total);
             for (size_t j = 0; j < op->ell; j++) {
                 encode_Zksj(obf->enc_vt, op, obf->Zksj[k][s][j], obf->sp,
                             obf->rng, rs, ykj[k][j], k, s, j, moduli);
-                print_progress(++count, total);
+                if (g_verbose)
+                    print_progress(++count, total);
             }
         }
     }
 
     mpz_vect_urandomms(rs, moduli, op->c+3, obf->rng);
     encode_Rc(obf->enc_vt, obf->op, obf->Rc, obf->sp, rs);
-    print_progress(++count, total);
+    if (g_verbose)
+        print_progress(++count, total);
     for (size_t j = 0; j < op->m; j++) {
         encode_Zcj(obf->enc_vt, obf->op, obf->Zcj[j], obf->sp, obf->rng, rs,
                    ykjc[j], c->consts[j], moduli);
-        print_progress(++count, total);
+        if (g_verbose)
+            print_progress(++count, total);
     }
 
     for (size_t o = 0; o < op->gamma; o++) {
@@ -451,10 +458,12 @@ _obfuscate(obfuscation *obf, size_t nthreads)
                 mpz_vect_urandomms(rs, (const mpz_t *) moduli, op->c+3, obf->rng);
                 encode_Rhatkso(obf->enc_vt, obf->op, obf->Rhatkso[k][s][o],
                                obf->sp, rs, k, s, o);
-                print_progress(++count, total);
+                if (g_verbose)
+                    print_progress(++count, total);
                 encode_Zhatkso(obf->enc_vt, obf->op, obf->Zhatkso[k][s][o],
                                obf->sp, (const mpz_t *) rs, (const mpz_t *) whatk[k], k, s, o, (const mpz_t *) moduli);
-                print_progress(++count, total);
+                if (g_verbose)
+                    print_progress(++count, total);
             }
         }
     }
@@ -462,10 +471,12 @@ _obfuscate(obfuscation *obf, size_t nthreads)
     for (size_t o = 0; o < op->gamma; o++) {
         mpz_vect_urandomms(rs, (const mpz_t *) moduli, op->c+3, obf->rng);
         encode_Rhato(obf->enc_vt, op, obf->Rhato[o], obf->sp, rs, o);
-        print_progress(++count, total);
+        if (g_verbose)
+            print_progress(++count, total);
         encode_Zhato(obf->enc_vt, op, obf->Zhato[o], obf->sp, (const mpz_t *) rs, (const mpz_t *) what, o,
                      (const mpz_t *) moduli);
-        print_progress(++count, total);
+        if (g_verbose)
+            print_progress(++count, total);
     }
 
     {
@@ -495,10 +506,12 @@ _obfuscate(obfuscation *obf, size_t nthreads)
                                     ykjc, moduli[0], known, cache);
             mpz_vect_urandomms(rs, (const mpz_t *) moduli, op->c+3, obf->rng);
             encode_Rbaro(obf->enc_vt, op, obf->Rbaro[o], obf->sp, rs, o);
-            print_progress(++count, total);
+            if (g_verbose)
+                print_progress(++count, total);
             encode_Zbaro(obf->enc_vt, obf, obf->Zbaro[o], obf->sp, ybars[o], rs,
                          tmp, o, (const mpz_t *) moduli);
-            print_progress(++count, total);
+            if (g_verbose)
+                print_progress(++count, total);
         }
         mpz_vect_clear(ybars, op->gamma);
         mpz_vect_clear(xs, c->ninputs);
@@ -933,7 +946,8 @@ wire_type_eq(const wire *x, const wire *y)
 // TODO: save zstar pows for reuse within the circuit
 
 static int
-_evaluate(int *rop, const int *inps, const obfuscation *obf, size_t nthreads)
+_evaluate(int *rop, const int *inps, const obfuscation *obf, size_t nthreads,
+          unsigned int *degree)
 {
     (void) nthreads;
     const public_params *const pp = obf->pp;
@@ -960,8 +974,9 @@ _evaluate(int *rop, const int *inps, const obfuscation *obf, size_t nthreads)
 
     int *known = my_calloc(c->nrefs, sizeof(int));
     wire **cache = my_calloc(c->nrefs, sizeof(wire*));
+    unsigned int degrees[c->noutputs];
 
-    for (size_t o = 0; o < obf->op->circ->noutputs; o++) {
+    for (size_t o = 0; o < c->noutputs; o++) {
         const acircref root = c->outrefs[o];
         acirc_topo_levels *const topo = acirc_topological_levels(c, root);
         for (int lvl = 0; lvl < topo->nlevels; lvl++) {
@@ -1061,6 +1076,7 @@ _evaluate(int *rop, const int *inps, const obfuscation *obf, size_t nthreads)
         wire_sub(obf->enc_vt, obf->pp_vt, outwire, outwire, tmp, obf, pp);
         wire_clear(obf->enc_vt, tmp);
 
+        degrees[o] = encoding_get_degree(obf->enc_vt, outwire->z);
         rop[o] = encoding_is_zero(obf->enc_vt, obf->pp_vt, outwire->z, pp);
         if (rop[o] == ERR) {
             ret = ERR;
@@ -1068,6 +1084,14 @@ _evaluate(int *rop, const int *inps, const obfuscation *obf, size_t nthreads)
 
         wire_clear(obf->enc_vt, outwire);
     }
+
+    unsigned int maxdeg = 0;
+    for (size_t i = 0; i < c->noutputs; ++i) {
+        if (degrees[i] > maxdeg)
+            maxdeg = degrees[i];
+    }
+    if (degree)
+        *degree = maxdeg;
 
 cleanup:
     for (size_t x = 0; x < c->nrefs; x++) {

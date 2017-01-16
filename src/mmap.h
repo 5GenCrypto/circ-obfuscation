@@ -20,9 +20,6 @@ typedef struct mmap_params_t {
     bool my_pows;
 } mmap_params_t;
 
-void
-mmap_params_fprint(FILE *fp, const mmap_params_t *params);
-
 typedef struct sp_info sp_info;
 typedef struct secret_params {
     mmap_sk *sk;
@@ -116,6 +113,8 @@ encoding_add(const encoding_vtable *vt, const pp_vtable *pp_vt, encoding *rop,
 int
 encoding_sub(const encoding_vtable *vt, const pp_vtable *pp_vt, encoding *rop,
              const encoding *x, const encoding *y, const public_params *p);
+unsigned int
+encoding_get_degree(const encoding_vtable *vt, const encoding *x);
 int
 encoding_is_zero(const encoding_vtable *vt, const pp_vtable *pp_vt,
                  const encoding *x, const public_params *p);

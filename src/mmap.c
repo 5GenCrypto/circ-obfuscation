@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <clt13.h>
 
-void
+static void
 mmap_params_fprint(FILE *fp, const mmap_params_t *params)
 {
     fprintf(fp, "mmap parameter settings:\n");
@@ -28,7 +28,8 @@ secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
 {
     secret_params *sp = my_calloc(1, sizeof(secret_params));
     const mmap_params_t params = vt->init(sp, op, kappa);
-    mmap_params_fprint(stderr, &params);
+    if (g_verbose)
+        mmap_params_fprint(stderr, &params);
     sp->sk = calloc(1, vt->mmap->sk->size);
     if (vt->mmap->sk->init(sp->sk, lambda, params.kappa, params.nzs,
                            params.pows, params.nslots, 1, rng, g_verbose)) {
@@ -214,6 +215,16 @@ encoding_is_zero(const encoding_vtable *vt, const pp_vtable *pp_vt,
         return ERR;
     else
         return vt->mmap->enc->is_zero(x->enc, pp->pp);
+}
+
+unsigned int
+encoding_get_degree(const encoding_vtable *vt, const encoding *x)
+{
+    if (vt->mmap->enc->degree) {
+        return vt->mmap->enc->degree(x->enc);
+    } else {
+        return 0;
+    }
 }
 
 encoding *

@@ -279,9 +279,11 @@ _obfuscate(obfuscation *obf, size_t nthreads)
                 var_deg_max[k] = var_deg[k][o];
         }
     }
-    
-    printf("Encoding:\n");
-    print_progress(count, total);
+
+    if (g_verbose) {
+        printf("Encoding:\n");
+        print_progress(count, total);
+    }
     char tmp[1024];
 
     for (size_t k = 0; k < op->c; k++) {
@@ -298,7 +300,7 @@ _obfuscate(obfuscation *obf, size_t nthreads)
                 sprintf(tmp, "shat[%lu,%lu,%lu]", k, s, j);
                 my_encoding_print(tmp, inps, ix);
                 __encode(pool, obf->enc_vt, obf->shat[k][s][j], inps, obf_index_copy(ix, op), obf->sp);
-                {
+                if (g_verbose) {
                     print_progress(++count, total);
                 }
             }
@@ -310,7 +312,7 @@ _obfuscate(obfuscation *obf, size_t nthreads)
                 sprintf(tmp, "uhat[%lu,%lu,%lu]", k, s, p);
                 my_encoding_print(tmp, inps, ix);
                 __encode(pool, obf->enc_vt, obf->uhat[k][s][p], inps, obf_index_copy(ix, op), obf->sp);
-                {
+                if (g_verbose) {
                     print_progress(++count, total);
                 }
             }
@@ -334,6 +336,9 @@ _obfuscate(obfuscation *obf, size_t nthreads)
                 sprintf(tmp, "zhat[%lu,%lu,%lu]", k, s, o);
                 my_encoding_print(tmp, inps, ix);
                 __encode(pool, obf->enc_vt, obf->zhat[k][s][o], inps, obf_index_copy(ix, op), obf->sp);
+                if (g_verbose) {
+                    print_progress(++count, total);
+                }
 
                 obf_index_clear(ix);
                 IX_W(ix, op, k) = 1;
@@ -342,9 +347,8 @@ _obfuscate(obfuscation *obf, size_t nthreads)
                 sprintf(tmp, "what[%lu,%lu,%lu]", k, s, o);
                 my_encoding_print(tmp, inps, ix);
                 __encode(pool, obf->enc_vt, obf->what[k][s][o], inps, obf_index_copy(ix, op), obf->sp);
-                {
-                    count += 2;
-                    print_progress(count, total);
+                if (g_verbose) {
+                    print_progress(++count, total);
                 }
             }
         }
@@ -358,7 +362,7 @@ _obfuscate(obfuscation *obf, size_t nthreads)
         sprintf(tmp, "yhat[%lu]", i);
         my_encoding_print(tmp, inps, ix);
         __encode(pool, obf->enc_vt, obf->yhat[i], inps, obf_index_copy(ix, op), obf->sp);
-        {
+        if (g_verbose) {
             print_progress(++count, total);
         }
     }
@@ -370,7 +374,7 @@ _obfuscate(obfuscation *obf, size_t nthreads)
         sprintf(tmp, "vhat[%lu]", p);
         my_encoding_print(tmp, inps, ix);
         __encode(pool, obf->enc_vt, obf->vhat[p], inps, obf_index_copy(ix, op), obf->sp);
-        {
+        if (g_verbose) {
             print_progress(++count, total);
         }
     }
@@ -391,7 +395,7 @@ _obfuscate(obfuscation *obf, size_t nthreads)
         sprintf(tmp, "Chatstar[%lu]", i);
         my_encoding_print(tmp, inps, ix);
         __encode(pool, obf->enc_vt, obf->Chatstar[i], inps, obf_index_copy(ix, op), obf->sp);
-        {
+        if (g_verbose) {
             print_progress(++count, total);
         }
     }
@@ -516,6 +520,7 @@ typedef struct work_args {
     encoding **cache;
     ref_list **deps;
     threadpool *pool;
+    unsigned int *degrees;
     int *rop;
 } work_args;
 
@@ -563,7 +568,8 @@ raise_encodings(const obfuscation *obf, encoding *x, encoding *y)
 }
 
 static int
-_evaluate(int *rop, const int *inputs, const obfuscation *obf, size_t nthreads)
+_evaluate(int *rop, const int *inputs, const obfuscation *obf, size_t nthreads,
+          unsigned int *degree)
 {
     const acirc *const c = obf->op->circ;
 
@@ -574,26 +580,19 @@ _evaluate(int *rop, const int *inputs, const obfuscation *obf, size_t nthreads)
         fprintf(stderr, "\n");
     }
 
-    encoding **cache;
-    ref_list **deps;
-    bool *mine;
-    int *ready;
-
     // evaluated intermediate nodes
-    cache = my_calloc(c->nrefs, sizeof cache[0]);
+    encoding **cache = my_calloc(c->nrefs, sizeof cache[0]);
     // each list contains refs of nodes dependent on this one
-    deps = my_calloc(c->nrefs, sizeof deps[0]);
-    // whether the evaluator allocated an encoding in cache
-    mine = my_calloc(c->nrefs, sizeof mine[0]);
-    // number of children who have been evaluated already
-    ready = my_calloc(c->nrefs, sizeof ready[0]);
-
+    ref_list **deps = my_calloc(c->nrefs, sizeof deps[0]);
     for (size_t i = 0; i < c->nrefs; i++) {
-        cache[i] = NULL;
         deps [i] = ref_list_create();
-        mine [i] = false;
-        ready[i] = 0;
     }
+    // whether the evaluator allocated an encoding in cache
+    bool *mine = my_calloc(c->nrefs, sizeof mine[0]);
+    // number of children who have been evaluated already
+    int *ready = my_calloc(c->nrefs, sizeof ready[0]);
+    // degrees of each output computation
+    unsigned int *degrees = my_calloc(c->noutputs, sizeof degrees[0]);
 
     /* Make sure inputs are valid */
     size_t input_syms[obf->op->c];
@@ -647,6 +646,7 @@ _evaluate(int *rop, const int *inputs, const obfuscation *obf, size_t nthreads)
         args->deps   = deps;
         args->pool   = pool;
         args->rop    = rop;
+        args->degrees = degrees;
         threadpool_add_job(pool, obf_eval_worker, args);
     }
 
@@ -659,10 +659,19 @@ _evaluate(int *rop, const int *inputs, const obfuscation *obf, size_t nthreads)
         }
     }
 
+    unsigned int maxdeg = 0;
+    for (size_t i = 0; i < c->noutputs; i++) {
+        if (degrees[i] > maxdeg)
+            maxdeg = degrees[i];
+    }
+    if (degree)
+        *degree = maxdeg;
+
     free(cache);
     free(deps);
     free(mine);
     free(ready);
+    free(degrees);
 
     if (LOG_DEBUG) {
         fprintf(stderr, "[%s] result: ", __func__);
@@ -686,6 +695,7 @@ void obf_eval_worker(void *vargs)
     encoding **cache = wargs->cache;
     ref_list *const *const deps = wargs->deps;
     threadpool *const pool = wargs->pool;
+    unsigned int *const degrees = wargs->degrees;
     int *const rop = wargs->rop;
 
     const acirc_operation op = c->gates[ref].op;
@@ -826,6 +836,7 @@ void obf_eval_worker(void *vargs)
         }
 
         encoding_sub(obf->enc_vt, obf->pp_vt, out, lhs, rhs, obf->pp);
+        degrees[output] = encoding_get_degree(obf->enc_vt, out);
         rop[output] = !encoding_is_zero(obf->enc_vt, obf->pp_vt, out, obf->pp);
 
     cleanup:

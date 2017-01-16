@@ -37,9 +37,9 @@ scheme_to_string(enum scheme_e scheme)
 {
     switch (scheme) {
     case SCHEME_LIN:
-        return "Lin";
+        return "LIN";
     case SCHEME_LZ:
-        return "Linnerman";
+        return "LZ";
     }
     abort();
 }
@@ -51,7 +51,7 @@ mmap_to_string(enum mmap_e mmap)
     case MMAP_CLT:
         return "CLT";
     case MMAP_DUMMY:
-        return "Dummy";
+        return "DUMMY";
     }
     abort();
 }
@@ -66,11 +66,13 @@ struct args_t {
     bool obfuscate;
     bool dry_run;
     enum scheme_e scheme;
-    /* LIN/LZ specific settings */
+    /* LIN/LZ specific flags */
     size_t symlen;
     bool rachel_inputs;
-    /* LZ specific settings */
+    /* LZ specific flags */
     size_t npowers;
+    /* Helper flags */
+    bool get_kappa;
 
 };
 
@@ -78,7 +80,7 @@ static void
 args_init(struct args_t *args)
 {
     args->circuit = NULL;
-    args->mmap = MMAP_CLT;
+    args->mmap = MMAP_DUMMY;
     args->secparam = 16;
     args->kappa = 0;
     args->nthreads = sysconf(_SC_NPROCESSORS_ONLN);
@@ -86,11 +88,13 @@ args_init(struct args_t *args)
     args->obfuscate = true;
     args->dry_run = false;
     args->scheme = SCHEME_LZ;
-    /* LIN/LZ specific settings */
+    /* LIN/LZ specific flags */
     args->symlen = 1;
     args->rachel_inputs = false;
-    /* LZ specific settings */
+    /* LZ specific flags */
     args->npowers = 8;
+    /* Helper flags */
+    args->get_kappa = false;
 }
 
 static void
@@ -125,21 +129,26 @@ usage(int ret)
 "    --kappa, -k <κ>   set kappa to κ when obfuscating (default: as chosen by scheme)\n"
 "    --lambda, -l <λ>  set security parameter to λ when obfuscating (default: %lu)\n"
 "    --nthreads <N>    set the number of threads to N (default: %lu)\n"
-"    --scheme <NAME>   set scheme to NAME (options: LIN, LZ | default: LZ)\n"
-"    --mmap <NAME>     set mmap to NAME (options: CLT, DUMMY | default: CLT)\n"
-"    --verbose, -v     be verbose\n"
-"    --help, -h        print this message\n"
+"    --scheme <NAME>   set scheme to NAME (options: LIN, LZ | default: %s)\n"
+"    --mmap <NAME>     set mmap to NAME (options: CLT, DUMMY | default: %s)\n"
 "\n"
-"  LIN/LZ Specific Settings:\n"
+"  LIN/LZ specific flags:\n"
 "    --symlen          symbol length (in bits)\n"
 "    --rachel          use rachel inputs\n"
 "\n"
-"  LZ Specific Settings:\n"
+"  LZ specific flags:\n"
 "    --npowers <N>     use N powers (default: %lu)\n"
-"\n",
+"\n"
+"  Helper flags:\n"
+"    --get-kappa       determine the correct κ value for the given circuit\n"
+"    --verbose, -v     be verbose\n"
+"    --help, -h        print this message\n"
+           ,
            defaults.evaluate ? "yes" : "no",
            defaults.obfuscate ? "yes" : "no",
-           defaults.secparam, defaults.nthreads, defaults.npowers);
+           defaults.secparam, defaults.nthreads,
+           scheme_to_string(defaults.scheme), mmap_to_string(defaults.mmap),
+           defaults.npowers);
     exit(ret);
 }
 
@@ -151,17 +160,21 @@ static const struct option opts[] = {
     {"obfuscate", no_argument, 0, 'o'},
     {"kappa", required_argument, 0, 'k'},
     {"lambda", required_argument, 0, 'l'},
-    {"npowers", required_argument, 0, 'n'},
     {"nthreads", required_argument, 0, 't'},
     {"mmap", required_argument, 0, 'M'},
+    {"scheme", required_argument, 0, 'S'},
+    /* LIN/LZ specific settings */
     {"rachel", no_argument, 0, 'r'},
     {"symlen", required_argument, 0, 'L'},
-    {"scheme", required_argument, 0, 'S'},
+    /* LZ specific settings */
+    {"npowers", required_argument, 0, 'n'},
+    /* Helper flags */
+    {"get-kappa", no_argument, 0, 'g'},
     {"verbose", no_argument, 0, 'v'},
     {"help", no_argument, 0, 'h'},
     {0, 0, 0, 0}
 };
-static const char *short_opts = "adD:ek:lL:M:n:orsS:t:vh";
+static const char *short_opts = "adD:egk:lL:M:n:orsS:t:vh";
 
 static int
 _evaluate(const obfuscator_vtable *vt, const struct args_t *args,
@@ -170,13 +183,20 @@ _evaluate(const obfuscator_vtable *vt, const struct args_t *args,
     int res[c->noutputs];
     int ret = OK;
     double start, end;
+    unsigned int degree;
 
     for (size_t i = 0; i < c->ntests; i++) {
         start = current_time();
-        if (vt->evaluate(res, c->testinps[i], obf, args->nthreads) == ERR)
+        if (vt->evaluate(res, c->testinps[i], obf, args->nthreads, &degree) == ERR)
             return ERR;
         end = current_time();
-        fprintf(stderr, "evaluation: %.2fs\n", end - start);
+        if (g_verbose)
+            fprintf(stderr, "evaluation: %.2fs\n", end - start);
+
+        if (args->get_kappa) {
+            printf("κ = %u\n", degree);
+            break;
+        }
 
         bool ok = true;
         for (size_t j = 0; j < c->noutputs; ++j) {
@@ -221,8 +241,6 @@ run(const struct args_t *args)
     lin_obf_params_t lin_params;
     lz_obf_params_t lz_params;
     void *vparams;
-
-    args_print(args);
 
     switch (args->mmap) {
     case MMAP_CLT:
@@ -269,9 +287,6 @@ run(const struct args_t *args)
     if (params == NULL)
         errx(1, "error: initialize obfuscator parameters failed");
 
-    /* if (g_verbose) */
-    /*     acirc_ensure(&c); */
-
     if (args->dry_run) {
         obfuscation *obf;
         obf = vt->new(mmap, params, args->secparam, args->kappa);
@@ -287,7 +302,8 @@ run(const struct args_t *args)
         double start, end;
         FILE *f;
 
-        fprintf(stderr, "obfuscating...\n");
+        if (g_verbose)
+            fprintf(stderr, "obfuscating...\n");
         start = current_time();
         obf = vt->new(mmap, params, args->secparam, args->kappa);
         if (obf == NULL)
@@ -295,7 +311,8 @@ run(const struct args_t *args)
         if (vt->obfuscate(obf, args->nthreads) == ERR)
             errx(1, "error: obfuscation failed");
         end = current_time();
-        fprintf(stderr, "obfuscation: %.2fs\n", end - start);
+        if (g_verbose)
+            fprintf(stderr, "obfuscation: %.2fs\n", end - start);
 
         start = current_time();
         snprintf(fname, sizeof fname, "%s.obf", args->circuit);
@@ -304,7 +321,8 @@ run(const struct args_t *args)
         if (vt->fwrite(obf, f) == ERR)
             errx(1, "error: writing obfuscator failed");
         end = current_time();
-        fprintf(stderr, "write to disk: %.2fs\n", end - start);
+        if (g_verbose)
+            fprintf(stderr, "write to disk: %.2fs\n", end - start);
         vt->free(obf);
         fclose(f);
     }
@@ -315,7 +333,8 @@ run(const struct args_t *args)
         double start, end;
         FILE *f;
 
-        fprintf(stderr, "evaluating...\n");
+        if (g_verbose)
+            fprintf(stderr, "evaluating...\n");
         start = current_time();
         snprintf(fname, sizeof fname, "%s.obf", args->circuit);
         if ((f = fopen(fname, "r")) == NULL)
@@ -324,7 +343,8 @@ run(const struct args_t *args)
             errx(1, "error: reading obfuscator failed");
         fclose(f);
         end = current_time();
-        fprintf(stderr, "read from disk: %.2fs\n", end - start);
+        if (g_verbose)
+            fprintf(stderr, "read from disk: %.2fs\n", end - start);
 
         if (_evaluate(vt, args, &c, obf) == ERR)
             errx(1, "error: evaluation failed");
@@ -372,6 +392,9 @@ main(int argc, char **argv)
         case 'e':               /* --evaluate */
             args.evaluate = true;
             args.obfuscate = false;
+            break;
+        case 'g':               /* --get-kappa */
+            args.get_kappa = true;
             break;
         case 'k':               /* --kappa */
             if (optarg == NULL)
@@ -449,6 +472,13 @@ main(int argc, char **argv)
     } else {
         fprintf(stderr, "error: unexpected argument \"%s\"\n", argv[optind]);
         usage(EXIT_FAILURE);
+    }
+
+    if (args.get_kappa) {
+        args.mmap = MMAP_DUMMY;
+        args.obfuscate = args.evaluate = true;
+    } else {
+        args_print(&args);
     }
 
     return run(&args);

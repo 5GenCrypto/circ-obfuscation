@@ -8,7 +8,7 @@ typedef struct {
     obfuscation * (*new)(const mmap_vtable *, const obf_params_t *, size_t, size_t);
     void (*free)(obfuscation *);
     int (*obfuscate)(obfuscation *, size_t);
-    int (*evaluate)(int *, const int *, const obfuscation *, size_t);
+    int (*evaluate)(int *, const int *, const obfuscation *, size_t, unsigned int *);
     int (*fwrite)(const obfuscation *, FILE *);
     obfuscation * (*fread)(const mmap_vtable *, const obf_params_t *, FILE *);
 } obfuscator_vtable;
