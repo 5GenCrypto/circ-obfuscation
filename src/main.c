@@ -84,7 +84,7 @@ args_init(struct args_t *args)
     args->secparam = 16;
     args->kappa = 0;
     args->nthreads = sysconf(_SC_NPROCESSORS_ONLN);
-    args->evaluate = false;
+    args->evaluate = true;
     args->obfuscate = true;
     args->dry_run = false;
     args->scheme = SCHEME_LZ;
@@ -121,20 +121,19 @@ usage(int ret)
     args_init(&defaults);
     printf("Usage: %s [options] <circuit>\n\n", progname);
     printf("Options:\n"
-"    --all, -a         obfuscate and evaluate\n"
 "    --dry-run         don't obfuscate/evaluate\n"
 "    --debug <LEVEL>   set debug level (options: ERROR, WARN, DEBUG, INFO | default: ERROR)\n"
 "    --evaluate, -e    evaluate obfuscation (default: %s)\n"
 "    --obfuscate, -o   construct obfuscation (default: %s)\n"
-"    --kappa, -k <κ>   set kappa to κ when obfuscating (default: as chosen by scheme)\n"
+"    --kappa, -k <κ>   set kappa to κ when obfuscating (default: guess)\n"
 "    --lambda, -l <λ>  set security parameter to λ when obfuscating (default: %lu)\n"
 "    --nthreads <N>    set the number of threads to N (default: %lu)\n"
 "    --scheme <NAME>   set scheme to NAME (options: LIN, LZ | default: %s)\n"
 "    --mmap <NAME>     set mmap to NAME (options: CLT, DUMMY | default: %s)\n"
 "\n"
 "  LIN/LZ specific flags:\n"
-"    --symlen          symbol length (in bits)\n"
-"    --rachel          use rachel inputs\n"
+"    --symlen          symbol length, in bits (default: %lu)\n"
+"    --rachel          use rachel inputs (default: %s)\n"
 "\n"
 "  LZ specific flags:\n"
 "    --npowers <N>     use N powers (default: %lu)\n"
@@ -148,12 +147,12 @@ usage(int ret)
            defaults.obfuscate ? "yes" : "no",
            defaults.secparam, defaults.nthreads,
            scheme_to_string(defaults.scheme), mmap_to_string(defaults.mmap),
+           defaults.symlen, defaults.rachel_inputs ? "yes" : "no",
            defaults.npowers);
     exit(ret);
 }
 
 static const struct option opts[] = {
-    {"all", no_argument, 0, 'a'},
     {"debug", required_argument, 0, 'D'},
     {"dry-run", no_argument, 0, 'd'},
     {"evaluate", no_argument, 0, 'e'},
@@ -180,14 +179,14 @@ static int
 _evaluate(const obfuscator_vtable *vt, const struct args_t *args,
           const acirc *c, const obfuscation *obf)
 {
-    int res[c->noutputs];
+    int res[c->outputs.n];
     int ret = OK;
     double start, end;
     unsigned int degree;
 
-    for (size_t i = 0; i < c->ntests; i++) {
+    for (size_t i = 0; i < c->tests.n; i++) {
         start = current_time();
-        if (vt->evaluate(res, c->testinps[i], obf, args->nthreads, &degree) == ERR)
+        if (vt->evaluate(res, c->tests.inps[i], obf, args->nthreads, &degree) == ERR)
             return ERR;
         end = current_time();
         if (g_verbose)
@@ -199,16 +198,16 @@ _evaluate(const obfuscator_vtable *vt, const struct args_t *args,
         }
 
         bool ok = true;
-        for (size_t j = 0; j < c->noutputs; ++j) {
+        for (size_t j = 0; j < c->outputs.n; ++j) {
             switch (args->scheme) {
             case SCHEME_LZ:
-                if (!!res[j] != !!c->testouts[i][j]) {
+                if (!!res[j] != !!c->tests.outs[i][j]) {
                     ok = false;
                     ret = ERR;
                 }
                 break;
             case SCHEME_LIN:
-                if (res[j] == (c->testouts[i][j] != 1)) {
+                if (res[j] == (c->tests.outs[i][j] != 1)) {
                     ok = false;
                     ret = ERR;
                 }
@@ -218,11 +217,11 @@ _evaluate(const obfuscator_vtable *vt, const struct args_t *args,
         if (!ok)
             printf("\033[1;41m");
         printf("test %lu input=", i);
-        array_printstring_rev(c->testinps[i], c->ninputs);
+        array_printstring_rev(c->tests.inps[i], c->ninputs);
         printf(" expected=");
-        array_printstring_rev(c->testouts[i], c->noutputs);
+        array_printstring_rev(c->tests.outs[i], c->outputs.n);
         printf(" got=");
-        array_printstring_rev(res, c->noutputs);
+        array_printstring_rev(res, c->outputs.n);
         if (!ok)
             printf("\033[0m");
         puts("");
@@ -255,14 +254,24 @@ run(const struct args_t *args)
 
     acirc_init(&c);
     acirc_verbose(g_verbose);
-    if (acirc_parse(&c, args->circuit) == ACIRC_ERR) {
-        errx(1, "parsing circuit '%s' failed!", args->circuit);
+    {
+        FILE *fp = fopen(args->circuit, "r");
+        if (acirc_fread(&c, fp) == NULL) {
+            fclose(fp);
+            errx(1, "parsing circuit '%s' failed!", args->circuit);
+        }
+        fclose(fp);
     }
 
-    if (LOG_DEBUG) {
-        fprintf(stderr,
-                "circuit: ninputs=%lu nconsts=%lu noutputs=%lu ngates=%lu ntests=%lu nrefs=%lu\n",
-                c.ninputs, c.nconsts, c.noutputs, c.ngates, c.ntests, c.nrefs);
+    if (g_verbose) {
+        printf("Circuit info:\n");
+        printf("* ninputs: %lu\n", c.ninputs);
+        printf("* nconsts: %lu\n", c.consts.n);
+        printf("* noutputs: %lu\n", c.outputs.n);
+        printf("* size: %lu\n", c.gates.n);
+        printf("* nmuls: %lu\n", acirc_nmuls(&c));
+        printf("* depth: %lu\n", acirc_max_depth(&c));
+        printf("* degree: %lu\n", acirc_max_degree(&c));
     }
 
     switch (args->scheme) {
@@ -366,10 +375,6 @@ main(int argc, char **argv)
 
     while ((c = getopt_long(argc, argv, short_opts, opts, &idx)) != -1) {
         switch (c) {
-        case 'a':               /* --all */
-            args.evaluate = true;
-            args.obfuscate = true;
-            break;
         case 'd':               /* --dry-run */
             args.dry_run = true;
             break;

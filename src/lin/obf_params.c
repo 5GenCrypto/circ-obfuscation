@@ -15,8 +15,8 @@ _op_new(acirc *circ, void *vparams)
     obf_params_t *const op = calloc(1, sizeof(obf_params_t));
 
     op->rachel_inputs = params->rachel_inputs;
-    op->m = circ->nconsts;
-    op->gamma = circ->noutputs;
+    op->m = circ->consts.n;
+    op->gamma = circ->outputs.n;
     if (circ->ninputs % params->symlen != 0) {
         fprintf(stderr, "error: ninputs (%lu) %% symlen (%lu) != 0\n",
                 circ->ninputs, params->symlen);
@@ -34,7 +34,7 @@ _op_new(acirc *circ, void *vparams)
     op->types = my_calloc(op->gamma, sizeof(size_t *));
     for (size_t o = 0; o < op->gamma; o++) {
         op->types[o] = my_calloc(op->c+1, sizeof(size_t));
-        type_degree(op->types[o], circ->outrefs[o], circ, op->c, chunker_in_order);
+        type_degree(op->types[o], circ->outputs.buf[o], circ, op->c, chunker_in_order);
         for (size_t k = 0; k < op->c+1; k++) {
             if (op->types[o][k] > op->M) {
                 op->M = op->types[o][k];

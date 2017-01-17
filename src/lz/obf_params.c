@@ -12,8 +12,8 @@ _op_new(acirc *circ, void *vparams)
     obf_params_t *const op = calloc(1, sizeof(obf_params_t));
 
     op->rachel_inputs = params->rachel_inputs;
-    op->m = circ->nconsts;
-    op->gamma = circ->noutputs;
+    op->m = circ->consts.n;
+    op->gamma = circ->outputs.n;
     if (circ->ninputs % params->symlen != 0) {
         fprintf(stderr, "error: ninputs (%lu) %% symlen (%lu) != 0\n",
                 circ->ninputs, params->symlen);

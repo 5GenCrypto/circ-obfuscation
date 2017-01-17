@@ -15,7 +15,7 @@ run () {
     echo \*\*\*
     echo \*\*\*
     echo
-    ./run.sh --all --mmap $mmap --scheme $scheme --debug $debug $circuit
+    ./run.sh --mmap $mmap --scheme $scheme --debug $debug $circuit
 }
 
 run_rachel () {
@@ -31,7 +31,7 @@ run_rachel () {
     echo \*\*\*
     echo \*\*\*
     echo
-    ./run.sh --all --mmap $mmap --scheme $scheme --debug $debug $circuit --rachel --symlen 16
+    ./run.sh --mmap $mmap --scheme $scheme --debug $debug $circuit --rachel --symlen 16
 }
 
 for circuit in $(ls circuits/*.acirc); do

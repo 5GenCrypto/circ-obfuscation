@@ -41,11 +41,11 @@ echo
 echo builddir = $builddir
 echo
 
-build libaesrand    https://github.com/5GenCrypto/libaesrand master
-build clt13         https://github.com/5GenCrypto/clt13 master
-build libmmap       https://github.com/5GenCrypto/libmmap master
-build libacirc      https://github.com/5GenCrypto/libacirc master
-build libthreadpool https://github.com/5GenCrypto/libthreadpool master
+build libaesrand    git@github.com:5GenCrypto/libaesrand master
+build clt13         git@github.com:5GenCrypto/clt13 master
+build libmmap       git@github.com:5GenCrypto/libmmap master
+build libacirc      git@github.com:5GenCrypto/libacirc master
+build libthreadpool git@github.com:5GenCrypto/libthreadpool master
 
 autoreconf -i
 ./configure --prefix=$builddir $debug

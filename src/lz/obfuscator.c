@@ -27,6 +27,21 @@ typedef struct obfuscation {
     encoding **Chatstar;        // [γ]
 } obfuscation;
 
+typedef struct work_args {
+    const mmap_vtable *mmap;
+    acircref ref;
+    const acirc *c;
+    const int *inputs;
+    const obfuscation *obf;
+    bool *mine;
+    int *ready;
+    void *cache;
+    ref_list **deps;
+    threadpool *pool;
+    unsigned int *degrees;
+    int *rop;
+} work_args;
+
 static size_t
 num_encodings(const obf_params_t *op)
 {
@@ -254,7 +269,7 @@ _obfuscate(obfuscation *obf, size_t nthreads)
     }
     for (size_t i = 0; i < op->gamma; i++) {
         mpz_init(Cstar[i]);
-        acirc_eval_mpz_mod(Cstar[i], c, c->outrefs[i], alpha, beta, moduli[1]);
+        acirc_eval_mpz_mod(Cstar[i], c, c->outputs.buf[i], alpha, beta, moduli[1]);
     }
 
     unsigned long const_deg[op->gamma];
@@ -267,14 +282,14 @@ _obfuscate(obfuscation *obf, size_t nthreads)
     memset(var_deg_max, '\0', sizeof var_deg_max);
 
     for (size_t o = 0; o < op->gamma; o++) {
-        const_deg[o] = acirc_const_degree(c, c->outrefs[o]);
+        const_deg[o] = acirc_const_degree(c, c->outputs.buf[o]);
         if (const_deg[o] > const_deg_max)
             const_deg_max = const_deg[o];
     }
 
     for (size_t k = 0; k < op->c; k++) {
         for (size_t o = 0; o < op->gamma; o++) {
-            var_deg[k][o] = acirc_var_degree(c, c->outrefs[o], k);
+            var_deg[k][o] = acirc_var_degree(c, c->outputs.buf[o], k);
             if (var_deg[k][o] > var_deg_max[k])
                 var_deg_max[k] = var_deg[k][o];
         }
@@ -357,7 +372,7 @@ _obfuscate(obfuscation *obf, size_t nthreads)
     for (size_t i = 0; i < op->m; i++) {
         obf_index_clear(ix);
         IX_Y(ix) = 1;
-        mpz_set_ui(inps[0], c->consts[i]);
+        mpz_set_ui(inps[0], c->consts.buf[i]);
         mpz_set   (inps[1], beta[i]);
         sprintf(tmp, "yhat[%lu]", i);
         my_encoding_print(tmp, inps, ix);
@@ -509,23 +524,6 @@ _obfuscator_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     return obf;
 }
 
-typedef struct work_args {
-    const mmap_vtable *mmap;
-    acircref ref;
-    const acirc *c;
-    const int *inputs;
-    const obfuscation *obf;
-    bool *mine;
-    int *ready;
-    encoding **cache;
-    ref_list **deps;
-    threadpool *pool;
-    unsigned int *degrees;
-    int *rop;
-} work_args;
-
-static void obf_eval_worker(void *wargs);
-
 static void raise_encoding(const obfuscation *obf, encoding *x, const obf_index *target)
 {
     obf_index *const ix =
@@ -567,123 +565,7 @@ raise_encodings(const obfuscation *obf, encoding *x, encoding *y)
     obf_index_free(ix);
 }
 
-static int
-_evaluate(int *rop, const int *inputs, const obfuscation *obf, size_t nthreads,
-          unsigned int *degree)
-{
-    const acirc *const c = obf->op->circ;
-
-    if (LOG_DEBUG) {
-        fprintf(stderr, "[%s] evaluating on input ", __func__);
-        for (size_t i = 0; i < obf->op->c; ++i)
-            fprintf(stderr, "%d", inputs[obf->op->c - 1 - i]);
-        fprintf(stderr, "\n");
-    }
-
-    // evaluated intermediate nodes
-    encoding **cache = my_calloc(c->nrefs, sizeof cache[0]);
-    // each list contains refs of nodes dependent on this one
-    ref_list **deps = my_calloc(c->nrefs, sizeof deps[0]);
-    for (size_t i = 0; i < c->nrefs; i++) {
-        deps [i] = ref_list_create();
-    }
-    // whether the evaluator allocated an encoding in cache
-    bool *mine = my_calloc(c->nrefs, sizeof mine[0]);
-    // number of children who have been evaluated already
-    int *ready = my_calloc(c->nrefs, sizeof ready[0]);
-    // degrees of each output computation
-    unsigned int *degrees = my_calloc(c->noutputs, sizeof degrees[0]);
-
-    /* Make sure inputs are valid */
-    size_t input_syms[obf->op->c];
-    for (size_t i = 0; i < obf->op->c; i++) {
-        input_syms[i] = 0;
-        for (size_t j = 0; j < obf->op->ell; j++) {
-            const sym_id sym = { i, j };
-            const acircref k = obf->op->rchunker(sym, c->ninputs, obf->op->c);
-            if (obf->op->rachel_inputs)
-                input_syms[i] += inputs[k] * j;
-            else
-                input_syms[i] += inputs[k] << j;
-        }
-        if (input_syms[i] >= obf->op->q) {
-            fprintf(stderr, "error: invalid input (%lu > |Σ|)\n", input_syms[i]);
-            free(cache); free(deps); free(mine); free(ready);
-            return ERR;
-        }
-    }
-
-    // populate dependents lists
-    for (size_t ref = 0; ref < c->nrefs; ref++) {
-        acirc_operation op = c->gates[ref].op;
-        if (op == OP_INPUT || op == OP_CONST)
-            continue;
-        acircref x = c->gates[ref].args[0];
-        acircref y = c->gates[ref].args[1];
-        ref_list_push(deps[x], ref);
-        ref_list_push(deps[y], ref);
-    }
-
-    threadpool *pool = threadpool_create(nthreads);
-
-    // start threads evaluating the circuit inputs- they will signal their
-    // parents to start, recursively, until the output is reached.
-    for (size_t ref = 0; ref < c->nrefs; ref++) {
-        acirc_operation op = c->gates[ref].op;
-        if (!(op == OP_INPUT || op == OP_CONST))
-            continue;
-        // allocate each argstruct here, otherwise we will overwrite
-        // it each time we add to the job list. The worker will free.
-        work_args *args = calloc(1, sizeof(work_args));
-        args->mmap   = obf->mmap;
-        args->ref    = ref;
-        args->c      = c;
-        args->inputs = inputs;
-        args->obf    = obf;
-        args->mine   = mine;
-        args->ready  = ready;
-        args->cache  = cache;
-        args->deps   = deps;
-        args->pool   = pool;
-        args->rop    = rop;
-        args->degrees = degrees;
-        threadpool_add_job(pool, obf_eval_worker, args);
-    }
-
-    threadpool_destroy(pool);
-
-    for (size_t i = 0; i < c->nrefs; i++) {
-        ref_list_destroy(deps[i]);
-        if (mine[i]) {
-            encoding_free(obf->enc_vt, cache[i]);
-        }
-    }
-
-    unsigned int maxdeg = 0;
-    for (size_t i = 0; i < c->noutputs; i++) {
-        if (degrees[i] > maxdeg)
-            maxdeg = degrees[i];
-    }
-    if (degree)
-        *degree = maxdeg;
-
-    free(cache);
-    free(deps);
-    free(mine);
-    free(ready);
-    free(degrees);
-
-    if (LOG_DEBUG) {
-        fprintf(stderr, "[%s] result: ", __func__);
-        for (size_t i = 0; i < obf->op->gamma; ++i)
-            fprintf(stderr, "%d", rop[obf->op->gamma - 1 - i]);
-        fprintf(stderr, "\n");
-    }
-
-    return OK;
-}
-
-void obf_eval_worker(void *vargs)
+static void eval_worker(void *vargs)
 {
     work_args *const wargs = vargs;
     const acircref ref = wargs->ref;
@@ -698,29 +580,16 @@ void obf_eval_worker(void *vargs)
     unsigned int *const degrees = wargs->degrees;
     int *const rop = wargs->rop;
 
-    const acirc_operation op = c->gates[ref].op;
-    const acircref *const args = c->gates[ref].args;
+    const acirc_operation op = c->gates.gates[ref].op;
+    const acircref *const args = c->gates.gates[ref].args;
     encoding *res;
-
-    int input_syms[obf->op->c];
-    for (size_t i = 0; i < obf->op->c; i++) {
-        input_syms[i] = 0;
-        for (size_t j = 0; j < obf->op->ell; j++) {
-            const sym_id sym = { i, j };
-            const acircref k = obf->op->rchunker(sym, c->ninputs, obf->op->c);
-            if (obf->op->rachel_inputs)
-                input_syms[i] += inputs[k] * j;
-            else
-                input_syms[i] += inputs[k] << j;
-        }
-    }
 
     switch (op) {
     case OP_INPUT: {
         const size_t id = args[0];
         const sym_id sym = obf->op->chunker(id, c->ninputs, obf->op->c);
         const size_t k = sym.sym_number;
-        const size_t s = input_syms[k];
+        const size_t s = inputs[k];
         const size_t j = sym.bit_number;
         res = obf->shat[k][s][j];
         mine[ref] = false;
@@ -733,7 +602,7 @@ void obf_eval_worker(void *vargs)
         break;
     }
     case OP_ADD: case OP_SUB: case OP_MUL: {
-        assert(c->gates[ref].nargs == 2);
+        assert(c->gates.gates[ref].nargs == 2);
         res = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
         mine[ref] = true;
 
@@ -773,10 +642,10 @@ void obf_eval_worker(void *vargs)
     while (cur != NULL) {
         const int num = __sync_add_and_fetch(&ready[cur->ref], 1);
         if (num == 2) {
-            work_args *newargs = calloc(1, sizeof(work_args));
-            memcpy(newargs, wargs, sizeof(work_args));
+            work_args *newargs = my_calloc(1, sizeof newargs[0]);
+            memcpy(newargs, wargs, sizeof newargs[0]);
             newargs->ref = cur->ref;
-            threadpool_add_job(pool, obf_eval_worker, newargs);
+            threadpool_add_job(pool, eval_worker, newargs);
         } else {
             cur = cur->next;
         }
@@ -787,7 +656,7 @@ void obf_eval_worker(void *vargs)
     // addendum: is this ref an output bit? if so, we should zero test it.
     ssize_t output = -1;
     for (size_t i = 0; i < obf->op->gamma; i++) {
-        if (ref == c->outrefs[i]) {
+        if (ref == c->outputs.buf[i]) {
             output = i;
             break;
         }
@@ -808,7 +677,7 @@ void obf_eval_worker(void *vargs)
         for (size_t k = 0; k < obf->op->c; k++) {
             encoding_set(obf->enc_vt, tmp2, tmp);
             encoding_mul(obf->enc_vt, obf->pp_vt, tmp, tmp2,
-                         obf->what[k][input_syms[k]][output], obf->pp);
+                         obf->what[k][inputs[k]][output], obf->pp);
         }
         encoding_set(obf->enc_vt, rhs, tmp);
         if (!obf_index_eq(obf->enc_vt->mmap_set(rhs), toplevel)) {
@@ -823,7 +692,7 @@ void obf_eval_worker(void *vargs)
         for (size_t k = 0; k < obf->op->c; k++) {
             encoding_set(obf->enc_vt, tmp2, tmp);
             encoding_mul(obf->enc_vt, obf->pp_vt, tmp, tmp2,
-                         obf->zhat[k][input_syms[k]][output], obf->pp);
+                         obf->zhat[k][inputs[k]][output], obf->pp);
         }
         raise_encoding(obf, tmp, toplevel);
         encoding_set(obf->enc_vt, lhs, tmp);
@@ -846,6 +715,73 @@ void obf_eval_worker(void *vargs)
         encoding_free(obf->enc_vt, tmp);
         encoding_free(obf->enc_vt, tmp2);
     }
+}
+
+
+static int
+_evaluate(int *rop, const int *inputs, const obfuscation *obf, size_t nthreads,
+          unsigned int *degree)
+{
+    const acirc *const c = obf->op->circ;
+
+    encoding **cache = my_calloc(acirc_nrefs(c), sizeof cache[0]);
+    bool *mine = my_calloc(acirc_nrefs(c), sizeof mine[0]);
+    int *ready = my_calloc(acirc_nrefs(c), sizeof ready[0]);
+    unsigned int *degrees = my_calloc(c->outputs.n, sizeof degrees[0]);
+    int *input_syms = get_input_syms(inputs, c->ninputs, obf->op->rchunker,
+                                     obf->op->c, obf->op->ell, obf->op->q,
+                                     obf->op->rachel_inputs);
+    ref_list **deps = ref_lists_new(c);
+
+    threadpool *pool = threadpool_create(nthreads);
+
+    // start threads evaluating the circuit inputs- they will signal their
+    // parents to start, recursively, until the output is reached.
+    for (size_t ref = 0; ref < acirc_nrefs(c); ref++) {
+        acirc_operation op = c->gates.gates[ref].op;
+        if (!(op == OP_INPUT || op == OP_CONST))
+            continue;
+        // allocate each argstruct here, otherwise we will overwrite
+        // it each time we add to the job list. The worker will free.
+        work_args *args = calloc(1, sizeof(work_args));
+        args->mmap   = obf->mmap;
+        args->ref    = ref;
+        args->c      = c;
+        args->inputs = input_syms;
+        args->obf    = obf;
+        args->mine   = mine;
+        args->ready  = ready;
+        args->cache  = cache;
+        args->deps   = deps;
+        args->pool   = pool;
+        args->rop    = rop;
+        args->degrees = degrees;
+        threadpool_add_job(pool, eval_worker, args);
+    }
+
+    threadpool_destroy(pool);
+
+    unsigned int maxdeg = 0;
+    for (size_t i = 0; i < c->outputs.n; i++) {
+        if (degrees[i] > maxdeg)
+            maxdeg = degrees[i];
+    }
+    if (degree)
+        *degree = maxdeg;
+
+    for (size_t i = 0; i < acirc_nrefs(c); i++) {
+        if (mine[i]) {
+            encoding_free(obf->enc_vt, cache[i]);
+        }
+    }
+    ref_lists_free(deps, c);
+    free(cache);
+    free(mine);
+    free(ready);
+    free(degrees);
+    free(input_syms);
+
+    return OK;
 }
 
 obfuscator_vtable lz_obfuscator_vtable = {

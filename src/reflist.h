@@ -11,6 +11,7 @@ typedef struct {
     ref_list_node *first;
 } ref_list;
 
-ref_list *ref_list_create(void);
-void ref_list_destroy(ref_list *list);
-void ref_list_push(ref_list *list, acircref ref);
+ref_list **
+ref_lists_new(const acirc *c);
+void
+ref_lists_free(ref_list **lists, const acirc *c);
