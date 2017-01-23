@@ -270,6 +270,8 @@ _obfuscation_new(const mmap_vtable *mmap, const obf_params_t *op,
     obf->op = op;
     aes_randinit(obf->rng);
     obf->sp = secret_params_new(obf->sp_vt, op, secparam, kappa, obf->rng);
+    if (obf->sp == NULL)
+        goto error;
     obf->pp = public_params_new(obf->pp_vt, obf->sp_vt, obf->sp);
 
     obf->Zstar = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
@@ -328,6 +330,11 @@ _obfuscation_new(const mmap_vtable *mmap, const obf_params_t *op,
         obf->Zbaro[o] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
     }
     return obf;
+
+error:
+    aes_randclear(obf->rng);
+    free(obf);
+    return NULL;
 }
 
 static void

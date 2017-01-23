@@ -25,7 +25,7 @@ void
 level_add(level *rop, const level *x, const level *y);
 void
 level_mul_ui(level *rop, const level *op, int x);
-void
+int
 level_flatten(int *pows, const level *lvl);
 bool
 level_eq(const level *x, const level *y);

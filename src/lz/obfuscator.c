@@ -117,6 +117,8 @@ _obfuscator_new(const mmap_vtable *mmap, const obf_params_t *op,
     obf->op = op;
     aes_randinit(obf->rng);
     obf->sp = secret_params_new(obf->sp_vt, op, secparam, kappa, obf->rng);
+    if (obf->sp == NULL)
+        goto error;
     obf->pp = public_params_new(obf->pp_vt, obf->sp_vt, obf->sp);
 
     obf->shat = my_calloc(op->c, sizeof(encoding ***));
@@ -158,6 +160,11 @@ _obfuscator_new(const mmap_vtable *mmap, const obf_params_t *op,
         obf->Chatstar[i] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
     }
     return obf;
+
+error:
+    aes_randclear(obf->rng);
+    free(obf);
+    return NULL;
 }
 
 static void
@@ -269,7 +276,8 @@ _obfuscate(obfuscation *obf, size_t nthreads)
     }
     for (size_t i = 0; i < op->gamma; i++) {
         mpz_init(Cstar[i]);
-        acirc_eval_mpz_mod(Cstar[i], c, c->outputs.buf[i], alpha, beta, moduli[1]);
+        acirc_eval_mpz_mod(Cstar[i], c, c->outputs.buf[i], (const mpz_t *) alpha,
+                           beta, moduli[1]);
     }
 
     unsigned long const_deg[op->gamma];

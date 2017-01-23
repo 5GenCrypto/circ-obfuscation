@@ -10,10 +10,10 @@ struct sp_info {
 };
 #define spinfo(x) (x)->info
 
-static mmap_params_t
-_sp_init(secret_params *sp, const obf_params_t *op, size_t kappa)
+static int
+_sp_init(secret_params *sp, mmap_params_t *params, const obf_params_t *op,
+         size_t kappa)
 {
-    mmap_params_t params;
     size_t t;
 
     spinfo(sp) = my_calloc(1, sizeof(sp_info));
@@ -26,14 +26,20 @@ _sp_init(secret_params *sp, const obf_params_t *op, size_t kappa)
         if (tmp > t)
             t = tmp;
     }
-    params.kappa = kappa ? kappa : (t + op->D);
-    params.nzs = (op->q+1) * (op->c+2) + op->gamma;
-    params.pows = my_calloc(params.nzs, sizeof(int));
-    level_flatten(params.pows, spinfo(sp)->toplevel);
-    params.my_pows = true;
-    params.nslots = op->c + 3;
+    params->kappa = kappa ? kappa : (t + op->D);
+    params->nzs = (op->q+1) * (op->c+2) + op->gamma;
+    params->pows = my_calloc(params->nzs, sizeof params->pows[0]);
+    if (level_flatten(params->pows, spinfo(sp)->toplevel) == ERR) {
+        fprintf(stderr, "error: toplevel overflow\n");
+        free(params->pows);
+        level_free(spinfo(sp)->toplevel);
+        free(spinfo(sp));
+        return ERR;
+    }
+    params->my_pows = true;
+    params->nslots = op->c + 3;
 
-    return params;
+    return OK;
 }
 
 static void

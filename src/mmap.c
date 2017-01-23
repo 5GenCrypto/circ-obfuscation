@@ -26,8 +26,12 @@ secret_params *
 secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
                   size_t kappa, aes_randstate_t rng)
 {
+    mmap_params_t params;
     secret_params *sp = my_calloc(1, sizeof(secret_params));
-    const mmap_params_t params = vt->init(sp, op, kappa);
+    if (vt->init(sp, &params, op, kappa) == ERR) {
+        free(sp);
+        return NULL;
+    }
     if (g_verbose)
         mmap_params_fprint(stderr, &params);
     sp->sk = calloc(1, vt->mmap->sk->size);

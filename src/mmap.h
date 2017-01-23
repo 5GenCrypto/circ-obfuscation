@@ -28,7 +28,8 @@ typedef struct secret_params {
 
 typedef struct {
     const mmap_vtable *mmap;
-    mmap_params_t (*init)(struct secret_params *, const obf_params_t *, size_t);
+    int (*init)(struct secret_params *, mmap_params_t *, const obf_params_t *,
+                size_t);
     void (*clear)(struct secret_params *);
     const void * (*toplevel)(const secret_params *);
     const void * (*params)(const secret_params *);

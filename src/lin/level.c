@@ -97,18 +97,23 @@ level_mul_ui(level *rop, const level *op, int x)
     }
 }
 
-void
+int
 level_flatten(int *pows, const level *lvl)
 {
     int z = 0;
     for (size_t i = 0; i < lvl->q+1; i++) {
         for (size_t j = 0; j < lvl->c+2; j++) {
+            if ((int) lvl->mat[i][j] < 0)
+                return ERR;
             pows[z++] = lvl->mat[i][j];
         }
     }
     for (size_t i = 0; i < lvl->gamma; i++) {
+        if ((int) lvl->vec[i] < 0)
+            return ERR;
         pows[z++] = lvl->vec[i];
     }
+    return OK;
 }
 
 bool

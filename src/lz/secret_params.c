@@ -11,22 +11,29 @@ struct sp_info {
 };
 #define spinfo(x) (x)->info
 
-static mmap_params_t
-_sp_init(secret_params *sp, const obf_params_t *op, size_t kappa)
+static int
+_sp_init(secret_params *sp, mmap_params_t *params, const obf_params_t *op,
+         size_t kappa)
 {
-    mmap_params_t params;
-
     spinfo(sp) = my_calloc(1, sizeof(sp_info));
     spinfo(sp)->toplevel = obf_index_new_toplevel(op);
     spinfo(sp)->op = op;
 
-    params.kappa = kappa ? kappa : acirc_delta(op->circ) + op->circ->ninputs;
-    params.nzs = spinfo(sp)->toplevel->nzs;
-    params.pows = spinfo(sp)->toplevel->pows;
-    params.my_pows = false;
-    params.nslots = 2;
+    params->kappa = kappa ? kappa : acirc_delta(op->circ) + op->circ->ninputs;
+    params->nzs = spinfo(sp)->toplevel->nzs;
+    for (size_t i = 0; i < params->nzs; ++i) {
+        if ((int) spinfo(sp)->toplevel->pows[i] < 0) {
+            fprintf(stderr, "error: toplevel overflow\n");
+            obf_index_free(spinfo(sp)->toplevel);
+            free(spinfo(sp));
+            return ERR;
+        }
+    }
+    params->pows = spinfo(sp)->toplevel->pows;
+    params->my_pows = false;
+    params->nslots = 2;
 
-    return params;
+    return OK;
 }
 
 static void
