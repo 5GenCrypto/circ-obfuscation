@@ -21,16 +21,18 @@ _sp_init(secret_params *sp, mmap_params_t *params, const obf_params_t *op,
 
     params->kappa = kappa ? kappa : acirc_delta(op->circ) + op->circ->ninputs;
     params->nzs = spinfo(sp)->toplevel->nzs;
+    params->pows = my_calloc(params->nzs, sizeof params->pows[0]);
     for (size_t i = 0; i < params->nzs; ++i) {
-        if ((int) spinfo(sp)->toplevel->pows[i] < 0) {
+        if (((int) spinfo(sp)->toplevel->pows[i]) < 0) {
             fprintf(stderr, "error: toplevel overflow\n");
+            free(params->pows);
             obf_index_free(spinfo(sp)->toplevel);
             free(spinfo(sp));
             return ERR;
         }
+        params->pows[i] = (int) spinfo(sp)->toplevel->pows[i];
     }
-    params->pows = spinfo(sp)->toplevel->pows;
-    params->my_pows = false;
+    params->my_pows = true;
     params->nslots = 2;
 
     return OK;
