@@ -1,13 +1,13 @@
-:test 101100 1
-:test 010000 1
-:test 010000 1
-:test 100111 0
-:test 011100 1
-:test 111111 1
-:test 111110 1
-:test 000000 0
-:test 101010 1
+:test 100110 0
+:test 110010 1
+:test 001011 0
+:test 110100 0
+:test 010100 1
 :test 110001 0
+:test 111010 0
+:test 001000 0
+:test 001101 0
+:test 010011 0
 :nins 6
 :depth 25
 0 input 0

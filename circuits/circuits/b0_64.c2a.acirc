@@ -1,3 +1,13 @@
+:test 0000100000010100110110001100110011000000111110001100101101101110 1
+:test 0001111100010110000101001001101111110010010110001100000010111001 1
+:test 0101011000101111110110010011010000110000000110101000101100011110 0
+:test 1111001000001000000111000101000000010100100000100100110101101011 1
+:test 1110011100011111010001101100111101111011100001111110010011100111 1
+:test 0000000011011101111010000101101111101111001100001101001010010100 0
+:test 0110011011010011110001001000101011100101100100100101110010111010 1
+:test 1000111110000001101000111110100101110010101010110101010001110101 0
+:test 0100000100001100111100010000100001010100001011101011001111110110 1
+:test 1001011001010010100110010010100100001111100000001110011011111000 1
 :nins 64
 0 const 1
 1 input 0
@@ -64,134 +74,134 @@
 62 input 61
 63 input 62
 64 input 63
-65 const 1 0
-66 const 2 0
-67 const 3 0
-68 const 4 0
-69 const 5 0
-70 const 6 0
-71 const 7 0
-72 const 8 0
-73 const 9 0
-74 const 10 0
-75 const 11 0
-76 const 12 0
-77 const 13 0
-78 const 14 0
-79 const 15 0
-80 const 16 0
-81 const 17 0
-82 const 18 0
-83 const 19 0
-84 const 20 0
-85 const 21 0
-86 const 22 0
-87 const 23 0
-88 const 24 0
-89 const 25 0
-90 const 26 0
-91 const 27 0
-92 const 28 0
-93 const 29 0
-94 const 30 0
-95 const 31 0
-96 const 32 0
-97 const 33 0
-98 const 34 0
-99 const 35 0
-100 const 36 0
-101 const 37 0
-102 const 38 0
-103 const 39 0
-104 const 40 0
-105 const 41 0
-106 const 42 0
-107 const 43 0
-108 const 44 0
-109 const 45 0
-110 const 46 0
-111 const 47 0
-112 const 48 0
-113 const 49 0
-114 const 50 0
-115 const 51 0
-116 const 52 0
-117 const 53 0
-118 const 54 0
-119 const 55 0
-120 const 56 0
-121 const 57 0
-122 const 58 0
-123 const 59 0
-124 const 60 0
-125 const 61 0
-126 const 62 0
-127 const 63 0
-128 const 64 0
-129 const 65 0
-130 const 66 0
-131 const 67 0
-132 const 68 0
-133 const 69 0
-134 const 70 0
-135 const 71 0
-136 const 72 0
-137 const 73 0
-138 const 74 0
-139 const 75 0
-140 const 76 0
-141 const 77 0
-142 const 78 0
-143 const 79 0
-144 const 80 0
-145 const 81 0
-146 const 82 0
-147 const 83 0
-148 const 84 0
-149 const 85 0
-150 const 86 0
-151 const 87 0
-152 const 88 0
-153 const 89 0
-154 const 90 0
-155 const 91 0
-156 const 92 0
-157 const 93 0
-158 const 94 0
-159 const 95 0
-160 const 96 0
-161 const 97 0
-162 const 98 0
-163 const 99 0
-164 const 100 0
-165 const 101 0
-166 const 102 0
-167 const 103 0
-168 const 104 0
-169 const 105 0
-170 const 106 0
-171 const 107 0
-172 const 108 0
-173 const 109 0
-174 const 110 0
-175 const 111 0
-176 const 112 0
-177 const 113 0
-178 const 114 0
-179 const 115 0
-180 const 116 0
-181 const 117 0
-182 const 118 0
-183 const 119 0
-184 const 120 0
-185 const 121 0
-186 const 122 0
-187 const 123 0
-188 const 124 0
-189 const 125 0
-190 const 126 0
-191 const 127 0
-192 const 128 0
+65 const 0
+66 const 0
+67 const 0
+68 const 0
+69 const 0
+70 const 0
+71 const 0
+72 const 0
+73 const 0
+74 const 0
+75 const 0
+76 const 0
+77 const 0
+78 const 0
+79 const 0
+80 const 0
+81 const 0
+82 const 0
+83 const 0
+84 const 0
+85 const 0
+86 const 0
+87 const 0
+88 const 0
+89 const 0
+90 const 0
+91 const 0
+92 const 0
+93 const 0
+94 const 0
+95 const 0
+96 const 0
+97 const 0
+98 const 0
+99 const 0
+100 const 0
+101 const 0
+102 const 0
+103 const 0
+104 const 0
+105 const 0
+106 const 0
+107 const 0
+108 const 0
+109 const 0
+110 const 0
+111 const 0
+112 const 0
+113 const 0
+114 const 0
+115 const 0
+116 const 0
+117 const 0
+118 const 0
+119 const 0
+120 const 0
+121 const 0
+122 const 0
+123 const 0
+124 const 0
+125 const 0
+126 const 0
+127 const 0
+128 const 0
+129 const 0
+130 const 0
+131 const 0
+132 const 0
+133 const 0
+134 const 0
+135 const 0
+136 const 0
+137 const 0
+138 const 0
+139 const 0
+140 const 0
+141 const 0
+142 const 0
+143 const 0
+144 const 0
+145 const 0
+146 const 0
+147 const 0
+148 const 0
+149 const 0
+150 const 0
+151 const 0
+152 const 0
+153 const 0
+154 const 0
+155 const 0
+156 const 0
+157 const 0
+158 const 0
+159 const 0
+160 const 0
+161 const 0
+162 const 0
+163 const 0
+164 const 0
+165 const 0
+166 const 0
+167 const 0
+168 const 0
+169 const 0
+170 const 0
+171 const 0
+172 const 0
+173 const 0
+174 const 0
+175 const 0
+176 const 0
+177 const 0
+178 const 0
+179 const 0
+180 const 0
+181 const 0
+182 const 0
+183 const 0
+184 const 0
+185 const 0
+186 const 0
+187 const 0
+188 const 0
+189 const 0
+190 const 0
+191 const 0
+192 const 0
 193 SUB 0 48
 194 MUL 193 46
 195 SUB 0 194

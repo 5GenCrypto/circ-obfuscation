@@ -1,3 +1,13 @@
+:test 11001 0
+:test 00101 0
+:test 01011 0
+:test 00010 1
+:test 11110 1
+:test 01010 0
+:test 00000 0
+:test 00010 1
+:test 10100 1
+:test 00011 1
 :nins 5
 0 const 1
 1 input 0

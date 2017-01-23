@@ -1,3 +1,13 @@
+:test 1000111110010011 0
+:test 1101011100010001 0
+:test 1110100000011001 0
+:test 1101000010001001 0
+:test 1000101010000110 0
+:test 0101100010011100 0
+:test 0101100111011011 0
+:test 0011100001000100 0
+:test 0110011000111110 0
+:test 0101000100110111 0
 :nins 16
 0 const 1
 1 input 0
@@ -16,22 +26,22 @@
 14 input 13
 15 input 14
 16 input 15
-17 const 1 0
-18 const 2 0
-19 const 3 0
-20 const 4 0
-21 const 5 0
-22 const 6 0
-23 const 7 0
-24 const 8 0
-25 const 9 0
-26 const 10 0
-27 const 11 0
-28 const 12 0
-29 const 13 0
-30 const 14 0
-31 const 15 0
-32 const 16 0
+17 const 0
+18 const 0
+19 const 0
+20 const 0
+21 const 0
+22 const 0
+23 const 0
+24 const 0
+25 const 0
+26 const 0
+27 const 0
+28 const 0
+29 const 0
+30 const 0
+31 const 0
+32 const 0
 33 SUB 0 29
 34 MUL 2 33
 35 SUB 0 34

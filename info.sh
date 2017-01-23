@@ -8,17 +8,13 @@ run () {
     circuit=$1
     israchel=$2
 
-    if [ $(head -1 $circuit | cut -d' ' -f 1) != ":test" ]; then
-        return
-    fi
-
-    if [ $israchel = "y" ]; then
+    if [ x$israchel = x"y" ]; then
         flags="--rachel --symlen 16"
     fi
     name=$(basename $circuit | cut -d'.' -f1)
     mode=$(basename $circuit | cut -d'.' -f2)
     test $mode != "dsl" && test $mode != "c2a" && test $mode != "c2c" && mode=""
-    $prog --get-kappa --scheme LIN --verbose $circuit $flags &>/tmp/results.txt
+    $prog --nthreads 1 --get-kappa --scheme LIN --verbose $circuit $flags &>/tmp/results.txt
     ninputs=$(grep ninputs /tmp/results.txt | cut -d' ' -f 3)
     nconsts=$(grep nconsts /tmp/results.txt | cut -d' ' -f 3)
     noutputs=$(grep noutputs /tmp/results.txt | cut -d' ' -f 3)
@@ -27,7 +23,7 @@ run () {
     depth=$(grep "* depth" /tmp/results.txt | cut -d' ' -f 3)
     degree=$(grep "* degree" /tmp/results.txt | cut -d' ' -f 3)
     lin=$(grep "κ = " /tmp/results.txt | cut -d' ' -f 3)
-    $prog --get-kappa --scheme LZ --verbose $circuit $flags &>/tmp/results.txt
+    $prog --nthreads 1 --get-kappa --scheme LZ --verbose $circuit $flags &>/tmp/results.txt
     lz=$(grep "κ =" /tmp/results.txt | cut -d' ' -f 3)
     echo "$name, $mode, $ninputs, $nconsts, $noutputs, $size, $nmuls, $depth, $degree, $lin, $lz"
 }
@@ -39,6 +35,6 @@ done
 for circuit in $(ls circuits/circuits/*.acirc); do
     run $circuit n
 done
-for circuit in $(ls circuits/all-circuits/rachel/*.acirc); do
+for circuit in $(ls circuits/circuits/rachel/*.acirc); do
     run $circuit y
 done

@@ -1,3 +1,13 @@
+:test 0111 0000
+:test 0110 0000
+:test 1111 0000
+:test 0110 0000
+:test 1000 0000
+:test 1001 0000
+:test 0110 0000
+:test 1110 0000
+:test 1100 0000
+:test 1001 0000
 :nins 4
 0 const 1
 1 input 0

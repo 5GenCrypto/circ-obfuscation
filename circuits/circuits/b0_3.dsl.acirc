@@ -1,13 +1,13 @@
 :test 000 0
-:test 110 0
+:test 001 0
+:test 000 0
 :test 011 1
-:test 100 1
-:test 110 0
-:test 111 0
-:test 111 0
-:test 111 0
 :test 010 1
-:test 100 1
+:test 101 0
+:test 101 0
+:test 101 0
+:test 101 0
+:test 010 1
 :nins 3
 :depth 25
 0 input 0

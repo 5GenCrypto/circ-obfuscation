@@ -1,3 +1,13 @@
+:test 0011110111100001100111111 0
+:test 1011110101110111000011000 0
+:test 0001011110000110011001000 0
+:test 0110100000001000000001011 0
+:test 1001011111111001110101000 0
+:test 0011000000000010000111011 0
+:test 1011001111101010110010000 0
+:test 0010100111111010101011100 0
+:test 0011111001110101011001110 0
+:test 1011101100011110100110011 0
 :nins 25
 0 const 1
 1 input 0
@@ -25,38 +35,38 @@
 23 input 22
 24 input 23
 25 input 24
-26 const 1 0
-27 const 2 0
-28 const 3 0
-29 const 4 0
-30 const 5 0
-31 const 6 0
-32 const 7 0
-33 const 8 0
-34 const 9 0
-35 const 10 0
-36 const 11 0
-37 const 12 0
-38 const 13 0
-39 const 14 0
-40 const 15 0
-41 const 16 0
-42 const 17 0
-43 const 18 0
-44 const 19 0
-45 const 20 0
-46 const 21 0
-47 const 22 0
-48 const 23 0
-49 const 24 0
-50 const 25 0
-51 const 26 0
-52 const 27 0
-53 const 28 0
-54 const 29 0
-55 const 30 0
-56 const 31 0
-57 const 32 0
+26 const 0
+27 const 0
+28 const 0
+29 const 0
+30 const 0
+31 const 0
+32 const 0
+33 const 0
+34 const 0
+35 const 0
+36 const 0
+37 const 0
+38 const 0
+39 const 0
+40 const 0
+41 const 0
+42 const 0
+43 const 0
+44 const 0
+45 const 0
+46 const 0
+47 const 0
+48 const 0
+49 const 0
+50 const 0
+51 const 0
+52 const 0
+53 const 0
+54 const 0
+55 const 0
+56 const 0
+57 const 0
 58 SUB 0 8
 59 SUB 0 37
 60 MUL 58 59
