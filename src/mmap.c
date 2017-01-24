@@ -27,7 +27,7 @@ secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
                   size_t kappa, aes_randstate_t rng)
 {
     mmap_params_t params;
-    secret_params *sp = my_calloc(1, sizeof(secret_params));
+    secret_params *sp = my_calloc(1, sizeof sp[0]);
     if (vt->init(sp, &params, op, kappa) == ERR) {
         free(sp);
         return NULL;
@@ -63,10 +63,9 @@ public_params *
 public_params_new(const pp_vtable *vt, const sp_vtable *sp_vt,
                   const secret_params *sp)
 {
-    public_params *pp = my_calloc(1, sizeof(public_params));
+    public_params *pp = my_calloc(1, sizeof pp[0]);
     vt->init(sp_vt, pp, sp);
     pp->pp = vt->mmap->sk->pp(sp->sk);
-    pp->my_pp = false;
     return pp;
 }
 
@@ -83,12 +82,11 @@ public_params_fwrite(const pp_vtable *vt, const public_params *pp, FILE *fp)
 public_params *
 public_params_fread(const pp_vtable *vt, const obf_params_t *op, FILE *fp)
 {
-    public_params *pp = my_calloc(1, sizeof(public_params));
+    public_params *pp = my_calloc(1, sizeof pp[0]);
     vt->fread(pp, op, fp);
     GET_NEWLINE(fp);
     pp->pp = my_calloc(1, vt->mmap->pp->size);
     vt->mmap->pp->fread(pp->pp, fp);
-    pp->my_pp = true;
     GET_NEWLINE(fp);
     return pp;
 }
@@ -98,8 +96,7 @@ public_params_free(const pp_vtable *vt, public_params *pp)
 {
     vt->clear(pp);
     vt->mmap->pp->clear(pp->pp);
-    if (pp->my_pp)
-        free(pp->pp);
+    free(pp->pp);
     free(pp);
 }
 
@@ -110,7 +107,7 @@ encoding *
 encoding_new(const encoding_vtable *vt, const pp_vtable *pp_vt,
              const public_params *pp)
 {
-    encoding *enc = calloc(1, sizeof(encoding));
+    encoding *enc = calloc(1, sizeof enc[0]);
     (void) vt->new(pp_vt, enc, pp);
     enc->enc = calloc(1, vt->mmap->enc->size);
     vt->mmap->enc->init(enc->enc, pp->pp);
@@ -234,7 +231,7 @@ encoding_get_degree(const encoding_vtable *vt, const encoding *x)
 encoding *
 encoding_fread(const encoding_vtable *vt, FILE *fp)
 {
-    encoding *const x = my_calloc(1, sizeof(encoding));
+    encoding *const x = my_calloc(1, sizeof x[0]);
     vt->fread(x, fp);
     x->enc = calloc(1, vt->mmap->enc->size);
     vt->mmap->enc->fread(x->enc, fp);

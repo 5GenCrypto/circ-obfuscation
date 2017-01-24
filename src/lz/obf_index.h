@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 typedef struct {
-    size_t *pows;
+    int *pows;
     size_t nzs;
 } obf_index;
 

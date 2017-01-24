@@ -12,7 +12,7 @@ static obf_params_t *
 _op_new(acirc *circ, void *vparams)
 {
     const lin_obf_params_t *const params = vparams;
-    obf_params_t *const op = calloc(1, sizeof(obf_params_t));
+    obf_params_t *const op = calloc(1, sizeof op[0]);
 
     op->rachel_inputs = params->rachel_inputs;
     op->m = circ->consts.n;
@@ -31,12 +31,12 @@ _op_new(acirc *circ, void *vparams)
         op->q = 1 << params->symlen;
 
     op->M = 0;
-    op->types = my_calloc(op->gamma, sizeof(size_t *));
+    op->types = my_calloc(op->gamma, sizeof op->types[0]);
     for (size_t o = 0; o < op->gamma; o++) {
-        op->types[o] = my_calloc(op->c+1, sizeof(size_t));
+        op->types[o] = my_calloc(op->c+1, sizeof op->types[0][0]);
         type_degree(op->types[o], circ->outputs.buf[o], circ, op->c, chunker_in_order);
         for (size_t k = 0; k < op->c+1; k++) {
-            if (op->types[o][k] > op->M) {
+            if ((size_t) op->types[o][k] > op->M) {
                 op->M = op->types[o][k];
             }
         }

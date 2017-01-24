@@ -15,7 +15,7 @@ static int
 _sp_init(secret_params *sp, mmap_params_t *params, const obf_params_t *op,
          size_t kappa)
 {
-    spinfo(sp) = my_calloc(1, sizeof(sp_info));
+    spinfo(sp) = my_calloc(1, sizeof spinfo(sp)[0]);
     spinfo(sp)->toplevel = obf_index_new_toplevel(op);
     spinfo(sp)->op = op;
 
@@ -23,14 +23,14 @@ _sp_init(secret_params *sp, mmap_params_t *params, const obf_params_t *op,
     params->nzs = spinfo(sp)->toplevel->nzs;
     params->pows = my_calloc(params->nzs, sizeof params->pows[0]);
     for (size_t i = 0; i < params->nzs; ++i) {
-        if (((int) spinfo(sp)->toplevel->pows[i]) < 0) {
+        if (spinfo(sp)->toplevel->pows[i] < 0) {
             fprintf(stderr, "error: toplevel overflow\n");
             free(params->pows);
             obf_index_free(spinfo(sp)->toplevel);
             free(spinfo(sp));
             return ERR;
         }
-        params->pows[i] = (int) spinfo(sp)->toplevel->pows[i];
+        params->pows[i] = spinfo(sp)->toplevel->pows[i];
     }
     params->my_pows = true;
     params->nslots = 2;

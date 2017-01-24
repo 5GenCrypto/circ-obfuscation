@@ -39,7 +39,6 @@ typedef struct pp_info pp_info;
 typedef struct public_params {
     pp_info *info;
     mmap_pp *pp;
-    bool my_pp;
 } public_params;
 
 typedef struct {

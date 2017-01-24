@@ -984,6 +984,7 @@ static void eval_worker(void *vargs)
     
     wire *const w = my_calloc(1, sizeof w[0]);
     mine[ref] = true;
+    cache[ref] = w;
 
     switch (op) {
     case OP_INPUT: {
@@ -1037,8 +1038,6 @@ static void eval_worker(void *vargs)
     }
 
     assert(ret == OK);
-
-    cache[ref] = w;
 
     // signal parents that this ref is done
     ref_list_node *cur = deps[ref]->first;
@@ -1149,6 +1148,7 @@ _evaluate(int *rop, const int *inputs, const obfuscation *obf, size_t nthreads,
     for (size_t i = 0; i < acirc_nrefs(c); i++) {
         if (mine[i]) {
             wire_clear(obf->enc_vt, cache[i]);
+            free(cache[i]);
         }
     }
     ref_lists_free(deps, c);

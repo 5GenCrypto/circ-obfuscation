@@ -7,9 +7,9 @@
 PRIVATE obf_index *
 obf_index_new(const obf_params_t *op)
 {
-    obf_index *ix = my_calloc(1, sizeof(obf_index));
+    obf_index *ix = my_calloc(1, sizeof ix[0]);
     ix->nzs = (2 + op->q) * op->c + 1;
-    ix->pows = my_calloc(ix->nzs, sizeof(size_t));
+    ix->pows = my_calloc(ix->nzs, sizeof ix->pows[0]);
     return ix;
 }
 
@@ -26,14 +26,14 @@ obf_index_free(obf_index *ix)
 PRIVATE void
 obf_index_clear(obf_index *ix)
 {
-    memset(ix->pows, '\0', sizeof(unsigned long) * ix->nzs);
+    memset(ix->pows, '\0', ix->nzs * sizeof ix->pows[0]);
 }
 
 PRIVATE void
 obf_index_print(const obf_index *ix)
 {
     for (size_t i = 0; i < ix->nzs; ++i) {
-        fprintf(stderr, "%lu ", ix->pows[i]);
+        fprintf(stderr, "%d ", ix->pows[i]);
     }
     fprintf(stderr, "\n");
 }
@@ -116,11 +116,11 @@ obf_index_difference(const obf_params_t *op, const obf_index *x, const obf_index
 PRIVATE obf_index *
 obf_index_fread(FILE *fp)
 {
-    obf_index *ix = my_calloc(1, sizeof(obf_index));
+    obf_index *ix = my_calloc(1, sizeof ix[0]);
     ulong_fread(&ix->nzs, fp);
-    ix->pows = my_calloc(ix->nzs, sizeof(size_t));
+    ix->pows = my_calloc(ix->nzs, sizeof ix->pows[0]);
     for (size_t i = 0; i < ix->nzs; i++) {
-        ulong_fread(&ix->pows[i], fp);
+        int_fread(&ix->pows[i], fp);
     }
     return ix;
 }
@@ -130,7 +130,7 @@ obf_index_fwrite(const obf_index *ix, FILE *fp)
 {
     ulong_fwrite(ix->nzs, fp);
     for (size_t i = 0; i < ix->nzs; i++) {
-        ulong_fwrite(ix->pows[i], fp);
+        int_fwrite(ix->pows[i], fp);
     }
     return OK;
 }

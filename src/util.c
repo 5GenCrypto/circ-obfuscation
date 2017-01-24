@@ -24,7 +24,7 @@ int max(int x, int y) {
         return y;
 }
 
-size_t array_sum(const size_t *xs, size_t n)
+int array_sum(const int *xs, size_t n)
 {
     size_t res = 0;
     for (size_t i = 0; i < n; ++i) {
@@ -33,14 +33,14 @@ size_t array_sum(const size_t *xs, size_t n)
     return res;
 }
 
-void array_add(size_t *rop, const size_t *xs, const size_t *ys, size_t n)
+void array_add(int *rop, const int *xs, const int *ys, size_t n)
 {
     for (size_t i = 0; i < n; ++i) {
         rop[i] = xs[i] + ys[i];
     }
 }
 
-bool array_eq(const size_t *xs, const size_t *ys, size_t n)
+bool array_eq(const int *xs, const int *ys, size_t n)
 {
     for (size_t i = 0; i < n; ++i) {
         if (xs[i] != ys[i])
@@ -252,6 +252,20 @@ my_realloc(void *ptr, size_t size)
 
 ////////////////////////////////////////////////////////////////////////////////
 // serialization
+
+void
+int_fread(int *x, FILE *fp)
+{
+    fscanf(fp, "%d", x);
+    GET_NEWLINE(fp);
+}
+
+void
+int_fwrite(int x, FILE *fp)
+{
+    fprintf(fp, "%d", x);
+    PUT_NEWLINE(fp);
+}
 
 void
 ulong_fread(unsigned long *x, FILE *fp)

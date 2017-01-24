@@ -14,7 +14,7 @@ static int
 _encoding_new(const pp_vtable *vt, encoding *enc, const public_params *pp)
 {
     const obf_params_t *const op = vt->params(pp);
-    enc->info = calloc(1, sizeof(encoding_info));
+    enc->info = calloc(1, sizeof enc->info[0]);
     enc->info->index = obf_index_new(op);
     return 0;
 }
@@ -44,8 +44,8 @@ _encode(encoding *rop, const void *set)
     const obf_index *const ix = set;
 
     obf_index_set(rop->info->index, ix);
-    pows = my_calloc(ix->nzs, sizeof(int));
-    memcpy(pows, ix->pows, ix->nzs * sizeof(int));
+    pows = my_calloc(ix->nzs, sizeof pows[0]);
+    memcpy(pows, ix->pows, ix->nzs * sizeof pows[0]);
     return pows;
 }
 
@@ -99,7 +99,7 @@ _encoding_is_zero(const pp_vtable *vt, const encoding *x, const public_params *p
 static void
 _encoding_fread(encoding *x, FILE *fp)
 {
-    x->info = calloc(1, sizeof(encoding_info));
+    x->info = calloc(1, sizeof x->info[0]);
     x->info->index = obf_index_fread(fp);
 }
 

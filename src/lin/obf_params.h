@@ -13,7 +13,7 @@ struct obf_params_t {
     size_t c;       // number of "symbolic" inputs
     size_t gamma;   // number of outputs
     size_t ell;     // length of symbols
-    size_t **types; // (gamma x (c+1))-size array
+    int **types; // (gamma x (c+1))-size array
     size_t M;       // max type degree in circuit over all output wires
     size_t d;       // max regular degree of the circuit over all output wires
     size_t D;

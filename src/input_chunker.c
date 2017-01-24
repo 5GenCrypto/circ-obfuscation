@@ -22,8 +22,8 @@ size_t rchunker_in_order(sym_id sym, size_t ninputs, size_t nsyms)
 }
 
 static void
-type_degree_helper(size_t *rop, acircref ref, const acirc *c, size_t nsyms,
-                   input_chunker chunker, bool *seen, size_t **memo)
+type_degree_helper(int *rop, acircref ref, const acirc *c, size_t nsyms,
+                   input_chunker chunker, bool *seen, int **memo)
 {
     if (seen[ref]) {
         for (size_t i = 0; i < nsyms+1; i++)
@@ -33,18 +33,18 @@ type_degree_helper(size_t *rop, acircref ref, const acirc *c, size_t nsyms,
         switch (op) {
         case OP_INPUT: {
             sym_id sym = chunker(c->gates.gates[ref].args[0], c->ninputs, nsyms);
-            memset(rop, '\0', sizeof(size_t) * (nsyms+1));
+            memset(rop, '\0', (nsyms+1) * sizeof rop[0]);
             assert(sym.sym_number < nsyms);
             rop[sym.sym_number] = 1;
             break;
         }
         case OP_CONST:
-            memset(rop, '\0', sizeof(size_t) * (nsyms+1));
+            memset(rop, '\0', (nsyms+1) * sizeof rop[0]);
             rop[nsyms] = 1;
             break;
         case OP_ADD: case OP_SUB: case OP_MUL: {
-            size_t xtype[nsyms+1];
-            size_t ytype[nsyms+1];
+            int xtype[nsyms+1];
+            int ytype[nsyms+1];
             type_degree_helper(xtype, c->gates.gates[ref].args[0], c, nsyms, chunker, seen, memo);
             type_degree_helper(ytype, c->gates.gates[ref].args[1], c, nsyms, chunker, seen, memo);
             const bool eq = array_eq(xtype, ytype, nsyms + 1);
@@ -67,14 +67,14 @@ type_degree_helper(size_t *rop, acircref ref, const acirc *c, size_t nsyms,
 }
 
 void
-type_degree(size_t *rop, acircref ref, const acirc *c, size_t nsyms, input_chunker chunker)
+type_degree(int *rop, acircref ref, const acirc *c, size_t nsyms, input_chunker chunker)
 {
-    bool    seen[acirc_nrefs(c)];
-    size_t *memo[acirc_nrefs(c)];
+    bool seen[acirc_nrefs(c)];
+    int *memo[acirc_nrefs(c)];
 
     for (size_t i = 0; i < acirc_nrefs(c); i++) {
         seen[i] = false;
-        memo[i] = my_calloc(nsyms+1, sizeof(size_t));
+        memo[i] = my_calloc(nsyms+1, sizeof memo[0][0]);
     }
 
     type_degree_helper(rop, ref, c, nsyms, chunker, seen, memo);

@@ -252,7 +252,6 @@ run(const struct args_t *args)
         abort();
     }
 
-    acirc_init(&c);
     acirc_verbose(g_verbose);
     {
         FILE *fp = fopen(args->circuit, "r");
@@ -272,6 +271,7 @@ run(const struct args_t *args)
         printf("* nmuls: %lu\n", acirc_nmuls(&c));
         printf("* depth: %lu\n", acirc_max_depth(&c));
         printf("* degree: %lu\n", acirc_max_degree(&c));
+        printf("* delta: %lu\n", acirc_delta(&c));
     }
 
     switch (args->scheme) {
@@ -302,7 +302,7 @@ run(const struct args_t *args)
         if (obf == NULL)
             errx(1, "error: initializing obfuscator failed");
         vt->free(obf);
-        return OK;
+        goto cleanup;
     }
 
     if (args->obfuscate) {
@@ -359,6 +359,8 @@ run(const struct args_t *args)
             errx(1, "error: evaluation failed");
         vt->free(obf);
     }
+
+cleanup:
     op_vt->free(params);
     acirc_clear(&c);
 
