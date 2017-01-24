@@ -89,7 +89,7 @@ static void
 __encode(threadpool *pool, const encoding_vtable *vt, encoding *enc, mpz_t inps[2],
          obf_index *ix, const secret_params *sp)
 {
-    obf_args *args = my_calloc(1, sizeof(obf_args));
+    obf_args *args = my_calloc(1, sizeof args[0]);
     args->vt = vt;
     args->enc = enc;
     mpz_vect_init(args->inps, 2);
@@ -104,66 +104,78 @@ static void
 _obfuscator_free(obfuscation *obf);
 
 static obfuscation *
-_obfuscator_new(const mmap_vtable *mmap, const obf_params_t *op,
-                size_t secparam, size_t kappa)
+__obfuscator_new(const mmap_vtable *mmap, const obf_params_t *op)
 {
     obfuscation *obf;
 
-    obf = my_calloc(1, sizeof(obfuscation));
+    obf = my_calloc(1, sizeof obf[0]);
     obf->mmap = mmap;
     obf->enc_vt = get_encoding_vtable(mmap);
     obf->pp_vt = get_pp_vtable(mmap);
     obf->sp_vt = get_sp_vtable(mmap);
     obf->op = op;
+    obf->shat = my_calloc(op->c, sizeof obf->shat[0]);
+    obf->uhat = my_calloc(op->c, sizeof obf->uhat[0]);
+    obf->zhat = my_calloc(op->c, sizeof obf->zhat[0]);
+    obf->what = my_calloc(op->c, sizeof obf->what[0]);
+    for (size_t k = 0; k < op->c; k++) {
+        obf->shat[k] = my_calloc(op->q, sizeof obf->shat[0][0]);
+        obf->uhat[k] = my_calloc(op->q, sizeof obf->uhat[0][0]);
+        obf->zhat[k] = my_calloc(op->q, sizeof obf->zhat[0][0]);
+        obf->what[k] = my_calloc(op->q, sizeof obf->what[0][0]);
+        for (size_t s = 0; s < op->q; s++) {
+            obf->shat[k][s] = my_calloc(op->ell, sizeof obf->shat[0][0][0]);
+            obf->uhat[k][s] = my_calloc(op->npowers, sizeof obf->uhat[0][0][0]);
+            obf->zhat[k][s] = my_calloc(op->gamma, sizeof obf->zhat[0][0][0]);
+            obf->what[k][s] = my_calloc(op->gamma, sizeof obf->what[0][0][0]);
+        }
+    }
+    obf->yhat = my_calloc(op->m, sizeof obf->yhat[0]);
+    obf->vhat = my_calloc(op->npowers, sizeof obf->vhat[0]);
+    obf->Chatstar = my_calloc(op->gamma, sizeof obf->Chatstar[0]);
+    return obf;
+}
+
+static obfuscation *
+_obfuscator_new(const mmap_vtable *mmap, const obf_params_t *op,
+                size_t secparam, size_t kappa)
+{
+    obfuscation *obf;
+
+    obf = __obfuscator_new(mmap, op);
     aes_randinit(obf->rng);
     obf->sp = secret_params_new(obf->sp_vt, op, secparam, kappa, obf->rng);
     if (obf->sp == NULL)
         goto error;
     obf->pp = public_params_new(obf->pp_vt, obf->sp_vt, obf->sp);
 
-    obf->shat = my_calloc(op->c, sizeof(encoding ***));
-    obf->uhat = my_calloc(op->c, sizeof(encoding ***));
-    obf->zhat = my_calloc(op->c, sizeof(encoding ***));
-    obf->what = my_calloc(op->c, sizeof(encoding ***));
     for (size_t k = 0; k < op->c; k++) {
-        obf->shat[k] = my_calloc(op->q, sizeof(encoding **));
-        obf->uhat[k] = my_calloc(op->q, sizeof(encoding **));
-        obf->zhat[k] = my_calloc(op->q, sizeof(encoding **));
-        obf->what[k] = my_calloc(op->q, sizeof(encoding **));
         for (size_t s = 0; s < op->q; s++) {
-            obf->shat[k][s] = my_calloc(op->ell, sizeof(encoding *));
             for (size_t j = 0; j < op->ell; j++) {
                 obf->shat[k][s][j] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
             }
-            obf->uhat[k][s] = my_calloc(op->npowers, sizeof(encoding *));
             for (size_t p = 0; p < op->npowers; p++) {
                 obf->uhat[k][s][p] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
             }
-            obf->zhat[k][s] = my_calloc(op->gamma, sizeof(encoding *));
-            obf->what[k][s] = my_calloc(op->gamma, sizeof(encoding *));
             for (size_t o = 0; o < op->gamma; o++) {
                 obf->zhat[k][s][o] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
                 obf->what[k][s][o] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
             }
         }
     }
-    obf->yhat = my_calloc(op->m, sizeof(encoding *));
     for (size_t i = 0; i < op->m; i++) {
         obf->yhat[i] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
     }
-    obf->vhat = my_calloc(op->npowers, sizeof(encoding *));
     for (size_t p = 0; p < op->npowers; p++) {
         obf->vhat[p] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
     }
-    obf->Chatstar = my_calloc(op->gamma, sizeof(encoding *));
     for (size_t i = 0; i < op->gamma; i++) {
         obf->Chatstar[i] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
     }
     return obf;
 
 error:
-    aes_randclear(obf->rng);
-    free(obf);
+     _obfuscator_free(obf);
     return NULL;
 }
 
@@ -249,9 +261,6 @@ _obfuscate(obfuscation *obf, size_t nthreads)
     const size_t total = num_encodings(op);
 
     mpz_vect_init(inps, 2);
-
-    if (LOG_DEBUG)
-        gmp_printf("%Zd\t%Zd\n", moduli[0], moduli[1]);
 
     assert(obf->mmap->sk->nslots(obf->sp->sk) >= 2);
 
@@ -454,6 +463,7 @@ static int
 _obfuscator_fwrite(const obfuscation *const obf, FILE *const fp)
 {
     const obf_params_t *const op = obf->op;
+
     public_params_fwrite(obf->pp_vt, obf->pp, fp);
     for (size_t k = 0; k < op->c; k++) {
         for (size_t s = 0; s < op->q; s++) {
@@ -471,64 +481,38 @@ _obfuscator_fwrite(const obfuscation *const obf, FILE *const fp)
         encoding_fwrite(obf->enc_vt, obf->yhat[j], fp);
     for (size_t p = 0; p < op->npowers; p++)
         encoding_fwrite(obf->enc_vt, obf->vhat[p], fp);
-    for (size_t k = 0; k < op->gamma; k++) {
+    for (size_t k = 0; k < op->gamma; k++)
         encoding_fwrite(obf->enc_vt, obf->Chatstar[k], fp);
-    }
     return OK;
 }
 
 static obfuscation *
 _obfuscator_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
 {
-    obfuscation *const obf = my_calloc(1, sizeof(obfuscation));
-    if (obf == NULL)
-        return NULL;
-    obf->mmap = mmap;
-    obf->pp_vt = get_pp_vtable(mmap);
-    obf->sp_vt = get_sp_vtable(mmap);
-    obf->enc_vt = get_encoding_vtable(mmap);
-    obf->op = op;
-    obf->sp = NULL;
-    obf->pp = public_params_fread(obf->pp_vt, op, fp);
+    obfuscation *obf;
 
-    obf->shat = my_calloc(op->c, sizeof(encoding ***));
-    obf->uhat = my_calloc(op->c, sizeof(encoding ***));
-    obf->zhat = my_calloc(op->c, sizeof(encoding ***));
-    obf->what = my_calloc(op->c, sizeof(encoding ***));
+    if ((obf = __obfuscator_new(mmap, op)) == NULL)
+        return NULL;
+
+    obf->pp = public_params_fread(obf->pp_vt, op, fp);
     for (size_t k = 0; k < op->c; k++) {
-        obf->shat[k] = my_calloc(op->q, sizeof(encoding **));
-        obf->uhat[k] = my_calloc(op->q, sizeof(encoding **));
-        obf->zhat[k] = my_calloc(op->q, sizeof(encoding **));
-        obf->what[k] = my_calloc(op->q, sizeof(encoding **));
         for (size_t s = 0; s < op->q; s++) {
-            obf->shat[k][s] = my_calloc(op->ell, sizeof(encoding *));
-            for (size_t j = 0; j < op->ell; j++) {
+            for (size_t j = 0; j < op->ell; j++)
                 obf->shat[k][s][j] = encoding_fread(obf->enc_vt, fp);
-            }
-            obf->uhat[k][s] = my_calloc(op->npowers, sizeof(encoding *));
-            for (size_t p = 0; p < op->npowers; p++) {
+            for (size_t p = 0; p < op->npowers; p++)
                 obf->uhat[k][s][p] = encoding_fread(obf->enc_vt, fp);
-            }
-            obf->zhat[k][s] = my_calloc(op->gamma, sizeof(encoding *));
-            obf->what[k][s] = my_calloc(op->gamma, sizeof(encoding *));
             for (size_t o = 0; o < op->gamma; o++) {
                 obf->zhat[k][s][o] = encoding_fread(obf->enc_vt, fp);
                 obf->what[k][s][o] = encoding_fread(obf->enc_vt, fp);
             }
         }
     }
-    obf->yhat = my_calloc(op->m, sizeof(encoding *));
-    for (size_t i = 0; i < op->m; i++) {
+    for (size_t i = 0; i < op->m; i++)
         obf->yhat[i] = encoding_fread(obf->enc_vt, fp);
-    }
-    obf->vhat = my_calloc(op->npowers, sizeof(encoding *));
-    for (size_t p = 0; p < op->npowers; p++) {
+    for (size_t p = 0; p < op->npowers; p++)
         obf->vhat[p] = encoding_fread(obf->enc_vt, fp);
-    }
-    obf->Chatstar = my_calloc(op->gamma, sizeof(encoding *));
-    for (size_t i = 0; i < op->gamma; i++) {
+    for (size_t i = 0; i < op->gamma; i++)
         obf->Chatstar[i] = encoding_fread(obf->enc_vt, fp);
-    }
     return obf;
 }
 
@@ -542,7 +526,7 @@ static void raise_encoding(const obfuscation *obf, encoding *x, const obf_index 
             while (diff > 0) {
                 // want to find the largest power we obfuscated to multiply by
                 size_t p = 0;
-                while (((size_t) (1 << (p+1)) <= diff) && ((p+1) < obf->op->npowers))
+                while (((size_t) (1 << (p+1)) <= diff) && (p+1 < obf->op->npowers))
                     p++;
                 encoding_mul(obf->enc_vt, obf->pp_vt, x, x, obf->uhat[k][s][p], obf->pp);
                 diff -= (1 << p);
@@ -552,7 +536,7 @@ static void raise_encoding(const obfuscation *obf, encoding *x, const obf_index 
     size_t diff = IX_Y(ix);
     while (diff > 0) {
         size_t p = 0;
-        while (((size_t) (1 << (p+1)) <= diff) && ((p+1) < obf->op->npowers))
+        while (((size_t) (1 << (p+1)) <= diff) && (p+1 < obf->op->npowers))
             p++;
         encoding_mul(obf->enc_vt, obf->pp_vt, x, x, obf->vhat[p], obf->pp);
         diff -= (1 << p);
