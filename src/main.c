@@ -430,11 +430,17 @@ main(int argc, char **argv)
                 usage(EXIT_FAILURE);
             }
             break;
-        case 'n':               /* --npowers */
+        case 'n': {             /* --npowers */
             if (optarg == NULL)
                 usage(EXIT_FAILURE);
-            args.npowers = atoi(optarg);
+            const int npowers = atoi(optarg);
+            if (npowers <= 0) {
+                fprintf(stderr, "error: --npowers argument must be greater than 0\n");
+                return EXIT_FAILURE;
+            }
+            args.npowers = (size_t) npowers;
             break;
+        }
         case 'o':               /* --obfuscate */
             args.obfuscate = true;
             args.evaluate = false;
