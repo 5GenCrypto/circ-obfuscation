@@ -11,7 +11,7 @@ _op_new(acirc *circ, void *vparams)
     const lz_obf_params_t *const params = vparams;
     obf_params_t *const op = calloc(1, sizeof(obf_params_t));
 
-    op->rachel_inputs = params->rachel_inputs;
+    op->sigma = params->sigma;
     op->m = circ->consts.n;
     op->gamma = circ->outputs.n;
     if (circ->ninputs % params->symlen != 0) {
@@ -22,7 +22,7 @@ _op_new(acirc *circ, void *vparams)
     }
     op->ell = params->symlen;
     op->c = circ->ninputs / op->ell;
-    if (op->rachel_inputs)
+    if (op->sigma)
         op->q = params->symlen;
     else
         op->q = 1 << params->symlen;
@@ -30,6 +30,7 @@ _op_new(acirc *circ, void *vparams)
 
     if (g_verbose) {
         fprintf(stderr, "Obfuscation parameters:\n");
+        fprintf(stderr, "* Σ:         %s\n", op->sigma ? "Y" : "N");
         fprintf(stderr, "* ℓ:        %lu\n", op->ell);
         fprintf(stderr, "* c:        %lu\n", op->c);
         fprintf(stderr, "* m:        %lu\n", op->m);

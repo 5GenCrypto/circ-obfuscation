@@ -15,8 +15,10 @@ run () {
     $prog --get-kappa --scheme LIN --verbose $circuit $flags &>/tmp/results.txt
     if [ $? -eq 0 ]; then
         lin=$(grep "κ = " /tmp/results.txt | cut -d' ' -f 3)
+        lin_=$(grep "* κ" /tmp/results.txt | tr -s ' ' | cut -d' ' -f 3)
     else
         lin="[overflow]"
+        lin_="[overflow]"
     fi
     ninputs=$(grep ninputs /tmp/results.txt | cut -d' ' -f 3)
     nconsts=$(grep nconsts /tmp/results.txt | cut -d' ' -f 3)
@@ -28,10 +30,12 @@ run () {
     $prog --get-kappa --scheme LZ --verbose $circuit $flags &>/tmp/results.txt
     if [ $? -eq 0 ]; then
         lz=$(grep "κ =" /tmp/results.txt | cut -d' ' -f 3)
+        lz_=$(grep "* κ" /tmp/results.txt | tr -s ' ' | cut -d' ' -f 3)
     else
         lz="[overflow]"
+        lz_="[overflow]"
     fi
-    echo "$name, $mode, $ninputs, $nconsts, $noutputs, $size, $nmuls, $depth, $degree, $lin, $lz"
+    echo "$name, $mode, $ninputs, $nconsts, $noutputs, $size, $nmuls, $depth, $degree, $lin_ | $lin, $lz_ | $lz"
 }
 
 echo "name, mode, nins, nkey, nouts, size, nmuls, depth, degree, lin.κ, lz.κ"

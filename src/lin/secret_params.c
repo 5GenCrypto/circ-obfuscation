@@ -22,11 +22,12 @@ _sp_init(secret_params *sp, mmap_params_t *params, const obf_params_t *op,
 
     t = 0;
     for (size_t o = 0; o < op->gamma; o++) {
-        size_t tmp = array_sum(op->types[o], op->c+1);
+        size_t tmp = array_sum(op->types[o], op->c + 1);
         if (tmp > t)
             t = tmp;
     }
-    params->kappa = kappa ? kappa : (t + op->D);
+    /* EC:Lin16, pg. 45 */
+    params->kappa = kappa ? kappa : (2 + op->c + t + op->D);
     params->nzs = (op->q+1) * (op->c+2) + op->gamma;
     params->pows = my_calloc(params->nzs, sizeof params->pows[0]);
     if (level_flatten(params->pows, spinfo(sp)->toplevel) == ERR) {

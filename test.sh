@@ -36,25 +36,25 @@ run_rachel () {
 
 for circuit in $(ls circuits/*.acirc); do
     echo $circuit
-    run $circuit LIN DUMMY ERROR
+    # run $circuit LIN DUMMY ERROR
     run $circuit LZ  DUMMY ERROR
 done
 
 for circuit in $(ls circuits/circuits/*.acirc); do
     echo $circuit
-    run $circuit LIN DUMMY ERROR
+    # run $circuit LIN DUMMY ERROR
     run $circuit LZ  DUMMY ERROR
 done
 
 for circuit in $(ls circuits/circuits/rachel/*.acirc); do
     echo $circuit
-    run_rachel $circuit LIN DUMMY ERROR
+    # run_rachel $circuit LIN DUMMY ERROR
     run_rachel $circuit LZ  DUMMY ERROR
 done
 
 for circuit in $(ls circuits/circuits/other/*.acirc); do
     echo $circuit
-    run $circuit LIN DUMMY ERROR
+    # run $circuit LIN DUMMY ERROR
     run $circuit LZ  DUMMY ERROR
 done
 

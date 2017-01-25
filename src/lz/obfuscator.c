@@ -320,7 +320,7 @@ _obfuscate(obfuscation *obf, size_t nthreads)
     for (size_t k = 0; k < op->c; k++) {
         for (size_t s = 0; s < op->q; s++) {
             for (size_t j = 0; j < op->ell; j++) {
-                mpz_set_ui(inps[0], op->rachel_inputs ? s == j : bit(s, j));
+                mpz_set_ui(inps[0], op->sigma ? s == j : bit(s, j));
                 mpz_set   (inps[1], alpha[k * op->ell + j]);
                 obf_index_clear(ix);
                 IX_S(ix, op, k, s) = 1;
@@ -687,7 +687,7 @@ _evaluate(int *rop, const int *inputs, const obfuscation *obf, size_t nthreads,
     unsigned int *degrees = my_calloc(c->outputs.n, sizeof degrees[0]);
     int *input_syms = get_input_syms(inputs, c->ninputs, obf->op->rchunker,
                                      obf->op->c, obf->op->ell, obf->op->q,
-                                     obf->op->rachel_inputs);
+                                     obf->op->sigma);
     ref_list **deps = ref_lists_new(c);
 
     threadpool *pool = threadpool_create(nthreads);

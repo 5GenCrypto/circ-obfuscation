@@ -106,7 +106,7 @@ encode_Zksj(const encoding_vtable *vt, const obf_params_t *op,
     mpz_t w[op->c + 3];
     mpz_vect_init(w, op->c + 3);
     mpz_set   (w[0], ykj);
-    mpz_set_ui(w[1], op->rachel_inputs ? s == j : bit(s, j));
+    mpz_set_ui(w[1], op->sigma ? s == j : bit(s, j));
     mpz_vect_urandomms(w+2, moduli+2, op->c+1, rng);
 
     mpz_vect_mul(w, w, rs,     op->c+3);
@@ -480,13 +480,13 @@ _obfuscate(obfuscation *obf, size_t nthreads)
     for (size_t o = 0; o < op->gamma; o++) {
         for (size_t k = 0; k < op->c; k++) {
             for (size_t s = 0; s < op->q; s++) {
-                mpz_vect_urandomms(rs, (const mpz_t *) moduli, op->c+3, obf->rng);
+                mpz_vect_urandomms(rs, moduli, op->c+3, obf->rng);
                 encode_Rhatkso(obf->enc_vt, obf->op, obf->Rhatkso[k][s][o],
                                obf->sp, rs, k, s, o);
                 if (g_verbose)
                     print_progress(++count, total);
                 encode_Zhatkso(obf->enc_vt, obf->op, obf->Zhatkso[k][s][o],
-                               obf->sp, (const mpz_t *) rs, (const mpz_t *) whatk[k], k, s, o, (const mpz_t *) moduli);
+                               obf->sp, rs, whatk[k], k, s, o, moduli);
                 if (g_verbose)
                     print_progress(++count, total);
             }
@@ -494,12 +494,12 @@ _obfuscate(obfuscation *obf, size_t nthreads)
     }
 
     for (size_t o = 0; o < op->gamma; o++) {
-        mpz_vect_urandomms(rs, (const mpz_t *) moduli, op->c+3, obf->rng);
+        mpz_vect_urandomms(rs, moduli, op->c+3, obf->rng);
         encode_Rhato(obf->enc_vt, op, obf->Rhato[o], obf->sp, rs, o);
         if (g_verbose)
             print_progress(++count, total);
-        encode_Zhato(obf->enc_vt, op, obf->Zhato[o], obf->sp, (const mpz_t *) rs, (const mpz_t *) what, o,
-                     (const mpz_t *) moduli);
+        encode_Zhato(obf->enc_vt, op, obf->Zhato[o], obf->sp, rs, what, o,
+                     moduli);
         if (g_verbose)
             print_progress(++count, total);
     }
@@ -515,7 +515,7 @@ _obfuscate(obfuscation *obf, size_t nthreads)
         mpz_vect_init(tmp, op->c + 3);
         mpz_vect_set(tmp, what, op->c+3);
         for (size_t k = 0; k < op->c; k++) {
-            mpz_vect_mul_mod(tmp, (const mpz_t *) tmp, whatk[k], moduli, op->c+3);
+            mpz_vect_mul_mod(tmp, tmp, whatk[k], moduli, op->c+3);
         }
 
         for (size_t k = 0; k < op->c; k++) {
@@ -527,14 +527,14 @@ _obfuscate(obfuscation *obf, size_t nthreads)
         }
         for (size_t o = 0; o < op->gamma; o++) {
             mpz_init(ybars[o]);
-            acirc_eval_mpz_mod_memo(ybars[o], c, c->outputs.buf[o], (const mpz_t *) xs,
+            acirc_eval_mpz_mod_memo(ybars[o], c, c->outputs.buf[o], xs,
                                     ykjc, moduli[0], known, cache);
-            mpz_vect_urandomms(rs, (const mpz_t *) moduli, op->c+3, obf->rng);
+            mpz_vect_urandomms(rs, moduli, op->c+3, obf->rng);
             encode_Rbaro(obf->enc_vt, op, obf->Rbaro[o], obf->sp, rs, o);
             if (g_verbose)
                 print_progress(++count, total);
             encode_Zbaro(obf->enc_vt, obf, obf->Zbaro[o], obf->sp, ybars[o], rs,
-                         tmp, o, (const mpz_t *) moduli);
+                         tmp, o, moduli);
             if (g_verbose)
                 print_progress(++count, total);
         }
@@ -1110,7 +1110,7 @@ _evaluate(int *rop, const int *inputs, const obfuscation *obf, size_t nthreads,
     unsigned int *degrees = my_calloc(c->outputs.n, sizeof degrees[0]);
     int *input_syms = get_input_syms(inputs, c->ninputs, obf->op->rchunker,
                                      obf->op->c, obf->op->ell, obf->op->q,
-                                     obf->op->rachel_inputs);
+                                     obf->op->sigma);
     ref_list **deps = ref_lists_new(c);
 
     threadpool *pool = threadpool_create(nthreads);

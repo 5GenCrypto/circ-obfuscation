@@ -12,7 +12,7 @@ struct obf_params_t {
     size_t c;       // number of "symbolic" inputs
     size_t gamma;   // number of outputs
     size_t ell;     // bitlength of symbol
-    bool rachel_inputs;
+    bool sigma;
     size_t npowers;
     input_chunker chunker;
     reverse_chunker rchunker;

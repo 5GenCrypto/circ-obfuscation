@@ -68,7 +68,7 @@ struct args_t {
     enum scheme_e scheme;
     /* LIN/LZ specific flags */
     size_t symlen;
-    bool rachel_inputs;
+    bool sigma;
     /* LZ specific flags */
     size_t npowers;
     /* Helper flags */
@@ -90,7 +90,7 @@ args_init(struct args_t *args)
     args->scheme = SCHEME_LZ;
     /* LIN/LZ specific flags */
     args->symlen = 1;
-    args->rachel_inputs = false;
+    args->sigma = false;
     /* LZ specific flags */
     args->npowers = 8;
     /* Helper flags */
@@ -133,7 +133,7 @@ usage(int ret)
 "\n"
 "  LIN/LZ specific flags:\n"
 "    --symlen          symbol length, in bits (default: %lu)\n"
-"    --rachel          use rachel inputs (default: %s)\n"
+"    --sigma           use sigma vectors (default: %s)\n"
 "\n"
 "  LZ specific flags:\n"
 "    --npowers <N>     use N powers (default: %lu)\n"
@@ -147,7 +147,7 @@ usage(int ret)
            defaults.obfuscate ? "yes" : "no",
            defaults.secparam, defaults.nthreads,
            scheme_to_string(defaults.scheme), mmap_to_string(defaults.mmap),
-           defaults.symlen, defaults.rachel_inputs ? "yes" : "no",
+           defaults.symlen, defaults.sigma ? "yes" : "no",
            defaults.npowers);
     exit(ret);
 }
@@ -163,7 +163,7 @@ static const struct option opts[] = {
     {"mmap", required_argument, 0, 'M'},
     {"scheme", required_argument, 0, 'S'},
     /* LIN/LZ specific settings */
-    {"rachel", no_argument, 0, 'r'},
+    {"sigma", no_argument, 0, 's'},
     {"symlen", required_argument, 0, 'L'},
     /* LZ specific settings */
     {"npowers", required_argument, 0, 'n'},
@@ -173,7 +173,7 @@ static const struct option opts[] = {
     {"help", no_argument, 0, 'h'},
     {0, 0, 0, 0}
 };
-static const char *short_opts = "adD:egk:lL:M:n:orsS:t:vh";
+static const char *short_opts = "adD:egk:lL:M:n:osS:t:vh";
 
 static int
 _evaluate(const obfuscator_vtable *vt, const struct args_t *args,
@@ -280,7 +280,7 @@ run(const struct args_t *args)
         vt = &lin_obfuscator_vtable;
         op_vt = &lin_op_vtable;
         lin_params.symlen = args->symlen;
-        lin_params.rachel_inputs = args->rachel_inputs;
+        lin_params.sigma = args->sigma;
         vparams = &lin_params;
         break;
     case SCHEME_LZ:
@@ -288,7 +288,7 @@ run(const struct args_t *args)
         op_vt = &lz_op_vtable;
         lz_params.npowers = args->npowers;
         lz_params.symlen = args->symlen;
-        lz_params.rachel_inputs = args->rachel_inputs;
+        lz_params.sigma = args->sigma;
         vparams = &lz_params;
         break;
     }
@@ -464,8 +464,8 @@ main(int argc, char **argv)
             args.obfuscate = true;
             args.evaluate = false;
             break;
-        case 'r':               /* --rachel */
-            args.rachel_inputs = true;
+        case 's':               /* --sigma */
+            args.sigma = true;
             break;
         case 'S':               /* --scheme */
             if (optarg == NULL)

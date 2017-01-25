@@ -6,7 +6,7 @@
 typedef struct lz_obf_params_t {
     size_t npowers;
     size_t symlen;
-    size_t rachel_inputs;
+    bool sigma;
 } lz_obf_params_t;
 
 extern obfuscator_vtable lz_obfuscator_vtable;
