@@ -46,7 +46,6 @@ obf_index_new_toplevel(const obf_params_t *op)
         return NULL;
     IX_Y(ix) = acirc_max_const_degree(op->circ);
     for (size_t k = 0; k < op->c; k++) {
-        /* const sym_id sym = op->chunker(k, op->circ, op->c); */
         for (size_t s = 0; s < op->q; s++) {
             IX_S(ix, op, k, s) = acirc_max_var_degree(op->circ, k);
         }

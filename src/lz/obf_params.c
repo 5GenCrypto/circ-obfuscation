@@ -38,6 +38,8 @@ _op_new(acirc *circ, void *vparams)
         fprintf(stderr, "* # powers: %lu\n", op->npowers);
     }
 
+    assert(op->ell > 0);
+
     op->chunker  = chunker_in_order;
     op->rchunker = rchunker_in_order;
     op->circ = circ;

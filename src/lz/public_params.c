@@ -13,7 +13,7 @@ struct pp_info {
 static void
 _pp_init(const sp_vtable *vt, public_params *pp, const secret_params *sp)
 {
-    pp->info = calloc(1, sizeof(pp_info));
+    pp->info = calloc(1, sizeof pp->info[0]);
     pp->info->toplevel = vt->toplevel(sp);
     pp->info->op = vt->params(sp);
     pp->info->local = false;
@@ -23,7 +23,7 @@ static void
 _pp_clear(public_params *pp)
 {
     if (pp->info->local)
-        free(pp->info->toplevel);
+        obf_index_free(pp->info->toplevel);
     free(pp->info);
 }
 
@@ -37,7 +37,7 @@ static void
 _pp_fread(public_params *pp, const obf_params_t *op, FILE *fp)
 {
     (void) fp;
-    pp->info = calloc(1, sizeof(pp_info));
+    pp->info = calloc(1, sizeof pp->info[0]);
     pp->info->toplevel = obf_index_new_toplevel(op);
     pp->info->op = op;
     pp->info->local = true;

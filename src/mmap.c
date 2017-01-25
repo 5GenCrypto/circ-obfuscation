@@ -117,10 +117,12 @@ encoding_new(const encoding_vtable *vt, const pp_vtable *pp_vt,
 void
 encoding_free(const encoding_vtable *vt, encoding *enc)
 {
-    vt->mmap->enc->clear(enc->enc);
-    free(enc->enc);
-    vt->free(enc);
-    free(enc);
+    if (enc) {
+        vt->mmap->enc->clear(enc->enc);
+        free(enc->enc);
+        vt->free(enc);
+        free(enc);
+    }
 }
 
 int

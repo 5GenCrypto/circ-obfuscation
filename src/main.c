@@ -257,7 +257,8 @@ run(const struct args_t *args)
         FILE *fp = fopen(args->circuit, "r");
         if (acirc_fread(&c, fp) == NULL) {
             fclose(fp);
-            errx(1, "parsing circuit '%s' failed!", args->circuit);
+            fprintf(stderr, "error: parsing circuit '%s' failed\n", args->circuit);
+            exit(EXIT_FAILURE);
         }
         fclose(fp);
     }
@@ -293,14 +294,18 @@ run(const struct args_t *args)
     }
 
     params = op_vt->new(&c, vparams);
-    if (params == NULL)
-        errx(1, "error: initialize obfuscator parameters failed");
+    if (params == NULL) {
+        fprintf(stderr, "error: initialize obfuscator parameters failed\n");
+        exit(EXIT_FAILURE);
+    }
 
     if (args->dry_run) {
         obfuscation *obf;
         obf = vt->new(mmap, params, args->secparam, args->kappa);
-        if (obf == NULL)
-            errx(1, "error: initializing obfuscator failed");
+        if (obf == NULL) {
+            fprintf(stderr, "error: initializing obfuscator failed\n");
+            exit(EXIT_FAILURE);
+        }
         vt->free(obf);
         goto cleanup;
     }
@@ -315,20 +320,28 @@ run(const struct args_t *args)
             fprintf(stderr, "obfuscating...\n");
         start = current_time();
         obf = vt->new(mmap, params, args->secparam, args->kappa);
-        if (obf == NULL)
-            errx(1, "error: initializing obfuscator failed");
-        if (vt->obfuscate(obf, args->nthreads) == ERR)
-            errx(1, "error: obfuscation failed");
+        if (obf == NULL) {
+            fprintf(stderr, "error: initializing obfuscator failed\n");
+            exit(EXIT_FAILURE);
+        }
+        if (vt->obfuscate(obf, args->nthreads) == ERR) {
+            fprintf(stderr, "error: obfuscation failed\n");
+            exit(EXIT_FAILURE);
+        }
         end = current_time();
         if (g_verbose)
             fprintf(stderr, "obfuscation: %.2fs\n", end - start);
 
         start = current_time();
         snprintf(fname, sizeof fname, "%s.obf", args->circuit);
-        if ((f = fopen(fname, "w")) == NULL)
-            errx(1, "error: unable to open '%s' for writing", fname);
-        if (vt->fwrite(obf, f) == ERR)
-            errx(1, "error: writing obfuscator failed");
+        if ((f = fopen(fname, "w")) == NULL) {
+            fprintf(stderr, "error: unable to open '%s' for writing\n", fname);
+            exit(EXIT_FAILURE);
+        }
+        if (vt->fwrite(obf, f) == ERR) {
+            fprintf(stderr, "error: writing obfuscator failed\n");
+            exit(EXIT_FAILURE);
+        }
         end = current_time();
         if (g_verbose)
             fprintf(stderr, "write to disk: %.2fs\n", end - start);
@@ -346,17 +359,23 @@ run(const struct args_t *args)
             fprintf(stderr, "evaluating...\n");
         start = current_time();
         snprintf(fname, sizeof fname, "%s.obf", args->circuit);
-        if ((f = fopen(fname, "r")) == NULL)
-            errx(1, "error: unable to open '%s' for reading", fname);
-        if ((obf = vt->fread(mmap, params, f)) == NULL)
-            errx(1, "error: reading obfuscator failed");
+        if ((f = fopen(fname, "r")) == NULL) {
+            fprintf(stderr, "error: unable to open '%s' for reading\n", fname);
+            exit(EXIT_FAILURE);
+        }
+        if ((obf = vt->fread(mmap, params, f)) == NULL) {
+            fprintf(stderr, "error: reading obfuscator failed\n");
+            exit(EXIT_FAILURE);
+        }
         fclose(f);
         end = current_time();
         if (g_verbose)
             fprintf(stderr, "read from disk: %.2fs\n", end - start);
 
-        if (_evaluate(vt, args, &c, obf) == ERR)
-            errx(1, "error: evaluation failed");
+        if (_evaluate(vt, args, &c, obf) == ERR) {
+            fprintf(stderr, "error: evaluation failed\n");
+            exit(EXIT_FAILURE);
+        }
         vt->free(obf);
     }
 
