@@ -4,10 +4,10 @@ prog=$(readlink -f run.sh)
 
 run () {
     circuit=$1
-    israchel=$2
+    issigma=$2
 
-    if [ x$israchel = x"y" ]; then
-        flags="--rachel --symlen 16"
+    if [ x$issigma = x"y" ]; then
+        flags="--sigma --symlen 16"
     fi
     name=$(basename $circuit | cut -d'.' -f1)
     mode=$(basename $circuit | cut -d'.' -f2)
@@ -45,7 +45,7 @@ done
 for circuit in $(ls circuits/circuits/*.acirc); do
     run $circuit n
 done
-for circuit in $(ls circuits/circuits/rachel/*.acirc); do
+for circuit in $(ls circuits/circuits/sigma/*.acirc); do
     run $circuit y
 done
 # for circuit in $(ls circuits/circuits/other/*.acirc); do

@@ -18,7 +18,7 @@ run () {
     ./run.sh --mmap $mmap --scheme $scheme --debug $debug $circuit
 }
 
-run_rachel () {
+run_sigma () {
     circuit=$1
     scheme=$2
     mmap=$3
@@ -27,34 +27,34 @@ run_rachel () {
     echo
     echo \*\*\*
     echo \*\*\*
-    echo \*\*\* $circuit $scheme $mmap $debug RACHEL
+    echo \*\*\* $circuit $scheme $mmap $debug SIGMA
     echo \*\*\*
     echo \*\*\*
     echo
-    ./run.sh --mmap $mmap --scheme $scheme --debug $debug $circuit --rachel --symlen 16
+    ./run.sh --mmap $mmap --scheme $scheme --debug $debug $circuit --sigma --symlen 16
 }
 
 for circuit in $(ls circuits/*.acirc); do
     echo $circuit
-    # run $circuit LIN DUMMY ERROR
+    run $circuit LIN DUMMY ERROR
     run $circuit LZ  DUMMY ERROR
 done
 
 for circuit in $(ls circuits/circuits/*.acirc); do
     echo $circuit
-    # run $circuit LIN DUMMY ERROR
+    run $circuit LIN DUMMY ERROR
     run $circuit LZ  DUMMY ERROR
 done
 
-for circuit in $(ls circuits/circuits/rachel/*.acirc); do
+for circuit in $(ls circuits/circuits/sigma/*.acirc); do
     echo $circuit
-    # run_rachel $circuit LIN DUMMY ERROR
-    run_rachel $circuit LZ  DUMMY ERROR
+    run_sigma $circuit LIN DUMMY ERROR
+    run_sigma $circuit LZ  DUMMY ERROR
 done
 
 for circuit in $(ls circuits/circuits/other/*.acirc); do
     echo $circuit
-    # run $circuit LIN DUMMY ERROR
+    run $circuit LIN DUMMY ERROR
     run $circuit LZ  DUMMY ERROR
 done
 
