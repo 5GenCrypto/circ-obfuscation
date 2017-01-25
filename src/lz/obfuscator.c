@@ -279,9 +279,9 @@ _obfuscate(obfuscation *obf, size_t nthreads)
         mpz_randomm_inv(beta[i], obf->rng, moduli[1]);
     }
 
-    for (size_t i = 0; i < op->gamma; i++) {
-        mpz_init(Cstar[i]);
-        acirc_eval_mpz_mod(Cstar[i], c, c->outputs.buf[i], alpha, beta, moduli[1]);
+    for (size_t o = 0; o < op->gamma; o++) {
+        mpz_init(Cstar[o]);
+        acirc_eval_mpz_mod(Cstar[o], c, c->outputs.buf[o], alpha, beta, moduli[1]);
     }
 
     unsigned long const_deg[op->gamma];
@@ -487,7 +487,7 @@ static void _raise_encoding(const obfuscation *obf, encoding *x, encoding **ys, 
     while (diff > 0) {
         // want to find the largest power we obfuscated to multiply by
         size_t p = 0;
-        while (((size_t) 1 << (p+1)) < diff && (p+1) < obf->op->npowers)
+        while (((size_t) 1 << (p+1)) <= diff && (p+1) < obf->op->npowers)
             p++;
         encoding_mul(obf->enc_vt, obf->pp_vt, x, x, ys[p], obf->pp);
         diff -= (1 << p);
