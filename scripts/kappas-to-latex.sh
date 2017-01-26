@@ -2,7 +2,6 @@
 
 set -e
 
-echo $1
 if [ x"$1" == x"-m" ]; then
     usemodes=1
 else
@@ -12,7 +11,10 @@ fi
 while read input; do
     line=$(echo $input | tr -d ' ')
     name=$(echo $line | cut -d',' -f1)
-    name=$(perl -e "\$line = $name; \$line =~ s/_/\\\_/g; print \$line")
+    name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
+    if [ x"$name" == xname ]; then
+        continue
+    fi
     mode=$(echo $line | cut -d',' -f2)
     ninputs=$(echo $line | cut -d',' -f3)
     nconsts=$(echo $line | cut -d',' -f4)
@@ -26,9 +28,8 @@ while read input; do
     degree=$(echo $line | cut -d',' -f9)
     if [ ${#degree} -gt 6 ]; then
         degree=$(printf %.2e $degree)
-    fi
-    if [ x"$name" == xname ]; then
-        continue
+    else
+        degree=$(printf "%'.f" $degree)
     fi
     if [ $usemodes -eq 1 ]; then
         echo "\texttt{$name} && $mode && $ninputs && $nconsts && $nouts && $size && $nmuls && $depth && $degree \\\\"

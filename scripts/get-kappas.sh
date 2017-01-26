@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
-prog=$(readlink -f run.sh)
+set -e
+
+prog=$(readlink -f ../run.sh)
+circuits=$(readlink -f ../circuits)
 
 run () {
     circuit=$1
@@ -39,15 +42,15 @@ run () {
 }
 
 echo "name, mode, nins, nkey, nouts, size, nmuls, depth, degree, lin.κ, lz.κ"
-for circuit in $(ls circuits/*.acirc); do
+for circuit in $(ls $circuits/*.acirc); do
     run $circuit n
 done
-for circuit in $(ls circuits/circuits/*.acirc); do
+for circuit in $(ls $circuits/circuits/*.acirc); do
     run $circuit n
 done
-for circuit in $(ls circuits/circuits/sigma/*.acirc); do
+for circuit in $(ls $circuits/circuits/sigma/*.acirc); do
     run $circuit y
 done
-# for circuit in $(ls circuits/circuits/other/*.acirc); do
+# for circuit in $(ls ../circuits/circuits/other/*.acirc); do
 #     run $circuit n
 # done

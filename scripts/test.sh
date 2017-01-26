@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# set -e
+prog=$(readlink -f ../run.sh)
+circuits=$(readlink -f ../circuits)
 
 run () {
     circuit=$1
@@ -15,7 +16,7 @@ run () {
     echo \*\*\*
     echo \*\*\*
     echo
-    ./run.sh --mmap $mmap --scheme $scheme --debug $debug $circuit
+    $prog --mmap $mmap --scheme $scheme --debug $debug $circuit
 }
 
 run_sigma () {
@@ -31,28 +32,28 @@ run_sigma () {
     echo \*\*\*
     echo \*\*\*
     echo
-    ./run.sh --mmap $mmap --scheme $scheme --debug $debug $circuit --sigma --symlen 16
+    $prog --mmap $mmap --scheme $scheme --debug $debug $circuit --sigma --symlen 16
 }
 
-for circuit in $(ls circuits/*.acirc); do
+for circuit in $(ls $circuits/*.acirc); do
     echo $circuit
     run $circuit LIN DUMMY ERROR
     run $circuit LZ  DUMMY ERROR
 done
 
-for circuit in $(ls circuits/circuits/*.acirc); do
+for circuit in $(ls $circuits/circuits/*.acirc); do
     echo $circuit
     run $circuit LIN DUMMY ERROR
     run $circuit LZ  DUMMY ERROR
 done
 
-for circuit in $(ls circuits/circuits/sigma/*.acirc); do
+for circuit in $(ls $circuits/circuits/sigma/*.acirc); do
     echo $circuit
     run_sigma $circuit LIN DUMMY ERROR
     run_sigma $circuit LZ  DUMMY ERROR
 done
 
-for circuit in $(ls circuits/circuits/other/*.acirc); do
+for circuit in $(ls $circuits/circuits/other/*.acirc); do
     echo $circuit
     run $circuit LIN DUMMY ERROR
     run $circuit LZ  DUMMY ERROR
