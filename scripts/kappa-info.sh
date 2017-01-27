@@ -7,6 +7,13 @@ usage () {
     exit $1
 }
 
+pretty () {
+    if [ ${#1} -gt 6 ]; then
+        echo $(printf %.1e $1)
+    else
+        echo $(printf "%'.f" $1)
+    fi
+}
 
 if [ x"$1" == xggm ]; then
     while read input; do
@@ -34,16 +41,26 @@ if [ x"$1" == xggm ]; then
         lin2=$(echo $lin | cut -d'|' -f2)
         lz1=$(echo $lz | cut -d'|' -f1)
         lz2=$(echo $lz | cut -d'|' -f2)
+        if [ x"$lin1" == x"[overflow]" ]; then
+            lin=$lin1
+        else
+            lin1=$(pretty $lin1)
+            lin2=$(pretty $lin2)
+            lin="$lin1 ($lin2)"
+        fi
+        if [ x"$lz1" == x"[overflow]" ]; then
+            lz=$lz1
+        else
+            lz1=$(pretty $lz1)
+            lz2=$(pretty $lz2)
+            lz="$lz1 ($lz2)"
+        fi
         if [ $sigma -eq 1 ]; then
             add="&&&&"
         else
             add=""
         fi
-        if [ x"$lin1" == x"[overflow]" ]; then
-            echo "\texttt{$name} $add && $lin1 && $lz1 ($lz2) \\\\"
-        else
-            echo "\texttt{$name} $add && $lin1 ($lin2) && $lz1 ($lz2) \\\\"
-        fi
+        echo "\texttt{$name} $add && $lin && $lz \\\\"
     done
 elif [ x"$1" == x ]; then
     while read input; do
@@ -69,11 +86,15 @@ elif [ x"$1" == x ]; then
         if [ x"$lin1" == x"[overflow]" ]; then
             lin=$lin1
         else
+            lin1=$(pretty $lin1)
+            lin2=$(pretty $lin2)
             lin="$lin1 ($lin2)"
         fi
         if [ x"$lz1" == x"[overflow]" ]; then
             lz=$lz1
         else
+            lz1=$(pretty $lz1)
+            lz2=$(pretty $lz2)
             lz="$lz1 ($lz2)"
         fi
         echo "\texttt{$name} $add && $lin && $lz \\\\"
