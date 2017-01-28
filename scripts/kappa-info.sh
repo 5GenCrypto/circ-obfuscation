@@ -53,7 +53,11 @@ if [ x"$1" == xggm ]; then
         else
             lz1=$(pretty $lz1)
             lz2=$(pretty $lz2)
-            lz="$lz1 ($lz2)"
+            if [ x$lz1 == x$lz2 ]; then
+                lz=$lz1
+            else
+                lz="$lz1 ($lz2)"
+            fi
         fi
         if [ $sigma -eq 1 ]; then
             add="&&&&"

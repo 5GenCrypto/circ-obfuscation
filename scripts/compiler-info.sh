@@ -21,6 +21,7 @@ minsize=1000000000
 mindeg=$minsize
 minnmuls=$minsize
 minkappa=$minsize
+count=0
 
 while read input; do
     line=$(echo $input | tr -d ' ')
@@ -76,11 +77,15 @@ while read input; do
         results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minnmuls / textbf{$minnmuls} /g; print \$r")
         results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minkappa / textbf{$minkappa} /g; print \$r")
         results=$(perl -e "\$r = \"$results\"; \$r =~ s/_/\\\_/g; \$r =~ s/text/\\\text/g; print \$r")
+        if [ $(expr $count % 2) -eq 1 ]; then
+            results="\\rowcol $results"
+        fi
         echo "$results \\\\"
         results=
         modes=
         minsize=10000000000
         mindeg=$minsize
         minkappa=$minsize
+        count=$(expr $count + 1)
     fi
 done < $1

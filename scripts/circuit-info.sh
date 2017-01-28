@@ -2,11 +2,7 @@
 
 set -e
 
-if [ x"$1" == x"-m" ]; then
-    usemodes=1
-else
-    usemodes=0
-fi
+count=0
 
 while read input; do
     line=$(echo $input | tr -d ' ')
@@ -16,6 +12,9 @@ while read input; do
         continue
     fi
     mode=$(echo $line | cut -d',' -f2)
+    if [ x"$mode" != xdsl ]; then
+        continue
+    fi
     ninputs=$(echo $line | cut -d',' -f3)
     nconsts=$(echo $line | cut -d',' -f4)
     nconsts=$(printf "%'.f" $nconsts)
@@ -31,9 +30,9 @@ while read input; do
     else
         degree=$(printf "%'.f" $degree)
     fi
-    if [ $usemodes -eq 1 ]; then
-        echo "\texttt{$name} && $mode && $ninputs && $nconsts && $nouts && $size && $nmuls && $depth && $degree \\\\"
-    else
-        echo "\texttt{$name} && $ninputs && $nconsts && $nouts && $size && $nmuls && $depth && $degree \\\\"
+    if [ $(expr $count % 2) -eq 1 ]; then
+        echo -n "\\rowcol "
     fi
-done
+    echo "\texttt{$name} && $ninputs && $nconsts && $nouts && $size && $nmuls && $depth && $degree \\\\"
+    count=$(expr $count + 1)
+done < $1
