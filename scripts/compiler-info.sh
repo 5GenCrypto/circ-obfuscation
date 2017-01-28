@@ -19,6 +19,7 @@ pretty () {
 
 minsize=1000000000
 mindeg=$minsize
+minnmuls=$minsize
 minkappa=$minsize
 
 while read input; do
@@ -38,6 +39,7 @@ while read input; do
             modes=
             minsize=10000000000
             mindeg=$minsize
+            minnmuls=$minsize
             minkappa=$minsize
         fi
         results="texttt{$name}"
@@ -48,24 +50,37 @@ while read input; do
         minsize=$size
     fi
     size=$(pretty $size)
-    nmuls=$(pretty $(echo $line | cut -d',' -f7))
+    nmuls=$(echo $line | cut -d',' -f7)
+    if [ $nmuls -lt $minnmuls ]; then
+        minnmuls=$nmuls
+    fi
+    nmuls=$(pretty $nmuls)
     deg=$(echo $line | cut -d',' -f9)
     if [ $deg -lt $mindeg ]; then
         mindeg=$deg
     fi
+    deg=$(pretty $deg)
     kappa=$(echo $line | cut -d',' -f11 | cut -d'|' -f2)
     if [ $kappa -lt $minkappa ]; then
         minkappa=$kappa
     fi
+    kappa=$(pretty $kappa)
     results="$results && $size & $nmuls & $deg & $kappa "
     if [ x$modes == xc2ac2cdsl ]; then
+        minsize=$(pretty $minsize)
+        mindeg=$(pretty $mindeg)
+        minkappa=$(pretty $minkappa)
         results="$results"
-        results=$(perl -e "\$r = \"$results\"; \$r =~ s/ && $minsize & / && textbf{$(pretty $minsize)} & /g; print \$r")
-        results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $mindeg / textbf{$(pretty $mindeg)} /g; print \$r")
-        results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minkappa / textbf{$(pretty $minkappa)} /g; print \$r")
+        results=$(perl -e "\$r = \"$results\"; \$r =~ s/ && $minsize & / && textbf{$minsize} & /g; print \$r")
+        results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $mindeg / textbf{$mindeg} /g; print \$r")
+        results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minnmuls / textbf{$minnmuls} /g; print \$r")
+        results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minkappa / textbf{$minkappa} /g; print \$r")
         results=$(perl -e "\$r = \"$results\"; \$r =~ s/_/\\\_/g; \$r =~ s/text/\\\text/g; print \$r")
         echo "$results \\\\"
         results=
         modes=
+        minsize=10000000000
+        mindeg=$minsize
+        minkappa=$minsize
     fi
 done < $1
