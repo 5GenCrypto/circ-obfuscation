@@ -62,17 +62,18 @@ struct args_t {
     size_t secparam;
     size_t kappa;
     size_t nthreads;
-    bool evaluate;
-    bool obfuscate;
-    bool dry_run;
     enum scheme_e scheme;
+    bool get_kappa;
+    bool dry_run;
+    char *evaluate;
+    bool obfuscate;
+    bool test;
     /* LIN/LZ specific flags */
     size_t symlen;
     bool sigma;
     /* LZ specific flags */
     size_t npowers;
-    /* Helper flags */
-    bool get_kappa;
+
 
 };
 
@@ -84,17 +85,17 @@ args_init(struct args_t *args)
     args->secparam = 16;
     args->kappa = 0;
     args->nthreads = sysconf(_SC_NPROCESSORS_ONLN);
-    args->evaluate = true;
-    args->obfuscate = true;
-    args->dry_run = false;
     args->scheme = SCHEME_LZ;
+    args->get_kappa = false;
+    args->evaluate = NULL;
+    args->obfuscate = false;
+    args->dry_run = false;
+    args->test = false;
     /* LIN/LZ specific flags */
     args->symlen = 1;
     args->sigma = false;
     /* LZ specific flags */
     args->npowers = 8;
-    /* Helper flags */
-    args->get_kappa = false;
 }
 
 static void
@@ -104,14 +105,11 @@ args_print(const struct args_t *args)
             "* Circuit: %s\n"
             "* Multilinear map: %s\n"
             "* Security parameter: %lu\n"
-            "* Obfuscating? %s Evaluating? %s\n"
             "* Scheme: %s\n"
             "* # threads: %lu\n"
             ,
             args->circuit, mmap_to_string(args->mmap), args->secparam,
-            args->obfuscate ? "Y" : "N",
-            args->evaluate ? "Y" : "N", scheme_to_string(args->scheme),
-            args->nthreads);
+            scheme_to_string(args->scheme), args->nthreads);
 }
 
 static void
@@ -120,11 +118,16 @@ usage(int ret)
     struct args_t defaults;
     args_init(&defaults);
     printf("Usage: %s [options] <circuit>\n\n", progname);
-    printf("Options:\n"
-"    --dry-run         don't obfuscate/evaluate\n"
+    printf(
+"  Evaluation flags:\n"
+"    --dry-run               don't obfuscate/evaluate\n"
+"    --get-kappa             determine the correct κ value for the given circuit\n"
+"    --evaluate, -e <INPUT>  evaluate obfuscation on INPUT\n"
+"    --obfuscate, -o         construct obfuscation\n"
+"    --test                  obfuscate and evaluate test inputs on circuit (default)\n"
+"\n"
+"  Execution flags:\n"
 "    --debug <LEVEL>   set debug level (options: ERROR, WARN, DEBUG, INFO | default: ERROR)\n"
-"    --evaluate, -e    evaluate obfuscation (default: %s)\n"
-"    --obfuscate, -o   construct obfuscation (default: %s)\n"
 "    --kappa, -k <κ>   set kappa to κ when obfuscating (default: guess)\n"
 "    --lambda, -l <λ>  set security parameter to λ when obfuscating (default: %lu)\n"
 "    --nthreads <N>    set the number of threads to N (default: %lu)\n"
@@ -132,31 +135,31 @@ usage(int ret)
 "    --mmap <NAME>     set mmap to NAME (options: CLT, DUMMY | default: %s)\n"
 "\n"
 "  LIN/LZ specific flags:\n"
-"    --symlen          symbol length, in bits (default: %lu)\n"
-"    --sigma           use sigma vectors (default: %s)\n"
+"    --symlen  symbol length, in bits (default: %lu)\n"
+"    --sigma   use sigma vectors (default: %s)\n"
 "\n"
 "  LZ specific flags:\n"
-"    --npowers <N>     use N powers (default: %lu)\n"
+"    --npowers <N>  use N powers (default: %lu)\n"
 "\n"
 "  Helper flags:\n"
-"    --get-kappa       determine the correct κ value for the given circuit\n"
 "    --verbose, -v     be verbose\n"
 "    --help, -h        print this message\n"
-           ,
-           defaults.evaluate ? "yes" : "no",
-           defaults.obfuscate ? "yes" : "no",
-           defaults.secparam, defaults.nthreads,
-           scheme_to_string(defaults.scheme), mmap_to_string(defaults.mmap),
-           defaults.symlen, defaults.sigma ? "yes" : "no",
-           defaults.npowers);
+"\n", defaults.secparam, defaults.nthreads,
+      scheme_to_string(defaults.scheme), mmap_to_string(defaults.mmap),
+      defaults.symlen, defaults.sigma ? "yes" : "no",
+      defaults.npowers);
     exit(ret);
 }
 
 static const struct option opts[] = {
-    {"debug", required_argument, 0, 'D'},
+    /* Evaluation flags */
     {"dry-run", no_argument, 0, 'd'},
-    {"evaluate", no_argument, 0, 'e'},
+    {"get-kappa", no_argument, 0, 'g'},
+    {"evaluate", required_argument, 0, 'e'},
     {"obfuscate", no_argument, 0, 'o'},
+    {"test", no_argument, 0, 'T'},
+    /* Execution flags */
+    {"debug", required_argument, 0, 'D'},
     {"kappa", required_argument, 0, 'k'},
     {"lambda", required_argument, 0, 'l'},
     {"nthreads", required_argument, 0, 't'},
@@ -168,16 +171,15 @@ static const struct option opts[] = {
     /* LZ specific settings */
     {"npowers", required_argument, 0, 'n'},
     /* Helper flags */
-    {"get-kappa", no_argument, 0, 'g'},
     {"verbose", no_argument, 0, 'v'},
     {"help", no_argument, 0, 'h'},
     {0, 0, 0, 0}
 };
-static const char *short_opts = "adD:egk:lL:M:n:osS:t:vh";
+static const char *short_opts = "adD:egk:lL:M:n:osS:t:Tvh";
 
 static int
-_evaluate(const obfuscator_vtable *vt, const struct args_t *args,
-          const acirc *c, const obfuscation *obf)
+_test(const obfuscator_vtable *vt, const struct args_t *args,
+      const acirc *c, const obfuscation *obf)
 {
     int res[c->outputs.n];
     int ret = OK;
@@ -191,11 +193,6 @@ _evaluate(const obfuscator_vtable *vt, const struct args_t *args,
         end = current_time();
         if (g_verbose)
             fprintf(stderr, "evaluation: %.2fs\n", end - start);
-
-        if (args->get_kappa) {
-            printf("κ = %u\n", degree);
-            break;
-        }
 
         bool ok = true;
         for (size_t j = 0; j < c->outputs.n; ++j) {
@@ -255,6 +252,10 @@ run(const struct args_t *args)
     acirc_verbose(g_verbose);
     {
         FILE *fp = fopen(args->circuit, "r");
+        if (fp == NULL) {
+            fprintf(stderr, "error: opening circuit '%s' failed\n", args->circuit);
+            exit(EXIT_FAILURE);
+        }
         if (acirc_fread(&c, fp) == NULL) {
             fclose(fp);
             fprintf(stderr, "error: parsing circuit '%s' failed\n", args->circuit);
@@ -310,8 +311,8 @@ run(const struct args_t *args)
         goto cleanup;
     }
 
-    if (args->obfuscate) {
-        char fname[strlen(args->circuit) + 5];
+    if (args->obfuscate || args->test || args->get_kappa) {
+        char fname[strlen(args->circuit) + sizeof ".obf"];
         obfuscation *obf;
         double start, end;
         FILE *f;
@@ -349,7 +350,7 @@ run(const struct args_t *args)
         fclose(f);
     }
 
-    if (args->evaluate) {
+    if (args->evaluate || args->test || args->get_kappa) {
         char fname[strlen(args->circuit) + 5];
         obfuscation *obf;
         double start, end;
@@ -372,10 +373,42 @@ run(const struct args_t *args)
         if (g_verbose)
             fprintf(stderr, "read from disk: %.2fs\n", end - start);
 
-        if (_evaluate(vt, args, &c, obf) == ERR) {
-            fprintf(stderr, "error: evaluation failed\n");
-            exit(EXIT_FAILURE);
+        if (args->evaluate || args->get_kappa) {
+            int evaluate[c.ninputs];
+            int res[c.outputs.n];
+            unsigned int degree;
+            if (args->get_kappa) {
+                for (size_t i = 0; i < c.ninputs; ++i) {
+                    evaluate[i] = 0;
+                }
+            } else {
+                for (size_t i = 0; i < c.ninputs; ++i) {
+                    evaluate[i] = args->evaluate[i] - '0';
+                }
+            }
+            start = current_time();
+            if (vt->evaluate(res, evaluate, obf, args->nthreads, &degree) == ERR)
+                return ERR;
+            end = current_time();
+            if (g_verbose)
+                fprintf(stderr, "evaluation: %.2fs\n", end - start);
+            if (args->get_kappa) {
+                printf("κ = %u\n", degree);
+            } else {
+                for (size_t i = 0; i < c.outputs.n; ++i) {
+                    printf("%d", res[i]);
+                }
+                printf("\n");
+            }
         }
+
+        if (args->test) {
+            if (_test(vt, args, &c, obf) == ERR) {
+                fprintf(stderr, "error: evaluation failed\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+
         vt->free(obf);
     }
 
@@ -416,8 +449,9 @@ main(int argc, char **argv)
             }
             break;
         case 'e':               /* --evaluate */
-            args.evaluate = true;
-            args.obfuscate = false;
+            if (optarg == NULL)
+                usage(EXIT_FAILURE);
+            args.evaluate = optarg;
             break;
         case 'g':               /* --get-kappa */
             args.get_kappa = true;
@@ -462,7 +496,6 @@ main(int argc, char **argv)
         }
         case 'o':               /* --obfuscate */
             args.obfuscate = true;
-            args.evaluate = false;
             break;
         case 's':               /* --sigma */
             args.sigma = true;
@@ -483,6 +516,9 @@ main(int argc, char **argv)
             if (optarg == NULL)
                 usage(EXIT_FAILURE);
             args.nthreads = atoi(optarg);
+            break;
+        case 'T':
+            args.test = true;
             break;
         case 'v':               /* --verbose */
             g_verbose = true;
@@ -506,9 +542,11 @@ main(int argc, char **argv)
         usage(EXIT_FAILURE);
     }
 
+    if (!args.evaluate && !args.obfuscate && !args.dry_run && !args.get_kappa)
+        args.test = true;
+
     if (args.get_kappa) {
         args.mmap = MMAP_DUMMY;
-        args.obfuscate = args.evaluate = true;
     } else {
         args_print(&args);
     }

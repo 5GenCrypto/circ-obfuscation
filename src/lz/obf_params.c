@@ -30,12 +30,12 @@ _op_new(acirc *circ, void *vparams)
 
     if (g_verbose) {
         fprintf(stderr, "Obfuscation parameters:\n");
-        fprintf(stderr, "* Σ:         %s\n", op->sigma ? "Y" : "N");
-        fprintf(stderr, "* ℓ:        %lu\n", op->ell);
-        fprintf(stderr, "* c:        %lu\n", op->c);
-        fprintf(stderr, "* m:        %lu\n", op->m);
-        fprintf(stderr, "* γ:        %lu\n", op->gamma);
-        fprintf(stderr, "* q:        %lu\n", op->q);
+        fprintf(stderr, "* Σ: %s\n", op->sigma ? "Y" : "N");
+        fprintf(stderr, "* ℓ: %lu\n", op->ell);
+        fprintf(stderr, "* c: %lu\n", op->c);
+        fprintf(stderr, "* m: %lu\n", op->m);
+        fprintf(stderr, "* γ: %lu\n", op->gamma);
+        fprintf(stderr, "* q: %lu\n", op->q);
         fprintf(stderr, "* # powers: %lu\n", op->npowers);
     }
 
