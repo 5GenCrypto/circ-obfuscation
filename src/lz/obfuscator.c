@@ -313,7 +313,6 @@ _obfuscate(obfuscation *obf, size_t nthreads)
     acirc_memo_free(memo, c);
 
     if (g_verbose) {
-        printf("Encoding:\n");
         print_progress(count, total);
     }
 
@@ -498,13 +497,14 @@ static void raise_encoding(const obfuscation *obf, encoding *x, const obf_index 
 {
     obf_index *const ix =
         obf_index_difference(obf->op, target, obf->enc_vt->mmap_set(x));
+    size_t diff;
     for (size_t k = 0; k < obf->op->c; k++) {
         for (size_t s = 0; s < obf->op->q; s++) {
-            size_t diff = IX_S(ix, obf->op, k, s);
+            diff = IX_S(ix, obf->op, k, s);
             _raise_encoding(obf, x, obf->uhat[k][s], diff);
         }
     }
-    size_t diff = IX_Y(ix);
+    diff = IX_Y(ix);
     _raise_encoding(obf, x, obf->vhat, diff);
     obf_index_free(ix);
 }
@@ -512,9 +512,6 @@ static void raise_encoding(const obfuscation *obf, encoding *x, const obf_index 
 static void
 raise_encodings(const obfuscation *obf, encoding *x, encoding *y)
 {
-    if (obf_index_eq(obf->enc_vt->mmap_set(x), obf->enc_vt->mmap_set(y)))
-        return;
-
     obf_index *const ix = obf_index_union(obf->op, obf->enc_vt->mmap_set(x),
                                           obf->enc_vt->mmap_set(y));
     raise_encoding(obf, x, ix);
@@ -575,7 +572,8 @@ static void eval_worker(void *vargs)
             tmp_y = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
             encoding_set(obf->enc_vt, tmp_x, x);
             encoding_set(obf->enc_vt, tmp_y, y);
-            raise_encodings(obf, tmp_x, tmp_y);
+            if (!obf_index_eq(obf->enc_vt->mmap_set(tmp_x), obf->enc_vt->mmap_set(tmp_y)))
+                raise_encodings(obf, tmp_x, tmp_y);
             if (op == OP_ADD) {
                 encoding_add(obf->enc_vt, obf->pp_vt, res, tmp_x, tmp_y, obf->pp);
             } else if (op == OP_SUB) {

@@ -68,6 +68,7 @@ struct args_t {
     char *evaluate;
     bool obfuscate;
     bool test;
+    bool smart;
     /* LIN/LZ specific flags */
     size_t symlen;
     bool sigma;
@@ -91,6 +92,7 @@ args_init(struct args_t *args)
     args->obfuscate = false;
     args->dry_run = false;
     args->test = false;
+    args->smart = false;
     /* LIN/LZ specific flags */
     args->symlen = 1;
     args->sigma = false;
@@ -133,6 +135,7 @@ usage(int ret)
 "    --nthreads <N>    set the number of threads to N (default: %lu)\n"
 "    --scheme <NAME>   set scheme to NAME (options: LIN, LZ | default: %s)\n"
 "    --mmap <NAME>     set mmap to NAME (options: CLT, DUMMY | default: %s)\n"
+"    --smart           be smart in choosing parameters\n"
 "\n"
 "  LIN/LZ specific flags:\n"
 "    --symlen  symbol length, in bits (default: %lu)\n"
@@ -165,6 +168,7 @@ static const struct option opts[] = {
     {"nthreads", required_argument, 0, 't'},
     {"mmap", required_argument, 0, 'M'},
     {"scheme", required_argument, 0, 'S'},
+    {"smart", no_argument, 0, 'r'},
     /* LIN/LZ specific settings */
     {"sigma", no_argument, 0, 's'},
     {"symlen", required_argument, 0, 'L'},
@@ -175,55 +179,84 @@ static const struct option opts[] = {
     {"help", no_argument, 0, 'h'},
     {0, 0, 0, 0}
 };
-static const char *short_opts = "adD:egk:lL:M:n:osS:t:Tvh";
+static const char *short_opts = "adD:egk:lL:M:n:orsS:t:Tvh";
 
 static int
-_test(const obfuscator_vtable *vt, const struct args_t *args,
-      const acirc *c, const obfuscation *obf)
+_obfuscate(const obfuscator_vtable *vt, const mmap_vtable *mmap,
+           obf_params_t *params, FILE *f, size_t secparam, size_t kappa,
+           size_t nthreads)
 {
-    int res[c->outputs.n];
-    int ret = OK;
+    obfuscation *obf;
     double start, end;
-    unsigned int degree;
 
-    for (size_t i = 0; i < c->tests.n; i++) {
+    obf = vt->new(mmap, params, secparam, kappa);
+    if (obf == NULL) {
+        fprintf(stderr, "error: initializing obfuscator failed\n");
+        goto error;
+    }
+
+    if (g_verbose)
+        fprintf(stderr, "obfuscating...\n");
+    start = current_time();
+    if (vt->obfuscate(obf, nthreads) == ERR) {
+        fprintf(stderr, "error: obfuscation failed\n");
+        goto error;
+    }
+    end = current_time();
+    if (g_verbose)
+        fprintf(stderr, "    obfuscation: %.2fs\n", end - start);
+
+    if (f) {
         start = current_time();
-        if (vt->evaluate(res, c->tests.inps[i], obf, args->nthreads, &degree) == ERR)
-            return ERR;
+        if (vt->fwrite(obf, f) == ERR) {
+            fprintf(stderr, "error: writing obfuscator failed\n");
+            goto error;
+        }
         end = current_time();
         if (g_verbose)
-            fprintf(stderr, "evaluation: %.2fs\n", end - start);
-
-        bool ok = true;
-        for (size_t j = 0; j < c->outputs.n; ++j) {
-            switch (args->scheme) {
-            case SCHEME_LZ:
-                if (!!res[j] != !!c->tests.outs[i][j]) {
-                    ok = false;
-                    ret = ERR;
-                }
-                break;
-            case SCHEME_LIN:
-                if (res[j] == (c->tests.outs[i][j] != 1)) {
-                    ok = false;
-                    ret = ERR;
-                }
-                break;
-            }
-        }
-        if (!ok)
-            printf("\033[1;41m");
-        printf("test %lu input=", i);
-        array_printstring_rev(c->tests.inps[i], c->ninputs);
-        printf(" expected=");
-        array_printstring_rev(c->tests.outs[i], c->outputs.n);
-        printf(" got=");
-        array_printstring_rev(res, c->outputs.n);
-        if (!ok)
-            printf("\033[0m");
-        puts("");
+            fprintf(stderr, "    write to disk: %.2fs\n", end - start);
     }
-    return ret;
+    vt->free(obf);
+    return OK;
+error:
+    vt->free(obf);
+    return ERR;
+}
+
+static int
+_evaluate(const obfuscator_vtable *vt, const mmap_vtable *mmap,
+          obf_params_t *params, FILE *f, const int *input, int *output,
+          size_t nthreads, unsigned int *degree)
+{
+    double start, end;
+    obfuscation *obf;
+
+    if (g_verbose)
+        fprintf(stderr, "evaluating...\n");
+
+    start = current_time();
+
+    if ((obf = vt->fread(mmap, params, f)) == NULL) {
+        fprintf(stderr, "error: reading obfuscator failed\n");
+        goto error;
+    }
+
+    end = current_time();
+    if (g_verbose)
+        fprintf(stderr, "    read from disk: %.2fs\n", end - start);
+
+    start = current_time();
+    if (vt->evaluate(output, input, obf, nthreads, degree) == ERR)
+        goto error;
+    end = current_time();
+    if (g_verbose)
+        fprintf(stderr, "    evaluation: %.2fs\n", end - start);
+
+    vt->free(obf);
+    return OK;
+error:
+    vt->free(obf);
+    return ERR;
 }
 
 static int
@@ -237,6 +270,8 @@ run(const struct args_t *args)
     lin_obf_params_t lin_params;
     lz_obf_params_t lz_params;
     void *vparams;
+    unsigned int kappa = args->kappa;
+    int ret = OK;
 
     switch (args->mmap) {
     case MMAP_CLT:
@@ -302,121 +337,129 @@ run(const struct args_t *args)
 
     if (args->dry_run) {
         obfuscation *obf;
-        obf = vt->new(mmap, params, args->secparam, args->kappa);
+        obf = vt->new(mmap, params, args->secparam, kappa);
         if (obf == NULL) {
             fprintf(stderr, "error: initializing obfuscator failed\n");
             exit(EXIT_FAILURE);
         }
         vt->free(obf);
         goto cleanup;
+    } else if (args->smart || args->get_kappa) {
+        FILE *f = tmpfile();
+        if (args->smart) {
+            printf("Choosing κ and #powers, if applicable, smartly...\n");
+        }
+        if (f == NULL) {
+            fprintf(stderr, "error: unable to open tempfile\n");
+            exit(EXIT_FAILURE);
+        }
+        if (_obfuscate(vt, &dummy_vtable, params, f, 8, 0, args->nthreads) == ERR) {
+            fprintf(stderr, "error: unable to obfuscate to determine parameter settings\n");
+            exit(EXIT_FAILURE);
+        }
+        rewind(f);
+
+        int input[c.ninputs];
+        int output[c.outputs.n];
+
+        memset(input, '\0', sizeof input);
+        memset(output, '\0', sizeof output);
+        if (_evaluate(vt, &dummy_vtable, params, f, input, output, args->nthreads, &kappa) == ERR) {
+            fprintf(stderr, "error: unable to evaluate to determine parameter settings\n");
+            exit(EXIT_FAILURE);
+        }
+        fclose(f);
+        if (args->get_kappa) {
+            printf("κ = %u\n", kappa);
+            goto cleanup;
+        }
+        printf("Setting kappa to %u\n", kappa);
     }
 
-    if (args->obfuscate || args->test || args->get_kappa) {
-        char fname[strlen(args->circuit) + sizeof ".obf"];
-        obfuscation *obf;
-        double start, end;
+    if (args->obfuscate || args->test) {
+        char fname[strlen(args->circuit) + sizeof ".obf\0"];
         FILE *f;
 
-        if (g_verbose)
-            fprintf(stderr, "obfuscating...\n");
-        start = current_time();
-        obf = vt->new(mmap, params, args->secparam, args->kappa);
-        if (obf == NULL) {
-            fprintf(stderr, "error: initializing obfuscator failed\n");
-            exit(EXIT_FAILURE);
-        }
-        if (vt->obfuscate(obf, args->nthreads) == ERR) {
-            fprintf(stderr, "error: obfuscation failed\n");
-            exit(EXIT_FAILURE);
-        }
-        end = current_time();
-        if (g_verbose)
-            fprintf(stderr, "obfuscation: %.2fs\n", end - start);
-
-        start = current_time();
         snprintf(fname, sizeof fname, "%s.obf", args->circuit);
         if ((f = fopen(fname, "w")) == NULL) {
             fprintf(stderr, "error: unable to open '%s' for writing\n", fname);
             exit(EXIT_FAILURE);
         }
-        if (vt->fwrite(obf, f) == ERR) {
-            fprintf(stderr, "error: writing obfuscator failed\n");
+        if (_obfuscate(vt, mmap, params, f, args->secparam, kappa, args->nthreads) == ERR) {
             exit(EXIT_FAILURE);
         }
-        end = current_time();
-        if (g_verbose)
-            fprintf(stderr, "write to disk: %.2fs\n", end - start);
-        vt->free(obf);
         fclose(f);
     }
 
-    if (args->evaluate || args->test || args->get_kappa) {
-        char fname[strlen(args->circuit) + 5];
-        obfuscation *obf;
-        double start, end;
+    if (args->evaluate || args->test) {
+        char fname[strlen(args->circuit) + sizeof ".obf\0"];
         FILE *f;
 
-        if (g_verbose)
-            fprintf(stderr, "evaluating...\n");
-        start = current_time();
         snprintf(fname, sizeof fname, "%s.obf", args->circuit);
         if ((f = fopen(fname, "r")) == NULL) {
             fprintf(stderr, "error: unable to open '%s' for reading\n", fname);
             exit(EXIT_FAILURE);
         }
-        if ((obf = vt->fread(mmap, params, f)) == NULL) {
-            fprintf(stderr, "error: reading obfuscator failed\n");
-            exit(EXIT_FAILURE);
-        }
-        fclose(f);
-        end = current_time();
-        if (g_verbose)
-            fprintf(stderr, "read from disk: %.2fs\n", end - start);
 
-        if (args->evaluate || args->get_kappa) {
-            int evaluate[c.ninputs];
-            int res[c.outputs.n];
-            unsigned int degree;
-            if (args->get_kappa) {
-                for (size_t i = 0; i < c.ninputs; ++i) {
-                    evaluate[i] = 0;
-                }
-            } else {
-                for (size_t i = 0; i < c.ninputs; ++i) {
-                    evaluate[i] = args->evaluate[i] - '0';
-                }
+        if (args->evaluate) {
+            int input[c.ninputs];
+            int output[c.outputs.n];
+            for (size_t i = 0; i < c.ninputs; ++i) {
+                input[i] = args->evaluate[i] - '0';
             }
-            start = current_time();
-            if (vt->evaluate(res, evaluate, obf, args->nthreads, &degree) == ERR)
+
+            if (_evaluate(vt, mmap, params, f, input, output, args->nthreads, NULL) == ERR)
                 return ERR;
-            end = current_time();
-            if (g_verbose)
-                fprintf(stderr, "evaluation: %.2fs\n", end - start);
-            if (args->get_kappa) {
-                printf("κ = %u\n", degree);
-            } else {
-                for (size_t i = 0; i < c.outputs.n; ++i) {
-                    printf("%d", res[i]);
+            printf("result: ");
+            for (size_t i = 0; i < c.outputs.n; ++i) {
+                printf("%d", output[i]);
+            }
+            printf("\n");
+        } else if (args->test) {
+            int output[c.outputs.n];
+            for (size_t i = 0; i < c.tests.n; i++) {
+                rewind(f);
+                if (_evaluate(vt, mmap, params, f, c.tests.inps[i], output, args->nthreads, NULL) == ERR)
+                    return ERR;
+
+                bool ok = true;
+                for (size_t j = 0; j < c.outputs.n; ++j) {
+                    switch (args->scheme) {
+                    case SCHEME_LZ:
+                        if (!!output[j] != !!c.tests.outs[i][j]) {
+                            ok = false;
+                            ret = ERR;
+                        }
+                        break;
+                    case SCHEME_LIN:
+                        if (output[j] == (c.tests.outs[i][j] != 1)) {
+                            ok = false;
+                            ret = ERR;
+                        }
+                        break;
+                    }
                 }
+                if (!ok)
+                    printf("\033[1;41m");
+                printf("test %lu input=", i);
+                array_printstring_rev(c.tests.inps[i], c.ninputs);
+                printf(" expected=");
+                array_printstring_rev(c.tests.outs[i], c.outputs.n);
+                printf(" got=");
+                array_printstring_rev(output, c.outputs.n);
+                if (!ok)
+                    printf("\033[0m");
                 printf("\n");
             }
         }
-
-        if (args->test) {
-            if (_test(vt, args, &c, obf) == ERR) {
-                fprintf(stderr, "error: evaluation failed\n");
-                exit(EXIT_FAILURE);
-            }
-        }
-
-        vt->free(obf);
+        fclose(f);
     }
 
 cleanup:
     op_vt->free(params);
     acirc_clear(&c);
 
-    return OK;
+    return ret;
 }
 
 int
@@ -496,6 +539,9 @@ main(int argc, char **argv)
         }
         case 'o':               /* --obfuscate */
             args.obfuscate = true;
+            break;
+        case 'r':               /* --smart */
+            args.smart = true;
             break;
         case 's':               /* --sigma */
             args.sigma = true;
