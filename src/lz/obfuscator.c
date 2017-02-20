@@ -564,6 +564,8 @@ static void eval_worker(void *vargs)
         const encoding *const x = cache[args[0]];
         const encoding *const y = cache[args[1]];
 
+        /* printf("%lu %lu %lu\n", args[0], args[1], ref); */
+
         if (op == OP_MUL) {
             encoding_mul(obf->enc_vt, obf->pp_vt, res, x, y, obf->pp);
         } else {
@@ -586,7 +588,13 @@ static void eval_worker(void *vargs)
         }
         break;
     }
+    case OP_SET:
+        res = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
+        mine[ref] = true;
+        encoding_set(obf->enc_vt, res, cache[args[0]]);
+        break;
     default:
+        fprintf(stderr, "fatal: op not supported\n");
         abort();
     }        
 
