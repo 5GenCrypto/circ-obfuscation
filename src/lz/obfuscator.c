@@ -364,7 +364,7 @@ _obfuscate(obfuscation *obf, size_t nthreads)
     for (size_t i = 0; i < op->m; i++) {
         obf_index_clear(ix);
         IX_Y(ix) = 1;
-        mpz_set_ui(inps[0], circ->consts.buf[i]);
+        mpz_set_si(inps[0], circ->consts.buf[i]);
         mpz_set   (inps[1], beta[i]);
         __encode(pool, obf->enc_vt, obf->yhat[i], inps, obf_index_copy(ix, op),
                  obf->sp, &count_lock, &count, total);
