@@ -189,6 +189,7 @@ _obfuscate(const obfuscator_vtable *vt, const mmap_vtable *mmap,
     obfuscation *obf;
     double start, end;
 
+    start = current_time();
     obf = vt->new(mmap, params, secparam, kappa);
     if (obf == NULL) {
         fprintf(stderr, "error: initializing obfuscator failed\n");
@@ -197,7 +198,6 @@ _obfuscate(const obfuscator_vtable *vt, const mmap_vtable *mmap,
 
     if (g_verbose)
         fprintf(stderr, "obfuscating...\n");
-    start = current_time();
     if (vt->obfuscate(obf, nthreads) == ERR) {
         fprintf(stderr, "error: obfuscation failed\n");
         goto error;
