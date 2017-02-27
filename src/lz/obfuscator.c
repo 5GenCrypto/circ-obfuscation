@@ -234,7 +234,7 @@ static int
 _obfuscate(obfuscation *obf, size_t nthreads)
 {
     const obf_params_t *const op = obf->op;
-    acirc *const c = op->circ;
+    acirc *const circ = op->circ;
     mpz_t *const moduli =
         mpz_vect_create_of_fmpz(obf->mmap->sk->plaintext_fields(obf->sp->sk),
                                 obf->mmap->sk->nslots(obf->sp->sk));
@@ -281,7 +281,7 @@ _obfuscate(obfuscation *obf, size_t nthreads)
 
     for (size_t o = 0; o < op->gamma; o++) {
         mpz_init(Cstar[o]);
-        acirc_eval_mpz_mod(Cstar[o], c, c->outputs.buf[o], alpha, beta, moduli[1]);
+        acirc_eval_mpz_mod(Cstar[o], circ, circ->outputs.buf[o], alpha, beta, moduli[1]);
     }
 
     unsigned long const_deg[op->gamma];
@@ -294,23 +294,23 @@ _obfuscate(obfuscation *obf, size_t nthreads)
     memset(var_deg, '\0', sizeof var_deg);
     memset(var_deg_max, '\0', sizeof var_deg_max);
 
-    memo = acirc_memo_new(c);
+    memo = acirc_memo_new(circ);
     for (size_t o = 0; o < op->gamma; o++) {
-        const_deg[o] = acirc_const_degree(c, c->outputs.buf[o], memo);
+        const_deg[o] = acirc_const_degree(circ, circ->outputs.buf[o], memo);
         if (const_deg[o] > const_deg_max)
             const_deg_max = const_deg[o];
     }
-    acirc_memo_free(memo, c);
+    acirc_memo_free(memo, circ);
 
-    memo = acirc_memo_new(c);
+    memo = acirc_memo_new(circ);
     for (size_t k = 0; k < op->c; k++) {
         for (size_t o = 0; o < op->gamma; o++) {
-            var_deg[k][o] = acirc_var_degree(c, c->outputs.buf[o], k, memo);
+            var_deg[k][o] = acirc_var_degree(circ, circ->outputs.buf[o], k, memo);
             if (var_deg[k][o] > var_deg_max[k])
                 var_deg_max[k] = var_deg[k][o];
         }
     }
-    acirc_memo_free(memo, c);
+    acirc_memo_free(memo, circ);
 
     if (g_verbose) {
         print_progress(count, total);
@@ -364,7 +364,7 @@ _obfuscate(obfuscation *obf, size_t nthreads)
     for (size_t i = 0; i < op->m; i++) {
         obf_index_clear(ix);
         IX_Y(ix) = 1;
-        mpz_set_ui(inps[0], c->consts.buf[i]);
+        mpz_set_ui(inps[0], circ->consts.buf[i]);
         mpz_set   (inps[1], beta[i]);
         __encode(pool, obf->enc_vt, obf->yhat[i], inps, obf_index_copy(ix, op),
                  obf->sp, &count_lock, &count, total);
