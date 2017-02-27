@@ -3,6 +3,7 @@
 prog=$(readlink -f ../circobf.sh)
 circuits=$(readlink -f ../circuits)
 
+
 run () {
     circuit=$1
     issigma=$2
@@ -40,15 +41,19 @@ run () {
 }
 
 echo "name, mode, nins, nkey, nouts, size, nmuls, depth, degree, lin.κ, lz.κ"
-for circuit in $(ls $circuits/*.acirc); do
-    run $circuit n
-done
-for circuit in $(ls -v $circuits/circuits/*.acirc); do
-    run $circuit n
-done
-for circuit in $(ls -v $circuits/circuits/sigma/*.acirc); do
-    run $circuit y
-done
-# for circuit in $(ls ../circuits/circuits/other/*.acirc); do
-#     run $circuit n
-# done
+if [ x$1 != x ]; then
+    run $1 n
+else
+    for circuit in $(ls $circuits/*.acirc); do
+        run $circuit n
+    done
+    for circuit in $(ls -v $circuits/circuits/*.acirc); do
+        run $circuit n
+    done
+    for circuit in $(ls -v $circuits/circuits/sigma/*.acirc); do
+        run $circuit y
+    done
+    # for circuit in $(ls ../circuits/circuits/other/*.acirc); do
+    #     run $circuit n
+    # done
+fi
