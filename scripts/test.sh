@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-prog=$(readlink -f ../run.sh)
+prog=$(readlink -f ../circobf.sh)
 circuits=$(readlink -f ../circuits)
 
 run () {

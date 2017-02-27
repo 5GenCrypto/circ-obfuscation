@@ -2,6 +2,12 @@
 
 set -e
 
+if [ x$1 == x ]; then
+    echo "error: missing filename"
+    echo "usage: $0 <filename>"
+    exit 1
+fi
+
 pretty () {
     if [ ${#1} -gt 6 ]; then
         echo $(printf %.1e $1)

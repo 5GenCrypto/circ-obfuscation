@@ -291,7 +291,9 @@ run(const struct args_t *args)
             fprintf(stderr, "error: opening circuit '%s' failed\n", args->circuit);
             exit(EXIT_FAILURE);
         }
+        acirc_init(&c);
         if (acirc_fread(&c, fp) == NULL) {
+            acirc_clear(&c);
             fclose(fp);
             fprintf(stderr, "error: parsing circuit '%s' failed\n", args->circuit);
             exit(EXIT_FAILURE);
