@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
+#
+# Prints compiler info in latex for a CSV file containing info produced by
+# get-kappas.sh
+#
 
 set -e
 
-usage () {
-    echo "usage: compiler-info.sh"
-    exit $1
-}
+if [ x"$1" = x"" ]; then
+    fname='kappas.csv'
+else
+    fname=$1
+fi
 
 pretty () {
     if [ $1 == "[overflow]" ]; then
@@ -88,4 +93,4 @@ while read input; do
         minkappa=$minsize
         count=$(expr $count + 1)
     fi
-done < $1
+done < $fname

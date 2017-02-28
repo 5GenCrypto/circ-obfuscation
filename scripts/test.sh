@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+#
+# Test all circuits
+#
 
 prog=$(readlink -f ../circobf.sh)
 circuits=$(readlink -f ../circuits)

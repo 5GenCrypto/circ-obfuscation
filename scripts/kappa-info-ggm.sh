@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
+#
+# Prints GGM circuit info in latex for a CSV file containing info produced by
+# get-kappas.sh
+#
 
 set -e
+
+if [ x"$1" = x"" ]; then
+    fname='kappas.csv'
+else
+    fname=$1
+fi
 
 pretty () {
     if [ ${#1} -gt 6 ]; then
@@ -72,4 +82,4 @@ while read input; do
         echo "\texttt{$name} $left && $lin && $lz $right \\\\"
     fi
     count=$(expr $count + 1)
-done < $1
+done < $fname

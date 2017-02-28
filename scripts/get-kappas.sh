@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
+#
+# Prints info about circuit and outputs as CSV
+#
 
 prog=$(readlink -f ../circobf.sh)
 circuits=$(readlink -f ../circuits)
-
 
 run () {
     circuit=$1
@@ -25,7 +27,7 @@ run () {
     ninputs=$(grep ninputs /tmp/results.txt | cut -d' ' -f 3)
     nconsts=$(grep nconsts /tmp/results.txt | cut -d' ' -f 3)
     noutputs=$(grep noutputs /tmp/results.txt | cut -d' ' -f 3)
-    size=$(grep "* size" /tmp/results.txt | cut -d' ' -f 3)
+    size=$(grep "* ngates" /tmp/results.txt | cut -d' ' -f 3)
     nmuls=$(grep " *nmuls" /tmp/results.txt | cut -d' ' -f 3)
     depth=$(grep "* depth" /tmp/results.txt | cut -d' ' -f 3)
     degree=$(grep "* degree" /tmp/results.txt | cut -d' ' -f 3)
@@ -40,7 +42,7 @@ run () {
     echo "$name, $mode, $ninputs, $nconsts, $noutputs, $size, $nmuls, $depth, $degree, $lin_ | $lin, $lz_ | $lz"
 }
 
-echo "name, mode, nins, nkey, nouts, size, nmuls, depth, degree, lin.κ, lz.κ"
+echo "name, mode, nins, nkey, nouts, ngates, nmuls, depth, degree, lin.κ, lz.κ"
 if [ x$1 != x ]; then
     run $1 n
 else

@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
+#
+# Prints circuit info in latex for a CSV file containing info produced by
+# get-kappas.sh
+#
 
 set -e
+
+if [ x"$1" = x"" ]; then
+    fname='kappas.csv'
+else
+    fname=$1
+fi
 
 count=0
 
@@ -35,4 +45,4 @@ while read input; do
     fi
     echo "\texttt{$name} && $ninputs && $nconsts && $nouts && $size && $nmuls && $depth && $degree \\\\"
     count=$(expr $count + 1)
-done < $1
+done < $fname

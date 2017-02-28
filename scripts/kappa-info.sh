@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
+#
+# Prints kappa info for the DSL compiler in latex for a CSV file containing info
+# produced by get-kappas.sh
+#
 
 set -e
 
 if [ x$1 == x ]; then
-    echo "error: missing filename"
-    echo "usage: $0 <filename>"
-    exit 1
+    fname='kappas.csv'
+else
+    fname=$1
 fi
 
 pretty () {
@@ -58,4 +62,4 @@ while read input; do
         echo "\texttt{$name} $add && $lin && $lz \\\\"
     fi
     count=$(expr $count + 1)
-done < $1
+done < $fname
