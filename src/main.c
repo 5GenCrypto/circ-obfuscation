@@ -306,7 +306,7 @@ run(const struct args_t *args)
         printf("* ninputs: %lu\n", c.ninputs);
         printf("* nconsts: %lu\n", c.consts.n);
         printf("* noutputs: %lu\n", c.outputs.n);
-        printf("* size: %lu\n", c.gates.n);
+        printf("* ngates: %lu\n", c.gates.n);
         printf("* nmuls: %lu\n", acirc_nmuls(&c));
         printf("* depth: %lu\n", acirc_max_depth(&c));
         printf("* degree: %lu\n", acirc_max_degree(&c));
