@@ -20,24 +20,48 @@ pretty () {
     fi
 }
 
-count=0
+scheme () {
+    if [ x$1 == x"[overflow]" ]; then
+        out=$1
+    else
+        a=$(pretty $1)
+        b=$(pretty $2)
+        if [ x$a == x$b ]; then
+            out=$a
+        else
+            out="$a ($b)"
+        fi
+    fi
+    echo $out
+}
 
+count=0
+total=0
+declare -A row
 while read input; do
     line=$(echo $input | tr -d ' ')
     name=$(echo $line | cut -d',' -f1)
-    if [ x"$name" == xname ]; then
+    # skip column names row
+    if [ x$name == xname ]; then
         continue
     fi
-    if [ x"$(echo $name | cut -d'_' -f1)" != x"ggm" ]; then
+    # skip all non-ggm circuits
+    if [ x$(echo $name | cut -d'_' -f1) != xggm ]; then
         continue
     fi
-    if [ x"$(echo $name | cut -d'_' -f2)" == x"sigma" ]; then
+    if [ x$(echo $name | cut -d'_' -f2) == xsigma ]; then
         sigma=1
+        if [ $total == 0 ]; then
+            total=$count
+        fi
     else
         sigma=0
+        ninputs=$(echo $line | cut -d',' -f3)
+        noutputs=$(echo $line | cut -d',' -f5)
     fi
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
     mode=$(echo $line | cut -d',' -f2)
+    # skip non-dsl compiled circuits
     if [ x"$mode" != xdsl ]; then
         continue
     fi
@@ -47,39 +71,18 @@ while read input; do
     lin2=$(echo $lin | cut -d'|' -f2)
     lz1=$(echo $lz | cut -d'|' -f1)
     lz2=$(echo $lz | cut -d'|' -f2)
-    if [ x"$lin1" == x"[overflow]" ]; then
-        lin=$lin1
-    else
-        lin1=$(pretty $lin1)
-        lin2=$(pretty $lin2)
-        if [ x$lin1 == x$lin2 ]; then
-            lin=$lin1
-        else
-            lin="$lin1 ($lin2)"
-        fi
-    fi
-    if [ x"$lz1" == x"[overflow]" ]; then
-        lz=$lz1
-    else
-        lz1=$(pretty $lz1)
-        lz2=$(pretty $lz2)
-        if [ x$lz1 == x$lz2 ]; then
-            lz=$lz1
-        else
-            lz="$lz1 ($lz2)"
-        fi
-    fi
+    lin=$(scheme $lin2 $lin2)
+    lz=$(scheme $lz2 $lz2)
     if [ $sigma -eq 1 ]; then
-        left="&&&&"
-        right=""
+        index=$(($count - $total))
+        row[$index]="${row[$index]} && $lin && $lz \\\\"
+        if [ $(($count % 2)) == 1 ]; then
+            echo "\rowcol ${row[$index]}"
+        else
+            echo "${row[$index]}"
+        fi
     else
-        left=""
-        right="&&&&"
+        row[$count]="$ninputs & $noutputs && $lin && $lz"
     fi
-    if [ $(expr $count % 2) == 1 ]; then
-        echo "\rowcol \texttt{$name} $left && $lin && $lz $right \\\\"
-    else
-        echo "\texttt{$name} $left && $lin && $lz $right \\\\"
-    fi
-    count=$(expr $count + 1)
+    count=$(($count + 1))
 done < $fname
