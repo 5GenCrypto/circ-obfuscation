@@ -39,7 +39,7 @@ AC_SEARCH_LIBS(mmap_enc_mat_init, mmap, [], AC_MSG_ERROR([libmmap not found]))
 AC_SEARCH_LIBS(threadpool_create, threadpool, [], AC_MSG_ERROR([libthreadpool not found]))
 
 AC_SEARCH_LIBS(floor, m, [], AC_MSG_ERROR([libm not found]))
-dnl AC_SEARCH_LIBS(_fmpz_clear_mpz, flint, [], AC_MSG_ERROR([libflint not found]))
+AC_SEARCH_LIBS(_fmpz_clear_mpz, flint, [], AC_MSG_ERROR([libflint not found]))
 AC_SEARCH_LIBS(__gmpz_init, gmp, [], AC_MSG_ERROR([libgmp not found]))
 
 AC_CONFIG_FILES([Makefile src/Makefile src/lin/Makefile src/lz/Makefile])
