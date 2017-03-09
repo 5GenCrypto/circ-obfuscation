@@ -1101,8 +1101,9 @@ static void eval_worker(void *vargs)
 
 static int
 _evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
-          unsigned int *degree)
+          unsigned int *degree, size_t *max_npowers)
 {
+    (void) max_npowers;
     const acirc *const c = obf->op->circ;
 
     wire **cache = my_calloc(acirc_nrefs(c), sizeof cache[0]);

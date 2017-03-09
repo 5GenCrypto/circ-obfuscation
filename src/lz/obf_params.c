@@ -5,6 +5,18 @@
 
 #include <assert.h>
 
+PRIVATE size_t
+num_encodings(const obf_params_t *op)
+{
+    return op->c * op->q * op->ell
+        + op->c * op->q * op->npowers
+        + op->c * op->q * op->gamma
+        + op->c * op->q * op->gamma
+        + op->m
+        + op->npowers
+        + op->gamma;
+}
+
 static obf_params_t *
 _op_new(acirc *circ, void *vparams)
 {
@@ -37,6 +49,7 @@ _op_new(acirc *circ, void *vparams)
         fprintf(stderr, "* γ: %lu\n", op->gamma);
         fprintf(stderr, "* q: %lu\n", op->q);
         fprintf(stderr, "* # powers: %lu\n", op->npowers);
+        fprintf(stderr, "* # encodings: %lu\n", num_encodings(op));
     }
 
     assert(op->ell > 0);

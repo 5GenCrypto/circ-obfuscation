@@ -42,18 +42,6 @@ typedef struct work_args {
     int *rop;
 } work_args;
 
-static size_t
-num_encodings(const obf_params_t *op)
-{
-    return op->c * op->q * op->ell
-        + op->c * op->q * op->npowers
-        + op->c * op->q * op->gamma
-        + op->c * op->q * op->gamma
-        + op->m
-        + op->npowers
-        + op->gamma;
-}
-
 typedef struct obf_args {
     const encoding_vtable *vt;
     encoding *enc;
@@ -132,6 +120,7 @@ __obfuscator_new(const mmap_vtable *mmap, const obf_params_t *op)
     obf->yhat = my_calloc(op->m, sizeof obf->yhat[0]);
     obf->vhat = my_calloc(op->npowers, sizeof obf->vhat[0]);
     obf->Chatstar = my_calloc(op->gamma, sizeof obf->Chatstar[0]);
+
     return obf;
 }
 
@@ -141,6 +130,9 @@ _obfuscator_new(const mmap_vtable *mmap, const obf_params_t *op,
                 size_t ncores)
 {
     obfuscation *obf;
+
+    if (op->npowers == 0 || secparam == 0)
+        return NULL;
 
     obf = __obfuscator_new(mmap, op);
     aes_randinit(obf->rng);
@@ -248,7 +240,6 @@ _obfuscate(obfuscation *obf, size_t nthreads)
     mpz_t gamma[op->c][op->q][op->gamma];
     mpz_t delta[op->c][op->q][op->gamma];
     mpz_t Cstar[op->gamma];
-
     threadpool *pool = threadpool_create(nthreads);
 
     pthread_mutex_t count_lock;
@@ -482,6 +473,8 @@ _obfuscator_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     return obf;
 }
 
+static size_t g_max_npowers;
+
 static void _raise_encoding(const obfuscation *obf, encoding *x, encoding **ys, size_t diff)
 {
     while (diff > 0) {
@@ -489,6 +482,8 @@ static void _raise_encoding(const obfuscation *obf, encoding *x, encoding **ys, 
         size_t p = 0;
         while (((size_t) 1 << (p+1)) <= diff && (p+1) < obf->op->npowers)
             p++;
+        if (g_max_npowers < p + 1)
+            g_max_npowers = p + 1;
         encoding_mul(obf->enc_vt, obf->pp_vt, x, x, ys[p], obf->pp);
         diff -= (1 << p);
     }
@@ -682,7 +677,7 @@ static void eval_worker(void *vargs)
 
 static int
 _evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
-          unsigned int *degree)
+          unsigned int *degree, size_t *max_npowers)
 {
     const acirc *const c = obf->op->circ;
 
@@ -694,8 +689,8 @@ _evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
                                      obf->op->c, obf->op->ell, obf->op->q,
                                      obf->op->sigma);
     ref_list **deps = ref_lists_new(c);
-
     threadpool *pool = threadpool_create(nthreads);
+    g_max_npowers = 0;
 
     // start threads evaluating the circuit inputs- they will signal their
     // parents to start, recursively, until the output is reached.
@@ -730,6 +725,8 @@ _evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
     }
     if (degree)
         *degree = maxdeg;
+    if (max_npowers)
+        *max_npowers = g_max_npowers;
 
     for (size_t i = 0; i < acirc_nrefs(c); i++) {
         if (mine[i]) {

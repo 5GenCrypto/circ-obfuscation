@@ -18,3 +18,5 @@ struct obf_params_t {
     reverse_chunker rchunker;
     acirc *circ;
 };
+
+size_t num_encodings(const obf_params_t *op);

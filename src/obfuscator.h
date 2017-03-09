@@ -9,7 +9,8 @@ typedef struct {
                          size_t ncores);
     void (*free)(obfuscation *obf);
     int (*obfuscate)(obfuscation *obf, size_t nthreads);
-    int (*evaluate)(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads, unsigned int *degree);
+    int (*evaluate)(const obfuscation *obf, int *rop, const int *inputs,
+                    size_t nthreads, unsigned int *degree, size_t *max_npowers);
     int (*fwrite)(const obfuscation *obf, FILE *fp);
     obfuscation * (*fread)(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp);
 } obfuscator_vtable;

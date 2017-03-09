@@ -8,7 +8,7 @@
 static void
 mmap_params_fprint(FILE *fp, const mmap_params_t *params)
 {
-    fprintf(fp, "mmap parameter settings:\n");
+    fprintf(fp, "Multilinear map parameter settings:\n");
     fprintf(fp, "* κ:       %lu\n", params->kappa);
     fprintf(fp, "* # Zs:    %lu\n", params->nzs);
     fprintf(fp, "* # slots: %lu\n", params->nslots);
