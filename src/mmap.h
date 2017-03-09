@@ -78,7 +78,7 @@ typedef struct {
 
 secret_params *
 secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
-                  size_t kappa, aes_randstate_t rng);
+                  size_t kappa, size_t ncores, aes_randstate_t rng);
 void
 secret_params_free(const sp_vtable *vt, secret_params *p);
 

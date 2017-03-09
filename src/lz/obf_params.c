@@ -9,7 +9,7 @@ static obf_params_t *
 _op_new(acirc *circ, void *vparams)
 {
     const lz_obf_params_t *const params = vparams;
-    obf_params_t *const op = calloc(1, sizeof(obf_params_t));
+    obf_params_t *const op = calloc(1, sizeof op[0]);
 
     op->sigma = params->sigma;
     op->m = circ->consts.n;

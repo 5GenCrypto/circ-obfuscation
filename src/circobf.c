@@ -25,11 +25,6 @@ enum scheme_e {
     SCHEME_LZ,
 };
 
-enum mmap_e {
-    MMAP_CLT,
-    MMAP_DUMMY,
-};
-
 static char *progname = "circobf";
 
 static char *
@@ -40,18 +35,6 @@ scheme_to_string(enum scheme_e scheme)
         return "LIN";
     case SCHEME_LZ:
         return "LZ";
-    }
-    abort();
-}
-
-static char *
-mmap_to_string(enum mmap_e mmap)
-{
-    switch (mmap) {
-    case MMAP_CLT:
-        return "CLT";
-    case MMAP_DUMMY:
-        return "DUMMY";
     }
     abort();
 }
@@ -74,8 +57,6 @@ struct args_t {
     bool sigma;
     /* LZ specific flags */
     size_t npowers;
-
-
 };
 
 static void
@@ -189,15 +170,15 @@ _obfuscate(const obfuscator_vtable *vt, const mmap_vtable *mmap,
     obfuscation *obf;
     double start, end;
 
+    if (g_verbose)
+        fprintf(stderr, "obfuscating...\n");
     start = current_time();
-    obf = vt->new(mmap, params, secparam, kappa);
+    obf = vt->new(mmap, params, NULL, secparam, kappa, nthreads);
     if (obf == NULL) {
         fprintf(stderr, "error: initializing obfuscator failed\n");
         goto error;
     }
 
-    if (g_verbose)
-        fprintf(stderr, "obfuscating...\n");
     if (vt->obfuscate(obf, nthreads) == ERR) {
         fprintf(stderr, "error: obfuscation failed\n");
         goto error;
@@ -246,7 +227,7 @@ _evaluate(const obfuscator_vtable *vt, const mmap_vtable *mmap,
         fprintf(stderr, "    read from disk: %.2fs\n", end - start);
 
     start = current_time();
-    if (vt->evaluate(output, input, obf, nthreads, degree) == ERR)
+    if (vt->evaluate(obf, output, input, nthreads, degree) == ERR)
         goto error;
     end = current_time();
     if (g_verbose)
@@ -339,7 +320,7 @@ run(const struct args_t *args)
 
     if (args->dry_run) {
         obfuscation *obf;
-        obf = vt->new(mmap, params, args->secparam, kappa);
+        obf = vt->new(mmap, params, NULL, args->secparam, kappa, args->nthreads);
         if (obf == NULL) {
             fprintf(stderr, "error: initializing obfuscator failed\n");
             exit(EXIT_FAILURE);

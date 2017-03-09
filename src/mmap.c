@@ -24,7 +24,7 @@ mmap_params_fprint(FILE *fp, const mmap_params_t *params)
 
 secret_params *
 secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
-                  size_t kappa, aes_randstate_t rng)
+                  size_t kappa, size_t ncores, aes_randstate_t rng)
 {
     mmap_params_t params;
     secret_params *sp = my_calloc(1, sizeof sp[0]);
@@ -36,7 +36,7 @@ secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
         mmap_params_fprint(stderr, &params);
     sp->sk = calloc(1, vt->mmap->sk->size);
     if (vt->mmap->sk->init(sp->sk, lambda, params.kappa, params.nzs,
-                           params.pows, params.nslots, 1, rng, g_verbose)) {
+                           params.pows, params.nslots, ncores, rng, g_verbose)) {
         free(sp);
         sp = NULL;
     }

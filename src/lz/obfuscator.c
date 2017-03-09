@@ -137,13 +137,14 @@ __obfuscator_new(const mmap_vtable *mmap, const obf_params_t *op)
 
 static obfuscation *
 _obfuscator_new(const mmap_vtable *mmap, const obf_params_t *op,
-                size_t secparam, size_t kappa)
+                const secret_params *sp, size_t secparam, size_t kappa,
+                size_t ncores)
 {
     obfuscation *obf;
 
     obf = __obfuscator_new(mmap, op);
     aes_randinit(obf->rng);
-    obf->sp = secret_params_new(obf->sp_vt, op, secparam, kappa, obf->rng);
+    obf->sp = sp ? sp : secret_params_new(obf->sp_vt, op, secparam, kappa, ncores, obf->rng);
     if (obf->sp == NULL)
         goto error;
     obf->pp = public_params_new(obf->pp_vt, obf->sp_vt, obf->sp);
@@ -680,7 +681,7 @@ static void eval_worker(void *vargs)
 
 
 static int
-_evaluate(int *rop, const int *inputs, const obfuscation *obf, size_t nthreads,
+_evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
           unsigned int *degree)
 {
     const acirc *const c = obf->op->circ;

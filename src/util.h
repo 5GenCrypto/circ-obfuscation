@@ -1,9 +1,10 @@
-#ifndef __UTILS_H__
-#define __UTILS_H__
+#pragma once
 
 #include <aesrand.h>
-#include <stdbool.h>
 #include <gmp.h>
+#include <mmap.h>
+
+#include <stdbool.h>
 
 #define OK    0
 #define ERR (-1)
@@ -18,6 +19,13 @@ typedef enum debug_e {
 } debug_e;
 extern debug_e g_debug;
 extern bool g_verbose;
+
+enum mmap_e {
+    MMAP_CLT,
+    MMAP_DUMMY,
+};
+char * mmap_to_string(enum mmap_e mmap);
+const mmap_vtable * mmap_to_mmap(enum mmap_e mmap);
 
 #define LOG_ERROR (g_debug >= ERROR)
 #define LOG_WARN  (g_debug >= WARN)
@@ -81,5 +89,3 @@ bool array_eq(const int *xs, const int *ys, size_t n);
 int array_sum(const int *xs, size_t n);
 
 void print_progress (size_t cur, size_t total);
-
-#endif

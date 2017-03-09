@@ -2,12 +2,15 @@
 
 #include <assert.h>
 #include <fcntl.h>
-#include <gmp.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <err.h>
+
+#include <gmp.h>
+#include <mmap/mmap_clt.h>
+#include <mmap/mmap_dummy.h>
 
 bool g_verbose = false;
 debug_e g_debug = ERROR;
@@ -325,5 +328,30 @@ print_progress(size_t cur, size_t total)
             fprintf(stdout, "\n");
         fflush(stdout);
         last_val = val;
+    }
+}
+
+char *
+mmap_to_string(enum mmap_e mmap)
+{
+    switch (mmap) {
+    case MMAP_CLT:
+        return "CLT";
+    case MMAP_DUMMY:
+        return "DUMMY";
+    }
+    abort();
+}
+
+const mmap_vtable *
+mmap_to_mmap(enum mmap_e mmap)
+{
+    switch (mmap) {
+    case MMAP_CLT:
+        return &clt_vtable;
+    case MMAP_DUMMY:
+        return &dummy_vtable;
+    default:
+        return NULL;
     }
 }

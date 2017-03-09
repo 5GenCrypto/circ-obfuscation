@@ -1,16 +1,15 @@
-#ifndef __OBFUSCATOR_H__
-#define __OBFUSCATOR_H__
+#pragma once
 
-#include "mmap.h"
+#include "./mmap.h"
 
 typedef struct obfuscation obfuscation;
 typedef struct {
-    obfuscation * (*new)(const mmap_vtable *, const obf_params_t *, size_t, size_t);
-    void (*free)(obfuscation *);
-    int (*obfuscate)(obfuscation *, size_t);
-    int (*evaluate)(int *, const int *, const obfuscation *, size_t, unsigned int *);
-    int (*fwrite)(const obfuscation *, FILE *);
-    obfuscation * (*fread)(const mmap_vtable *, const obf_params_t *, FILE *);
+    obfuscation * (*new)(const mmap_vtable *mmap, const obf_params_t *op,
+                         const secret_params *sp, size_t secparam, size_t kappa,
+                         size_t ncores);
+    void (*free)(obfuscation *obf);
+    int (*obfuscate)(obfuscation *obf, size_t nthreads);
+    int (*evaluate)(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads, unsigned int *degree);
+    int (*fwrite)(const obfuscation *obf, FILE *fp);
+    obfuscation * (*fread)(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp);
 } obfuscator_vtable;
-
-#endif
