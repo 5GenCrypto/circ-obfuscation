@@ -6,6 +6,10 @@
 prog=$(readlink -f ../circobf.sh)
 circuits=$(readlink -f ../circuits)
 
+get () {
+    grep "$1" /tmp/results.txt | tr -s ' ' | awk -F' ' '{print $NF}'
+}
+
 run () {
     circuit=$1
     issigma=$2
@@ -18,28 +22,24 @@ run () {
     test $mode != "dsl" && test $mode != "c2a" && test $mode != "c2c" && mode=""
     $prog --get-kappa --scheme LIN --verbose $circuit $flags &>/tmp/results.txt
     if [ $? -eq 0 ]; then
-        lin=$(grep "κ = " /tmp/results.txt | cut -d' ' -f 3)
-        lin_=$(grep "* κ" /tmp/results.txt | tr -s ' ' | cut -d' ' -f 3)
+        lin=$(get "κ = ")
     else
         lin="[overflow]"
-        lin_="[overflow]"
     fi
-    ninputs=$(grep ninputs /tmp/results.txt | cut -d' ' -f 3)
-    nconsts=$(grep nconsts /tmp/results.txt | cut -d' ' -f 3)
-    noutputs=$(grep noutputs /tmp/results.txt | cut -d' ' -f 3)
-    size=$(grep "* ngates" /tmp/results.txt | cut -d' ' -f 3)
-    nmuls=$(grep " *nmuls" /tmp/results.txt | cut -d' ' -f 3)
-    depth=$(grep "* depth" /tmp/results.txt | cut -d' ' -f 3)
-    degree=$(grep "* degree" /tmp/results.txt | cut -d' ' -f 3)
+    ninputs=$(get "ninputs")
+    nconsts=$(get "nconsts")
+    noutputs=$(get "noutputs")
+    ngates=$(get "* ngates")
+    nmuls=$(get " *nmuls")
+    depth=$(get "* depth")
+    degree=$(get "* degree")
     $prog --get-kappa --scheme LZ --verbose $circuit $flags &>/tmp/results.txt
     if [ $? -eq 0 ]; then
-        lz=$(grep "κ =" /tmp/results.txt | cut -d' ' -f 3)
-        lz_=$(grep "* κ" /tmp/results.txt | tr -s ' ' | cut -d' ' -f 3)
+        lz=$(get "κ = ")
     else
         lz="[overflow]"
-        lz_="[overflow]"
     fi
-    echo "$name, $mode, $ninputs, $nconsts, $noutputs, $size, $nmuls, $depth, $degree, $lin_ | $lin, $lz_ | $lz"
+    echo "$name, $mode, $ninputs, $nconsts, $noutputs, $ngates, $nmuls, $depth, $degree, $lin, $lz"
 }
 
 echo "name, mode, nins, nkey, nouts, ngates, nmuls, depth, degree, lin.κ, lz.κ"

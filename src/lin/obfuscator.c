@@ -1089,7 +1089,7 @@ static void eval_worker(void *vargs)
         degrees[output] = encoding_get_degree(obf->enc_vt, outwire->z);
         rop[output] = encoding_is_zero(obf->enc_vt, obf->pp_vt, outwire->z, pp);
         if (rop[output] == ERR) {
-            fprintf(stderr, "iszero check failed\n");
+            fprintf(stderr, "error: iszero check failed\n");
             rop[output] = 1;
         }
 

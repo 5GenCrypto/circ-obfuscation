@@ -83,11 +83,11 @@ static void
 args_print(const struct args_t *args)
 {
     fprintf(stderr, "Obfuscation details:\n"
-            "* Circuit: %s\n"
-            "* Multilinear map: %s\n"
+            "* Circuit: .......... %s\n"
+            "* Multilinear map: .. %s\n"
             "* Security parameter: %lu\n"
-            "* Scheme: %s\n"
-            "* # threads: %lu\n"
+            "* Scheme: ........... %s\n"
+            "* # threads: ........ %lu\n"
             ,
             args->circuit, mmap_to_string(args->mmap), args->secparam,
             scheme_to_string(args->scheme), args->nthreads);
@@ -113,7 +113,7 @@ usage(int ret)
 "    --nthreads <N>    set the number of threads to N (default: %lu)\n"
 "    --scheme <NAME>   set scheme to NAME (options: LIN, LZ | default: %s)\n"
 "    --mmap <NAME>     set mmap to NAME (options: CLT, DUMMY | default: %s)\n"
-"    --smart           be smart in choosing parameters\n"
+"    --smart           be smart in choosing κ and # powers\n"
 "\n"
 "  LIN/LZ specific flags:\n"
 "    --symlen N  set symbol length to N bits (default: %lu)\n"
@@ -164,35 +164,46 @@ _obfuscate(const obfuscator_vtable *vt, const mmap_vtable *mmap,
            size_t nthreads)
 {
     obfuscation *obf;
-    double start, end;
+    double start, end, _start, _end;
 
     if (g_verbose)
         fprintf(stderr, "Obfuscating...\n");
+
     start = current_time();
+    _start = current_time();
     obf = vt->new(mmap, params, NULL, secparam, kappa, nthreads);
     if (obf == NULL) {
         fprintf(stderr, "error: initializing obfuscator failed\n");
         goto error;
     }
+    _end = current_time();
+    if (g_verbose)
+        fprintf(stderr, "    Initialize: %.2fs\n", _end - _start);
 
+    _start = current_time();
     if (vt->obfuscate(obf, nthreads) == ERR) {
         fprintf(stderr, "error: obfuscation failed\n");
         goto error;
     }
-    end = current_time();
+    _end = current_time();
     if (g_verbose)
-        fprintf(stderr, "    obfuscation: %.2fs\n", end - start);
-
+        fprintf(stderr, "    Obfuscate: %.2fs\n", _end - _start);
+    
     if (f) {
-        start = current_time();
+        _start = current_time();
         if (vt->fwrite(obf, f) == ERR) {
             fprintf(stderr, "error: writing obfuscator failed\n");
             goto error;
         }
-        end = current_time();
+        _end = current_time();
         if (g_verbose)
-            fprintf(stderr, "    write to disk: %.2fs\n", end - start);
+            fprintf(stderr, "    Write to disk: %.2fs\n", _end - _start);
     }
+
+    end = current_time();
+    if (g_verbose)
+        fprintf(stderr, "    Total: %.2fs\n", end - start);
+
     vt->free(obf);
     return OK;
 error:
@@ -205,30 +216,32 @@ _evaluate(const obfuscator_vtable *vt, const mmap_vtable *mmap,
           obf_params_t *params, FILE *f, const int *input, int *output,
           size_t nthreads, unsigned int *degree, size_t *max_npowers)
 {
-    double start, end;
+    double start, end, _start, _end;
     obfuscation *obf;
 
     if (g_verbose)
         fprintf(stderr, "Evaluating...\n");
 
     start = current_time();
-
+    _start = current_time();
     if ((obf = vt->fread(mmap, params, f)) == NULL) {
         fprintf(stderr, "error: reading obfuscator failed\n");
         goto error;
     }
-
-    end = current_time();
+    _end = current_time();
     if (g_verbose)
-        fprintf(stderr, "    read from disk: %.2fs\n", end - start);
+        fprintf(stderr, "    Read from disk: %.2fs\n", _end - _start);
 
-    start = current_time();
+    _start = current_time();
     if (vt->evaluate(obf, output, input, nthreads, degree, max_npowers) == ERR)
         goto error;
+    _end = current_time();
+    if (g_verbose)
+        fprintf(stderr, "    Evaluate: %.2fs\n", _end - _start);
+
     end = current_time();
     if (g_verbose)
-        fprintf(stderr, "    evaluation: %.2fs\n", end - start);
-
+        fprintf(stderr, "    Total: %.2fs\n", end - start);
     vt->free(obf);
     return OK;
 error:
@@ -281,14 +294,14 @@ run(const struct args_t *args)
 
     if (g_verbose) {
         printf("Circuit info:\n");
-        printf("* ninputs: %lu\n", c.ninputs);
-        printf("* nconsts: %lu\n", c.consts.n);
+        printf("* ninputs:  %lu\n", c.ninputs);
+        printf("* nconsts:  %lu\n", c.consts.n);
         printf("* noutputs: %lu\n", c.outputs.n);
-        printf("* ngates: %lu\n", c.gates.n);
-        printf("* nmuls: %lu\n", acirc_nmuls(&c));
-        printf("* depth: %lu\n", acirc_max_depth(&c));
-        printf("* degree: %lu\n", acirc_max_degree(&c));
-        printf("* delta: %lu\n", acirc_delta(&c));
+        printf("* ngates: . %lu\n", c.gates.n);
+        printf("* nmuls: .. %lu\n", acirc_nmuls(&c));
+        printf("* depth: .. %lu\n", acirc_max_depth(&c));
+        printf("* degree: . %lu\n", acirc_max_degree(&c));
+        printf("* delta: .. %lu\n", acirc_delta(&c));
     }
 
     switch (args->scheme) {
@@ -350,11 +363,12 @@ run(const struct args_t *args)
 
         if (args->get_kappa) {
             printf("κ = %u\n", kappa);
-            goto cleanup;
+            acirc_clear(&c);
+            return OK;
         }
-        printf("* Setting κ to %u\n", kappa);
+        printf("* Setting κ → %u\n", kappa);
         if (args->scheme == SCHEME_LZ) {
-            printf("* Setting #powers to %u\n", npowers);
+            printf("* Setting #powers → %u\n", npowers);
             lz_params.npowers = npowers;
             op_vt->free(_params);
         }
@@ -432,21 +446,22 @@ run(const struct args_t *args)
                 }
                 if (!ok)
                     printf("\033[1;41m");
-                printf("test %lu input=", i);
+                printf("Test #%lu: input=", i);
                 array_printstring_rev(c.tests.inps[i], c.ninputs);
-                printf(" expected=");
-                array_printstring_rev(c.tests.outs[i], c.outputs.n);
-                printf(" got=");
-                array_printstring_rev(output, c.outputs.n);
-                if (!ok)
-                    printf("\033[0m");
-                printf("\n");
+                if (ok)
+                    printf(" ✓\n");
+                else {
+                    printf(" ̣✗ expected=");
+                    array_printstring_rev(c.tests.outs[i], c.outputs.n);
+                    printf(" got=");
+                    array_printstring_rev(output, c.outputs.n);
+                    printf("\033[0m\n");
+                }
             }
         }
         fclose(f);
     }
 
-cleanup:
     op_vt->free(params);
     acirc_clear(&c);
 

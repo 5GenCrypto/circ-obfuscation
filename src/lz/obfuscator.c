@@ -680,6 +680,7 @@ _evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
           unsigned int *degree, size_t *max_npowers)
 {
     const acirc *const c = obf->op->circ;
+    int ret = ERR;
 
     encoding **cache = my_calloc(acirc_nrefs(c), sizeof cache[0]);
     bool *mine = my_calloc(acirc_nrefs(c), sizeof mine[0]);
@@ -691,6 +692,9 @@ _evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
     ref_list **deps = ref_lists_new(c);
     threadpool *pool = threadpool_create(nthreads);
     g_max_npowers = 0;
+
+    if (input_syms == NULL)
+        goto finish;
 
     // start threads evaluating the circuit inputs- they will signal their
     // parents to start, recursively, until the output is reached.
@@ -715,7 +719,9 @@ _evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
         args->degrees = degrees;
         threadpool_add_job(pool, eval_worker, args);
     }
+    ret = OK;
 
+finish:
     threadpool_destroy(pool);
 
     unsigned int maxdeg = 0;
@@ -740,7 +746,7 @@ _evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
     free(degrees);
     free(input_syms);
 
-    return OK;
+    return ret;
 }
 
 obfuscator_vtable lz_obfuscator_vtable = {
