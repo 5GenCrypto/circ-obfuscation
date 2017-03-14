@@ -31,16 +31,12 @@ count=0
 while read input; do
     line=$(echo $input | tr -d ' ')
     name=$(echo $line | cut -d',' -f1)
-    if [ x"$name" == xname ]; then
-        continue
-    elif [ x"$name" == xf3_4 ]; then
-        continue
-    elif [ x"$name" == xmapper_8 ]; then
+    if [ x$name == xname ] || [ x$name == xf3_4 ] || [ x$name == xmapper_8 ]; then
         continue
     fi
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
     mode=$(echo $line | cut -d',' -f2)
-    if [ x$mode == xc2a ]; then
+    if [ x$mode = xc2a ]; then
         if [ x$modes != xc2ac2cdsl ]; then
             modes=
             minsize=10000000000
@@ -48,9 +44,13 @@ while read input; do
             minnmuls=$minsize
             minkappa=$minsize
         fi
-        results="texttt{$name}"
+        results=""
     fi
-    modes="$modes$mode"
+    modes=$modes$mode
+    if [ x$modes = xdsl ]; then
+        modes=""
+        continue
+    fi
     size=$(echo $line | cut -d',' -f6)
     if [ $size -lt $minsize ]; then
         minsize=$size
@@ -66,14 +66,21 @@ while read input; do
         mindeg=$deg
     fi
     deg=$(pretty $deg)
-    kappa=$(echo $line | cut -d',' -f11 | cut -d'|' -f2)
+    kappa=$(echo $line | cut -d',' -f11)
     if [ $kappa -lt $minkappa ]; then
         minkappa=$kappa
     fi
     kappa=$(pretty $kappa)
-    results="$results && $size & $nmuls & $deg & $kappa "
+    if [ x$mode == xc2a ]; then
+        results="$size & $nmuls & $deg & $kappa "
+    elif [ x$mode == xc2c ]; then
+        results="texttt{$name} && $size & $nmuls & $deg & $kappa && $results"
+    else
+        results="$results && $size & $nmuls & $deg & $kappa "
+    fi
     if [ x$modes == xc2ac2cdsl ]; then
         minsize=$(pretty $minsize)
+        minnmuls=$(pretty $minnmuls)
         mindeg=$(pretty $mindeg)
         minkappa=$(pretty $minkappa)
         results="$results"
