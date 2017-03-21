@@ -1,13 +1,13 @@
+:test 10 1
 :test 11 1
+:test 01 0
 :test 00 0
 :test 11 1
-:test 01 0
-:test 01 0
-:test 01 0
-:test 10 1
-:test 10 1
 :test 00 0
-:test 11 1
+:test 10 1
+:test 01 0
+:test 01 0
+:test 00 0
 :nins 2
 0 const 1
 1 input 0
@@ -140,11 +140,12 @@
 128 const 0
 129 const 0
 130 const 0
-131 MUL 3 2
-132 SUB 0 131
-133 SUB 0 3
-134 SUB 0 2
-135 MUL 133 134
+131 SUB 0 2
+132 SUB 0 3
+133 MUL 131 3
+134 SUB 0 133
+135 MUL 2 132
 136 SUB 0 135
-137 MUL 132 136
-:outputs 137
+137 MUL 134 136
+138 SUB 0 137
+:outputs 138

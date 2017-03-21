@@ -37,7 +37,7 @@ while read input; do
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
     mode=$(echo $line | cut -d',' -f2)
     if [ x$mode = xc2a ]; then
-        if [ x$modes != xc2ac2cdsl ]; then
+        if [ x$modes != xc2ac2vdsl ]; then
             modes=
             minsize=10000000000
             mindeg=$minsize
@@ -72,13 +72,13 @@ while read input; do
     fi
     kappa=$(pretty $kappa)
     if [ x$mode == xc2a ]; then
-        results="$size & $nmuls & $deg & $kappa "
-    elif [ x$mode == xc2c ]; then
-        results="texttt{$name} && $size & $nmuls & $deg & $kappa && $results"
+        results="texttt{$name} && $size & $nmuls & $deg & $kappa "
+    elif [ x$mode == xc2v ]; then
+        results="$results && $size & $nmuls & $deg & $kappa"
     else
         results="$results && $size & $nmuls & $deg & $kappa "
     fi
-    if [ x$modes == xc2ac2cdsl ]; then
+    if [ x$modes == xc2ac2vdsl ]; then
         minsize=$(pretty $minsize)
         minnmuls=$(pretty $minnmuls)
         mindeg=$(pretty $mindeg)

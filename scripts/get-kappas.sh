@@ -19,7 +19,7 @@ run () {
     fi
     name=$(basename $circuit | cut -d'.' -f1)
     mode=$(basename $circuit | cut -d'.' -f2)
-    test $mode != "dsl" && test $mode != "c2a" && test $mode != "c2c" && mode=""
+    test $mode != "dsl" && test $mode != "c2a" && test $mode != "c2v" && mode=""
     $prog --get-kappa --scheme LIN --verbose $circuit $flags &>/tmp/results.txt
     if [ $? -eq 0 ]; then
         lin=$(get "κ = ")
