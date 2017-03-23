@@ -3,8 +3,9 @@
 # Prints info about circuit and outputs as CSV
 #
 
-prog=$(readlink -f ../circobf.sh)
-circuits=$(readlink -f ../circuits)
+dir=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
+prog=$(readlink -f $dir/../circobf.sh)
+circuits=$(readlink -f $dir/../circuits)
 
 get () {
     grep "$1" /tmp/results.txt | tr -s ' ' | awk -F' ' '{print $NF}'
