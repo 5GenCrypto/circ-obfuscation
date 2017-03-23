@@ -3,7 +3,7 @@
 #abort if any command fails
 set -e
 
-dir=$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)
+dir=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
 
 builddir=$dir/build
 prog=$dir/src/circobf
