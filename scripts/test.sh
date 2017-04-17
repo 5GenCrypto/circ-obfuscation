@@ -38,27 +38,20 @@ run_sigma () {
     $prog --mmap $mmap --scheme $scheme --debug $debug $circuit --sigma --symlen 16
 }
 
-for circuit in $(ls $circuits/*.acirc); do
-    echo $circuit
-    run $circuit LIN DUMMY ERROR
-    run $circuit LZ  DUMMY ERROR
+for circuit in $circuits/*.acirc; do
+    echo "$circuit"
+    run "$circuit" LIN DUMMY ERROR
+    run "$circuit" LZ  DUMMY ERROR
 done
 
-for circuit in $(ls $circuits/circuits/*.acirc); do
-    echo $circuit
-    run $circuit LIN DUMMY ERROR
-    run $circuit LZ  DUMMY ERROR
+for circuit in $circuits/circuits/*.acirc; do
+    echo "$circuit"
+    run "$circuit" LIN DUMMY ERROR
+    run "$circuit" LZ  DUMMY ERROR
 done
 
-for circuit in $(ls $circuits/circuits/sigma/*.acirc); do
-    echo $circuit
-    run_sigma $circuit LIN DUMMY ERROR
-    run_sigma $circuit LZ  DUMMY ERROR
+for circuit in $circuits/circuits/sigma/*.acirc; do
+    echo "$circuit"
+    run_sigma "$circuit" LIN DUMMY ERROR
+    run_sigma "$circuit" LZ  DUMMY ERROR
 done
-
-for circuit in $(ls $circuits/circuits/other/*.acirc); do
-    echo $circuit
-    run $circuit LIN DUMMY ERROR
-    run $circuit LZ  DUMMY ERROR
-done
-
