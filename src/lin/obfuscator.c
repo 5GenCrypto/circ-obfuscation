@@ -258,7 +258,7 @@ _obfuscation_free(obfuscation *obf);
 
 static obfuscation *
 _obfuscation_new(const mmap_vtable *mmap, const obf_params_t *op,
-                 const secret_params *sp, size_t secparam, size_t kappa,
+                 const secret_params *sp, size_t secparam, size_t *kappa,
                  size_t ncores)
 {
     obfuscation *obf;
@@ -1101,7 +1101,7 @@ static void eval_worker(void *vargs)
 
 static int
 _evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
-          unsigned int *degree, size_t *max_npowers)
+          size_t *degree, size_t *max_npowers)
 {
     (void) max_npowers;
     const acirc *const c = obf->op->circ;

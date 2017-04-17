@@ -160,7 +160,7 @@ static const char *short_opts = "aD:egk:lL:M:n:orsS:t:Tvh";
 
 static int
 _obfuscate(const obfuscator_vtable *vt, const mmap_vtable *mmap,
-           obf_params_t *params, FILE *f, size_t secparam, size_t kappa,
+           obf_params_t *params, FILE *f, size_t secparam, size_t *kappa,
            size_t nthreads)
 {
     obfuscation *obf;
@@ -214,7 +214,7 @@ error:
 static int
 _evaluate(const obfuscator_vtable *vt, const mmap_vtable *mmap,
           obf_params_t *params, FILE *f, const int *input, int *output,
-          size_t nthreads, unsigned int *degree, size_t *max_npowers)
+          size_t nthreads, size_t *degree, size_t *max_npowers)
 {
     double start, end, _start, _end;
     obfuscation *obf;
@@ -260,7 +260,7 @@ run(const struct args_t *args)
     lin_obf_params_t lin_params;
     lz_obf_params_t lz_params;
     void *vparams;
-    unsigned int kappa = args->kappa;
+    size_t kappa = args->kappa;
     size_t npowers = args->npowers;
     int ret = OK;
 
@@ -342,23 +342,28 @@ run(const struct args_t *args)
             fprintf(stderr, "error: initialize obfuscator parameters failed\n");
             exit(EXIT_FAILURE);
         }
-        if (_obfuscate(vt, &dummy_vtable, _params, f, 8, 0, args->nthreads) == ERR) {
+        kappa = 0;
+        if (_obfuscate(vt, &dummy_vtable, _params, f, 8, &kappa, args->nthreads) == ERR) {
             fprintf(stderr, "error: unable to obfuscate to determine parameter settings\n");
             exit(EXIT_FAILURE);
         }
-        rewind(f);
+        if (args->smart) {
+            rewind(f);
 
-        int input[c.ninputs];
-        int output[c.outputs.n];
+            int input[c.ninputs];
+            int output[c.outputs.n];
 
-        memset(input, '\0', sizeof input);
-        memset(output, '\0', sizeof output);
-        if (_evaluate(vt, &dummy_vtable, _params, f, input, output, args->nthreads,
-                      &kappa, &npowers) == ERR) {
-            fprintf(stderr, "error: unable to evaluate to determine parameter settings\n");
-            exit(EXIT_FAILURE);
+            memset(input, '\0', sizeof input);
+            memset(output, '\0', sizeof output);
+            if (_evaluate(vt, &dummy_vtable, _params, f, input, output, args->nthreads,
+                          &kappa, &npowers) == ERR) {
+                fprintf(stderr, "error: unable to evaluate to determine parameter settings\n");
+                exit(EXIT_FAILURE);
+            }
         }
+
         fclose(f);
+        op_vt->free(_params);
         g_verbose = verbosity;
 
         if (args->get_kappa) {
@@ -366,11 +371,13 @@ run(const struct args_t *args)
             acirc_clear(&c);
             return OK;
         }
-        printf("* Setting κ → %u\n", kappa);
-        if (args->scheme == SCHEME_LZ) {
-            printf("* Setting #powers → %u\n", npowers);
-            lz_params.npowers = npowers;
-            op_vt->free(_params);
+        if (args->smart) {
+            printf("* Setting κ → %u\n", kappa);
+            if (args->scheme == SCHEME_LZ) {
+                printf("* Setting #powers → %u\n", npowers);
+                lz_params.npowers = npowers;
+
+            }
         }
     }
 
@@ -389,7 +396,7 @@ run(const struct args_t *args)
             fprintf(stderr, "error: unable to open '%s' for writing\n", fname);
             exit(EXIT_FAILURE);
         }
-        if (_obfuscate(vt, mmap, params, f, args->secparam, kappa, args->nthreads) == ERR) {
+        if (_obfuscate(vt, mmap, params, f, args->secparam, &kappa, args->nthreads) == ERR) {
             exit(EXIT_FAILURE);
         }
         fclose(f);
