@@ -3,8 +3,9 @@
 # Test all circuits
 #
 
-prog=$(readlink -f ../circobf.sh)
-circuits=$(readlink -f ../circuits)
+scriptdir=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+prog=$(readlink -f "$scriptdir/../circobf.sh")
+circuits=$(readlink -f "$scriptdir/../circuits")
 
 run () {
     circuit=$1
