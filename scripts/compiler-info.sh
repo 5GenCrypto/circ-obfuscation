@@ -6,11 +6,7 @@
 
 set -e
 
-if [ x"$1" = x ]; then
-    fname="kappas.csv"
-else
-    fname="$1"
-fi
+fname=${1:-kappas.csv}
 
 pretty () {
     if [ x"$1" == x"[overflow]" ]; then
@@ -21,12 +17,6 @@ pretty () {
         printf "%'.f" "$1"
     fi
 }
-
-minsize=1000000000
-minnmuls=$minsize
-minkappa=$minsize
-count=0
-curname=
 
 min () {
     echo "$@" | tr ' ' '\n' | sort -n | head -1
@@ -62,15 +52,17 @@ printline () {
     else
         results="$results && & &"
     fi
-    results=$(perl -e "\$r = \"$results\"; \$r =~ s/ && $minsize & / && textbf{$minsize} & /g; print \$r")
-    results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minnmuls / textbf{$minnmuls} /g; print \$r")
-    results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minkappa / textbf{$minkappa} /g; print \$r")
-    results=$(perl -e "\$r = \"$results\"; \$r =~ s/_/\\\_/g; \$r =~ s/text/\\\text/g; print \$r")
+    results=$(perl -e "\$r = \"$results\"; \$r =~ s/ && $minsize & / && B {$minsize} & /g; print \$r")
+    results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minnmuls / B {$minnmuls} /g; print \$r")
+    results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minkappa / B {$minkappa} /g; print \$r")
+    results=$(perl -e "\$r = \"$results\"; \$r =~ s/_/\\\_/g; \$r =~ s/text/\\\text/g; \$r =~ s/B/\\\B/g; print \$r")
     echo "$row $circ $results \\\\"
     count=$((count + 1))
 }
 
-declare -A circuits=()
+count=0
+curname=
+declare -A circuits
 
 while read -r input; do
     line=$(echo "$input" | tr -d ' ')
@@ -97,9 +89,6 @@ while read -r input; do
         if [[ ${#circuits[@]} -gt 0 ]]; then
             printline
         fi
-        minsize=10000000000
-        minnmuls=$minsize
-        minkappa=$minsize
         curname=$name
         unset -v results modes
         unset -v c2asize c2anmuls c2akappa
@@ -123,12 +112,7 @@ while read -r input; do
             c2vnmuls=$nmuls
             c2vkappa=$kappa
             ;;
-        dsl )
-            dslsize=$size
-            dslnmuls=$nmuls
-            dslkappa=$kappa
-            ;;
-        opt )
+        dsl | opt )
             dslsize=$size
             dslnmuls=$nmuls
             dslkappa=$kappa
@@ -146,5 +130,5 @@ while read -r input; do
     elif [[ $mode = opt ]]; then
         dsl="$size & $nmuls & $kappa"
     fi
-done < $fname
+done < "$fname"
 printline

@@ -31,12 +31,12 @@ printline () {
     minsize=$(pretty "$minsize")
     minmuls=$(pretty "$minmuls")
     minkappa=$(pretty "$minkappa")
-    results="${circuits[dsl]} && ${circuits[opt]}"
-    results=$(perl -e "\$r = \"$results\"; \$r =~ s/ && $minsize & / && textbf{$minsize} & /g; print \$r")
-    results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minmuls / textbf{$minmuls} /g; print \$r")
-    results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minkappa / textbf{$minkappa} /g; print \$r")
-    results=$(perl -e "\$r = \"$results\"; \$r =~ s/_/\\\_/g; \$r =~ s/text/\\\text/g; print \$r")
-    echo "$row $circ && $results \\\\"
+    results="&& ${circuits[dsl]} && ${circuits[opt]} "
+    results=$(perl -e "\$r = \"$results\"; \$r =~ s/&& $minsize & /&& B {$minsize} & /g; print \$r")
+    results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minmuls / B {$minmuls} /g; print \$r")
+    results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minkappa / B {$minkappa} /g; print \$r")
+    results=$(perl -e "\$r = \"$results\"; \$r =~ s/_/\\\_/g; \$r =~ s/text/\\\text/g; \$r =~ s/B/\\\B/g; print \$r")
+    echo "$row $circ $results \\\\"
     count=$((count + 1))
 }
 
@@ -81,8 +81,8 @@ while read -r input; do
             ;;
     esac
     size=$(pretty "$size")
-    nmuls=$(pretty "$nmuls")
+    muls=$(pretty "$muls")
     kappa=$(pretty "$kappa")
-    circuits[$mode]="$size & $muls & $kappa "
+    circuits[$mode]="$size & $muls & $kappa"
 done < "$fname"
 
