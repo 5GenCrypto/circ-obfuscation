@@ -6,10 +6,10 @@
 
 set -e
 
-if [ x"$1" = x"" ]; then
-    fname='kappas.csv'
+if [ x"$1" = x ]; then
+    fname="kappas.csv"
 else
-    fname=$1
+    fname="$1"
 fi
 
 pretty () {
@@ -23,34 +23,77 @@ pretty () {
 }
 
 minsize=1000000000
-mindeg=$minsize
 minnmuls=$minsize
 minkappa=$minsize
 count=0
+curname=
+
+declare -A circuits=()
 
 while read -r input; do
     line=$(echo "$input" | tr -d ' ')
     name=$(echo "$line" | cut -d',' -f1)
-    if [ x"$name" == xname ] || [ x"$name" == xf3_4 ] || [ x"$name" == xmapper_8 ]; then
+    if [[ $name == name || $name == f3_4 || $name == mapper_8 ]]; then
+        continue
+    fi
+    if [[ $name =~ ^b0_(3|5|6|7)$ ]]; then
         continue
     fi
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
-    mode=$(echo "$line" | cut -d',' -f2)
-    if [ x"$mode" = xc2a ]; then
-        if [ x"$modes" != xc2ac2vdsl ]; then
-            modes=
-            minsize=10000000000
-            mindeg=$minsize
-            minnmuls=$minsize
-            minkappa=$minsize
-        fi
-        results=""
+    if [[ $curname == "" ]]; then
+        curname=$name
     fi
-    modes=$modes$mode
-    if [ x"$modes" = xdsl ]; then
-        modes=""
+    mode=$(echo "$line" | cut -d',' -f2)
+    if [[ $mode == "" ]]; then
         continue
     fi
+    if [[ $name != "$curname" ]]; then
+        if [[ ${#circuits[@]} -gt 0 ]]; then
+            # Print existing results
+            minsize=$(pretty "$minsize")
+            minnmuls=$(pretty "$minnmuls")
+            minkappa=$(pretty "$minkappa")
+            results="$results"
+            if [[ ${circuits[c2a]} == 1 ]]; then
+                results="$results && $c2a"
+            else
+                results="$results && & & "
+            fi
+            if [[ ${circuits[c2v]} == 1 ]]; then
+                results="$results && $c2v"
+            else
+                results="$results && & & "
+            fi
+            if [[ ${circuits[dsl]} == 1 ]]; then
+                results="$results && $dsl"
+            else
+                results="$results && & & "
+            fi
+            if [[ ${circuits[opt]} == 1 ]]; then
+                results="$results && $opt "
+            else
+                results="$results && & & "
+            fi
+            results=$(perl -e "\$r = \"$results\"; \$r =~ s/ && $minsize & / && textbf{$minsize} & /g; print \$r")
+            results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minnmuls / textbf{$minnmuls} /g; print \$r")
+            results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minkappa / textbf{$minkappa} /g; print \$r")
+            results=$(perl -e "\$r = \"$results\"; \$r =~ s/_/\\\_/g; \$r =~ s/text/\\\text/g; print \$r")
+            if [ $((count % 2)) -eq 1 ]; then
+                results="\\rowcol $results"
+            fi
+            echo "$results \\\\"
+            count=$((count + 1))
+        fi
+        results=
+        modes=
+        minsize=10000000000
+        minnmuls=$minsize
+        minkappa=$minsize
+        curname=$name
+        unset circuits
+        declare -A circuits
+    fi
+    circuits[$mode]=1
     size=$(echo "$line" | cut -d',' -f6)
     if [ "$size" -lt $minsize ]; then
         minsize=$size
@@ -61,43 +104,53 @@ while read -r input; do
         minnmuls=$nmuls
     fi
     nmuls=$(pretty "$nmuls")
-    deg=$(echo "$line" | cut -d',' -f9)
-    if [ "$deg" -lt $mindeg ]; then
-        mindeg=$deg
-    fi
-    deg=$(pretty "$deg")
     kappa=$(echo "$line" | cut -d',' -f11 | cut -d'|' -f2)
     if [ "$kappa" -lt $minkappa ]; then
         minkappa=$kappa
     fi
     kappa=$(pretty "$kappa")
-    if [ x"$mode" == xc2a ]; then
-        results="texttt{$name} && $size & $nmuls & $deg & $kappa "
-    elif [ x"$mode" == xc2v ]; then
-        results="$results && $size & $nmuls & $deg & $kappa"
-    else
-        results="$results && $size & $nmuls & $deg & $kappa "
+    if [[ ${#circuits[@]} = 1 ]]; then
+        results="texttt{$name}"
     fi
-    if [ x$modes == xc2ac2vdsl ]; then
-        minsize=$(pretty "$minsize")
-        minnmuls=$(pretty "$minnmuls")
-        mindeg=$(pretty "$mindeg")
-        minkappa=$(pretty "$minkappa")
-        results="$results"
-        results=$(perl -e "\$r = \"$results\"; \$r =~ s/ && $minsize & / && textbf{$minsize} & /g; print \$r")
-        results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $mindeg / textbf{$mindeg} /g; print \$r")
-        results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minnmuls / textbf{$minnmuls} /g; print \$r")
-        results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minkappa / textbf{$minkappa} /g; print \$r")
-        results=$(perl -e "\$r = \"$results\"; \$r =~ s/_/\\\_/g; \$r =~ s/text/\\\text/g; print \$r")
-        if [ $((count % 2)) -eq 1 ]; then
-            results="\\rowcol $results"
-        fi
-        echo "$results \\\\"
-        results=
-        modes=
-        minsize=10000000000
-        mindeg=$minsize
-        minkappa=$minsize
-        count=$((count + 1))
+    if [[ $mode = c2a ]]; then
+        c2a="$size & $nmuls & $kappa"
+    elif [[ $mode = c2v ]]; then
+        c2v="$size & $nmuls & $kappa "
+    elif [[ $mode = dsl ]]; then
+        dsl="$size & $nmuls & $kappa"
+    elif [[ $mode = opt ]]; then
+        opt="$size & $nmuls & $kappa"
     fi
 done < $fname
+minsize=$(pretty "$minsize")
+minnmuls=$(pretty "$minnmuls")
+minkappa=$(pretty "$minkappa")
+results="$results"
+if [[ ${circuits[c2a]} == 1 ]]; then
+    results="$results && $c2a"
+else
+    results="$results && & & "
+fi
+if [[ ${circuits[c2v]} == 1 ]]; then
+    results="$results && $c2v"
+else
+    results="$results && & & "
+fi
+if [[ ${circuits[dsl]} == 1 ]]; then
+    results="$results && $dsl"
+else
+    results="$results && & & "
+fi
+if [[ ${circuits[opt]} == 1 ]]; then
+    results="$results && $opt"
+else
+    results="$results && & & "
+fi
+results=$(perl -e "\$r = \"$results\"; \$r =~ s/ && $minsize & / && textbf{$minsize} & /g; print \$r")
+results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minnmuls / textbf{$minnmuls} /g; print \$r")
+results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minkappa / textbf{$minkappa} /g; print \$r")
+results=$(perl -e "\$r = \"$results\"; \$r =~ s/_/\\\_/g; \$r =~ s/text/\\\text/g; print \$r")
+if [ $((count % 2)) -eq 1 ]; then
+    results="\\rowcol $results"
+fi
+echo "$results \\\\"

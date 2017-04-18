@@ -20,20 +20,31 @@ pretty () {
     fi
 }
 
+kappas () {
+    if [[ $1 == "[overflow]" ]]; then
+        echo "$1"
+    else
+        a="\num{$1}"
+        b="\num{$2}"
+        if [[ $a == "$b" ]]; then
+            echo "$a"
+        else
+            echo "$a ($b)"
+        fi
+    fi
+}
+
 count=0
 
 while read -r input; do
     line=$(echo "$input" | tr -d ' ')
     name=$(echo "$line" | cut -d',' -f1)
-    if [ x"$name" == xname ]; then
-        continue
-    fi
-    if [ x"$(echo $name | cut -d'_' -f1)" == x"ggm" ]; then
+    if [[ $name == name || $name =~ ^ggm.* || $name =~ ^b0_(3|5|6|7) ]]; then
         continue
     fi
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
     mode=$(echo "$line" | cut -d',' -f2)
-    if [ x"$mode" != xdsl ]; then
+    if [[ $mode != dsl ]]; then
         continue
     fi
     lin=$(echo "$line" | cut -d',' -f10)
@@ -42,29 +53,9 @@ while read -r input; do
     lin2=$(echo "$lin" | cut -d'|' -f2)
     lz1=$(echo "$lz" | cut -d'|' -f1)
     lz2=$(echo "$lz" | cut -d'|' -f2)
-    if [ x"$lin1" == x"[overflow]" ]; then
-        lin=$lin1
-    else
-        lin1=$(pretty "$lin1")
-        lin2=$(pretty "$lin2")
-        if [ "$lin1" == "$lin2" ]; then
-            lin="$lin1"
-        else
-            lin="$lin1 ($lin2)"
-        fi
-    fi
-    if [ x"$lz1" == x"[overflow]" ]; then
-        lz=$lz1
-    else
-        lz1=$(pretty "$lz1")
-        lz2=$(pretty "$lz2")
-        if [ "$lz1" == "$lz2" ]; then
-            lz="$lz1"
-        else
-            lz="$lz1 ($lz2)"
-        fi
-    fi
-    if [ "$((count % 2))" == 1 ]; then
+    lin=$(kappas "$lin1" "$lin2")
+    lz=$(kappas "$lz1" "$lz2")
+    if [[ "$((count % 2))" == 1 ]]; then
         echo "\rowcol \texttt{$name} && $lin && $lz \\\\"
     else
         echo "\texttt{$name} && $lin && $lz \\\\"
