@@ -65,12 +65,7 @@ while read -r input; do
                 results="$results && & & "
             fi
             if [[ ${circuits[dsl]} == 1 ]]; then
-                results="$results && $dsl"
-            else
-                results="$results && & & "
-            fi
-            if [[ ${circuits[opt]} == 1 ]]; then
-                results="$results && $opt "
+                results="$results && $dsl "
             else
                 results="$results && & & "
             fi
@@ -119,7 +114,7 @@ while read -r input; do
     elif [[ $mode = dsl ]]; then
         dsl="$size & $nmuls & $kappa"
     elif [[ $mode = opt ]]; then
-        opt="$size & $nmuls & $kappa"
+        dsl="$size & $nmuls & $kappa"
     fi
 done < $fname
 minsize=$(pretty "$minsize")
@@ -137,12 +132,7 @@ else
     results="$results && & & "
 fi
 if [[ ${circuits[dsl]} == 1 ]]; then
-    results="$results && $dsl"
-else
-    results="$results && & & "
-fi
-if [[ ${circuits[opt]} == 1 ]]; then
-    results="$results && $opt"
+    results="$results && $dsl "
 else
     results="$results && & & "
 fi
