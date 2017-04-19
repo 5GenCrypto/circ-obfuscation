@@ -6,11 +6,7 @@
 
 set -e
 
-if [ x"$1" == x ]; then
-    fname="kappas.csv"
-else
-    fname="$1"
-fi
+fname=${1:-kappas.csv}
 
 pretty () {
     if [ ${#1} -gt 6 ]; then
@@ -39,7 +35,7 @@ count=0
 while read -r input; do
     line=$(echo "$input" | tr -d ' ')
     name=$(echo "$line" | cut -d',' -f1)
-    if [[ $name == name || $name =~ ^ggm.* || $name =~ ^b0_(3|5|6|7) ]]; then
+    if [[ $name == name || $name =~ ^f || $name =~ ^ggm || $name =~ ^aes1r_(3|5|6|7) ]]; then
         continue
     fi
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")

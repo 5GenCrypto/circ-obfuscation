@@ -6,11 +6,7 @@
 
 set -e
 
-if [ x"$1" = x ]; then
-    fname="kappas.csv"
-else
-    fname="$1"
-fi
+fname=${1:-kappas.csv}
 
 pretty () {
     if [ ${#1} -gt 6 ]; then
@@ -21,12 +17,12 @@ pretty () {
 }
 
 scheme () {
-    if [ x"$1" == x"[overflow]" ]; then
+    if [[ $1 == "[overflow]" ]]; then
         out=$1
     else
         a=$(pretty "$1")
         b=$(pretty "$2")
-        if [ x"$a" == x"$b" ]; then
+        if [[ $a == "$b" ]]; then
             out=$a
         else
             out="$a ($b)"
@@ -42,14 +38,14 @@ while read -r input; do
     line=$(echo "$input" | tr -d ' ')
     name=$(echo "$line" | cut -d',' -f1)
     # skip column names row
-    if [ x"$name" == xname ]; then
+    if [[ $name == name ]]; then
         continue
     fi
     # skip all non-ggm circuits
-    if [ x"$(echo "$name" | cut -d'_' -f1)" != xggm ]; then
+    if [[ ! $name =~ ^ggm ]]; then
         continue
     fi
-    if [ x"$(echo "$name" | cut -d'_' -f2)" == xsigma ]; then
+    if [[ $name =~ ^ggm_sigma ]]; then
         sigma=1
         if [ $total == 0 ]; then
             total=$count
@@ -62,17 +58,13 @@ while read -r input; do
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
     mode=$(echo "$line" | cut -d',' -f2)
     # skip non-dsl compiled circuits
-    if [ x"$mode" != xdsl ]; then
+    if [[ $mode != dsl ]]; then
         continue
     fi
-    lin=$(echo "$line" | cut -d',' -f10)
-    lz=$(echo "$line" | cut -d',' -f11)
-    # lin1=$(echo "$lin" | cut -d'|' -f1)
-    lin2=$(echo "$lin" | cut -d'|' -f2)
-    # lz1=$(echo "$lz" | cut -d'|' -f1)
-    lz2=$(echo "$lz" | cut -d'|' -f2)
-    lin=$(scheme "$lin2" "$lin2")
-    lz=$(scheme "$lz2" "$lz2")
+    lin=$(echo "$line" | cut -d',' -f10 | cut -d'|' -f2)
+    lz=$(echo "$line" | cut -d',' -f11 | cut -d'|' -f2)
+    lin=$(scheme "$lin" "$lin")
+    lz=$(scheme "$lz" "$lz")
     if [ $sigma -eq 1 ]; then
         index=$((count - total))
         row[$index]="${row[$index]} && $lin && $lz \\\\"

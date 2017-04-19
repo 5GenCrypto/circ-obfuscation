@@ -20,7 +20,7 @@ while read -r input; do
     line=$(echo "$input" | tr -d ' ')
     name=$(echo "$line" | cut -d',' -f1)
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
-    if [[ $name == name || $name =~ ^b0\\_(3|5|6|7)$ ]]; then
+    if [[ $name == name || $name =~ ^aes1r\\_(3|5|6|7)$ || $name =~ ^f ]]; then
         continue
     fi
     mode=$(echo "$line" | cut -d',' -f2)

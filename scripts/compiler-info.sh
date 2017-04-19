@@ -67,10 +67,7 @@ declare -A circuits
 while read -r input; do
     line=$(echo "$input" | tr -d ' ')
     name=$(echo "$line" | cut -d',' -f1)
-    if [[ $name == name || $name == f3_4 || $name =~ ^mapper.* || $name =~ ^linearParts$ ]]; then
-        continue
-    fi
-    if [[ $name =~ ^b0_(3|5|6|7)$ ]]; then
+    if [[ $name == name || $name =~ f || $name =~ ^mapper || $name =~ ^linearParts || $name =~ ^aesr1_(3|5|6|7)$ ]]; then
         continue
     fi
     # Special case for inconsistent sbox naming

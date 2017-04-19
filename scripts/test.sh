@@ -45,13 +45,7 @@ for circuit in $circuits/*.acirc; do
     run "$circuit" LZ  DUMMY ERROR
 done
 
-for circuit in $circuits/circuits/*.acirc; do
-    echo "$circuit"
-    run "$circuit" LIN DUMMY ERROR
-    run "$circuit" LZ  DUMMY ERROR
-done
-
-for circuit in $circuits/circuits/sigma/*.acirc; do
+for circuit in $circuits/sigma/*.acirc; do
     echo "$circuit"
     run_sigma "$circuit" LIN DUMMY ERROR
     run_sigma "$circuit" LZ  DUMMY ERROR

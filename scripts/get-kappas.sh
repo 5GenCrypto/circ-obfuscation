@@ -19,6 +19,10 @@ run () {
         flags="--sigma --symlen 16"
     fi
     name=$(basename "$circuit" | cut -d'.' -f1)
+    # Skip some circuits
+    if [[ $name =~ ^f ]]; then
+        return
+    fi
     mode=$(basename "$circuit" | cut -d'.' -f2)
     if [[ $mode != c2a && $mode != c2v && $mode != dsl && $mode != opt ]]; then
         mode=""
