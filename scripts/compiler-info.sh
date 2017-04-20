@@ -23,9 +23,9 @@ min () {
 }
 
 printline () {
-    minsize=$(min $c2asize $c2vsize $dslsize)
-    minnmuls=$(min $c2anmuls $c2vnmuls $dslnmuls)
-    minkappa=$(min $c2akappa $c2vkappa $dslkappa)
+    minsize=$(min $c2asize $c2vsize $dslsize $optsize)
+    minnmuls=$(min $c2anmuls $c2vnmuls $dslnmuls $optnmuls)
+    minkappa=$(min $c2akappa $c2vkappa $dslkappa $optkappa)
     minsize=$(pretty "$minsize")
     minnmuls=$(pretty "$minnmuls")
     minkappa=$(pretty "$minkappa")
@@ -34,9 +34,9 @@ printline () {
         row="\\rowcol"
     fi
     circ="\texttt{$curname}"
-    if [[ ${circuits[opt]} -eq 1 ]]; then
-        circ="$circ\$^*\$"
-    fi
+    # if [[ ${circuits[opt]} -eq 1 ]]; then
+    #     circ="$circ\$^*\$"
+    # fi
     if [[ ${circuits[c2a]} == 1 ]]; then
         results="$results && $c2a"
     else
@@ -52,9 +52,14 @@ printline () {
     else
         results="$results && & &"
     fi
-    results=$(perl -e "\$r = \"$results\"; \$r =~ s/ && $minsize & / && B {$minsize} & /g; print \$r")
-    results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minnmuls / B {$minnmuls} /g; print \$r")
-    results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minkappa / B {$minkappa} /g; print \$r")
+    if [[ ${circuits[opt]} == 1 ]]; then
+        results="$results && $opt "
+    else
+        results="$results && & &"
+    fi
+    results=$(perl -e "\$r = \"$results\"; \$r =~ s/ && $minsize & / && textbf{$minsize} & /g; print \$r")
+    results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minnmuls / textbf{$minnmuls} /g; print \$r")
+    results=$(perl -e "\$r = \"$results\"; \$r =~ s/ $minkappa / textbf{$minkappa} /g; print \$r")
     results=$(perl -e "\$r = \"$results\"; \$r =~ s/_/\\\_/g; \$r =~ s/text/\\\text/g; \$r =~ s/B/\\\B/g; print \$r")
     echo "$row $circ $results \\\\"
     count=$((count + 1))
@@ -67,12 +72,8 @@ declare -A circuits
 while read -r input; do
     line=$(echo "$input" | tr -d ' ')
     name=$(echo "$line" | cut -d',' -f1)
-    if [[ $name == name || $name =~ f || $name =~ ^mapper || $name =~ ^linearParts || $name =~ ^aesr1_(3|5|6|7)$ ]]; then
+    if [[ ! $name =~ aes1r && ! $name == "sbox" ]]; then
         continue
-    fi
-    # Special case for inconsistent sbox naming
-    if [[ $name == "sbox_" ]]; then
-        name="sbox"
     fi
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
     if [[ $curname == "" ]]; then
@@ -91,6 +92,7 @@ while read -r input; do
         unset -v c2asize c2anmuls c2akappa
         unset -v c2vsize c2vnmuls c2vkappa
         unset -v dslsize dslnmuls dslkappa
+        unset -v optsize optnmuls optkappa
         unset circuits
         declare -A circuits
     fi
@@ -109,10 +111,15 @@ while read -r input; do
             c2vnmuls=$nmuls
             c2vkappa=$kappa
             ;;
-        dsl | opt )
+        dsl )
             dslsize=$size
             dslnmuls=$nmuls
             dslkappa=$kappa
+            ;;
+        opt )
+            optsize=$size
+            optnmuls=$nmuls
+            optkappa=$kappa
             ;;
     esac
     size=$(pretty "$size")
@@ -125,7 +132,7 @@ while read -r input; do
     elif [[ $mode = dsl ]]; then
         dsl="$size & $nmuls & $kappa"
     elif [[ $mode = opt ]]; then
-        dsl="$size & $nmuls & $kappa"
+        opt="$size & $nmuls & $kappa"
     fi
 done < "$fname"
 printline

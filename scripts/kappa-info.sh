@@ -35,12 +35,12 @@ count=0
 while read -r input; do
     line=$(echo "$input" | tr -d ' ')
     name=$(echo "$line" | cut -d',' -f1)
-    if [[ $name == name || $name =~ ^f || $name =~ ^ggm || $name =~ ^aes1r_(3|5|6|7) ]]; then
+    if [[ $name == name || $name =~ ^f || $name =~ ^ggm_sigma || $name =~ ^aes1r_(3|5|6|7) || $name =~ ^prg ]]; then
         continue
     fi
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
     mode=$(echo "$line" | cut -d',' -f2)
-    if [[ $mode != dsl ]]; then
+    if [[ $mode != opt ]]; then
         continue
     fi
     lin=$(echo "$line" | cut -d',' -f10)

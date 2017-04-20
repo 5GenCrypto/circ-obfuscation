@@ -23,6 +23,9 @@ while read -r input; do
     if [[ $name == name || $name =~ ^aes1r\\_(3|5|6|7)$ || $name =~ ^f ]]; then
         continue
     fi
+    if [[ $name =~ ^prg  || $name == "sbox" ]]; then
+        continue
+    fi
     mode=$(echo "$line" | cut -d',' -f2)
     if [[ $mode != dsl && $mode != opt ]]; then
         continue

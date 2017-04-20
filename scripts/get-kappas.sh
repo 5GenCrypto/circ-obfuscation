@@ -23,6 +23,9 @@ run () {
     if [[ $name =~ ^f ]]; then
         return
     fi
+    # if [[ $name =~ ^aes1r || $name =~ ^prg ]]; then
+    #     return
+    # fi
     mode=$(basename "$circuit" | cut -d'.' -f2)
     if [[ $mode != c2a && $mode != c2v && $mode != dsl && $mode != opt ]]; then
         mode=""
