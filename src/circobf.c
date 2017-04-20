@@ -98,36 +98,38 @@ usage(int ret)
 {
     struct args_t defaults;
     args_init(&defaults);
+    printf("circobf: Circuit-based program obfuscation.\n\n");
     printf("Usage: %s [options] <circuit>\n\n", progname);
     printf(
 "  Evaluation flags:\n"
-"    --get-kappa           determine the correct κ value for the given circuit\n"
+"    --get-kappa           print κ value and exit\n"
 "    --evaluate, -e <INP>  evaluate obfuscation on INP\n"
 "    --obfuscate, -o       construct obfuscation\n"
-"    --test                obfuscate and evaluate test inputs on circuit (default)\n"
+"    --test                obfuscate and evaluate on circuit's test inputs (default)\n"
 "\n"
 "  Execution flags:\n"
-"    --debug <LEVEL>   set debug level (options: ERROR, WARN, DEBUG, INFO | default: ERROR)\n"
-"    --kappa, -k <κ>   set kappa to κ when obfuscating (default: guess)\n"
 "    --lambda, -l <λ>  set security parameter to λ when obfuscating (default: %lu)\n"
 "    --nthreads <N>    set the number of threads to N (default: %lu)\n"
 "    --scheme <NAME>   set scheme to NAME (options: LIN, LZ | default: %s)\n"
 "    --mmap <NAME>     set mmap to NAME (options: CLT, DUMMY | default: %s)\n"
 "    --smart           be smart in choosing κ and # powers\n"
-"\n"
-"  LIN/LZ specific flags:\n"
-"    --symlen N  set symbol length to N bits (default: %lu)\n"
-"    --sigma     use sigma vectors (default: %s)\n"
+"    --sigma           use Σ-vectors (default: %s)\n"
+"    --symlen N        set Σ-vector length to N bits (default: %lu)\n"
 "\n"
 "  LZ specific flags:\n"
-"    --npowers <N>  use N powers (default: %lu)\n"
+"    --npowers <N>     use N powers (default: %lu)\n"
+"\n"
+"  Debugging flags:\n"
+"    --debug <LEVEL>   set debug level (options: ERROR, WARN, DEBUG, INFO | default: ERROR)\n"
+"    --kappa, -k <Κ>   override default κ choice with Κ\n"
 "\n"
 "  Helper flags:\n"
 "    --verbose, -v     be verbose\n"
-"    --help, -h        print this message\n"
+"    --help, -h        print this message and exit\n"
 "\n", defaults.secparam, defaults.nthreads,
       scheme_to_string(defaults.scheme), mmap_to_string(defaults.mmap),
-      defaults.symlen, defaults.sigma ? "yes" : "no",
+      defaults.sigma ? "yes" : "no",
+      defaults.symlen, 
       defaults.npowers);
     exit(ret);
 }
