@@ -40,7 +40,7 @@ while read -r input; do
     fi
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
     mode=$(echo "$line" | cut -d',' -f2)
-    if [[ $mode != opt ]]; then
+    if [[ $mode != opt-2 ]]; then
         continue
     fi
     lin=$(echo "$line" | cut -d',' -f10)
