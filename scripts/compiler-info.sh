@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-#
-# Prints compiler info in latex for a CSV file containing info produced by
-# get-kappas.sh
-#
 
 set -e
 

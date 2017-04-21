@@ -43,6 +43,7 @@ if [[ $kappa -eq 1 ]]; then
 fi
 "$scriptdir"/circuit-info.sh > "$dir"/table-circuits-data.tex
 "$scriptdir"/compiler-info.sh > "$dir"/table-compilers-data.tex
+"$scriptdir"/aes1r-compiler-info.sh > "$dir"/table-aes1r-compiler-data.tex
 "$scriptdir"/kappa-info-ggm.sh > "$dir"/table-kappas-ggm-data.tex
 "$scriptdir"/kappa-info.sh > "$dir"/table-kappas-data.tex
 "$scriptdir"/optimizer-info.sh > "$dir"/table-optimizer-data.tex

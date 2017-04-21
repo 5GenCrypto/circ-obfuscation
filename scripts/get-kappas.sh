@@ -27,7 +27,7 @@ run () {
     #     return
     # fi
     mode=$(basename "$circuit" | cut -d'.' -f2)
-    if [[ $mode != c2a && $mode != c2v && $mode != dsl && $mode != opt ]]; then
+    if [[ $mode != c2a && $mode != c2v && $mode != dsl && $mode != "opt-1" && $mode != "opt-2" ]]; then
         mode=""
     fi
     $prog --get-kappa --scheme LIN --verbose $flags "$circuit" &>/tmp/results.txt

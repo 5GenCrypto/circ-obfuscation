@@ -16,6 +16,21 @@ count=0
 curname=
 curmode=
 
+printline () {
+    row=
+    if (( $((count % 2)) == 1 )); then
+        row="\\rowcol"
+    fi
+    circ="\texttt{$curname}"
+    if [[ $curmode == opt-2 ]]; then
+        circ="$circ\$^*\$"
+    fi
+    echo "$row $circ && $result"
+    curname=$name
+    count=$((count + 1))
+    
+}
+
 while read -r input; do
     line=$(echo "$input" | tr -d ' ')
     name=$(echo "$line" | cut -d',' -f1)
@@ -27,7 +42,7 @@ while read -r input; do
         continue
     fi
     mode=$(echo "$line" | cut -d',' -f2)
-    if [[ $mode != dsl && $mode != opt ]]; then
+    if [[ $mode != opt-1 && $mode != opt-2 ]]; then
         continue
     fi
     if [[ $curname == "" ]]; then
@@ -35,17 +50,7 @@ while read -r input; do
         curmode=$mode
     fi
     if [[ $name != "$curname" && $result != "" ]]; then
-        row=
-        if (( $((count % 2)) == 1 )); then
-            row="\\rowcol"
-        fi
-        circ="\texttt{$curname}"
-        if [[ $curmode == opt ]]; then
-            circ="$circ\$^*\$"
-        fi
-        echo "$row $circ && $result"
-        curname=$name
-        count=$((count + 1))
+        printline
     fi
     curmode=$mode
     ninputs="\num{$(echo "$line" | cut -d',' -f3)}"
@@ -66,12 +71,4 @@ while read -r input; do
     fi
     result="$ninputs && $nconsts && $nouts && $size && $nmuls && $depth && $degree && $kappa \\\\"
 done < "$fname"
-row=
-if (( $((count % 2)) == 1 )); then
-    row="\\rowcol"
-fi
-circ="\texttt{$curname}"
-if [[ $curmode == opt ]]; then
-    circ="$circ\$^*\$"
-fi
-echo "$row $circ && $result"
+printline
