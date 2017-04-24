@@ -101,7 +101,7 @@ usage(int ret)
     printf("circobf: Circuit-based program obfuscation.\n\n");
     printf("Usage: %s [options] <circuit>\n\n", progname);
     printf(
-"  Evaluation flags:\n"
+"  Evaluation flags (only one can be set):\n"
 "    --get-kappa           print κ value and exit\n"
 "    --evaluate, -e <INP>  evaluate obfuscation on INP\n"
 "    --obfuscate, -o       construct obfuscation\n"
@@ -369,14 +369,14 @@ run(const struct args_t *args)
         g_verbose = verbosity;
 
         if (args->get_kappa) {
-            printf("κ = %u\n", kappa);
+            printf("κ = %lu\n", kappa);
             acirc_clear(&c);
             return OK;
         }
         if (args->smart) {
-            printf("* Setting κ → %u\n", kappa);
+            printf("* Setting κ → %lu\n", kappa);
             if (args->scheme == SCHEME_LZ) {
-                printf("* Setting #powers → %u\n", npowers);
+                printf("* Setting #powers → %lu\n", npowers);
                 lz_params.npowers = npowers;
 
             }
@@ -603,11 +603,18 @@ main(int argc, char **argv)
     if (!args.evaluate && !args.obfuscate && !args.get_kappa)
         args.test = true;
 
-    if (args.get_kappa) {
-        args.mmap = MMAP_DUMMY;
-    } else {
-        args_print(&args);
+    if ((int) (args.evaluate != NULL)
+        + (int) args.obfuscate
+        + (int) args.get_kappa
+        + (int) args.test > 1) {
+        fprintf(stderr, "error: only one of --get-kappa, --obfuscate, --evaluate, --test can be used\n");
+        usage(EXIT_FAILURE);
     }
+
+    if (args.get_kappa)
+        args.mmap = MMAP_DUMMY;
+    if (g_verbose)
+        args_print(&args);
 
     return run(&args);
 }
