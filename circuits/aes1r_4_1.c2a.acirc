@@ -1,13 +1,13 @@
-:test 1111 1
-:test 1100 1
 :test 1000 0
-:test 1111 1
-:test 1111 1
-:test 1010 0
 :test 0101 0
-:test 0111 0
-:test 0010 1
-:test 1110 0
+:test 0100 1
+:test 1001 0
+:test 1000 0
+:test 1010 0
+:test 1000 0
+:test 1100 1
+:test 0110 0
+:test 0101 0
 :nins 4
 0 const 1
 1 input 0

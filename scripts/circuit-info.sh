@@ -19,9 +19,9 @@ printline () {
     fi
     circ="\texttt{$curname}"
     if [[ $curmode == opt-2 ]]; then
-        circ="$circ\$^2\$"
+        circ="$circ\$^{*}\$"
     elif [[ $curmode == opt-3 ]]; then
-        circ="$circ\$^3\$"
+        circ="$circ\$^{**}\$"
     fi
     echo "$row $circ && $result"
     curname=$name
