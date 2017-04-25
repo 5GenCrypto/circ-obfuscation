@@ -6,11 +6,7 @@
 
 set -e
 
-if [[ $1 == "" ]]; then
-    fname="kappas.csv"
-else
-    fname="$1"
-fi
+fname=${1:-kappas.csv}
 
 count=0
 curname=
@@ -23,7 +19,9 @@ printline () {
     fi
     circ="\texttt{$curname}"
     if [[ $curmode == opt-2 ]]; then
-        circ="$circ\$^*\$"
+        circ="$circ\$^2\$"
+    elif [[ $curmode == opt-3 ]]; then
+        circ="$circ\$^3\$"
     fi
     echo "$row $circ && $result"
     curname=$name
@@ -42,7 +40,7 @@ while read -r input; do
         continue
     fi
     mode=$(echo "$line" | cut -d',' -f2)
-    if [[ $mode != opt-1 && $mode != opt-2 ]]; then
+    if [[ $mode != opt-1 && $mode != opt-2 && $mode != opt-3 ]]; then
         continue
     fi
     if [[ $curname == "" ]]; then

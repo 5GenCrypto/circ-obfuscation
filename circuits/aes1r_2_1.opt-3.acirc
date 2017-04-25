@@ -1,0 +1,21 @@
+:test 11 1
+:test 10 1
+:test 00 0
+:test 00 0
+:test 11 1
+:test 01 0
+:test 10 1
+:test 00 0
+:test 01 0
+:test 10 1
+0 input 0
+1 input 1
+2 const 0
+3 const 0
+4 const 0
+5 ADD 1 4
+6 MUL 1 4
+7 ADD 6 6
+8 SUB 5 7
+:outputs 8
+:secrets 2 3 4

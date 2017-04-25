@@ -4,8 +4,13 @@ set -e
 
 fname=${1:-kappas.csv}
 
+circcount=0
 count=0
 curname=
+
+printline () {
+    echo " && $mode && \num{$size} & \num{$nmuls} & \num{$kappa} \tabularnewline"
+}
 
 while read -r input; do
     line=$(echo "$input" | tr -d ' ')
@@ -13,24 +18,20 @@ while read -r input; do
     if [[ ! $name =~ ^aes1r ]]; then
         continue
     fi
-    if [[ $name =~ ^aes1r_(4|16|64) ]]; then
-        continue
-    fi
+    # if [[ $name =~ ^aes1r_(4|16) ]]; then
+    #     continue
+    # fi
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
+    if [[ $curname != "" ]]; then
+        if [[ $name != "$curname" ]]; then
+            echo "\multirow{-$circcount}{*}{\texttt{$curname}}"
+        fi
+        printline
+    fi
     mode=$(echo "$line" | cut -d',' -f2)
     if [[ $mode == "" ]]; then
         continue
     fi
-    circ=
-    if [[ $name != "$curname" ]]; then
-        if [[ $curname != "" ]]; then
-            echo "\midrule"
-        fi
-        curname=$name
-    fi
-    size=$(echo "$line" | cut -d',' -f6)
-    nmuls=$(echo "$line" | cut -d',' -f7)
-    kappa=$(echo "$line" | cut -d',' -f11 | cut -d'|' -f2)
     case $mode in
         c2a )
             mode="\CTA" ;;
@@ -42,13 +43,24 @@ while read -r input; do
             mode="\DSL\ -O1" ;;
         opt-2 )
             mode="\DSL\ -O2" ;;
+        opt-3 )
+            mode="\DSL\ -O3" ;;
     esac
+    if [[ $name != "$curname" ]]; then
+        if [[ $curname != "" ]]; then
+            echo "\midrule"
+        fi
+        circcount=0
+        curname=$name
+    fi
+    size=$(echo "$line" | cut -d',' -f6)
+    nmuls=$(echo "$line" | cut -d',' -f7)
+    kappa=$(echo "$line" | cut -d',' -f11 | cut -d'|' -f2)
     if [[ $count != 0 && $((count % 2)) -eq 0 ]]; then
         echo "\rowcolor{white}"
     fi
     count=$((count + 1))
-    if [[ $count != 0 && $((count % 5)) -eq 0 ]]; then
-        echo "\multirow{-5}{*}{\texttt{$name}}"
-    fi
-    echo "$circ && $mode && \num{$size} & \num{$nmuls} & \num{$kappa} \tabularnewline"
+    circcount=$((circcount + 1))
 done < "$fname"
+echo "\multirow{-$circcount}{*}{\texttt{$curname}}"
+printline

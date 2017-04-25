@@ -23,11 +23,8 @@ run () {
     if [[ $name =~ ^f ]]; then
         return
     fi
-    # if [[ $name =~ ^aes1r || $name =~ ^prg ]]; then
-    #     return
-    # fi
     mode=$(basename "$circuit" | cut -d'.' -f2)
-    if [[ $mode != c2a && $mode != c2v && $mode != dsl && $mode != "opt-1" && $mode != "opt-2" ]]; then
+    if [[ ! $mode =~ ^c2(a|v)$ && $mode != dsl && ! $mode =~ ^opt-(1|2|3)$ ]]; then
         mode=""
     fi
     $prog --get-kappa --scheme LIN --verbose $flags "$circuit" &>/tmp/results.txt
