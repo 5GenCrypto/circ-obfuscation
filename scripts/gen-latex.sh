@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 usage () {
-    echo "runall.sh: Generates all kappa info for latex tables"
+    echo "gen-latex.sh: Generates info for latex tables"
     echo ""
     echo "Flags:"
     echo "  -d, --dir D  Place produced files in D (default: .)"
