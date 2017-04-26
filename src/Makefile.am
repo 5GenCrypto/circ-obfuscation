@@ -1,6 +1,8 @@
 AUTOMAKE_OPTIONS = foreign -Wall
 
 MY_SOURCES = \
+circ_params.c \
+index_set.c \
 input_chunker.c \
 mmap.c \
 reflist.c \

@@ -1,5 +1,4 @@
-#ifndef __MMAP_H__
-#define __MMAP_H__
+#pragma once
 
 #include <acirc.h>
 #include <aesrand.h>
@@ -122,5 +121,3 @@ encoding *
 encoding_fread(const encoding_vtable *vt, FILE *fp);
 void
 encoding_fwrite(const encoding_vtable *vt, const encoding *x, FILE *fp);
-
-#endif

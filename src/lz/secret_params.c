@@ -1,4 +1,3 @@
-#include "obf_index.h"
 #include "obf_params.h"
 #include "vtables.h"
 #include "../util.h"
@@ -6,7 +5,7 @@
 #include <err.h>
 
 struct sp_info {
-    obf_index *toplevel;
+    index_set *toplevel;
     const obf_params_t *op;
 };
 #define spinfo(x) (x)->info
@@ -16,17 +15,17 @@ _sp_init(secret_params *sp, mmap_params_t *params, const obf_params_t *op,
          size_t kappa)
 {
     spinfo(sp) = my_calloc(1, sizeof spinfo(sp)[0]);
-    spinfo(sp)->toplevel = obf_index_new_toplevel(op);
+    spinfo(sp)->toplevel = obf_params_new_toplevel(&op->cp, obf_params_nzs(&op->cp));
     spinfo(sp)->op = op;
 
-    params->kappa = kappa ? kappa : acirc_delta(op->circ) + op->circ->ninputs;
+    params->kappa = kappa ? kappa : acirc_delta(op->cp.circ) + op->cp.circ->ninputs;
     params->nzs = spinfo(sp)->toplevel->nzs;
     params->pows = my_calloc(params->nzs, sizeof params->pows[0]);
     for (size_t i = 0; i < params->nzs; ++i) {
         if (spinfo(sp)->toplevel->pows[i] < 0) {
             fprintf(stderr, "error: toplevel overflow\n");
             free(params->pows);
-            obf_index_free(spinfo(sp)->toplevel);
+            index_set_free(spinfo(sp)->toplevel);
             free(spinfo(sp));
             return ERR;
         }
@@ -41,7 +40,7 @@ _sp_init(secret_params *sp, mmap_params_t *params, const obf_params_t *op,
 static void
 _sp_clear(secret_params *sp)
 {
-    obf_index_free(spinfo(sp)->toplevel);
+    index_set_free(spinfo(sp)->toplevel);
     free(sp->info);
 }
 

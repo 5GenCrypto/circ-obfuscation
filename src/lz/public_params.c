@@ -1,11 +1,10 @@
-#include "obf_index.h"
 #include "obf_params.h"
 #include "vtables.h"
 #include "../util.h"
 
 struct pp_info {
     const obf_params_t *op;
-    obf_index *toplevel;
+    index_set *toplevel;
     bool local;
 };
 #define ppinfo(x) x->info
@@ -23,7 +22,7 @@ static void
 _pp_clear(public_params *pp)
 {
     if (pp->info->local)
-        obf_index_free(pp->info->toplevel);
+        index_set_free(pp->info->toplevel);
     free(pp->info);
 }
 
@@ -38,7 +37,7 @@ _pp_fread(public_params *pp, const obf_params_t *op, FILE *fp)
 {
     (void) fp;
     pp->info = calloc(1, sizeof pp->info[0]);
-    pp->info->toplevel = obf_index_new_toplevel(op);
+    pp->info->toplevel = obf_params_new_toplevel(&op->cp, obf_params_nzs(&op->cp));
     pp->info->op = op;
     pp->info->local = true;
 }

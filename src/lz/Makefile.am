@@ -5,7 +5,6 @@ libobf_lz_la_CFLAGS=$(MY_CFLAGS) -I$(top_srcdir)
 
 libobf_lz_la_SOURCES = \
 encoding.c \
-obf_index.c \
 obf_params.c \
 obfuscator.c \
 public_params.c \

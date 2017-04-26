@@ -328,7 +328,8 @@ run(const struct args_t *args)
         bool verbosity = g_verbose;
         FILE *f = tmpfile();
         obf_params_t *_params;
-        g_verbose = false;
+        /* XXX: TEMPORARY */
+        /* g_verbose = false; */
 
         if (args->smart) {
             printf("Choosing κ%s smartly...\n",

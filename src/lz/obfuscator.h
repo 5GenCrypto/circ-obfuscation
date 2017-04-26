@@ -1,5 +1,4 @@
-#ifndef __LZ__OBFUSCATOR_H__
-#define __LZ__OBFUSCATOR_H__
+#pragma once
 
 #include "../obfuscator.h"
 
@@ -11,5 +10,3 @@ typedef struct lz_obf_params_t {
 
 extern obfuscator_vtable lz_obfuscator_vtable;
 extern op_vtable lz_op_vtable;
-
-#endif

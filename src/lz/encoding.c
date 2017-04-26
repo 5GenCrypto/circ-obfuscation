@@ -1,4 +1,3 @@
-#include "obf_index.h"
 #include "obf_params.h"
 #include "vtables.h"
 #include "../util.h"
@@ -6,7 +5,7 @@
 #include <string.h>
 
 struct encoding_info {
-    obf_index *index;
+    index_set *index;
 };
 #define my(x) x->info
 
@@ -15,7 +14,7 @@ _encoding_new(const pp_vtable *vt, encoding *enc, const public_params *pp)
 {
     const obf_params_t *const op = vt->params(pp);
     enc->info = calloc(1, sizeof enc->info[0]);
-    enc->info->index = obf_index_new(op);
+    enc->info->index = index_set_new(obf_params_nzs(&op->cp));
     return 0;
 }
 
@@ -23,9 +22,8 @@ static void
 _encoding_free(encoding *enc)
 {
     if (enc->info) {
-        if (enc->info->index) {
-            obf_index_free(enc->info->index);
-        }
+        if (enc->info->index)
+            index_set_free(enc->info->index);
         free(enc->info);
     }
 }
@@ -33,7 +31,7 @@ _encoding_free(encoding *enc)
 static int
 _encoding_print(const encoding *enc)
 {
-    obf_index_print(enc->info->index);
+    index_set_print(enc->info->index);
     return 0;
 }
 
@@ -41,9 +39,9 @@ static int *
 _encode(encoding *rop, const void *set)
 {
     int *pows;
-    const obf_index *const ix = set;
+    const index_set *const ix = set;
 
-    obf_index_set(rop->info->index, ix);
+    index_set_set(rop->info->index, ix);
     pows = my_calloc(ix->nzs, sizeof pows[0]);
     memcpy(pows, ix->pows, ix->nzs * sizeof pows[0]);
     return pows;
@@ -52,7 +50,7 @@ _encode(encoding *rop, const void *set)
 static int
 _encoding_set(encoding *rop, const encoding *x)
 {
-    obf_index_set(my(rop)->index, my(x)->index);
+    index_set_set(my(rop)->index, my(x)->index);
     return 0;
 }
 
@@ -61,7 +59,7 @@ _encoding_mul(const pp_vtable *vt, encoding *rop, const encoding *x,
               const encoding *y, const public_params *pp)
 {
     (void) vt; (void) pp;
-    obf_index_add(my(rop)->index, my(x)->index, my(y)->index);
+    index_set_add(my(rop)->index, my(x)->index, my(y)->index);
     return 0;
 }
 
@@ -70,7 +68,7 @@ _encoding_add(const pp_vtable *vt, encoding *rop, const encoding *x,
               const encoding *y, const public_params *pp)
 {
     (void) vt; (void) pp; (void) y;
-    obf_index_set(my(rop)->index, my(x)->index);
+    index_set_set(my(rop)->index, my(x)->index);
     return 0;
 }
 
@@ -79,18 +77,18 @@ _encoding_sub(const pp_vtable *vt, encoding *rop, const encoding *x,
               const encoding *y, const public_params *pp)
 {
     (void) vt; (void) pp; (void) y;
-    obf_index_set(my(rop)->index, my(x)->index);
+    index_set_set(my(rop)->index, my(x)->index);
     return 0;
 }
 
 static int
 _encoding_is_zero(const pp_vtable *vt, const encoding *x, const public_params *pp)
 {
-    const obf_index *const toplevel = vt->toplevel(pp);
-    if (!obf_index_eq(my(x)->index, toplevel)) {
-        printf("index sets not equal\n");
-        obf_index_print(my(x)->index);
-        obf_index_print(toplevel);
+    const index_set *const toplevel = vt->toplevel(pp);
+    if (!index_set_eq(my(x)->index, toplevel)) {
+        fprintf(stderr, "error: index sets not equal\n");
+        index_set_print(my(x)->index);
+        index_set_print(toplevel);
         return ERR;
     }
     return OK;
@@ -100,13 +98,13 @@ static void
 _encoding_fread(encoding *x, FILE *fp)
 {
     x->info = calloc(1, sizeof x->info[0]);
-    x->info->index = obf_index_fread(fp);
+    x->info->index = index_set_fread(fp);
 }
 
 static void
 _encoding_fwrite(const encoding *x, FILE *fp)
 {
-    obf_index_fwrite(my(x)->index, fp);
+    index_set_fwrite(my(x)->index, fp);
 }
 
 static const void *

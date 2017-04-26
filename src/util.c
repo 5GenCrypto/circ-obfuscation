@@ -52,6 +52,16 @@ bool array_eq(const int *xs, const int *ys, size_t n)
     return true;
 }
 
+size_t array_max(const size_t *xs, size_t n)
+{
+    size_t max = 0;
+    for (size_t i = 0; i < n; ++i) {
+        if (max < xs[i])
+            max = xs[i];
+    }
+    return max;
+}
+
 void array_printstring(int *xs, size_t n)
 {
     for (size_t i = 0; i < n; i++)

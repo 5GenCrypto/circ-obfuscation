@@ -87,5 +87,6 @@ void bool_fwrite(bool x, FILE *fp);
 void array_add(int *rop, const int *xs, const int *ys, size_t n);
 bool array_eq(const int *xs, const int *ys, size_t n);
 int array_sum(const int *xs, size_t n);
+size_t array_max(const size_t *xs, size_t n);
 
 void print_progress (size_t cur, size_t total);
