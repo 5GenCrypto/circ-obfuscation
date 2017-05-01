@@ -19,3 +19,10 @@ circ_params_clear(circ_params_t *cp);
 
 size_t
 circ_params_ninputs(const circ_params_t *cp);
+
+size_t
+circ_params_slot(const circ_params_t *cp, size_t pos);
+
+size_t
+circ_params_bit(const circ_params_t *cp, size_t pos);
+

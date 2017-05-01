@@ -32,3 +32,27 @@ circ_params_ninputs(const circ_params_t *cp)
     }
     return ninputs;
 }
+
+size_t
+circ_params_slot(const circ_params_t *cp, size_t pos)
+{
+    size_t total = 0;
+    for (size_t i = 0; i < cp->n; ++i) {
+        if (pos >= total && pos < total + cp->ds[i])
+            return i;
+        total += cp->ds[i];
+    }
+    abort();
+}
+
+size_t
+circ_params_bit(const circ_params_t *cp, size_t pos)
+{
+    size_t total = 0;
+    for (size_t i = 0; i < cp->n; ++i) {
+        if (pos >= total && pos < total + cp->ds[i])
+            return pos - total;
+        total += cp->ds[i];
+    }
+    abort();
+}

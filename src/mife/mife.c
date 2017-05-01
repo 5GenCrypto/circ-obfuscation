@@ -555,8 +555,9 @@ decrypt_worker(void *vargs)
 
     switch (op) {
     case OP_INPUT: {
-        const size_t slot = args[0];
-        res = cts[slot]->xhat[0];
+        const size_t slot = circ_params_slot(cp, args[0]);
+        const size_t bit = circ_params_bit(cp, args[0]);
+        res = cts[slot]->xhat[bit];
         mine[ref] = false;
         break;
     }

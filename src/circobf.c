@@ -27,6 +27,21 @@ enum scheme_e {
     SCHEME_LZ,
 };
 
+enum mife_e {
+    MIFE_NONE = 0,
+    MIFE_SETUP,
+    MIFE_ENCRYPT,
+    MIFE_DECRYPT,
+    MIFE_TEST,
+};
+
+enum obf_e {
+    OBF_NONE = 0,
+    OBF_OBFUSCATE,
+    OBF_EVALUATE,
+    OBF_TEST,
+};
+
 static char *progname = "circobf";
 
 static char *
@@ -45,17 +60,13 @@ struct args_t {
     char *circuit;
     char *input;
     enum mmap_e mmap;
+    enum mife_e mife;
+    enum obf_e obf;
     size_t secparam;
     size_t kappa;
     size_t nthreads;
     enum scheme_e scheme;
     bool get_kappa;
-    bool obfuscate;
-    bool evaluate;
-    bool test;
-    bool mife_setup;
-    bool mife_encrypt;
-    bool mife_decrypt;
     size_t mife_slot;
     bool smart;
     size_t symlen;
@@ -74,9 +85,8 @@ args_init(struct args_t *args)
     args->nthreads = sysconf(_SC_NPROCESSORS_ONLN);
     args->scheme = SCHEME_LZ;
     args->get_kappa = false;
-    args->obfuscate = false;
-    args->test = false;
-    args->mife_setup = args->mife_encrypt = args->mife_decrypt = false;
+    args->obf = OBF_NONE;
+    args->mife = MIFE_NONE;
     args->smart = false;
     args->symlen = 1;
     args->sigma = false;
@@ -88,7 +98,7 @@ args_print(const struct args_t *args)
 {
     char *scheme;
 
-    if (args->mife_setup || args->mife_encrypt || args->mife_decrypt)
+    if (args->mife != MIFE_NONE)
         scheme = "MIFE";
     else
         scheme = scheme_to_string(args->scheme);
@@ -111,56 +121,56 @@ usage(int ret)
     printf("circobf: Circuit-based program obfuscation.\n\n");
     printf("Usage: %s [options] <circuit>\n\n", progname);
     printf(
-"  MIFE run flags (only one can be set):\n"
-"    --mife-setup            run MIFE setup\n"
-"    --mife-encrypt <I> <X>  run MIFE encryption on input X and slot I\n"
-"    --mife-decrypt          run MIFE decryption\n"
+"  MIFE:\n"
+"    --mife-setup              run setup procedure\n"
+"    --mife-encrypt <I> <X>    run encryption on input X and slot I\n"
+"    --mife-decrypt <E> <C>... run decryption on evaluation key E and ciphertexts C...\n"
+"    --mife-test               run MIFE on circuit's test inputs\n"
 "\n"        
-"  Obfuscation run flags (only one can be set):\n"
-"    --get-kappa           print κ value and exit\n"
-"    --evaluate, -e <X>    evaluate obfuscation on X\n"
-"    --obfuscate, -o       construct obfuscation\n"
-"    --test                obfuscate and evaluate on circuit's test inputs\n"
+"  Obfuscation:\n"
+"    --obf-evaluate <X>    run evaluation on input X\n"
+"    --obf-obfuscate       run obfuscation procedure\n"
+"    --obf-test            run obfuscation on circuit's test inputs\n"
+"    --scheme <NAME>       set scheme to NAME (options: LIN, LZ | default: %s)\n"
+"    --sigma               use Σ-vectors (default: %s)\n"
+"    --symlen N            set Σ-vector length to N bits (default: %lu)\n"
 "\n"
-"  Obfuscation helper flags:\n"
-"    --scheme <NAME>   set scheme to NAME (options: LIN, LZ | default: %s)\n"
-"    --sigma           use Σ-vectors (default: %s)\n"
-"    --symlen N        set Σ-vector length to N bits (default: %lu)\n"
-"    --npowers <N>     use N powers when using LZ (default: %lu)\n"
-"\n"
-"  Execution flags:\n"
+"  Other:\n"
+"    --get-kappa       print κ value and exit\n"
 "    --lambda, -l <λ>  set security parameter to λ when obfuscating (default: %lu)\n"
 "    --nthreads <N>    set the number of threads to N (default: %lu)\n"
 "    --mmap <NAME>     set mmap to NAME (options: CLT, DUMMY | default: %s)\n"
 "    --smart           be smart in choosing κ and # powers\n"
-"\n"
-"  Debugging flags:\n"
-"    --debug <LEVEL>   set debug level (options: ERROR, WARN, DEBUG, INFO | default: ERROR)\n"
-"    --kappa, -k <Κ>   override default κ choice with Κ\n"
+"    --npowers <N>     use N powers when using LZ (default: %lu)\n"
 "\n"
 "  Helper flags:\n"
+"    --debug <LEVEL>   set debug level (options: ERROR, WARN, DEBUG, INFO | default: ERROR)\n"
+"    --kappa, -k <Κ>   override default κ choice with Κ\n"
 "    --verbose, -v     be verbose\n"
 "    --help, -h        print this message and exit\n"
 "\n", scheme_to_string(defaults.scheme), 
       defaults.sigma ? "yes" : "no",
       defaults.symlen,
-      defaults.npowers,
-      defaults.secparam, defaults.nthreads,
-      mmap_to_string(defaults.mmap));
+      defaults.secparam,
+      defaults.nthreads,
+      mmap_to_string(defaults.mmap),
+      defaults.npowers
+      );
     exit(ret);
 }
 
 static const struct option opts[] = {
-    /* MIFE run flags */
     {"mife-setup", no_argument, 0, 'A'},
     {"mife-encrypt", required_argument, 0, 'B'},
     {"mife-decrypt", required_argument, 0, 'C'},
-    /* Obfuscation run flags */
+    {"mife-test", no_argument, 0, 'D'},
+
+    {"obf-evaluate", required_argument, 0, 'e'},
+    {"obf-obfuscate", no_argument, 0, 'o'},
+    {"obf-test", no_argument, 0, 'T'},
+
     {"get-kappa", no_argument, 0, 'g'},
-    {"evaluate", required_argument, 0, 'e'},
-    {"obfuscate", no_argument, 0, 'o'},
-    {"test", no_argument, 0, 'T'},
-    /* Obfuscation helper flags */
+
     {"scheme", required_argument, 0, 'S'},
     {"sigma", no_argument, 0, 's'},
     {"symlen", required_argument, 0, 'L'},
@@ -171,14 +181,14 @@ static const struct option opts[] = {
     {"mmap", required_argument, 0, 'M'},
     {"smart", no_argument, 0, 'r'},
     /* Debugging flags */
-    {"debug", required_argument, 0, 'D'},
+    {"debug", required_argument, 0, 'd'},
     {"kappa", required_argument, 0, 'k'},
     /* Helper flags */
     {"verbose", no_argument, 0, 'v'},
     {"help", no_argument, 0, 'h'},
     {0, 0, 0, 0}
 };
-static const char *short_opts = "AB:C:D:e:ghk:lL:M:n:orsS:t:Tv";
+static const char *short_opts = "AB:C:Dd:e:ghk:lL:M:n:orsS:t:Tv";
 
 static int
 mife_setup_run(const struct args_t *args, const mmap_vtable *mmap,
@@ -383,18 +393,26 @@ mife_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
             fprintf(stderr, "*   %lu: ....... %lu (%lu)\n", i + 1, cp.ds[i], cp.qs[i]);
         }
         fprintf(stderr, "* m: ......... %lu\n", cp.m);
-        if (args->mife_setup || args->mife_encrypt)
+        if (args->mife == MIFE_SETUP || args->mife == MIFE_ENCRYPT)
             fprintf(stderr, "* # encodings: %lu\n",
-                    args->mife_setup ? mife_params_num_encodings_setup(&cp)
-                                     : mife_params_num_encodings_encrypt(&cp, args->mife_slot));
+                    args->mife == MIFE_SETUP ? mife_params_num_encodings_setup(&cp)
+                                             : mife_params_num_encodings_encrypt(&cp, args->mife_slot));
     }
-    
-    if (args->mife_setup) {
+
+    switch (args->mife) {
+    case MIFE_SETUP:
         ret = mife_setup_run(args, mmap, &cp, rng);
-    } else if (args->mife_encrypt) {
+        break;
+    case MIFE_ENCRYPT:
         ret = mife_encrypt_run(args, mmap, &cp, rng);
-    } else if (args->mife_decrypt) {
+        break;
+    case MIFE_DECRYPT:
         ret = mife_decrypt_run(args, mmap, &cp);
+        break;
+    case MIFE_TEST:
+        assert(false);
+    default:
+        abort();
     }
     aes_randclear(rng);
     return ret;
@@ -589,7 +607,7 @@ obf_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
         exit(EXIT_FAILURE);
     }
 
-    if (args->obfuscate || args->test) {
+    if (args->obf == OBF_OBFUSCATE || args->obf == OBF_TEST) {
         char fname[strlen(args->circuit) + sizeof ".obf\0"];
         FILE *f;
 
@@ -604,7 +622,7 @@ obf_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
         fclose(f);
     }
 
-    if (args->evaluate || args->test) {
+    if (args->obf == OBF_EVALUATE || args->obf == OBF_TEST) {
         char fname[strlen(args->circuit) + sizeof ".obf\0"];
         FILE *f;
 
@@ -614,7 +632,7 @@ obf_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
             exit(EXIT_FAILURE);
         }
 
-        if (args->evaluate) {
+        if (args->obf == OBF_EVALUATE) {
             int input[circ->ninputs];
             int output[circ->outputs.n];
             assert(args->input);
@@ -630,7 +648,7 @@ obf_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
                 printf("%d", output[i]);
             }
             printf("\n");
-        } else if (args->test) {
+        } else if (args->obf == OBF_TEST) {
             int output[circ->outputs.n];
             for (size_t i = 0; i < circ->tests.n; i++) {
                 bool ok = true;
@@ -691,12 +709,16 @@ main(int argc, char **argv)
     while ((c = getopt_long(argc, argv, short_opts, opts, &idx)) != -1) {
         switch (c) {
         case 'A':               /* --mife-setup */
-            args.mife_setup = true;
+            if (args.mife != MIFE_NONE)
+                usage(EXIT_FAILURE);
+            args.mife = MIFE_SETUP;
             break;
         case 'B':               /* --mife-encrypt */
             if (optarg == NULL)
                 usage(EXIT_FAILURE);
-            args.mife_encrypt = true;
+            if (args.mife != MIFE_NONE)
+                usage(EXIT_FAILURE);
+            args.mife = MIFE_ENCRYPT;
             {
                 char *tok;
                 tok = strsep(&optarg, " ");
@@ -708,10 +730,17 @@ main(int argc, char **argv)
         case 'C':               /* --mife-decrypt */
             if (optarg == NULL)
                 usage(EXIT_FAILURE);
-            args.mife_decrypt = true;
+            if (args.mife != MIFE_NONE)
+                usage(EXIT_FAILURE);
+            args.mife = MIFE_DECRYPT;
             args.input = optarg;
-            break;            
-        case 'D':               /* --debug */
+            break;
+        case 'D':               /* --mife-test */
+            if (args.mife != MIFE_NONE)
+                usage(EXIT_FAILURE);
+            args.mife = MIFE_TEST;
+            break;
+        case 'd':               /* --debug */
             if (optarg == NULL)
                 usage(EXIT_FAILURE);
             if (strcmp(optarg, "ERROR") == 0) {
@@ -727,10 +756,12 @@ main(int argc, char **argv)
                 usage(EXIT_FAILURE);
             }
             break;
-        case 'e':               /* --evaluate */
+        case 'e':               /* --obf-evaluate */
             if (optarg == NULL)
                 usage(EXIT_FAILURE);
-            args.evaluate = true;
+            if (args.obf != OBF_NONE)
+                usage(EXIT_FAILURE);
+            args.obf = OBF_EVALUATE;
             args.input = optarg;
             break;
         case 'g':               /* --get-kappa */
@@ -774,8 +805,10 @@ main(int argc, char **argv)
             args.npowers = (size_t) npowers;
             break;
         }
-        case 'o':               /* --obfuscate */
-            args.obfuscate = true;
+        case 'o':               /* --obf-obfuscate */
+            if (args.obf != OBF_NONE)
+                usage(EXIT_FAILURE);
+            args.obf = OBF_OBFUSCATE;
             break;
         case 'r':               /* --smart */
             args.smart = true;
@@ -801,7 +834,9 @@ main(int argc, char **argv)
             args.nthreads = atoi(optarg);
             break;
         case 'T':
-            args.test = true;
+            if (args.obf != OBF_NONE)
+                usage(EXIT_FAILURE);
+            args.obf = OBF_TEST;
             break;
         case 'v':               /* --verbose */
             g_verbose = true;
@@ -825,29 +860,12 @@ main(int argc, char **argv)
         usage(EXIT_FAILURE);
     }
 
-    int mife_flags = (int) args.mife_setup
-        + (int) args.mife_encrypt
-        + (int) args.mife_decrypt;
-    int obf_flags = (int) args.evaluate
-        + (int) args.obfuscate
-        + (int) args.get_kappa
-        + (int) args.test;
-
-    if (mife_flags && obf_flags) {
+    if (args.mife != MIFE_NONE && args.obf != OBF_NONE) {
         fprintf(stderr, "error: cannot use both MIFE flags and obfuscation flags\n");
         usage(EXIT_FAILURE);
     }
-    if (!mife_flags && !obf_flags) {
-        fprintf(stderr, "error: must use either MIFE flags or obfuscation flags\n");
-        usage(EXIT_FAILURE);
-    }
-    if (mife_flags > 1) {
-        fprintf(stderr, "error: only one of --mife-setup, --mife-encrypt, --mife-evaluate can be used\n");
-        usage(EXIT_FAILURE);
-    }
-    if (obf_flags > 1) {
-        fprintf(stderr, "error: only one of --get-kappa, --obfuscate, --evaluate, --test can be used\n");
-        usage(EXIT_FAILURE);
+    if (args.mife == MIFE_NONE && args.obf == OBF_NONE) {
+        args.get_kappa = true;
     }
 
     if (args.get_kappa)
@@ -895,9 +913,9 @@ main(int argc, char **argv)
         printf("* delta: .. %lu\n", acirc_delta(&circ));
     }
     
-    if (mife_flags)
+    if (args.mife != MIFE_NONE)
         ret = mife_run(&args, mmap, &circ);
-    if (obf_flags)
+    if (args.obf != OBF_NONE)
         ret = obf_run(&args, mmap, &circ);
 
     acirc_clear(&circ);
