@@ -154,7 +154,7 @@ static const struct option opts[] = {
     /* MIFE run flags */
     {"mife-setup", no_argument, 0, 'A'},
     {"mife-encrypt", required_argument, 0, 'B'},
-    
+    {"mife-decrypt", required_argument, 0, 'C'},
     /* Obfuscation run flags */
     {"get-kappa", no_argument, 0, 'g'},
     {"evaluate", required_argument, 0, 'e'},
@@ -178,7 +178,7 @@ static const struct option opts[] = {
     {"help", no_argument, 0, 'h'},
     {0, 0, 0, 0}
 };
-static const char *short_opts = "AD:e:ghk:lL:M:n:orsS:t:Tv";
+static const char *short_opts = "AB:C:D:e:ghk:lL:M:n:orsS:t:Tv";
 
 static int
 mife_setup_run(const struct args_t *args, const mmap_vtable *mmap,
@@ -287,6 +287,82 @@ mife_encrypt_run(const struct args_t *args, const mmap_vtable *mmap,
 }
 
 static int
+mife_decrypt_run(const struct args_t *args, const mmap_vtable *mmap, circ_params_t *cp)
+{
+    mife_ciphertext_t *cts[cp->n];
+    mife_ek_t *ek = NULL;
+    int rop[cp->m];
+    char *tok, *str, *tofree;
+    FILE *fp;
+    size_t i = 0;
+    int ret = ERR;
+
+    memset(cts, '\0', sizeof cts);
+
+    tofree = str = strdup(args->input);
+    tok = strsep(&str, " ");
+    if (tok == NULL) {
+        fprintf(stderr, "error: missing evaluation key\n");
+        goto cleanup;
+    }
+    if ((fp = fopen(tok, "r")) == NULL) {
+        fprintf(stderr, "error: unable to open '%s' for reading\n", tok);
+        goto cleanup;
+    }
+    ek = mife_ek_fread(mmap, cp, fp);
+    fclose(fp);
+    if (ek == NULL) {
+        fprintf(stderr, "error: unable to read evaluation key\n");
+        goto cleanup;
+    }
+    while ((tok = strsep(&str, " ")) != NULL) {
+        if (i == cp->n) {
+            fprintf(stderr, "error: too many ciphertexts given (got %lu, need %lu)\n",
+                    i + 1, cp->n);
+            goto cleanup;
+        }
+        if ((fp = fopen(tok, "r")) == NULL) {
+            fprintf(stderr, "error: unable to open '%s' for reading\n", tok);
+            goto cleanup;
+        }
+        cts[i] = mife_ciphertext_fread(mmap, cp, fp);
+        fclose(fp);
+        if (cts[i] == NULL) {
+            fprintf(stderr, "error: unable to read ciphertext #%lu\n", i + 1);
+            goto cleanup;
+        }
+        i++;
+    }
+    if (i != cp->n) {
+        fprintf(stderr, "error: too few ciphertexts given (got %lu, need %lu)\n",
+                i, cp->n);
+        goto cleanup;
+    }
+
+    ret = mife_decrypt(ek, rop, cts, args->nthreads);
+    if (ret == ERR) {
+        fprintf(stderr, "error: decryption failed\n");
+        goto cleanup;
+    }
+    fprintf(stderr, "result: ");
+    for (size_t o = 0; o < cp->m; ++o) {
+        fprintf(stderr, "%d", rop[o]);
+    }
+    fprintf(stderr, "\n");
+
+    ret = OK;
+cleanup:
+    if (ek)
+        mife_ek_free(ek);
+    for (i = 0; i < cp->n; ++i) {
+        if (cts[i])
+            mife_ciphertext_free(cts[i], cp);
+    }
+    free(tofree);
+    return ret;
+}
+
+static int
 mife_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
 {
     circ_params_t cp;
@@ -295,6 +371,7 @@ mife_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
 
     aes_randinit(rng);
     circ_params_init(&cp, circ->ninputs, circ);
+    /* XXX: fixme */
     for (size_t i = 0; i < cp.n; ++i) {
         cp.ds[i] = 1;
         cp.qs[i] = 1 << 1;
@@ -317,7 +394,7 @@ mife_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
     } else if (args->mife_encrypt) {
         ret = mife_encrypt_run(args, mmap, &cp, rng);
     } else if (args->mife_decrypt) {
-        
+        ret = mife_decrypt_run(args, mmap, &cp);
     }
     aes_randclear(rng);
     return ret;
@@ -628,6 +705,12 @@ main(int argc, char **argv)
                 args.input = tok;
             }
             break;
+        case 'C':               /* --mife-decrypt */
+            if (optarg == NULL)
+                usage(EXIT_FAILURE);
+            args.mife_decrypt = true;
+            args.input = optarg;
+            break;            
         case 'D':               /* --debug */
             if (optarg == NULL)
                 usage(EXIT_FAILURE);

@@ -14,8 +14,8 @@ mife_params_new_toplevel(const circ_params_t *const cp, size_t nzs)
         return NULL;
     IX_Z(ix) = 1;
     for (size_t i = 0; i < cp->n; ++i) {
-        IX_W(ix, i) = 1;
-        IX_X(ix, i) = acirc_max_var_degree(cp->circ, i);
+        IX_W(ix, cp, i) = 1;
+        IX_X(ix, cp, i) = acirc_max_var_degree(cp->circ, i);
     }
     return ix;
 }

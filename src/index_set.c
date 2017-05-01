@@ -32,6 +32,7 @@ index_set_clear(index_set *ix)
 void
 index_set_print(const index_set *ix)
 {
+    fprintf(stderr, "%lu: ", ix->nzs);
     for (size_t i = 0; i < ix->nzs; ++i) {
         fprintf(stderr, "%d ", ix->pows[i]);
     }
