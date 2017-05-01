@@ -64,6 +64,7 @@ secret_params_fread(const sp_vtable *vt, const circ_params_t *cp, FILE *fp)
     secret_params *sp = my_calloc(1, sizeof sp[0]);
     vt->fread(sp, cp, fp);
     GET_NEWLINE(fp);
+    sp->sk = my_calloc(1, vt->mmap->sk->size);
     vt->mmap->sk->fread(sp->sk, fp);
     GET_NEWLINE(fp);
     return sp;

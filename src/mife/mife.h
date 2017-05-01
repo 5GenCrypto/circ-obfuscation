@@ -24,6 +24,10 @@ void mife_ek_free(mife_ek_t *ek);
 int mife_ek_fwrite(const mife_ek_t *ek, FILE *fp);
 mife_ek_t * mife_ek_fread(const mmap_vtable *mmap, const circ_params_t *cp, FILE *fp);
 
+void mife_ciphertext_free(mife_ciphertext_t *ct, const circ_params_t *cp);
+int mife_ciphertext_fwrite(const mife_ciphertext_t *ct, const circ_params_t *cp, FILE *fp);
+mife_ciphertext_t * mife_ciphertext_fread(const mmap_vtable *mmap, const circ_params_t *cp, FILE *fp);
+
 
 mife_ciphertext_t *
 mife_encrypt(const mife_sk_t *sk, size_t slot, size_t *inputs, size_t ncores,

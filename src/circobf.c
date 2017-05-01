@@ -3,6 +3,7 @@
 #include "util.h"
 
 #include "mife/mife.h"
+#include "mife/mife_params.h"
 #include "lin/obfuscator.h"
 #include "lz/obfuscator.h"
 
@@ -42,18 +43,20 @@ scheme_to_string(enum scheme_e scheme)
 
 struct args_t {
     char *circuit;
+    char *input;
     enum mmap_e mmap;
     size_t secparam;
     size_t kappa;
     size_t nthreads;
     enum scheme_e scheme;
     bool get_kappa;
-    char *evaluate;
     bool obfuscate;
+    bool evaluate;
     bool test;
     bool mife_setup;
     bool mife_encrypt;
     bool mife_decrypt;
+    size_t mife_slot;
     bool smart;
     size_t symlen;
     bool sigma;
@@ -64,13 +67,13 @@ static void
 args_init(struct args_t *args)
 {
     args->circuit = NULL;
+    args->input = NULL;
     args->mmap = MMAP_DUMMY;
     args->secparam = 16;
     args->kappa = 0;
     args->nthreads = sysconf(_SC_NPROCESSORS_ONLN);
     args->scheme = SCHEME_LZ;
     args->get_kappa = false;
-    args->evaluate = NULL;
     args->obfuscate = false;
     args->test = false;
     args->mife_setup = args->mife_encrypt = args->mife_decrypt = false;
@@ -83,7 +86,13 @@ args_init(struct args_t *args)
 static void
 args_print(const struct args_t *args)
 {
-    fprintf(stderr, "Obfuscation details:\n"
+    char *scheme;
+
+    if (args->mife_setup || args->mife_encrypt || args->mife_decrypt)
+        scheme = "MIFE";
+    else
+        scheme = scheme_to_string(args->scheme);
+    fprintf(stderr, "Info:\n"
             "* Circuit: .......... %s\n"
             "* Multilinear map: .. %s\n"
             "* Security parameter: %lu\n"
@@ -91,7 +100,7 @@ args_print(const struct args_t *args)
             "* # threads: ........ %lu\n"
             ,
             args->circuit, mmap_to_string(args->mmap), args->secparam,
-            scheme_to_string(args->scheme), args->nthreads);
+            scheme, args->nthreads);
 }
 
 static void
@@ -103,13 +112,13 @@ usage(int ret)
     printf("Usage: %s [options] <circuit>\n\n", progname);
     printf(
 "  MIFE run flags (only one can be set):\n"
-"    --mife-setup          run MIFE setup\n"
-"    --mife-encrypt        run MIFE encryption\n"
-"    --mife-decrypt        run MIFE decryption\n"
+"    --mife-setup            run MIFE setup\n"
+"    --mife-encrypt <I> <X>  run MIFE encryption on input X and slot I\n"
+"    --mife-decrypt          run MIFE decryption\n"
 "\n"        
 "  Obfuscation run flags (only one can be set):\n"
 "    --get-kappa           print κ value and exit\n"
-"    --evaluate, -e <INP>  evaluate obfuscation on INP\n"
+"    --evaluate, -e <X>    evaluate obfuscation on X\n"
 "    --obfuscate, -o       construct obfuscation\n"
 "    --test                obfuscate and evaluate on circuit's test inputs\n"
 "\n"
@@ -144,6 +153,8 @@ usage(int ret)
 static const struct option opts[] = {
     /* MIFE run flags */
     {"mife-setup", no_argument, 0, 'A'},
+    {"mife-encrypt", required_argument, 0, 'B'},
+    
     /* Obfuscation run flags */
     {"get-kappa", no_argument, 0, 'g'},
     {"evaluate", required_argument, 0, 'e'},
@@ -170,49 +181,144 @@ static const struct option opts[] = {
 static const char *short_opts = "AD:e:ghk:lL:M:n:orsS:t:Tv";
 
 static int
+mife_setup_run(const struct args_t *args, const mmap_vtable *mmap,
+               circ_params_t *cp, aes_randstate_t rng)
+{
+    char skname[strlen(args->circuit) + sizeof ".sk\0"];
+    char ekname[strlen(args->circuit) + sizeof ".ek\0"];
+    mife_t *mife;
+    mife_sk_t *sk;
+    mife_ek_t *ek;
+    FILE *fp;
+
+    mife = mife_setup(mmap, cp, args->secparam, rng, NULL, args->nthreads);
+    if (mife == NULL)
+        return ERR;
+    sk = mife_sk(mife);
+    snprintf(skname, sizeof skname, "%s.sk", args->circuit);
+    if ((fp = fopen(skname, "w")) == NULL) {
+        fprintf(stderr, "error: unable to open '%s' for writing\n", skname);
+        exit(EXIT_FAILURE);
+    }
+    mife_sk_fwrite(sk, fp);
+    fclose(fp);
+    mife_sk_free(sk);
+
+    ek = mife_ek(mife);
+    snprintf(ekname, sizeof ekname, "%s.ek", args->circuit);
+    if ((fp = fopen(ekname, "w")) == NULL) {
+        fprintf(stderr, "error: unable to open '%s' for writing\n", ekname);
+        exit(EXIT_FAILURE);
+    }
+    mife_ek_fwrite(ek, fp);
+    fclose(fp);
+    mife_ek_free(ek);
+
+    mife_free(mife);
+
+    return OK;
+}
+
+static int
+mife_encrypt_run(const struct args_t *args, const mmap_vtable *mmap,
+                 circ_params_t *cp, aes_randstate_t rng)
+{
+    char skname[strlen(args->circuit) + sizeof ".sk\0"];
+    mife_ciphertext_t *ct;
+    mife_sk_t *sk;
+    size_t ninputs;
+    FILE *fp;
+
+    if (args->mife_slot >= cp->n) {
+        fprintf(stderr, "error: invalid MIFE slot\n");
+        exit(EXIT_FAILURE);
+    }
+    ninputs = cp->ds[args->mife_slot];
+    if (strlen(args->input) != ninputs) {
+        fprintf(stderr, "error: invalid number of inputs\n");
+        exit(EXIT_FAILURE);
+    }
+
+    size_t input[ninputs];
+
+    if (g_verbose) {
+        fprintf(stderr,
+                "MIFE encryption details:\n"
+                "* Slot: .... %lu\n"
+                "* Input: ... %s\n",
+                args->mife_slot, args->input);
+    }
+
+    snprintf(skname, sizeof skname, "%s.sk", args->circuit);
+    if ((fp = fopen(skname, "r")) == NULL) {
+        fprintf(stderr, "error: unable to open '%s' for reading\n", skname);
+        exit(EXIT_FAILURE);
+    }
+    sk = mife_sk_fread(mmap, cp, fp);
+    fclose(fp);
+
+    for (size_t i = 0; i < ninputs; ++i) {
+        input[i] = args->input[i] - '0';
+    }
+
+    ct = mife_encrypt(sk, args->mife_slot, input, args->nthreads, rng);
+    if (ct == NULL) {
+        fprintf(stderr, "MIFE encryption failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    {
+        char ctname[strlen(args->circuit) + 10 + strlen("..ct\0")];
+        char slot[10];
+
+        snprintf(slot, sizeof slot, "%lu", args->mife_slot);
+        snprintf(ctname, sizeof ctname, "%s.%s.ct", args->circuit, slot);
+
+        if ((fp = fopen(ctname, "w")) == NULL) {
+            fprintf(stderr, "error: unable to open '%s' for writing\n", ctname);
+            exit(EXIT_FAILURE);
+        }
+        mife_ciphertext_fwrite(ct, cp, fp);
+    }
+    mife_ciphertext_free(ct, cp);
+    mife_sk_free(sk);
+
+    return OK;
+}
+
+static int
 mife_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
 {
+    circ_params_t cp;
     aes_randstate_t rng;
     int ret = ERR;
 
     aes_randinit(rng);
-    if (args->mife_setup) {
-        char skname[strlen(args->circuit) + sizeof ".sk\0"];
-        char ekname[strlen(args->circuit) + sizeof ".ek\0"];
-        circ_params_t cp;
-        mife_t *mife;
-        mife_sk_t *sk;
-        mife_ek_t *ek;
-        FILE *f;
-
-        circ_params_init(&cp, circ->ninputs, circ);
-        mife = mife_setup(mmap, &cp, args->secparam, rng, NULL, args->nthreads);
-        if (mife == NULL)
-            goto cleanup;
-        sk = mife_sk(mife);
-        snprintf(skname, sizeof skname, "%s.sk", args->circuit);
-        if ((f = fopen(skname, "w")) == NULL) {
-            fprintf(stderr, "error: unable to open '%s' for writing\n", skname);
-            exit(EXIT_FAILURE);
-        }
-        mife_sk_fwrite(sk, f);
-        fclose(f);
-        mife_sk_free(sk);
-
-        ek = mife_ek(mife);
-        snprintf(ekname, sizeof ekname, "%s.ek", args->circuit);
-        if ((f = fopen(ekname, "w")) == NULL) {
-            fprintf(stderr, "error: unable to open '%s' for writing\n", ekname);
-            exit(EXIT_FAILURE);
-        }
-        mife_ek_fwrite(ek, f);
-        fclose(f);
-        mife_ek_free(ek);
-
-        mife_free(mife);
+    circ_params_init(&cp, circ->ninputs, circ);
+    for (size_t i = 0; i < cp.n; ++i) {
+        cp.ds[i] = 1;
+        cp.qs[i] = 1 << 1;
     }
-    ret = OK;
-cleanup:
+    if (g_verbose) {
+        fprintf(stderr, "Circuit parameters:\n");
+        fprintf(stderr, "* n: ......... %lu\n", cp.n);
+        for (size_t i = 0; i < cp.n; ++i) {
+            fprintf(stderr, "*   %lu: ....... %lu (%lu)\n", i + 1, cp.ds[i], cp.qs[i]);
+        }
+        fprintf(stderr, "* m: ......... %lu\n", cp.m);
+        if (args->mife_setup || args->mife_encrypt)
+            fprintf(stderr, "* # encodings: %lu\n",
+                    args->mife_setup ? mife_params_num_encodings_setup(&cp)
+                                     : mife_params_num_encodings_encrypt(&cp, args->mife_slot));
+    }
+    
+    if (args->mife_setup) {
+        ret = mife_setup_run(args, mmap, &cp, rng);
+    } else if (args->mife_encrypt) {
+        ret = mife_encrypt_run(args, mmap, &cp, rng);
+    } else if (args->mife_decrypt) {
+        
+    }
     aes_randclear(rng);
     return ret;
 }
@@ -434,8 +540,9 @@ obf_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
         if (args->evaluate) {
             int input[circ->ninputs];
             int output[circ->outputs.n];
+            assert(args->input);
             for (size_t i = 0; i < circ->ninputs; ++i) {
-                input[i] = args->evaluate[i] - '0';
+                input[i] = args->input[i] - '0';
             }
 
             if (_evaluate(vt, mmap, params, f, input, output, args->nthreads,
@@ -509,6 +616,18 @@ main(int argc, char **argv)
         case 'A':               /* --mife-setup */
             args.mife_setup = true;
             break;
+        case 'B':               /* --mife-encrypt */
+            if (optarg == NULL)
+                usage(EXIT_FAILURE);
+            args.mife_encrypt = true;
+            {
+                char *tok;
+                tok = strsep(&optarg, " ");
+                args.mife_slot = atoi(tok);
+                tok = strsep(&optarg, " ");
+                args.input = tok;
+            }
+            break;
         case 'D':               /* --debug */
             if (optarg == NULL)
                 usage(EXIT_FAILURE);
@@ -528,7 +647,8 @@ main(int argc, char **argv)
         case 'e':               /* --evaluate */
             if (optarg == NULL)
                 usage(EXIT_FAILURE);
-            args.evaluate = optarg;
+            args.evaluate = true;
+            args.input = optarg;
             break;
         case 'g':               /* --get-kappa */
             args.get_kappa = true;
@@ -625,7 +745,7 @@ main(int argc, char **argv)
     int mife_flags = (int) args.mife_setup
         + (int) args.mife_encrypt
         + (int) args.mife_decrypt;
-    int obf_flags = (int) (args.evaluate != NULL)
+    int obf_flags = (int) args.evaluate
         + (int) args.obfuscate
         + (int) args.get_kappa
         + (int) args.test;
