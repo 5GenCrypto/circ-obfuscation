@@ -1,6 +1,6 @@
 #include "circ_params.h"
 #include "index_set.h"
-#include "obf_params.h"
+#include "mife_params.h"
 #include "vtables.h"
 #include "util.h"
 
@@ -38,8 +38,8 @@ static void
 _pp_fread(public_params *pp, const circ_params_t *cp, FILE *fp)
 {
     (void) fp;
-    pp->info = my_calloc(1, sizeof pp->info[0]);
-    pp->info->toplevel = obf_params_new_toplevel(cp, obf_params_nzs(cp));
+    pp->info = calloc(1, sizeof pp->info[0]);
+    pp->info->toplevel = mife_params_new_toplevel(cp, mife_params_nzs(cp));
     pp->info->cp = cp;
     pp->info->local = true;
 }

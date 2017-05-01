@@ -60,7 +60,7 @@ _op_new(acirc *circ, void *vparams)
         free(op);
         return NULL;
     }
-    circ_params_init(&op->cp, circ->ninputs / params->symlen + 1, circ->outputs.n, circ);
+    circ_params_init(&op->cp, circ->ninputs / params->symlen + 1, circ);
     op->sigma = params->sigma;
     op->npowers = params->npowers;
     for (size_t i = 0; i < op->cp.n - 1; ++i) {

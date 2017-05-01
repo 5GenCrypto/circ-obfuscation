@@ -2,6 +2,7 @@
 #include "obfuscator.h"
 #include "util.h"
 
+#include "mife/mife.h"
 #include "lin/obfuscator.h"
 #include "lz/obfuscator.h"
 
@@ -50,11 +51,12 @@ struct args_t {
     char *evaluate;
     bool obfuscate;
     bool test;
+    bool mife_setup;
+    bool mife_encrypt;
+    bool mife_decrypt;
     bool smart;
-    /* LIN/LZ specific flags */
     size_t symlen;
     bool sigma;
-    /* LZ specific flags */
     size_t npowers;
 };
 
@@ -71,11 +73,10 @@ args_init(struct args_t *args)
     args->evaluate = NULL;
     args->obfuscate = false;
     args->test = false;
+    args->mife_setup = args->mife_encrypt = args->mife_decrypt = false;
     args->smart = false;
-    /* LIN/LZ specific flags */
     args->symlen = 1;
     args->sigma = false;
-    /* LZ specific flags */
     args->npowers = 8;
 }
 
@@ -101,23 +102,28 @@ usage(int ret)
     printf("circobf: Circuit-based program obfuscation.\n\n");
     printf("Usage: %s [options] <circuit>\n\n", progname);
     printf(
-"  Evaluation flags (only one can be set):\n"
+"  MIFE run flags (only one can be set):\n"
+"    --mife-setup          run MIFE setup\n"
+"    --mife-encrypt        run MIFE encryption\n"
+"    --mife-decrypt        run MIFE decryption\n"
+"\n"        
+"  Obfuscation run flags (only one can be set):\n"
 "    --get-kappa           print κ value and exit\n"
 "    --evaluate, -e <INP>  evaluate obfuscation on INP\n"
 "    --obfuscate, -o       construct obfuscation\n"
-"    --test                obfuscate and evaluate on circuit's test inputs (default)\n"
+"    --test                obfuscate and evaluate on circuit's test inputs\n"
+"\n"
+"  Obfuscation helper flags:\n"
+"    --scheme <NAME>   set scheme to NAME (options: LIN, LZ | default: %s)\n"
+"    --sigma           use Σ-vectors (default: %s)\n"
+"    --symlen N        set Σ-vector length to N bits (default: %lu)\n"
+"    --npowers <N>     use N powers when using LZ (default: %lu)\n"
 "\n"
 "  Execution flags:\n"
 "    --lambda, -l <λ>  set security parameter to λ when obfuscating (default: %lu)\n"
 "    --nthreads <N>    set the number of threads to N (default: %lu)\n"
-"    --scheme <NAME>   set scheme to NAME (options: LIN, LZ | default: %s)\n"
 "    --mmap <NAME>     set mmap to NAME (options: CLT, DUMMY | default: %s)\n"
 "    --smart           be smart in choosing κ and # powers\n"
-"    --sigma           use Σ-vectors (default: %s)\n"
-"    --symlen N        set Σ-vector length to N bits (default: %lu)\n"
-"\n"
-"  LZ specific flags:\n"
-"    --npowers <N>     use N powers (default: %lu)\n"
 "\n"
 "  Debugging flags:\n"
 "    --debug <LEVEL>   set debug level (options: ERROR, WARN, DEBUG, INFO | default: ERROR)\n"
@@ -126,39 +132,90 @@ usage(int ret)
 "  Helper flags:\n"
 "    --verbose, -v     be verbose\n"
 "    --help, -h        print this message and exit\n"
-"\n", defaults.secparam, defaults.nthreads,
-      scheme_to_string(defaults.scheme), mmap_to_string(defaults.mmap),
+"\n", scheme_to_string(defaults.scheme), 
       defaults.sigma ? "yes" : "no",
-      defaults.symlen, 
-      defaults.npowers);
+      defaults.symlen,
+      defaults.npowers,
+      defaults.secparam, defaults.nthreads,
+      mmap_to_string(defaults.mmap));
     exit(ret);
 }
 
 static const struct option opts[] = {
-    /* Evaluation flags */
+    /* MIFE run flags */
+    {"mife-setup", no_argument, 0, 'A'},
+    /* Obfuscation run flags */
     {"get-kappa", no_argument, 0, 'g'},
     {"evaluate", required_argument, 0, 'e'},
     {"obfuscate", no_argument, 0, 'o'},
     {"test", no_argument, 0, 'T'},
+    /* Obfuscation helper flags */
+    {"scheme", required_argument, 0, 'S'},
+    {"sigma", no_argument, 0, 's'},
+    {"symlen", required_argument, 0, 'L'},
+    {"npowers", required_argument, 0, 'n'},
     /* Execution flags */
-    {"debug", required_argument, 0, 'D'},
-    {"kappa", required_argument, 0, 'k'},
     {"lambda", required_argument, 0, 'l'},
     {"nthreads", required_argument, 0, 't'},
     {"mmap", required_argument, 0, 'M'},
-    {"scheme", required_argument, 0, 'S'},
     {"smart", no_argument, 0, 'r'},
-    /* LIN/LZ specific settings */
-    {"sigma", no_argument, 0, 's'},
-    {"symlen", required_argument, 0, 'L'},
-    /* LZ specific settings */
-    {"npowers", required_argument, 0, 'n'},
+    /* Debugging flags */
+    {"debug", required_argument, 0, 'D'},
+    {"kappa", required_argument, 0, 'k'},
     /* Helper flags */
     {"verbose", no_argument, 0, 'v'},
     {"help", no_argument, 0, 'h'},
     {0, 0, 0, 0}
 };
-static const char *short_opts = "aD:egk:lL:M:n:orsS:t:Tvh";
+static const char *short_opts = "AD:e:ghk:lL:M:n:orsS:t:Tv";
+
+static int
+mife_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
+{
+    aes_randstate_t rng;
+    int ret = ERR;
+
+    aes_randinit(rng);
+    if (args->mife_setup) {
+        char skname[strlen(args->circuit) + sizeof ".sk\0"];
+        char ekname[strlen(args->circuit) + sizeof ".ek\0"];
+        circ_params_t cp;
+        mife_t *mife;
+        mife_sk_t *sk;
+        mife_ek_t *ek;
+        FILE *f;
+
+        circ_params_init(&cp, circ->ninputs, circ);
+        mife = mife_setup(mmap, &cp, args->secparam, rng, NULL, args->nthreads);
+        if (mife == NULL)
+            goto cleanup;
+        sk = mife_sk(mife);
+        snprintf(skname, sizeof skname, "%s.sk", args->circuit);
+        if ((f = fopen(skname, "w")) == NULL) {
+            fprintf(stderr, "error: unable to open '%s' for writing\n", skname);
+            exit(EXIT_FAILURE);
+        }
+        mife_sk_fwrite(sk, f);
+        fclose(f);
+        mife_sk_free(sk);
+
+        ek = mife_ek(mife);
+        snprintf(ekname, sizeof ekname, "%s.ek", args->circuit);
+        if ((f = fopen(ekname, "w")) == NULL) {
+            fprintf(stderr, "error: unable to open '%s' for writing\n", ekname);
+            exit(EXIT_FAILURE);
+        }
+        mife_ek_fwrite(ek, f);
+        fclose(f);
+        mife_ek_free(ek);
+
+        mife_free(mife);
+    }
+    ret = OK;
+cleanup:
+    aes_randclear(rng);
+    return ret;
+}
 
 static int
 _obfuscate(const obfuscator_vtable *vt, const mmap_vtable *mmap,
@@ -252,11 +309,9 @@ error:
 }
 
 static int
-run(const struct args_t *args)
+obf_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
 {
     obf_params_t *params;
-    acirc c;
-    const mmap_vtable *mmap;
     const obfuscator_vtable *vt;
     const op_vtable *op_vt;
     lin_obf_params_t lin_params;
@@ -266,50 +321,12 @@ run(const struct args_t *args)
     size_t npowers = args->npowers;
     int ret = OK;
 
-    switch (args->mmap) {
-    case MMAP_CLT:
-        mmap = &clt_vtable;
-        break;
-    case MMAP_DUMMY:
-        mmap = &dummy_vtable;
-        break;
-    default:
-        abort();
-    }
-
-    acirc_verbose(g_verbose);
-    {
-        FILE *fp = fopen(args->circuit, "r");
-        if (fp == NULL) {
-            fprintf(stderr, "error: opening circuit '%s' failed\n", args->circuit);
-            exit(EXIT_FAILURE);
-        }
-        acirc_init(&c);
-        if (acirc_fread(&c, fp) == NULL) {
-            acirc_clear(&c);
-            fclose(fp);
-            fprintf(stderr, "error: parsing circuit '%s' failed\n", args->circuit);
-            exit(EXIT_FAILURE);
-        }
-        fclose(fp);
-    }
-
-    if (g_verbose) {
-        printf("Circuit info:\n");
-        printf("* ninputs:  %lu\n", c.ninputs);
-        printf("* nconsts:  %lu\n", c.consts.n);
-        printf("* noutputs: %lu\n", c.outputs.n);
-        printf("* ngates: . %lu\n", c.gates.n);
-        printf("* nmuls: .. %lu\n", acirc_nmuls(&c));
-        printf("* depth: .. %lu\n", acirc_max_depth(&c));
-        printf("* degree: . %lu\n", acirc_max_degree(&c));
-        printf("* delta: .. %lu\n", acirc_delta(&c));
-    }
-
     switch (args->scheme) {
     case SCHEME_LIN:
-        vt = &lin_obfuscator_vtable;
-        op_vt = &lin_op_vtable;
+        fprintf(stderr, "LIN SCHEME BROKEN!\n");
+        exit(1);
+        /* vt = &lin_obfuscator_vtable; */
+        /* op_vt = &lin_op_vtable; */
         lin_params.symlen = args->symlen;
         lin_params.sigma = args->sigma;
         vparams = &lin_params;
@@ -340,7 +357,7 @@ run(const struct args_t *args)
             exit(EXIT_FAILURE);
         }
 
-        _params = op_vt->new(&c, vparams);
+        _params = op_vt->new(circ, vparams);
         if (_params == NULL) {
             fprintf(stderr, "error: initialize obfuscator parameters failed\n");
             exit(EXIT_FAILURE);
@@ -353,8 +370,8 @@ run(const struct args_t *args)
         if (args->smart) {
             rewind(f);
 
-            int input[c.ninputs];
-            int output[c.outputs.n];
+            int input[circ->ninputs];
+            int output[circ->outputs.n];
 
             memset(input, '\0', sizeof input);
             memset(output, '\0', sizeof output);
@@ -371,7 +388,6 @@ run(const struct args_t *args)
 
         if (args->get_kappa) {
             printf("κ = %lu\n", kappa);
-            acirc_clear(&c);
             return OK;
         }
         if (args->smart) {
@@ -384,7 +400,7 @@ run(const struct args_t *args)
         }
     }
 
-    params = op_vt->new(&c, vparams);
+    params = op_vt->new(circ, vparams);
     if (params == NULL) {
         fprintf(stderr, "error: initialize obfuscator parameters failed\n");
         exit(EXIT_FAILURE);
@@ -416,9 +432,9 @@ run(const struct args_t *args)
         }
 
         if (args->evaluate) {
-            int input[c.ninputs];
-            int output[c.outputs.n];
-            for (size_t i = 0; i < c.ninputs; ++i) {
+            int input[circ->ninputs];
+            int output[circ->outputs.n];
+            for (size_t i = 0; i < circ->ninputs; ++i) {
                 input[i] = args->evaluate[i] - '0';
             }
 
@@ -426,28 +442,28 @@ run(const struct args_t *args)
                           NULL, NULL) == ERR)
                 return ERR;
             printf("result: ");
-            for (size_t i = 0; i < c.outputs.n; ++i) {
+            for (size_t i = 0; i < circ->outputs.n; ++i) {
                 printf("%d", output[i]);
             }
             printf("\n");
         } else if (args->test) {
-            int output[c.outputs.n];
-            for (size_t i = 0; i < c.tests.n; i++) {
+            int output[circ->outputs.n];
+            for (size_t i = 0; i < circ->tests.n; i++) {
                 bool ok = true;
                 rewind(f);
-                if (_evaluate(vt, mmap, params, f, c.tests.inps[i], output,
+                if (_evaluate(vt, mmap, params, f, circ->tests.inps[i], output,
                               args->nthreads, NULL, NULL) == ERR)
                     return ERR;
-                for (size_t j = 0; j < c.outputs.n; ++j) {
+                for (size_t j = 0; j < circ->outputs.n; ++j) {
                     switch (args->scheme) {
                     case SCHEME_LZ:
-                        if (!!output[j] != !!c.tests.outs[i][j]) {
+                        if (!!output[j] != !!circ->tests.outs[i][j]) {
                             ok = false;
                             ret = ERR;
                         }
                         break;
                     case SCHEME_LIN:
-                        if (output[j] == (c.tests.outs[i][j] != 1)) {
+                        if (output[j] == (circ->tests.outs[i][j] != 1)) {
                             ok = false;
                             ret = ERR;
                         }
@@ -457,14 +473,14 @@ run(const struct args_t *args)
                 if (!ok)
                     printf("\033[1;41m");
                 printf("Test #%lu: input=", i);
-                array_printstring_rev(c.tests.inps[i], c.ninputs);
+                array_printstring_rev(circ->tests.inps[i], circ->ninputs);
                 if (ok)
                     printf(" ✓\n");
                 else {
                     printf(" ̣✗ expected=");
-                    array_printstring_rev(c.tests.outs[i], c.outputs.n);
+                    array_printstring_rev(circ->tests.outs[i], circ->outputs.n);
                     printf(" got=");
-                    array_printstring_rev(output, c.outputs.n);
+                    array_printstring_rev(output, circ->outputs.n);
                     printf("\033[0m\n");
                 }
             }
@@ -473,7 +489,6 @@ run(const struct args_t *args)
     }
 
     op_vt->free(params);
-    acirc_clear(&c);
 
     return ret;
 }
@@ -483,11 +498,17 @@ main(int argc, char **argv)
 {
     int c, idx;
     struct args_t args;
+    const mmap_vtable *mmap;
+    acirc circ;
+    int ret;
 
     args_init(&args);
 
     while ((c = getopt_long(argc, argv, short_opts, opts, &idx)) != -1) {
         switch (c) {
+        case 'A':               /* --mife-setup */
+            args.mife_setup = true;
+            break;
         case 'D':               /* --debug */
             if (optarg == NULL)
                 usage(EXIT_FAILURE);
@@ -601,13 +622,27 @@ main(int argc, char **argv)
         usage(EXIT_FAILURE);
     }
 
-    if (!args.evaluate && !args.obfuscate && !args.get_kappa)
-        args.test = true;
-
-    if ((int) (args.evaluate != NULL)
+    int mife_flags = (int) args.mife_setup
+        + (int) args.mife_encrypt
+        + (int) args.mife_decrypt;
+    int obf_flags = (int) (args.evaluate != NULL)
         + (int) args.obfuscate
         + (int) args.get_kappa
-        + (int) args.test > 1) {
+        + (int) args.test;
+
+    if (mife_flags && obf_flags) {
+        fprintf(stderr, "error: cannot use both MIFE flags and obfuscation flags\n");
+        usage(EXIT_FAILURE);
+    }
+    if (!mife_flags && !obf_flags) {
+        fprintf(stderr, "error: must use either MIFE flags or obfuscation flags\n");
+        usage(EXIT_FAILURE);
+    }
+    if (mife_flags > 1) {
+        fprintf(stderr, "error: only one of --mife-setup, --mife-encrypt, --mife-evaluate can be used\n");
+        usage(EXIT_FAILURE);
+    }
+    if (obf_flags > 1) {
         fprintf(stderr, "error: only one of --get-kappa, --obfuscate, --evaluate, --test can be used\n");
         usage(EXIT_FAILURE);
     }
@@ -617,5 +652,52 @@ main(int argc, char **argv)
     if (g_verbose)
         args_print(&args);
 
-    return run(&args);
+    switch (args.mmap) {
+    case MMAP_CLT:
+        mmap = &clt_vtable;
+        break;
+    case MMAP_DUMMY:
+        mmap = &dummy_vtable;
+        break;
+    default:
+        abort();
+    }
+    acirc_verbose(g_verbose);
+
+    {
+        FILE *fp = fopen(args.circuit, "r");
+        if (fp == NULL) {
+            fprintf(stderr, "error: opening circuit '%s' failed\n", args.circuit);
+            exit(EXIT_FAILURE);
+        }
+        acirc_init(&circ);
+        if (acirc_fread(&circ, fp) == NULL) {
+            acirc_clear(&circ);
+            fclose(fp);
+            fprintf(stderr, "error: parsing circuit '%s' failed\n", args.circuit);
+            exit(EXIT_FAILURE);
+        }
+        fclose(fp);
+    }
+
+    if (g_verbose) {
+        printf("Circuit info:\n");
+        printf("* ninputs:  %lu\n", circ.ninputs);
+        printf("* nconsts:  %lu\n", circ.consts.n);
+        printf("* noutputs: %lu\n", circ.outputs.n);
+        printf("* ngates: . %lu\n", circ.gates.n);
+        printf("* nmuls: .. %lu\n", acirc_nmuls(&circ));
+        printf("* depth: .. %lu\n", acirc_max_depth(&circ));
+        printf("* degree: . %lu\n", acirc_max_degree(&circ));
+        printf("* delta: .. %lu\n", acirc_delta(&circ));
+    }
+    
+    if (mife_flags)
+        ret = mife_run(&args, mmap, &circ);
+    if (obf_flags)
+        ret = obf_run(&args, mmap, &circ);
+
+    acirc_clear(&circ);
+
+    return ret;
 }

@@ -1,10 +1,10 @@
-#include "obf_params.h"
+#include "mmap.h"
+#include "vtables.h"
+
 #include "circ_params.h"
 #include "index_set.h"
-#include "vtables.h"
-#include "../util.h"
-
-#include <err.h>
+#include "mife_params.h"
+#include "util.h"
 
 struct sp_info {
     index_set *toplevel;
@@ -13,29 +13,46 @@ struct sp_info {
 #define spinfo(x) (x)->info
 
 static int
-_sp_init(secret_params *sp, mmap_params_t *params, const circ_params_t *cp,
+_sp_init(secret_params *sp, mmap_params_t *mp, const circ_params_t *cp,
          size_t kappa)
 {
     spinfo(sp) = my_calloc(1, sizeof spinfo(sp)[0]);
-    spinfo(sp)->toplevel = obf_params_new_toplevel(cp, obf_params_nzs(cp));
+    spinfo(sp)->toplevel = mife_params_new_toplevel(cp, mife_params_nzs(cp));
     spinfo(sp)->cp = cp;
 
-    params->kappa = kappa ? kappa : acirc_delta(cp->circ) + cp->circ->ninputs;
-    params->nzs = spinfo(sp)->toplevel->nzs;
-    params->pows = my_calloc(params->nzs, sizeof params->pows[0]);
-    for (size_t i = 0; i < params->nzs; ++i) {
+    mp->kappa = kappa ? kappa : acirc_delta(cp->circ) + 1;
+    mp->nzs = spinfo(sp)->toplevel->nzs;
+    mp->pows = my_calloc(mp->nzs, sizeof mp->pows[0]);
+    for (size_t i = 0; i < mp->nzs; ++i) {
         if (spinfo(sp)->toplevel->pows[i] < 0) {
             fprintf(stderr, "error: toplevel overflow\n");
-            free(params->pows);
+            free(mp->pows);
             index_set_free(spinfo(sp)->toplevel);
             free(spinfo(sp));
             return ERR;
         }
-        params->pows[i] = spinfo(sp)->toplevel->pows[i];
+        mp->pows[i] = spinfo(sp)->toplevel->pows[i];
     }
-    params->my_pows = true;
-    params->nslots = 2;
+    mp->my_pows = true;
+    mp->nslots = 1 + cp->n;
 
+    return OK;
+}
+
+static int
+_sp_fwrite(const secret_params *sp, FILE *fp)
+{
+    (void) sp; (void) fp;
+    return OK;
+}
+
+static int
+_sp_fread(secret_params *sp, const circ_params_t *cp, FILE *fp)
+{
+    (void) fp;
+    spinfo(sp) = my_calloc(1, sizeof spinfo(sp)[0]);
+    spinfo(sp)->toplevel = mife_params_new_toplevel(cp, mife_params_nzs(cp));
+    spinfo(sp)->cp = cp;
     return OK;
 }
 
@@ -43,7 +60,7 @@ static void
 _sp_clear(secret_params *sp)
 {
     index_set_free(spinfo(sp)->toplevel);
-    free(sp->info);
+    free(spinfo(sp));
 }
 
 static const void *
@@ -61,6 +78,8 @@ _sp_params(const secret_params *sp)
 static sp_vtable _sp_vtable = {
     .mmap = NULL,
     .init = _sp_init,
+    .fwrite = _sp_fwrite,
+    .fread = _sp_fread,
     .clear = _sp_clear,
     .toplevel = _sp_toplevel,
     .params = _sp_params,

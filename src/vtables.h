@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../mmap.h"
+#include "mmap.h"
 
 const pp_vtable *
 get_pp_vtable(const mmap_vtable *const mmap);

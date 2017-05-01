@@ -130,7 +130,7 @@ __obfuscator_new(const mmap_vtable *mmap, const obf_params_t *op)
 
 static obfuscation *
 _obfuscator_new(const mmap_vtable *mmap, const obf_params_t *op,
-                const secret_params *sp, size_t secparam, size_t *kappa,
+                secret_params *sp, size_t secparam, size_t *kappa,
                 size_t ncores)
 {
     obfuscation *obf;
@@ -145,7 +145,7 @@ _obfuscator_new(const mmap_vtable *mmap, const obf_params_t *op,
 
     obf = __obfuscator_new(mmap, op);
     aes_randinit(obf->rng);
-    obf->sp = sp ? sp : secret_params_new(obf->sp_vt, op, secparam, kappa, ncores, obf->rng);
+    obf->sp = sp ? sp : secret_params_new(obf->sp_vt, &op->cp, secparam, kappa, ncores, obf->rng);
     if (obf->sp == NULL)
         goto error;
     obf->pp = public_params_new(obf->pp_vt, obf->sp_vt, obf->sp);
@@ -240,7 +240,7 @@ static int
 _obfuscate(obfuscation *obf, size_t nthreads)
 {
     const obf_params_t *const op = obf->op;
-    circ_params_t *const cp = &op->cp;
+    const circ_params_t *const cp = &op->cp;
     acirc *const circ = cp->circ;
     mpz_t *const moduli =
         mpz_vect_create_of_fmpz(obf->mmap->sk->plaintext_fields(obf->sp->sk),
@@ -481,7 +481,7 @@ _obfuscator_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     if ((obf = __obfuscator_new(mmap, op)) == NULL)
         return NULL;
 
-    obf->pp = public_params_fread(obf->pp_vt, op, fp);
+    obf->pp = public_params_fread(obf->pp_vt, &op->cp, fp);
     for (size_t k = 0; k < ninputs; k++) {
         for (size_t s = 0; s < cp->qs[k]; s++) {
             for (size_t j = 0; j < cp->ds[k]; j++)

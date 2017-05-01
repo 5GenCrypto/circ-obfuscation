@@ -5,6 +5,8 @@
 #include <mmap/mmap.h>
 #include <stdlib.h>
 
+#include "circ_params.h"
+
 typedef struct obf_params_t obf_params_t;
 typedef struct {
     obf_params_t * (*new)(acirc *, void *);
@@ -27,8 +29,9 @@ typedef struct secret_params {
 
 typedef struct {
     const mmap_vtable *mmap;
-    int (*init)(struct secret_params *, mmap_params_t *, const obf_params_t *,
-                size_t);
+    int (*init)(struct secret_params *, mmap_params_t *, const circ_params_t *, size_t);
+    int (*fwrite)(const secret_params *, FILE *);
+    int (*fread)(secret_params *, const circ_params_t *, FILE *);
     void (*clear)(struct secret_params *);
     const void * (*toplevel)(const secret_params *);
     const void * (*params)(const secret_params *);
@@ -44,7 +47,7 @@ typedef struct {
     const mmap_vtable *mmap;
     void (*init)(const sp_vtable *, public_params *, const secret_params *);
     void (*fwrite)(const public_params *, FILE *);
-    void (*fread)(public_params *, const obf_params_t *, FILE *);
+    void (*fread)(public_params *, const circ_params_t *, FILE *);
     void (*clear)(public_params *);
     const void * (*toplevel)(const public_params *);
     const void * (*params)(const public_params *);
@@ -76,8 +79,12 @@ typedef struct {
 } encoding_vtable;
 
 secret_params *
-secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
+secret_params_new(const sp_vtable *vt, const circ_params_t *cp, size_t lambda,
                   size_t *kappa, size_t ncores, aes_randstate_t rng);
+int
+secret_params_fwrite(const sp_vtable *vt, const secret_params *sp, FILE *fp);
+secret_params *
+secret_params_fread(const sp_vtable *vt, const circ_params_t *cp, FILE *fp);
 void
 secret_params_free(const sp_vtable *vt, secret_params *p);
 
@@ -87,7 +94,7 @@ public_params_new(const pp_vtable *vt, const sp_vtable *sp_vt,
 int
 public_params_fwrite(const pp_vtable *vt, const public_params *pp, FILE *fp);
 public_params *
-public_params_fread(const pp_vtable *vt, const obf_params_t *op, FILE *fp);
+public_params_fread(const pp_vtable *vt, const circ_params_t *cp, FILE *fp);
 void
 public_params_free(const pp_vtable *vt, public_params *p);
 

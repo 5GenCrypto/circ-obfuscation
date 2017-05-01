@@ -12,7 +12,10 @@ typedef struct circ_params_t {
 } circ_params_t;
 
 int
-circ_params_init(circ_params_t *cp, size_t n, size_t m, const acirc *circ);
+circ_params_init(circ_params_t *cp, size_t n, const acirc *circ);
 
 void
 circ_params_clear(circ_params_t *cp);
+
+size_t
+circ_params_ninputs(const circ_params_t *cp);

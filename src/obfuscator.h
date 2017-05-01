@@ -5,7 +5,7 @@
 typedef struct obfuscation obfuscation;
 typedef struct {
     obfuscation * (*new)(const mmap_vtable *mmap, const obf_params_t *op,
-                         const secret_params *sp, size_t secparam, size_t *kappa,
+                         secret_params *sp, size_t secparam, size_t *kappa,
                          size_t ncores);
     void (*free)(obfuscation *obf);
     int (*obfuscate)(obfuscation *obf, size_t nthreads);
