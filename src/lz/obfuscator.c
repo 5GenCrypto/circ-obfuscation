@@ -503,7 +503,6 @@ _obfuscator_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     return obf;
 }
 
-static size_t g_n_raise_encodings = 0;
 static size_t g_max_npowers = 0;
 
 static void _raise_encoding(const obfuscation *obf, encoding *x, encoding **ys, size_t diff)
@@ -515,7 +514,6 @@ static void _raise_encoding(const obfuscation *obf, encoding *x, encoding **ys, 
             p++;
         if (g_max_npowers < p + 1)
             g_max_npowers = p + 1;
-        g_n_raise_encodings++;
         encoding_mul(obf->enc_vt, obf->pp_vt, x, x, ys[p], obf->pp);
         diff -= (1 << p);
     }
@@ -787,8 +785,6 @@ finish:
     free(ready);
     free(kappas);
     free(input_syms);
-
-    printf("# raise encodings: %lu\n", g_n_raise_encodings);
 
     return ret;
 }

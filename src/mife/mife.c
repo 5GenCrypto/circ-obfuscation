@@ -270,6 +270,7 @@ mife_sk_fwrite(const mife_sk_t *sk, FILE *fp)
 mife_sk_t *
 mife_sk_fread(const mmap_vtable *mmap, const circ_params_t *cp, FILE *fp)
 {
+    double start, end;
     mife_sk_t *sk;
 
     sk = my_calloc(1, sizeof sk[0]);
@@ -278,8 +279,16 @@ mife_sk_fread(const mmap_vtable *mmap, const circ_params_t *cp, FILE *fp)
     sk->enc_vt = get_encoding_vtable(mmap);
     sk->pp_vt = get_pp_vtable(mmap);
     sk->sp_vt = get_sp_vtable(mmap);
+    start = current_time();
     sk->pp = public_params_fread(sk->pp_vt, cp, fp);
+    end = current_time();
+    if (g_verbose)
+        fprintf(stderr, "  Reading pp from disk: %.2fs\n", end - start);
+    start = current_time();
     sk->sp = secret_params_fread(sk->sp_vt, cp, fp);
+    end = current_time();
+    if (g_verbose)
+        fprintf(stderr, "  Reading sp from disk: %.2fs\n", end - start);
 
     return sk;
 }
@@ -425,6 +434,13 @@ mife_encrypt(const mife_sk_t *sk, size_t slot, const int *inputs,
         return NULL;
 
     mife_ciphertext_t *ct;
+    double start, end, _start, _end;
+
+    if (g_verbose)
+        fprintf(stderr, "  Encrypting...\n");
+
+    start = current_time();
+    _start = current_time();
 
     const circ_params_t *cp = sk->cp;
     const size_t ninputs = cp->ds[slot];
@@ -501,6 +517,13 @@ mife_encrypt(const mife_sk_t *sk, size_t slot, const int *inputs,
     size_t count = 0;
     const size_t total = mife_params_num_encodings_encrypt(cp, slot, npowers);
     pthread_mutex_init(&count_lock, NULL);
+
+    _end = current_time();
+    if (g_verbose)
+        fprintf(stderr, "    Initialize: %.2fs\n", _end - _start);
+
+    _start = current_time();
+    
     /* Encode \hat xⱼ */
     index_set_clear(ix);
     IX_X(ix, cp, slot) = 1;
@@ -543,6 +566,10 @@ mife_encrypt(const mife_sk_t *sk, size_t slot, const int *inputs,
     threadpool_destroy(pool);
     pthread_mutex_destroy(&count_lock);
 
+    _end = current_time();
+    if (g_verbose)
+        fprintf(stderr, "    Encode: %.2fs\n", _end - _start);
+
     index_set_free(ix);
     mpz_vect_clear(slots, 1 + cp->n);
     mpz_vect_clear(betas, ninputs);
@@ -550,11 +577,13 @@ mife_encrypt(const mife_sk_t *sk, size_t slot, const int *inputs,
     mpz_vect_clear(consts, cp->circ->consts.n);
     mpz_vect_clear(cs, cp->m);
     mpz_vect_free(moduli, sk->mmap->sk->nslots(sk->sp->sk));
+
+    end = current_time();
+    if (g_verbose)
+        fprintf(stderr, "    Total: %.2fs\n", end - start);
     
     return ct;
 }
-
-static size_t g_n_raise_encodings = 0;
 
 static void
 _raise_encoding(const mife_ek_t *ek, encoding *x, encoding **us, size_t npowers,
@@ -565,7 +594,6 @@ _raise_encoding(const mife_ek_t *ek, encoding *x, encoding **us, size_t npowers,
         size_t p = 0;
         while (((size_t) 1 << (p+1)) <= diff && (p+1) < npowers)
             p++;
-        g_n_raise_encodings++;
         encoding_mul(ek->enc_vt, ek->pp_vt, x, x, us[p], ek->pp);
         diff -= (1 << p);
     }
@@ -789,11 +817,9 @@ mife_decrypt(const mife_ek_t *ek, int *rop, const mife_ciphertext_t **cts,
 
     size_t maxkappa = 0;
     for (size_t i = 0; i < c->outputs.n; i++) {
-        printf("%lu ", kappas[i]);
         if (kappas[i] > maxkappa)
             maxkappa = kappas[i];
     }
-    printf("\n");
     if (kappa)
         *kappa = maxkappa;
 
@@ -807,8 +833,6 @@ mife_decrypt(const mife_ek_t *ek, int *rop, const mife_ciphertext_t **cts,
     free(mine);
     free(ready);
     free(kappas);
-
-    printf("# raise encodings: %lu\n", g_n_raise_encodings);
 
     return ret;
 }
