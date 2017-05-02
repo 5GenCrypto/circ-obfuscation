@@ -62,13 +62,13 @@ size_t array_max(const size_t *xs, size_t n)
     return max;
 }
 
-void array_printstring(int *xs, size_t n)
+void array_printstring(const int *xs, size_t n)
 {
     for (size_t i = 0; i < n; i++)
         printf("%d", xs[i]);
 }
 
-void array_printstring_rev(int *xs, size_t n)
+void array_printstring_rev(const int *xs, size_t n)
 {
     for (size_t i = n; i > 0; i--)
         printf("%d", xs[i-1]);

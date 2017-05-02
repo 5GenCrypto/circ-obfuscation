@@ -85,6 +85,7 @@ static void encode_worker(void *wargs)
     if (g_verbose) {
         pthread_mutex_lock(args->count_lock);
         print_progress(++*args->count, args->total);
+        /* encoding_print(args->vt, args->enc); */
         pthread_mutex_unlock(args->count_lock);
     }
     mpz_vect_free(args->inps, args->nslots);
@@ -377,20 +378,22 @@ mife_ciphertext_fread(const mmap_vtable *mmap, const circ_params_t *cp, FILE *fp
 
     ct = my_calloc(1, sizeof ct[0]);
     ct->enc_vt = get_encoding_vtable(mmap);
-    if (fscanf(fp, "%lu\n", &ct->slot) == 0)
+    if (fscanf(fp, "%lu\n", &ct->slot) != 1) {
+        fprintf(stderr, "error (%s): cannot read slot number\n", __func__);
         goto error;
-    if (ct->slot >= cp->n)
+    }
+    if (ct->slot >= cp->n) {
+        fprintf(stderr, "error (%s): slot number > number of slots\n", __func__);
         goto error;
+    }
     ninputs = cp->ds[ct->slot];
-    if (ninputs == 0 || ninputs > cp->n)
-        goto error;
     ct->xhat = my_calloc(ninputs, sizeof ct->xhat[0]);
     ct->uhat = my_calloc(ninputs, sizeof ct->uhat[0]);
     for (size_t j = 0; j < ninputs; ++j) {
         ct->xhat[j] = encoding_fread(ct->enc_vt, fp);
         ct->uhat[j] = encoding_fread(ct->enc_vt, fp);
     }
-    ct->what = my_calloc(ninputs, sizeof ct->what[0]);
+    ct->what = my_calloc(cp->m, sizeof ct->what[0]);
     for (size_t o = 0; o < cp->m; ++o) {
         ct->what[o] = encoding_fread(ct->enc_vt, fp);
     }
@@ -402,7 +405,7 @@ error:
 }
 
 mife_ciphertext_t *
-mife_encrypt(const mife_sk_t *sk, size_t slot, size_t *inputs, size_t ncores,
+mife_encrypt(const mife_sk_t *sk, size_t slot, const int *inputs, size_t ncores,
              aes_randstate_t rng)
 {
     mife_ciphertext_t *ct;
@@ -422,7 +425,7 @@ mife_encrypt(const mife_sk_t *sk, size_t slot, size_t *inputs, size_t ncores,
         ct->xhat[j] = encoding_new(sk->enc_vt, sk->pp_vt, sk->pp);
         ct->uhat[j] = encoding_new(sk->enc_vt, sk->pp_vt, sk->pp);
     }
-    ct->what = my_calloc(ninputs, sizeof ct->what[0]);
+    ct->what = my_calloc(cp->m, sizeof ct->what[0]);
     for (size_t o = 0; o < cp->m; ++o) {
         ct->what[o] = encoding_new(sk->enc_vt, sk->pp_vt, sk->pp);
     }
@@ -433,6 +436,8 @@ mife_encrypt(const mife_sk_t *sk, size_t slot, size_t *inputs, size_t ncores,
     mpz_t consts[cp->circ->consts.n];
     mpz_t cs[cp->m];
     index_set *const ix = index_set_new(mife_params_nzs(cp));
+
+    assert(slot <= cp->circ->ninputs);
 
     mpz_vect_init(slots, 1 + cp->n);
     for (size_t j = 0; j < ninputs; ++j) {
@@ -452,8 +457,9 @@ mife_encrypt(const mife_sk_t *sk, size_t slot, size_t *inputs, size_t ncores,
         }
     }
     for (size_t i = 0; i < cp->circ->consts.n; ++i) {
-        if (i + cp->circ->ninputs == slot)
-            mpz_init_set(consts[i], betas[0]);
+        if (slot == cp->circ->ninputs)
+            /* these are constants */
+            mpz_init_set(consts[i], betas[i]);
         else
             mpz_init_set_ui(consts[i], 1);
     }
@@ -466,16 +472,15 @@ mife_encrypt(const mife_sk_t *sk, size_t slot, size_t *inputs, size_t ncores,
     threadpool *pool = threadpool_create(ncores);
     pthread_mutex_t count_lock;
     size_t count = 0;
-    const size_t total = mife_params_num_encodings_encrypt(cp, ninputs);
+    const size_t total = mife_params_num_encodings_encrypt(cp, slot);
     pthread_mutex_init(&count_lock, NULL);
 
     index_set_clear(ix);
     IX_X(ix, cp, slot) = 1;
     for (size_t j = 0; j < ninputs; ++j) {
-        if (slot >= cp->circ->ninputs) {
-            assert(ninputs == 1);
+        if (slot == cp->circ->ninputs) {
             /* these are constants */
-            mpz_set_ui(slots[0], cp->circ->consts.buf[slot - cp->circ->ninputs]);
+            mpz_set_ui(slots[0], cp->circ->consts.buf[j]);
         } else {
             mpz_set_ui(slots[0], inputs[j]);
         }
@@ -483,10 +488,12 @@ mife_encrypt(const mife_sk_t *sk, size_t slot, size_t *inputs, size_t ncores,
             mpz_set_ui(slots[1 + i], 1);
         }
         mpz_set(slots[1 + slot], betas[j]);
+        /* Encode \hat xⱼ = [xⱼ, 1, ..., 1, βⱼ, 1, ..., 1] */
         __encode(pool, sk->enc_vt, ct->xhat[j], slots, 1 + cp->n,
                  index_set_copy(ix), sk->sp, &count_lock, &count, total);
         mpz_set_ui(slots[0], 1);
         mpz_set_ui(slots[1 + slot], 1);
+        /* Encode \hat uⱼ = [1, 1, ..., 1] */
         __encode(pool, sk->enc_vt, ct->uhat[j], slots, 1 + cp->n,
                  index_set_copy(ix), sk->sp, &count_lock, &count, total);
     }
@@ -495,6 +502,7 @@ mife_encrypt(const mife_sk_t *sk, size_t slot, size_t *inputs, size_t ncores,
     mpz_set_ui(slots[0], 0);
     for (size_t o = 0; o < cp->m; ++o) {
         mpz_set(slots[1 + slot], cs[o]);
+        /* Encode \hat wₒ = [0, 1, ..., 1, C†ₒ, 1, ..., 1] */
         __encode(pool, sk->enc_vt, ct->what[o], slots, 1 + cp->n,
                  index_set_copy(ix), sk->sp, &count_lock, &count, total);
     }

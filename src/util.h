@@ -36,10 +36,10 @@ double current_time(void);
 
 int max(int, int);
 
-void array_print           (int*, size_t);
-void array_print_ui        (size_t*, size_t);
-void array_printstring     (int *bits, size_t n);
-void array_printstring_rev (int *bits, size_t n);
+void array_print(int*, size_t);
+void array_print_ui(size_t*, size_t);
+void array_printstring(const int *xs, size_t n);
+void array_printstring_rev(const int *xs, size_t n);
 
 void mpz_randomm_inv(mpz_t rop, aes_randstate_t rng, const mpz_t modulus);
 

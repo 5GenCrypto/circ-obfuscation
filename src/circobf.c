@@ -192,6 +192,34 @@ static const struct option opts[] = {
 };
 static const char *short_opts = "AB:C:Dd:e:ghk:lL:M:n:orsS:t:Tv";
 
+static bool
+print_test_output(size_t num, const int *inp, size_t ninputs, const int *expected,
+                  const int *got, size_t noutputs)
+{
+    bool ok = true;
+    for (size_t i = 0; i < noutputs; ++i) {
+        if (!!got[i] != !!expected[i]) {
+            ok = false;
+        }
+    }
+    if (ok)
+        printf("\033[1;42m");
+    else
+        printf("\033[1;41m");
+    printf("Test #%lu: input=", num);
+    array_printstring_rev(inp, ninputs);
+    if (ok)
+        printf(" ✓ ");
+    else {
+        printf(" ̣✗ expected=");
+        array_printstring_rev(expected, noutputs);
+        printf(" got=");
+        array_printstring_rev(got, noutputs);
+    }
+    printf("\033[0m\n");
+    return ok;
+}
+
 static int
 mife_run_setup(const struct args_t *args, const mmap_vtable *mmap,
                circ_params_t *cp, aes_randstate_t rng)
@@ -203,6 +231,12 @@ mife_run_setup(const struct args_t *args, const mmap_vtable *mmap,
     mife_ek_t *ek = NULL;
     FILE *fp;
     int ret = ERR;
+
+    if (g_verbose) {
+        fprintf(stderr,
+                "MIFE setup details:\n"
+                "* # encodings: %lu\n", mife_params_num_encodings_setup(cp));
+    }
 
     mife = mife_setup(mmap, cp, args->secparam, rng, NULL, args->nthreads);
     if (mife == NULL)
@@ -235,7 +269,7 @@ cleanup:
 }
 
 static int
-mife_run_encrypt(const char *str, size_t slot, const struct args_t *args,
+mife_run_encrypt(const int *input, size_t slot, const struct args_t *args,
                  const mmap_vtable *mmap, circ_params_t *cp, aes_randstate_t rng)
 {
     char skname[strlen(args->circuit) + sizeof ".sk\0"];
@@ -249,19 +283,18 @@ mife_run_encrypt(const char *str, size_t slot, const struct args_t *args,
         exit(EXIT_FAILURE);
     }
     ninputs = cp->ds[slot];
-    if (strlen(str) != ninputs) {
-        fprintf(stderr, "error: invalid number of inputs\n");
-        exit(EXIT_FAILURE);
-    }
-
-    size_t input[ninputs];
 
     if (g_verbose) {
         fprintf(stderr,
                 "MIFE encryption details:\n"
-                "* Slot: .... %lu\n"
-                "* Input: ... %s\n",
-                slot, str);
+                "* slot: ...... %lu\n", slot);
+        fprintf(stderr,
+                "* input: ..... ");
+        for (size_t i = 0; i < ninputs; ++i)
+            fprintf(stderr, "%d", input[i]);
+        fprintf(stderr, "\n");
+        fprintf(stderr,
+                "* # encodings: %lu\n", mife_params_num_encodings_encrypt(cp, slot));
     }
 
     snprintf(skname, sizeof skname, "%s.sk", args->circuit);
@@ -271,10 +304,6 @@ mife_run_encrypt(const char *str, size_t slot, const struct args_t *args,
     }
     sk = mife_sk_fread(mmap, cp, fp);
     fclose(fp);
-
-    for (size_t i = 0; i < ninputs; ++i) {
-        input[i] = str[i] - '0';
-    }
 
     ct = mife_encrypt(sk, slot, input, args->nthreads, rng);
     if (ct == NULL) {
@@ -318,7 +347,7 @@ mife_run_decrypt(const char *ek_s, char **cts_s, int *rop,
                 "* Ciphertexts:",
                 ek_s);
         for (size_t i = 0; i < cp->n; ++i) {
-            fprintf(stderr, "%*s\n", i == 0 ? 27 : 41, cts_s[i]);
+            fprintf(stderr, "%s%s\n", i == 0 ? "    " : "                  ", cts_s[i]);
         }
     }
 
@@ -340,7 +369,7 @@ mife_run_decrypt(const char *ek_s, char **cts_s, int *rop,
         cts[i] = mife_ciphertext_fread(mmap, cp, fp);
         fclose(fp);
         if (cts[i] == NULL) {
-            fprintf(stderr, "error: unable to read ciphertext #%lu\n", i + 1);
+            fprintf(stderr, "error: unable to read ciphertext for slot %lu\n", i);
             goto cleanup;
         }
     }
@@ -376,16 +405,23 @@ mife_run_test(const struct args_t *args, const mmap_vtable *mmap,
     for (size_t i = 0; i < circ->tests.n; ++i) {
         const int *const inp = circ->tests.inps[i];
         int output[cp->m];
-        char inp_s[10];
-
         /* Encrypt each input bit in the right slot */
         /* XXX: doesn't work for Σ-vectors */
-        for (size_t j = 0; j < cp->n; ++j) {
-            snprintf(inp_s, sizeof inp_s, "%d", inp[j]);
-            ret = mife_run_encrypt(inp_s, j, args, mmap, cp, rng);
+        for (size_t j = 0; j < circ->ninputs; ++j) {
+            ret = mife_run_encrypt(&inp[j], j, args, mmap, cp, rng);
             if (ret == ERR) {
                 fprintf(stderr, "error: mife encryption of '%d' in slot %lu failed\n",
                         inp[j], j);
+                return ERR;
+            }
+        }
+        if (circ->consts.n > 0) {
+            ret = mife_run_encrypt(circ->consts.buf, circ->ninputs, args, mmap, cp, rng);
+            if (ret == ERR) {
+                fprintf(stderr, "error: mife encryption of '");
+                for (size_t j = 0; j < circ->consts.n; ++j)
+                    fprintf(stderr, "%d", circ->consts.buf[j]);
+                fprintf(stderr, "' in slot %lu failed\n", circ->ninputs);
                 return ERR;
             }
         }
@@ -406,30 +442,9 @@ mife_run_test(const struct args_t *args, const mmap_vtable *mmap,
             fprintf(stderr, "error: mife decryption failed\n");
             return ERR;
         }
-        {
-            bool ok = true;
-            for (size_t j = 0; j < cp->m; ++j) {
-                if (!!output[j] != !!circ->tests.outs[i][j]) {
-                    ok = false;
-                    ret = ERR;
-                }
-            }
-            if (ok)
-                printf("\033[1;42m");
-            else
-                printf("\033[1;41m");
-            printf("Test #%lu: input=", i);
-            array_printstring_rev(circ->tests.inps[i], circ->ninputs);
-            if (ok)
-                printf(" ✓ ");
-            else {
-                printf(" ̣✗ expected=");
-                array_printstring_rev(circ->tests.outs[i], circ->outputs.n);
-                printf(" got=");
-                array_printstring_rev(output, circ->outputs.n);
-            }
-            printf("\033[0m\n");
-        }
+        if (!print_test_output(i + 1, circ->tests.inps[i], circ->ninputs,
+                               circ->tests.outs[i], output, circ->outputs.n))
+            ret = ERR;
     }
     return ret;
 }
@@ -440,17 +455,19 @@ mife_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
     circ_params_t cp;
     aes_randstate_t rng;
     int ret = ERR;
+    int consts = 0;
 
     aes_randinit(rng);
-    circ_params_init(&cp, circ->ninputs + circ->consts.n, circ);
-    /* XXX: fixme */
+    if (circ->consts.n > 0)
+        consts = 1;
+    circ_params_init(&cp, circ->ninputs + consts, circ);
     for (size_t i = 0; i < circ->ninputs; ++i) {
-        cp.ds[i] = 1;
-        cp.qs[i] = 1 << 1;
+        cp.ds[i] = 1;           /* XXX: */
+        cp.qs[i] = 1 << 1;      /* XXX: */
     }
-    for (size_t i = circ->ninputs; i < circ->ninputs + circ->consts.n; ++i) {
-        cp.ds[i] = 1;
-        cp.qs[i] = 1;
+    if (consts) {
+        cp.ds[circ->ninputs] = circ->consts.n;
+        cp.qs[circ->ninputs] = 1;
     }
     if (g_verbose) {
         fprintf(stderr, "Circuit parameters:\n");
@@ -469,9 +486,14 @@ mife_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
     case MIFE_SETUP:
         ret = mife_run_setup(args, mmap, &cp, rng);
         break;
-    case MIFE_ENCRYPT:
-        ret = mife_run_encrypt(args->input, args->mife_slot, args, mmap, &cp, rng);
+    case MIFE_ENCRYPT: {
+        int input[strlen(args->input)];
+        for (size_t i = 0; i < strlen(args->input); ++i) {
+            input[i] = args->input[i] - '0';
+        }
+        ret = mife_run_encrypt(input, args->mife_slot, args, mmap, &cp, rng);
         break;
+    }
     case MIFE_DECRYPT: {
         char *tofree, *str, *ek, *cts[cp.n];
         int rop[cp.m];
@@ -746,40 +768,19 @@ obf_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
         } else if (args->obf == OBF_TEST) {
             int output[circ->outputs.n];
             for (size_t i = 0; i < circ->tests.n; i++) {
-                bool ok = true;
                 rewind(f);
                 if (_evaluate(vt, mmap, params, f, circ->tests.inps[i], output,
                               args->nthreads, NULL, NULL) == ERR)
                     return ERR;
-                for (size_t j = 0; j < circ->outputs.n; ++j) {
-                    switch (args->scheme) {
-                    case SCHEME_LZ:
-                        if (!!output[j] != !!circ->tests.outs[i][j]) {
-                            ok = false;
-                            ret = ERR;
-                        }
-                        break;
-                    case SCHEME_LIN:
-                        if (output[j] == (circ->tests.outs[i][j] != 1)) {
-                            ok = false;
-                            ret = ERR;
-                        }
-                        break;
-                    }
+                if (args->scheme == SCHEME_LIN) {
+                    for (size_t j = 0; j < circ->outputs.n; ++j)
+                        output[j] = !output[j];
+                    /*             if (output[j] == (circ->tests.outs[i][j] != 1)) { */
                 }
-                if (!ok)
-                    printf("\033[1;41m");
-                printf("Test #%lu: input=", i);
-                array_printstring_rev(circ->tests.inps[i], circ->ninputs);
-                if (ok)
-                    printf(" ✓\n");
-                else {
-                    printf(" ̣✗ expected=");
-                    array_printstring_rev(circ->tests.outs[i], circ->outputs.n);
-                    printf(" got=");
-                    array_printstring_rev(output, circ->outputs.n);
-                    printf("\033[0m\n");
-                }
+                if (!print_test_output(i + 1, circ->tests.inps[i], circ->ninputs,
+                                       circ->tests.outs[i], output,
+                                       circ->outputs.n))
+                    ret = ERR;
             }
         }
         fclose(f);

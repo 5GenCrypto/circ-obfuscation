@@ -30,7 +30,7 @@ mife_ciphertext_t * mife_ciphertext_fread(const mmap_vtable *mmap, const circ_pa
 
 
 mife_ciphertext_t *
-mife_encrypt(const mife_sk_t *sk, size_t slot, size_t *inputs, size_t ncores,
+mife_encrypt(const mife_sk_t *sk, size_t slot, const int *inputs, size_t ncores,
              aes_randstate_t rng);
 
 int

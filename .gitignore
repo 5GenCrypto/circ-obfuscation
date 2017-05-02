@@ -7,7 +7,14 @@ gghlite
 libthreadpool
 build
 *.o
-*.obf
+circuits/*.obf
+circuits/*.ct
+circuits/*.ek
+circuits/*.sk
+circuits/sigma/*.obf
+circuits/sigma/*.ct
+circuits/sigma/*.ek
+circuits/sigma/*.sk
 Makefile
 *.in
 *.m4
