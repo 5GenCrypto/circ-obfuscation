@@ -62,48 +62,11 @@ size_t array_max(const size_t *xs, size_t n)
     return max;
 }
 
-void array_printstring(const int *xs, size_t n)
-{
-    for (size_t i = 0; i < n; i++)
-        printf("%d", xs[i]);
-}
-
-void array_printstring_rev(const int *xs, size_t n)
+static void
+array_printstring_rev(const int *xs, size_t n)
 {
     for (size_t i = n; i > 0; i--)
         printf("%d", xs[i-1]);
-}
-
-void array_print(int *xs, size_t len) {
-    if (len == 1){
-        printf("[%d]", xs[0]);
-        return;
-    }
-    for (size_t i = 0; i < len; i++) {
-        if (i == 0) {
-            printf("[%d,", xs[i]);
-        } else if (i == len - 1) {
-            printf("%d]", xs[i]);
-        } else {
-            printf("%d,", xs[i]);
-        }
-    }
-}
-
-void array_print_ui (size_t *xs, size_t len) {
-    if (len == 1){
-        printf("[%lu]", xs[0]);
-        return;
-    }
-    for (size_t i = 0; i < len; i++) {
-        if (i == 0) {
-            printf("[%lu,", xs[i]);
-        } else if (i == len - 1) {
-            printf("%lu]", xs[i]);
-        } else {
-            printf("%lu,", xs[i]);
-        }
-    }
 }
 
 mpz_t *
@@ -377,4 +340,32 @@ mmap_to_mmap(enum mmap_e mmap)
     default:
         return NULL;
     }
+}
+
+bool
+print_test_output(size_t num, const int *inp, size_t ninputs, const int *expected,
+                  const int *got, size_t noutputs)
+{
+    bool ok = true;
+    for (size_t i = 0; i < noutputs; ++i) {
+        if (!!got[i] != !!expected[i]) {
+            ok = false;
+        }
+    }
+    if (ok)
+        printf("\033[1;42m");
+    else
+        printf("\033[1;41m");
+    printf("Test #%lu: input=", num);
+    array_printstring_rev(inp, ninputs);
+    if (ok)
+        printf(" ✓ ");
+    else {
+        printf(" ̣✗ expected=");
+        array_printstring_rev(expected, noutputs);
+        printf(" got=");
+        array_printstring_rev(got, noutputs);
+    }
+    printf("\033[0m\n");
+    return ok;
 }

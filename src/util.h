@@ -36,11 +36,6 @@ double current_time(void);
 
 int max(int, int);
 
-void array_print(int*, size_t);
-void array_print_ui(size_t*, size_t);
-void array_printstring(const int *xs, size_t n);
-void array_printstring_rev(const int *xs, size_t n);
-
 void mpz_randomm_inv(mpz_t rop, aes_randstate_t rng, const mpz_t modulus);
 
 mpz_t * mpz_vect_new(size_t n);
@@ -89,4 +84,8 @@ bool array_eq(const int *xs, const int *ys, size_t n);
 int array_sum(const int *xs, size_t n);
 size_t array_max(const size_t *xs, size_t n);
 
-void print_progress (size_t cur, size_t total);
+void print_progress(size_t cur, size_t total);
+
+bool
+print_test_output(size_t num, const int *inp, size_t ninputs, const int *expected,
+                  const int *got, size_t noutputs);

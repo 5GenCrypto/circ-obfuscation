@@ -7,5 +7,6 @@ libobf_mife_la_SOURCES = \
 encoding.c \
 mife_params.c \
 mife.c \
+mife_run.c \
 public_params.c \
 secret_params.c

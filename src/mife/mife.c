@@ -178,22 +178,24 @@ mife_setup(const mmap_vtable *mmap, const circ_params_t *cp,
     size_t vdeg[cp->n][cp->m];
     size_t vdeg_max[cp->n];
     acirc_memo *memo;
+    size_t consts = cp->circ->consts.n ? 1 : 0;
 
     memset(vdeg, '\0', sizeof vdeg);
     memset(vdeg_max, '\0', sizeof vdeg_max);
 
     memo = acirc_memo_new(circ);
-    for (size_t i = 0; i < cp->n; ++i) {
+    for (size_t i = 0; i < cp->n - consts; ++i) {
         for (size_t o = 0; o < cp->m; ++o) {
-            if (i >= circ->ninputs) {
-                /* these are constants */
-                vdeg[i][o] = acirc_max_const_degree(circ);
-            } else {
-                vdeg[i][o] = acirc_var_degree(circ, circ->outputs.buf[o], i, memo);
-            }
+            vdeg[i][o] = acirc_var_degree(circ, circ->outputs.buf[o], i, memo);
             if (vdeg[i][o] > vdeg_max[i])
                 vdeg_max[i] = vdeg[i][o];
         }
+    }
+    if (consts) {
+        for (size_t o = 0; o < cp->m; ++o) {
+            vdeg[cp->n - 1][o] = acirc_max_const_degree(circ);
+        }
+        vdeg_max[cp->n - 1] = acirc_max_const_degree(circ);
     }
     acirc_memo_free(memo, circ);
 
@@ -337,7 +339,7 @@ mife_ek_fread(const mmap_vtable *mmap, const circ_params_t *cp, FILE *fp)
     ek->pp_vt = get_pp_vtable(mmap);
     ek->pp = public_params_fread(ek->pp_vt, cp, fp);
     ek->Chatstar = encoding_fread(ek->enc_vt, fp);
-    ek->zhat = my_calloc(cp->n, sizeof ek->zhat[0]);
+    ek->zhat = my_calloc(cp->m, sizeof ek->zhat[0]);
     for (size_t o = 0; o < cp->m; ++o)
         ek->zhat[o] = encoding_fread(ek->enc_vt, fp);
     return ek;
@@ -599,14 +601,17 @@ _raise_encoding(const mife_ek_t *ek, encoding *x, encoding **us, size_t npowers,
     }
 }
 
-static void
+static int
 raise_encoding(const mife_ek_t *ek, const mife_ciphertext_t **cts,
                encoding *x, const index_set *target)
 {
     const circ_params_t *cp = ek->cp;
-
-    index_set *const ix = index_set_difference(target, ek->enc_vt->mmap_set(x));
+    index_set *ix;
     size_t diff;
+
+    ix = index_set_difference(target, ek->enc_vt->mmap_set(x));
+    if (ix == NULL)
+        return ERR;
     for (size_t i = 0; i < cp->n; i++) {
         diff = IX_X(ix, cp, i);
         if (diff > 0) {
@@ -614,17 +619,27 @@ raise_encoding(const mife_ek_t *ek, const mife_ciphertext_t **cts,
         }
     }
     index_set_free(ix);
+    return OK;
 }
 
-static void
+static int
 raise_encodings(const mife_ek_t *ek, const mife_ciphertext_t **cts,
                 encoding *x, encoding *y)
 {
-    index_set *const ix = index_set_union(ek->enc_vt->mmap_set(x),
-                                          ek->enc_vt->mmap_set(y));
-    raise_encoding(ek, cts, x, ix);
-    raise_encoding(ek, cts, y, ix);
-    index_set_free(ix);
+    index_set *ix;
+    int ret = ERR;
+    ix = index_set_union(ek->enc_vt->mmap_set(x), ek->enc_vt->mmap_set(y));
+    if (ix == NULL)
+        goto cleanup;
+    if (raise_encoding(ek, cts, x, ix) == ERR)
+        goto cleanup;
+    if (raise_encoding(ek, cts, y, ix) == ERR)
+        goto cleanup;
+    ret = OK;
+cleanup:
+    if (ix)
+        index_set_free(ix);
+    return ret;
 }
 
 static void
@@ -648,8 +663,6 @@ decrypt_worker(void *vargs)
     encoding *res;
 
     const circ_params_t *cp = ek->cp;
-    const size_t ninputs = cp->n;
-    const size_t noutputs = cp->m;
 
     switch (op) {
     case OP_INPUT: {
@@ -721,7 +734,7 @@ decrypt_worker(void *vargs)
     free(dargs);
 
     ssize_t output = -1;
-    for (size_t i = 0; i < noutputs; i++) {
+    for (size_t i = 0; i < cp->m; i++) {
         if (ref == c->outputs.buf[i]) {
             output = i;
             break;
@@ -738,26 +751,26 @@ decrypt_worker(void *vargs)
         rhs = encoding_new(ek->enc_vt, ek->pp_vt, ek->pp);
         tmp = encoding_new(ek->enc_vt, ek->pp_vt, ek->pp);
 
-        /* Compute RHS */
-        encoding_set(ek->enc_vt, rhs, ek->Chatstar);
-        for (size_t i = 0; i < ninputs; ++i) {
-            encoding_set(ek->enc_vt, tmp, rhs);
-            encoding_mul(ek->enc_vt, ek->pp_vt, rhs, tmp, cts[i]->what[output], ek->pp);
-        }
-        if (!index_set_eq(ek->enc_vt->mmap_set(rhs), toplevel)) {
-            fprintf(stderr, "error: rhs != toplevel\n");
-            index_set_print(ek->enc_vt->mmap_set(rhs));
-            index_set_print(toplevel);
-            if (rop)
-                rop[output] = 1;
-            goto cleanup;
-        }
         /* Compute LHS */
         encoding_mul(ek->enc_vt, ek->pp_vt, lhs, res, ek->zhat[output], ek->pp);
         raise_encoding(ek, cts, lhs, toplevel);
         if (!index_set_eq(ek->enc_vt->mmap_set(lhs), toplevel)) {
             fprintf(stderr, "error: lhs != toplevel\n");
             index_set_print(ek->enc_vt->mmap_set(lhs));
+            index_set_print(toplevel);
+            if (rop)
+                rop[output] = 1;
+            goto cleanup;
+        }
+        /* Compute RHS */
+        encoding_set(ek->enc_vt, rhs, ek->Chatstar);
+        for (size_t i = 0; i < cp->n; ++i) {
+            encoding_set(ek->enc_vt, tmp, rhs);
+            encoding_mul(ek->enc_vt, ek->pp_vt, rhs, tmp, cts[i]->what[output], ek->pp);
+        }
+        if (!index_set_eq(ek->enc_vt->mmap_set(rhs), toplevel)) {
+            fprintf(stderr, "error: rhs != toplevel\n");
+            index_set_print(ek->enc_vt->mmap_set(rhs));
             index_set_print(toplevel);
             if (rop)
                 rop[output] = 1;
