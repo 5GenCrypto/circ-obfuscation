@@ -87,9 +87,18 @@ index_set_difference(const index_set *x, const index_set *y)
     if ((rop = index_set_new(x->nzs)) == NULL)
         return NULL;
     for (size_t i = 0; i < x->nzs; i++) {
+        if (x->pows[i] < y->pows[i]) {
+            fprintf(stderr, "error: negative difference in index set\n");
+            index_set_print(x);
+            index_set_print(y);
+            goto error;
+        }
         rop->pows[i] = x->pows[i] - y->pows[i];
     }
     return rop;
+error:
+    free(rop);
+    return NULL;
 }
 
 index_set *

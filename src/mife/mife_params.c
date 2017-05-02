@@ -32,7 +32,7 @@ mife_params_num_encodings_setup(const circ_params_t *cp)
 }
 
 size_t
-mife_params_num_encodings_encrypt(const circ_params_t *cp, size_t slot)
+mife_params_num_encodings_encrypt(const circ_params_t *cp, size_t slot, size_t npowers)
 {
-    return 2 * cp->ds[slot] + cp->m;
+    return cp->ds[slot] + npowers + cp->m;
 }

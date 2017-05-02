@@ -24,7 +24,7 @@ _sp_init(secret_params *sp, mmap_params_t *mp, const circ_params_t *cp,
 
     if (cp->circ->consts.n > 0)
         consts = 1;
-    mp->kappa = kappa ? kappa : acirc_delta(cp->circ) + cp->circ->consts.n;
+    mp->kappa = kappa ? kappa : acirc_delta(cp->circ) + consts;
     mp->nzs = spinfo(sp)->toplevel->nzs;
     mp->pows = my_calloc(mp->nzs, sizeof mp->pows[0]);
     for (size_t i = 0; i < mp->nzs; ++i) {

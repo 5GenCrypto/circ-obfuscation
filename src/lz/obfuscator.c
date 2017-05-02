@@ -37,7 +37,7 @@ typedef struct work_args {
     void *cache;
     ref_list **deps;
     threadpool *pool;
-    unsigned int *degrees;
+    unsigned int *kappas;
     int *rop;
 } work_args;
 
@@ -503,7 +503,8 @@ _obfuscator_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     return obf;
 }
 
-static size_t g_max_npowers;
+static size_t g_n_raise_encodings = 0;
+static size_t g_max_npowers = 0;
 
 static void _raise_encoding(const obfuscation *obf, encoding *x, encoding **ys, size_t diff)
 {
@@ -514,6 +515,7 @@ static void _raise_encoding(const obfuscation *obf, encoding *x, encoding **ys, 
             p++;
         if (g_max_npowers < p + 1)
             g_max_npowers = p + 1;
+        g_n_raise_encodings++;
         encoding_mul(obf->enc_vt, obf->pp_vt, x, x, ys[p], obf->pp);
         diff -= (1 << p);
     }
@@ -560,7 +562,7 @@ static void eval_worker(void *vargs)
     encoding **cache = wargs->cache;
     ref_list *const *const deps = wargs->deps;
     threadpool *const pool = wargs->pool;
-    unsigned int *const degrees = wargs->degrees;
+    unsigned int *const kappas = wargs->kappas;
     int *const rop = wargs->rop;
 
     const acirc_operation op = c->gates.gates[ref].op;
@@ -699,7 +701,7 @@ static void eval_worker(void *vargs)
         }
 
         encoding_sub(obf->enc_vt, obf->pp_vt, out, lhs, rhs, obf->pp);
-        degrees[output] = encoding_get_degree(obf->enc_vt, out);
+        kappas[output] = encoding_get_degree(obf->enc_vt, out);
         rop[output] = !encoding_is_zero(obf->enc_vt, obf->pp_vt, out, obf->pp);
 
     cleanup:
@@ -714,7 +716,7 @@ static void eval_worker(void *vargs)
 
 static int
 _evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
-          size_t *degree, size_t *max_npowers)
+          size_t *kappa, size_t *max_npowers)
 {
     const circ_params_t *cp = &obf->op->cp;
     const acirc *const c = cp->circ;
@@ -726,7 +728,7 @@ _evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
     encoding **cache = my_calloc(acirc_nrefs(c), sizeof cache[0]);
     bool *mine = my_calloc(acirc_nrefs(c), sizeof mine[0]);
     int *ready = my_calloc(acirc_nrefs(c), sizeof ready[0]);
-    unsigned int *degrees = my_calloc(c->outputs.n, sizeof degrees[0]);
+    unsigned int *kappas = my_calloc(c->outputs.n, sizeof kappas[0]);
     int *input_syms = get_input_syms(inputs, c->ninputs, obf->op->rchunker,
                                      ninputs, ell, q, obf->op->sigma);
     ref_list **deps = ref_lists_new(c);
@@ -756,7 +758,7 @@ _evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
         args->deps   = deps;
         args->pool   = pool;
         args->rop    = rop;
-        args->degrees = degrees;
+        args->kappas = kappas;
         threadpool_add_job(pool, eval_worker, args);
     }
     ret = OK;
@@ -764,13 +766,13 @@ _evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
 finish:
     threadpool_destroy(pool);
 
-    unsigned int maxdeg = 0;
+    unsigned int maxkappa = 0;
     for (size_t i = 0; i < c->outputs.n; i++) {
-        if (degrees[i] > maxdeg)
-            maxdeg = degrees[i];
+        if (kappas[i] > maxkappa)
+            maxkappa = kappas[i];
     }
-    if (degree)
-        *degree = maxdeg;
+    if (kappa)
+        *kappa = maxkappa;
     if (max_npowers)
         *max_npowers = g_max_npowers;
 
@@ -783,8 +785,10 @@ finish:
     free(cache);
     free(mine);
     free(ready);
-    free(degrees);
+    free(kappas);
     free(input_syms);
+
+    printf("# raise encodings: %lu\n", g_n_raise_encodings);
 
     return ret;
 }

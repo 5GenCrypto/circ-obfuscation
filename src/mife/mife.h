@@ -10,7 +10,7 @@ typedef struct mife_ciphertext_t mife_ciphertext_t;
 mife_t *
 mife_setup(const mmap_vtable *mmap, const circ_params_t *cp,
            size_t secparam, aes_randstate_t rng,
-           size_t *kappa, size_t ncores);
+           size_t *kappa, size_t nthreads);
 void
 mife_free(mife_t *mife);
 
@@ -30,8 +30,9 @@ mife_ciphertext_t * mife_ciphertext_fread(const mmap_vtable *mmap, const circ_pa
 
 
 mife_ciphertext_t *
-mife_encrypt(const mife_sk_t *sk, size_t slot, const int *inputs, size_t ncores,
-             aes_randstate_t rng);
+mife_encrypt(const mife_sk_t *sk, size_t slot, const int *inputs,
+             size_t npowers, size_t nthreads, aes_randstate_t rng);
 
 int
-mife_decrypt(const mife_ek_t *ek, int *rop, const mife_ciphertext_t **cts, size_t ncores);
+mife_decrypt(const mife_ek_t *ek, int *rop, const mife_ciphertext_t **cts,
+             size_t nthreads, size_t *kappa);
