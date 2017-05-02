@@ -266,59 +266,72 @@ my_realloc(void *ptr, size_t size)
 ////////////////////////////////////////////////////////////////////////////////
 // serialization
 
-void
+int
 int_fread(int *x, FILE *fp)
 {
-    fscanf(fp, "%d", x);
-    GET_NEWLINE(fp);
+    if (fscanf(fp, "%d\n", x) != 1) {
+        fprintf(stderr, "error: reading int failed\n");
+        return ERR;
+    }
+    return OK;
 }
 
-void
+int
 int_fwrite(int x, FILE *fp)
 {
-    fprintf(fp, "%d", x);
-    PUT_NEWLINE(fp);
+    fprintf(fp, "%d\n", x);
+    return OK;
 }
 
-void
+int
 ulong_fread(unsigned long *x, FILE *fp)
 {
-    fscanf(fp, "%lu", x);
-    GET_NEWLINE(fp);
+    if (fscanf(fp, "%lu\n", x) != 1) {
+        fprintf(stderr, "error: reading unsigned long failed\n");
+        return ERR;
+    }
+    return OK;
 }
 
-void
+int
 ulong_fwrite(unsigned long x, FILE *fp)
 {
-    fprintf(fp, "%lu", x);
-    PUT_NEWLINE(fp);
+    fprintf(fp, "%lu\n", x);
+    return OK;
 }
 
-void
+int
 size_t_fread(size_t *x, FILE *fp)
 {
-    fscanf(fp, "%lu", x);
+    if (fscanf(fp, "%lu\n", x) != 1) {
+        fprintf(stderr, "error: reading size_t failed\n");
+        return ERR;
+    }
+    return OK;
 }
 
-void
+int
 size_t_fwrite(size_t x, FILE *fp)
 {
-    fprintf(fp, "%lu", x);
+    fprintf(fp, "%lu\n", x);
+    return OK;
 }
 
-void
+int
 bool_fread(bool *x, FILE *fp)
 {
     int tmp;
     fscanf(fp, "%d", &tmp);
     *x = tmp;
+    return OK;
 }
 
-void
+int
 bool_fwrite(bool x, FILE *fp)
 {
     int tmp = x;
     fprintf(fp, "%d", tmp);
+    return OK;
 }
 
 #define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"

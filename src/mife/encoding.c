@@ -94,17 +94,22 @@ _encoding_is_zero(const pp_vtable *vt, const encoding *x, const public_params *p
     return OK;
 }
 
-static void
+static int
 _encoding_fread(encoding *x, FILE *fp)
 {
     x->info = calloc(1, sizeof x->info[0]);
     x->info->index = index_set_fread(fp);
+    if (x->info->index == NULL) {
+        free(x->info);
+        return ERR;
+    }
+    return OK;
 }
 
-static void
+static int
 _encoding_fwrite(const encoding *x, FILE *fp)
 {
-    index_set_fwrite(my(x)->index, fp);
+    return index_set_fwrite(my(x)->index, fp);
 }
 
 static const void *

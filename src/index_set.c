@@ -96,12 +96,17 @@ index_set *
 index_set_fread(FILE *fp)
 {
     index_set *ix = my_calloc(1, sizeof ix[0]);
-    ulong_fread(&ix->nzs, fp);
+    if (ulong_fread(&ix->nzs, fp) == ERR)
+        goto error;
     ix->pows = my_calloc(ix->nzs, sizeof ix->pows[0]);
     for (size_t i = 0; i < ix->nzs; i++) {
-        int_fread(&ix->pows[i], fp);
+        if (int_fread(&ix->pows[i], fp) == ERR)
+            goto error;
     }
     return ix;
+error:
+    free(ix);
+    return NULL;
 }
 
 int

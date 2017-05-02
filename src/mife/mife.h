@@ -34,4 +34,4 @@ mife_encrypt(const mife_sk_t *sk, size_t slot, size_t *inputs, size_t ncores,
              aes_randstate_t rng);
 
 int
-mife_decrypt(const mife_ek_t *ek, int *rop, mife_ciphertext_t **cts, size_t ncores);
+mife_decrypt(const mife_ek_t *ek, int *rop, const mife_ciphertext_t **cts, size_t ncores);
