@@ -475,7 +475,7 @@ mife_encrypt(const mife_sk_t *sk, size_t slot, size_t *inputs, size_t ncores,
         if (slot >= cp->circ->ninputs) {
             assert(ninputs == 1);
             /* these are constants */
-            mpz_set_ui(slots[0], 1);
+            mpz_set_ui(slots[0], cp->circ->consts.buf[slot - cp->circ->ninputs]);
         } else {
             mpz_set_ui(slots[0], inputs[j]);
         }

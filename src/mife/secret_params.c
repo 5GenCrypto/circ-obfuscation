@@ -20,7 +20,7 @@ _sp_init(secret_params *sp, mmap_params_t *mp, const circ_params_t *cp,
     spinfo(sp)->toplevel = mife_params_new_toplevel(cp, mife_params_nzs(cp));
     spinfo(sp)->cp = cp;
 
-    mp->kappa = kappa ? kappa : acirc_delta(cp->circ) + 1;
+    mp->kappa = kappa ? kappa : acirc_delta(cp->circ) + cp->circ->consts.n;
     mp->nzs = spinfo(sp)->toplevel->nzs;
     mp->pows = my_calloc(mp->nzs, sizeof mp->pows[0]);
     for (size_t i = 0; i < mp->nzs; ++i) {
