@@ -682,8 +682,9 @@ static void eval_worker(void *vargs)
         }
 
         encoding_sub(obf->enc_vt, obf->pp_vt, out, lhs, rhs, obf->pp);
-        kappas[output] = encoding_get_degree(obf->enc_vt, out);
         rop[output] = !encoding_is_zero(obf->enc_vt, obf->pp_vt, out, obf->pp);
+        if (kappas)
+            kappas[output] = encoding_get_degree(obf->enc_vt, out);
 
     cleanup:
         encoding_free(obf->enc_vt, out);
@@ -747,13 +748,14 @@ _evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
 finish:
     threadpool_destroy(pool);
 
-    unsigned int maxkappa = 0;
-    for (size_t i = 0; i < c->outputs.n; i++) {
-        if (kappas[i] > maxkappa)
-            maxkappa = kappas[i];
-    }
-    if (kappa)
+    if (kappa) {
+        unsigned int maxkappa = 0;
+        for (size_t i = 0; i < c->outputs.n; i++) {
+            if (kappas[i] > maxkappa)
+                maxkappa = kappas[i];
+        }
         *kappa = maxkappa;
+    }
     if (max_npowers)
         *max_npowers = g_max_npowers;
 

@@ -292,179 +292,6 @@ handle_options(int *argc, char ***argv, args_t *args, void *others,
     (*argv)++; (*argc)--;
 }
 
-/* static int */
-/* obf_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ) */
-/* { */
-/*     obf_params_t *params; */
-/*     const obfuscator_vtable *vt; */
-/*     const op_vtable *op_vt; */
-/*     /\* lin_obf_params_t lin_params; *\/ */
-/*     lz_obf_params_t lz_params; */
-/*     mife_obf_params_t mife_params; */
-/*     void *vparams; */
-/*     size_t kappa = args->kappa; */
-/*     size_t npowers = args->npowers; */
-/*     int ret = OK; */
-
-/*     switch (args->scheme) { */
-/*     case SCHEME_LIN: */
-/*         fprintf(stderr, "LIN SCHEME BROKEN!\n"); */
-/*         abort(); */
-/*         /\* vt = &lin_obfuscator_vtable; *\/ */
-/*         /\* op_vt = &lin_op_vtable; *\/ */
-/*         /\* lin_params.symlen = args->symlen; *\/ */
-/*         /\* lin_params.sigma = args->sigma; *\/ */
-/*         /\* vparams = &lin_params; *\/ */
-/*         break; */
-/*     case SCHEME_LZ: */
-/*         vt = &lz_obfuscator_vtable; */
-/*         op_vt = &lz_op_vtable; */
-/*         lz_params.npowers = npowers; */
-/*         lz_params.symlen = args->symlen; */
-/*         lz_params.sigma = args->sigma; */
-/*         vparams = &lz_params; */
-/*         break; */
-/*     case SCHEME_MIFE: */
-/*         vt = &mife_obfuscator_vtable; */
-/*         op_vt = &mife_op_vtable; */
-/*         mife_params.npowers = npowers; */
-/*         mife_params.symlen = args->symlen; */
-/*         mife_params.sigma = args->sigma; */
-/*         vparams = &mife_params; */
-/*         break; */
-/*     } */
-
-/*     if (args->smart || args->obf == OBF_KAPPA) { */
-/*         bool verbosity = g_verbose; */
-/*         FILE *f = tmpfile(); */
-/*         obf_params_t *_params; */
-
-/*         if (args->smart && g_verbose) { */
-/*             fprintf(stderr, "Choosing κ%s smartly...\n", */
-/*                     args->scheme == SCHEME_LZ ? " and #powers" : ""); */
-/*         } */
-/*         if (f == NULL) { */
-/*             fprintf(stderr, "error: unable to open tmpfile\n"); */
-/*             exit(EXIT_FAILURE); */
-/*         } */
-
-/*         g_verbose = false; */
-
-/*         _params = op_vt->new(circ, vparams); */
-/*         if (_params == NULL) { */
-/*             fprintf(stderr, "error: initialize obfuscator parameters failed\n"); */
-/*             exit(EXIT_FAILURE); */
-/*         } */
-/*         kappa = 0; */
-/*         if (_obfuscate(vt, &dummy_vtable, _params, f, 8, &kappa, args->nthreads) == ERR) { */
-/*             fprintf(stderr, "error: unable to obfuscate to determine parameter settings\n"); */
-/*             exit(EXIT_FAILURE); */
-/*         } */
-/*         if (args->smart) { */
-/*             rewind(f); */
-
-/*             int input[circ->ninputs]; */
-/*             int output[circ->outputs.n]; */
-
-/*             memset(input, '\0', sizeof input); */
-/*             memset(output, '\0', sizeof output); */
-/*             if (_evaluate(vt, &dummy_vtable, _params, f, input, output, args->nthreads, */
-/*                           &kappa, &npowers) == ERR) { */
-/*                 fprintf(stderr, "error: unable to evaluate to determine parameter settings\n"); */
-/*                 exit(EXIT_FAILURE); */
-/*             } */
-/*         } */
-
-/*         fclose(f); */
-/*         op_vt->free(_params); */
-/*         g_verbose = verbosity; */
-
-/*         if (args->obf == OBF_KAPPA) { */
-/*             printf("κ = %lu\n", kappa); */
-/*             return OK; */
-/*         } */
-/*         if (args->smart && g_verbose) { */
-/*             fprintf(stderr, "* Setting κ → %lu\n", kappa); */
-/*             if (args->scheme == SCHEME_LZ) { */
-/*                 fprintf(stderr, "* Setting #powers → %lu\n", npowers); */
-/*                 lz_params.npowers = npowers; */
-/*             } */
-/*         } */
-/*     } */
-
-/*     params = op_vt->new(circ, vparams); */
-/*     if (params == NULL) { */
-/*         fprintf(stderr, "error: initialize obfuscator parameters failed\n"); */
-/*         exit(EXIT_FAILURE); */
-/*     } */
-
-/*     if (args->obf == OBF_OBFUSCATE || args->obf == OBF_TEST) { */
-/*         char fname[strlen(args->circuit) + sizeof ".obf\0"]; */
-/*         FILE *f; */
-
-/*         snprintf(fname, sizeof fname, "%s.obf", args->circuit); */
-/*         if ((f = fopen(fname, "w")) == NULL) { */
-/*             fprintf(stderr, "error: unable to open '%s' for writing\n", fname); */
-/*             exit(EXIT_FAILURE); */
-/*         } */
-/*         if (_obfuscate(vt, mmap, params, f, args->secparam, &kappa, args->nthreads) == ERR) { */
-/*             exit(EXIT_FAILURE); */
-/*         } */
-/*         fclose(f); */
-/*     } */
-
-/*     if (args->obf == OBF_EVALUATE || args->obf == OBF_TEST) { */
-/*         char fname[strlen(args->circuit) + sizeof ".obf\0"]; */
-/*         FILE *f; */
-
-/*         snprintf(fname, sizeof fname, "%s.obf", args->circuit); */
-/*         if ((f = fopen(fname, "r")) == NULL) { */
-/*             fprintf(stderr, "error: unable to open '%s' for reading\n", fname); */
-/*             exit(EXIT_FAILURE); */
-/*         } */
-
-/*         if (args->obf == OBF_EVALUATE) { */
-/*             int input[circ->ninputs]; */
-/*             int output[circ->outputs.n]; */
-/*             assert(args->input); */
-/*             for (size_t i = 0; i < circ->ninputs; ++i) { */
-/*                 input[i] = args->input[i] - '0'; */
-/*             } */
-
-/*             if (_evaluate(vt, mmap, params, f, input, output, args->nthreads, */
-/*                           NULL, NULL) == ERR) */
-/*                 return ERR; */
-/*             printf("result: "); */
-/*             for (size_t i = 0; i < circ->outputs.n; ++i) { */
-/*                 printf("%d", output[i]); */
-/*             } */
-/*             printf("\n"); */
-/*         } else if (args->obf == OBF_TEST) { */
-/*             int output[circ->outputs.n]; */
-/*             for (size_t i = 0; i < circ->tests.n; i++) { */
-/*                 rewind(f); */
-/*                 if (_evaluate(vt, mmap, params, f, circ->tests.inps[i], output, */
-/*                               args->nthreads, NULL, NULL) == ERR) */
-/*                     return ERR; */
-/*                 if (args->scheme == SCHEME_LIN) { */
-/*                     for (size_t j = 0; j < circ->outputs.n; ++j) */
-/*                         output[j] = !output[j]; */
-/*                     /\*             if (output[j] == (circ->tests.outs[i][j] != 1)) { *\/ */
-/*                 } */
-/*                 if (!print_test_output(i + 1, circ->tests.inps[i], circ->ninputs, */
-/*                                        circ->tests.outs[i], output, */
-/*                                        circ->outputs.n)) */
-/*                     ret = ERR; */
-/*             } */
-/*         } */
-/*         fclose(f); */
-/*     } */
-
-/*     op_vt->free(params); */
-
-/*     return ret; */
-/* } */
-
 static void
 mife_setup_usage(bool longform, int ret)
 {
@@ -740,11 +567,11 @@ mife_usage(bool longform, int ret)
     printf("usage: mio mife <command> [<args>]\n");
     if (longform) {
         printf("\nAvailable commands:\n\n"
-               "   setup\n"
-               "   encrypt\n"
-               "   decrypt\n"
-               "   test\n"
-               "   get-kappa\n"
+               "   setup         run MIFE setup routine\n"
+               "   encrypt       run MIFE encryption routine\n"
+               "   decrypt       run MIFE decryption routine\n"
+               "   test          run test suite\n"
+               "   get-kappa     get κ value\n"
                "\n");
     }
     exit(ret);
@@ -776,7 +603,7 @@ cmd_mife(int argc, char **argv)
     } else if (!strcmp(cmd, "get-kappa")) {
         return cmd_mife_get_kappa(argc, argv, &args);
     } else {
-        fprintf(stderr, "error: unknown command '%s'", cmd);
+        fprintf(stderr, "error: unknown command '%s'\n", cmd);
         mife_usage(true, EXIT_FAILURE);
     }
 
@@ -863,7 +690,7 @@ obf_obfuscate_handle_options(int *argc, char ***argv, void *vargs)
     } else if (!strcmp(cmd, "--scheme")) {
         if (*argc <= 1)
             return ERR;
-        const char *scheme = (*argv)[0];
+        const char *scheme = (*argv)[1];
         if (!strcmp(scheme, "LZ")) {
             args->scheme = SCHEME_LZ;
         } else if (!strcmp(scheme, "MIFE")) {
@@ -942,7 +769,7 @@ obf_evaluate_handle_options(int *argc, char ***argv, void *vargs)
     } else if (!strcmp(cmd, "--scheme")) {
         if (*argc <= 1)
             return ERR;
-        const char *scheme = (*argv)[0];
+        const char *scheme = (*argv)[1];
         if (!strcmp(scheme, "LZ")) {
             args->scheme = SCHEME_LZ;
         } else if (!strcmp(scheme, "MIFE")) {
@@ -1043,7 +870,7 @@ cmd_obf_test(int argc, char **argv, args_t *args)
 
     char fname[strlen(args->circuit) + sizeof ".obf\0"];
     snprintf(fname, sizeof fname, "%s.obf", args->circuit);
-    if (obf_run_obfuscate(args->vt, vt, fname, op, args->secparam, NULL,
+    if (obf_run_obfuscate(args->vt, vt, fname, op, args->secparam, &kappa,
                           args->nthreads, args->rng) == ERR) {
         return EXIT_FAILURE;
     }
@@ -1051,7 +878,7 @@ cmd_obf_test(int argc, char **argv, args_t *args)
     for (size_t t = 0; t < args->circ.tests.n; ++t) {
         int outp[args->cp.m];
         if (obf_run_evaluate(args->vt, vt, fname, op, args->circ.tests.inps[t],
-                             outp, args->nthreads, NULL, NULL) == ERR)
+                             outp, args->nthreads, &kappa, NULL) == ERR)
             return ERR;
         if (!print_test_output(t + 1, args->circ.tests.inps[t], args->circ.ninputs,
                                args->circ.tests.outs[t], outp, args->circ.outputs.n))
@@ -1113,10 +940,10 @@ obf_usage(bool longform, int ret)
     printf("usage: mio obf <command> [<args>]\n");
     if (longform) {
         printf("\nAvailable commands:\n\n"
-               "   obfuscate\n"
-               "   evaluate\n"
-               "   test\n"
-               "   get-kappa\n"
+               "   obfuscate    run circuit obfuscation\n"
+               "   evaluate     run circuit evaluation\n"
+               "   test         run test suite\n"
+               "   get-kappa    get κ value\n"
                "\n");
     }
     exit(ret);
@@ -1146,7 +973,7 @@ cmd_obf(int argc, char **argv)
     } else if (!strcmp(cmd, "get-kappa")) {
         ret = cmd_obf_get_kappa(argc, argv, &args);
     } else {
-        fprintf(stderr, "error: unknown command '%s'", cmd);
+        fprintf(stderr, "error: unknown command '%s'\n", cmd);
         obf_usage(true, EXIT_FAILURE);
     }
 

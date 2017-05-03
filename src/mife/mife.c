@@ -811,12 +811,18 @@ mife_decrypt(const mife_ek_t *ek, int *rop, const mife_ciphertext_t **cts,
     const acirc *const c = cp->circ;
     int ret = ERR;
 
+    if (ek == NULL || cts == NULL)
+        return ERR;
+
     encoding **cache = my_calloc(acirc_nrefs(c), sizeof cache[0]);
     bool *mine = my_calloc(acirc_nrefs(c), sizeof mine[0]);
     int *ready = my_calloc(acirc_nrefs(c), sizeof ready[0]);
-    size_t *kappas = my_calloc(c->outputs.n, sizeof kappas[0]);
+    size_t *kappas = NULL;
     ref_list **deps = ref_lists_new(c);
     threadpool *pool = threadpool_create(nthreads);
+
+    if (kappa)
+        kappas = my_calloc(c->outputs.n, sizeof kappas[0]);
 
     for (size_t ref = 0; ref < acirc_nrefs(c); ++ref) {
         acirc_operation op = c->gates.gates[ref].op;
@@ -841,13 +847,15 @@ mife_decrypt(const mife_ek_t *ek, int *rop, const mife_ciphertext_t **cts,
 
     threadpool_destroy(pool);
 
-    size_t maxkappa = 0;
-    for (size_t i = 0; i < c->outputs.n; i++) {
-        if (kappas[i] > maxkappa)
-            maxkappa = kappas[i];
-    }
-    if (kappa)
+    if (kappa) {
+        size_t maxkappa = 0;
+        for (size_t i = 0; i < c->outputs.n; i++) {
+            if (kappas[i] > maxkappa)
+                maxkappa = kappas[i];
+        }
+        free(kappas);
         *kappa = maxkappa;
+    }
 
     for (size_t i = 0; i < acirc_nrefs(c); i++) {
         if (mine[i]) {
@@ -858,7 +866,6 @@ mife_decrypt(const mife_ek_t *ek, int *rop, const mife_ciphertext_t **cts,
     free(cache);
     free(mine);
     free(ready);
-    free(kappas);
 
     return ret;
 }
