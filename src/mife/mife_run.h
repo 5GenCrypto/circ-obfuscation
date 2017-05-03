@@ -30,3 +30,7 @@ int
 mife_run_test(const mmap_vtable *mmap, const char *circuit, circ_params_t *cp,
               aes_randstate_t rng, size_t secparam, size_t *kappa,
               size_t *npowers, size_t nthreads);
+
+size_t
+mife_run_smart_kappa(const char *circuit, circ_params_t *cp, const acirc *circ,
+                     size_t npowers, size_t nthreads, aes_randstate_t rng);

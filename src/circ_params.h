@@ -26,3 +26,5 @@ circ_params_slot(const circ_params_t *cp, size_t pos);
 size_t
 circ_params_bit(const circ_params_t *cp, size_t pos);
 
+void
+circ_params_print(const circ_params_t *cp);

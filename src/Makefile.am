@@ -5,6 +5,7 @@ circ_params.c \
 index_set.c \
 input_chunker.c \
 mmap.c \
+obf_run.c \
 reflist.c \
 util.c
 

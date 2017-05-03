@@ -7,6 +7,8 @@ scriptdir=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
 prog=$(readlink -f "$scriptdir/../mio.sh")
 circuits=$(readlink -f "$scriptdir/../circuits")
 
+set -e
+
 run () {
     $prog --mmap "$2" --scheme LZ "$1" --smart $3
 }
@@ -19,7 +21,7 @@ obf_test () {
     echo "***"
     echo "***"
     echo ""
-    run "$1" "$2" "--smart --obf-test"
+    $prog obf test --smart --mmap $2 $1
 }
 
 obf_test_sigma () {
@@ -30,7 +32,7 @@ obf_test_sigma () {
     echo "***"
     echo "***"
     echo ""
-    run "$1" "$2" "--smart --obf-test --sigma --symlen 16"
+    $prog obf test --smart --sigma --symlen 16 $2 $1
 }
 
 mife_test () {
@@ -41,10 +43,10 @@ mife_test () {
     echo "***"
     echo "***"
     echo ""
-    run "$1" "$2" "--smart --mife-test"
+    $prog mife test --smart --mmap $2 $1
 }
 
-obf_test_sigma () {
+mife_test_sigma () {
     echo ""
     echo "***"
     echo "***"
@@ -52,7 +54,7 @@ obf_test_sigma () {
     echo "***"
     echo "***"
     echo ""
-    run "$1" "$2" "--smart --mife-test --sigma --symlen 16"
+    $prog mife test --smart --sigma --symlen 16 $2 $1
 }
 
 for circuit in $circuits/*.acirc; do

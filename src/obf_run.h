@@ -1,0 +1,17 @@
+#pragma once
+
+#include "obfuscator.h"
+
+int
+obf_run_obfuscate(const mmap_vtable *mmap, const obfuscator_vtable *vt,
+                  const char *fname, obf_params_t *op, size_t secparam,
+                  size_t *kappa, size_t nthreads, aes_randstate_t rng);
+
+int
+obf_run_evaluate(const mmap_vtable *mmap, const obfuscator_vtable *vt, 
+                 const char *fname, obf_params_t *op, const int *input, int *output,
+                 size_t nthreads, size_t *kappa, size_t *max_npowers);
+
+size_t
+obf_run_smart_kappa(const obfuscator_vtable *vt, const acirc *circ, obf_params_t *op, size_t nthreads,
+                    aes_randstate_t rng);
