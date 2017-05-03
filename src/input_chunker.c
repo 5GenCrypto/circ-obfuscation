@@ -85,7 +85,7 @@ type_degree(int *rop, acircref ref, const acirc *c, size_t nsyms, input_chunker 
 
 int *
 get_input_syms(const int *inputs, size_t ninputs, reverse_chunker rchunker,
-               size_t c, size_t ell, size_t q, bool rachel)
+               size_t c, size_t ell, size_t q, bool sigma)
 {
     int *input_syms = my_calloc(c, sizeof input_syms[0]);
     for (size_t i = 0; i < c; i++) {
@@ -93,7 +93,7 @@ get_input_syms(const int *inputs, size_t ninputs, reverse_chunker rchunker,
         for (size_t j = 0; j < ell; j++) {
             const sym_id sym = { i, j };
             const acircref k = rchunker(sym, ninputs, c);
-            if (rachel)
+            if (sigma)
                 input_syms[i] += inputs[k] * j;
             else
                 input_syms[i] += inputs[k] << j;

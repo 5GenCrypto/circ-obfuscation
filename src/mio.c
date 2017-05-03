@@ -44,7 +44,8 @@ enum obf_e {
     OBF_KAPPA,
 };
 
-static char *progname = "circobf";
+static char *progname = "mio";
+static char *progversion = "v1.0.0 (in progress)";
 
 static char *
 scheme_to_string(enum scheme_e scheme)
@@ -119,14 +120,15 @@ usage(bool longform, int ret)
     struct args_t defaults;
     args_init(&defaults);
     if (longform)
-        printf("circobf: Circuit-based program obfuscation.\n\n");
+        printf("%s: Circuit-based multi-input functional encryption / program obfuscation.\n\n",
+               progname);
     printf("usage: %s [options] <circuit>\n", progname);
     if (longform)
         printf("\n"
 "  MIFE:\n"
 "    --mife-setup              run setup procedure\n"
-"    --mife-encrypt <I> <X>    run encryption on input X and slot I\n"
-"    --mife-decrypt <E> <C>... run decryption on evaluation key E and ciphertexts C...\n"
+"    --mife-encrypt <I> <X>    run encryption for slot I on input X\n"
+"    --mife-decrypt <E> <C>... run decryption using evaluation key E on ciphertexts C...\n"
 "    --mife-test               run MIFE on circuit's test inputs\n"
 "    --mife-kappa              print κ value and exit\n"
 "\n"        
@@ -136,8 +138,6 @@ usage(bool longform, int ret)
 "    --obf-test            run obfuscation on circuit's test inputs\n"
 "    --obf-kappa           print κ value and exit\n"
 "    --scheme <NAME>       set scheme to NAME (options: LIN, LZ | default: %s)\n"
-"    --sigma               use Σ-vectors (default: %s)\n"
-"    --symlen N            set Σ-vector length to N bits (default: %lu)\n"
 "\n"
 "  Other:\n"
 "    --lambda, -l <λ>  set security parameter to λ when obfuscating (default: %lu)\n"
@@ -145,19 +145,22 @@ usage(bool longform, int ret)
 "    --mmap <NAME>     set mmap to NAME (options: CLT, DUMMY | default: %s)\n"
 "    --smart           be smart in choosing κ and # powers\n"
 "    --npowers <N>     use N powers when using LZ (default: %lu)\n"
+"    --sigma           use Σ-vectors (default: %s)\n"
+"    --symlen N        set Σ-vector length to N bits (default: %lu)\n"
 "\n"
 "  Helper flags:\n"
 "    --debug <LEVEL>   set debug level (options: ERROR, WARN, DEBUG, INFO | default: ERROR)\n"
 "    --kappa, -k <Κ>   override default κ choice with Κ\n"
 "    --verbose, -v     be verbose\n"
+"    --version         print version information and exit\n"
 "    --help, -h        print this message and exit\n"
-"\n", scheme_to_string(defaults.scheme), 
-      defaults.sigma ? "yes" : "no",
-      defaults.symlen,
+"\n", scheme_to_string(defaults.scheme),
       defaults.secparam,
       defaults.nthreads,
       mmap_to_string(defaults.mmap),
-      defaults.npowers
+      defaults.npowers,
+      defaults.sigma ? "yes" : "no",
+      defaults.symlen
       );
     exit(ret);
 }
@@ -188,10 +191,11 @@ static const struct option opts[] = {
     {"kappa", required_argument, 0, 'k'},
     /* Helper flags */
     {"verbose", no_argument, 0, 'v'},
+    {"version", no_argument, 0, 'V'},
     {"help", no_argument, 0, 'h'},
     {0, 0, 0, 0}
 };
-static const char *short_opts = "AB:C:DEd:e:ghk:lL:M:n:orsS:t:Tv";
+static const char *short_opts = "AB:C:DEd:e:ghk:lL:M:n:orsS:t:TvV";
 
 static int
 mife_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
@@ -236,11 +240,12 @@ mife_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
 
     if (args->smart || args->mife == MIFE_KAPPA) {
         bool verbosity = g_verbose;
-        /* g_verbose = false; */
 
-        if (args->smart) {
-            printf("Choosing κ smartly...\n");
+        if (args->smart && g_verbose) {
+            fprintf(stderr, "Choosing κ smartly...\n");
         }
+
+        g_verbose = false;
 
         ret = mife_run_setup(mmap, args->circuit, &cp, rng, args->secparam, &kappa, args->nthreads);
         if (ret == ERR) {
@@ -252,7 +257,7 @@ mife_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
             for (size_t i = 0; i < cp.n - consts; ++i) {
                 inps[i] = my_calloc(cp.ds[i], sizeof inps[i][0]);
             }
-            if (mife_run_all(mmap, args->circuit, &cp, rng, inps, NULL,
+            if (mife_run_all(mmap, args->circuit, &cp, rng, (const int **) inps, NULL,
                              &kappa, &npowers, args->nthreads) == ERR) {
                 fprintf(stderr, "error: unable to determine parameter settings\n");
                 return ERR;
@@ -263,12 +268,13 @@ mife_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
         }
 
         g_verbose = verbosity;
+
         if (args->mife == MIFE_KAPPA) {
             printf("κ = %lu\n", kappa);
             return OK;
         }
-        if (args->smart) {
-            printf("* Setting κ → %lu\n", kappa);
+        if (args->smart && g_verbose) {
+            fprintf(stderr, "* Setting κ → %lu\n", kappa);
             /* XXX: printf("* Setting #powers → %lu\n", npowers); */
         }
     }
@@ -279,13 +285,12 @@ mife_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
                              &kappa, args->nthreads);
         break;
     case MIFE_ENCRYPT: {
-        /* XXX: FIXME */
-        /* int input[strlen(args->input)]; */
-        /* for (size_t i = 0; i < strlen(args->input); ++i) { */
-        /*     input[i] = args->input[i] - '0'; */
-        /* } */
-        /* ret = mife_run_encrypt(mmap, args->circuit, &cp, rng, input, */
-        /*                        args->mife_slot, &npowers, args->nthreads, NULL); */
+        int input[strlen(args->input)];
+        for (size_t i = 0; i < strlen(args->input); ++i) {
+            input[i] = args->input[i] - '0';
+        }
+        ret = mife_run_encrypt(mmap, args->circuit, &cp, rng, input,
+                               args->mife_slot, &npowers, args->nthreads, NULL);
         break;
     }
     case MIFE_DECRYPT: {
@@ -458,17 +463,17 @@ obf_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
         bool verbosity = g_verbose;
         FILE *f = tmpfile();
         obf_params_t *_params;
-        /* XXX: */
-        /* g_verbose = false; */
 
-        if (args->smart) {
-            printf("Choosing κ%s smartly...\n",
-                   args->scheme == SCHEME_LZ ? " and #powers" : "");
+        if (args->smart && g_verbose) {
+            fprintf(stderr, "Choosing κ%s smartly...\n",
+                    args->scheme == SCHEME_LZ ? " and #powers" : "");
         }
         if (f == NULL) {
             fprintf(stderr, "error: unable to open tmpfile\n");
             exit(EXIT_FAILURE);
         }
+
+        g_verbose = false;
 
         _params = op_vt->new(circ, vparams);
         if (_params == NULL) {
@@ -503,10 +508,10 @@ obf_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
             printf("κ = %lu\n", kappa);
             return OK;
         }
-        if (args->smart) {
-            printf("* Setting κ → %lu\n", kappa);
+        if (args->smart && g_verbose) {
+            fprintf(stderr, "* Setting κ → %lu\n", kappa);
             if (args->scheme == SCHEME_LZ) {
-                printf("* Setting #powers → %lu\n", npowers);
+                fprintf(stderr, "* Setting #powers → %lu\n", npowers);
                 lz_params.npowers = npowers;
             }
         }
@@ -738,6 +743,9 @@ main(int argc, char **argv)
         case 'v':               /* --verbose */
             g_verbose = true;
             break;
+        case 'V':               /* --version */
+            printf("%s %s\n", progname, progversion);
+            exit(EXIT_SUCCESS);
         case 'h':               /* --help */
             usage(true, EXIT_SUCCESS);
             break;

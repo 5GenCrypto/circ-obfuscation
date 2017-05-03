@@ -4,49 +4,69 @@
 #
 
 scriptdir=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
-prog=$(readlink -f "$scriptdir/../circobf.sh")
+prog=$(readlink -f "$scriptdir/../mio.sh")
 circuits=$(readlink -f "$scriptdir/../circuits")
 
 run () {
-    circuit=$1
-    scheme=$2
-    mmap=$3
-    debug=$4
-
-    echo
-    echo \*\*\*
-    echo \*\*\*
-    echo \*\*\* $circuit $scheme $mmap $debug
-    echo \*\*\*
-    echo \*\*\*
-    echo
-    $prog --mmap $mmap --scheme $scheme --debug $debug $circuit
+    $prog --mmap "$2" --scheme LZ "$1" --smart $3
 }
 
-run_sigma () {
-    circuit=$1
-    scheme=$2
-    mmap=$3
-    debug=$4
+obf_test () {
+    echo ""
+    echo "***"
+    echo "***"
+    echo "*** OBF $1 $2"
+    echo "***"
+    echo "***"
+    echo ""
+    run "$1" "$2" "--smart --obf-test"
+}
 
-    echo
-    echo \*\*\*
-    echo \*\*\*
-    echo \*\*\* $circuit $scheme $mmap $debug SIGMA
-    echo \*\*\*
-    echo \*\*\*
-    echo
-    $prog --mmap $mmap --scheme $scheme --debug $debug $circuit --sigma --symlen 16
+obf_test_sigma () {
+    echo ""
+    echo "***"
+    echo "***"
+    echo "*** OBF SIGMA $1 $2"
+    echo "***"
+    echo "***"
+    echo ""
+    run "$1" "$2" "--smart --obf-test --sigma --symlen 16"
+}
+
+mife_test () {
+    echo ""
+    echo "***"
+    echo "***"
+    echo "*** MIFE $1 $2"
+    echo "***"
+    echo "***"
+    echo ""
+    run "$1" "$2" "--smart --mife-test"
+}
+
+obf_test_sigma () {
+    echo ""
+    echo "***"
+    echo "***"
+    echo "*** MIFE SIGMA $1 $2"
+    echo "***"
+    echo "***"
+    echo ""
+    run "$1" "$2" "--smart --mife-test --sigma --symlen 16"
 }
 
 for circuit in $circuits/*.acirc; do
-    echo "$circuit"
-    run "$circuit" LIN DUMMY ERROR
-    run "$circuit" LZ  DUMMY ERROR
+    obf_test "$circuit" DUMMY
 done
 
 for circuit in $circuits/sigma/*.acirc; do
-    echo "$circuit"
-    run_sigma "$circuit" LIN DUMMY ERROR
-    run_sigma "$circuit" LZ  DUMMY ERROR
+    obf_test_sigma "$circuit" DUMMY
+done
+
+for circuit in $circuits/*.acirc; do
+    mife_test "$circuit" DUMMY
+done
+
+for circuit in $circuits/sigma/*.acirc; do
+    mife_test_sigma "$circuit" DUMMY
 done

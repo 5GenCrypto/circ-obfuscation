@@ -1,7 +1,7 @@
 #
 # To use, run:
-#   docker build -t circobf .
-#   docker run -it circobf /bin/bash
+#   docker build -t mio .
+#   docker run -it mio /bin/bash
 #
 
 FROM ubuntu:14.04

@@ -11,7 +11,7 @@ util.c
 AM_CFLAGS = $(MY_CFLAGS) -I$(top_srcdir)
 AM_LDFLAGS =
 
-bin_PROGRAMS = circobf
-circobf_SOURCES  =  circobf.c $(MY_SOURCES)
-circobf_LDADD = lz/libobf_lz.la mife/libobf_mife.la # lin/libobf_lin.la
+bin_PROGRAMS = mio
+mio_SOURCES  =  mio.c $(MY_SOURCES)
+mio_LDADD = lz/libobf_lz.la mife/libmife.la # lin/libobf_lin.la
 SUBDIRS = lz mife # lin

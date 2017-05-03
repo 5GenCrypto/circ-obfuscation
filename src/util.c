@@ -360,12 +360,13 @@ print_test_output(size_t num, const int *inp, size_t ninputs, const int *expecte
     array_printstring_rev(inp, ninputs);
     if (ok)
         printf(" ✓ ");
-    else {
-        printf(" ̣✗ expected=");
-        array_printstring_rev(expected, noutputs);
-        printf(" got=");
-        array_printstring_rev(got, noutputs);
-    }
+    else
+        printf(" ̣✗ ");
+        
+    printf("expected=");
+    array_printstring_rev(expected, noutputs);
+    printf(" got=");
+    array_printstring_rev(got, noutputs);
     printf("\033[0m\n");
     return ok;
 }

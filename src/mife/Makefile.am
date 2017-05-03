@@ -1,9 +1,9 @@
-lib_LTLIBRARIES=libobf_mife.la
+lib_LTLIBRARIES=libmife.la
 
-libobf_mife_la_LDFLAGS=-no-undefined -version-info 0:0:0
-libobf_mife_la_CFLAGS=$(MY_CFLAGS) -I$(top_srcdir)
+libmife_la_LDFLAGS=-no-undefined -version-info 0:0:0
+libmife_la_CFLAGS=$(MY_CFLAGS) -I$(top_srcdir)
 
-libobf_mife_la_SOURCES = \
+libmife_la_SOURCES = \
 encoding.c \
 mife_params.c \
 mife.c \

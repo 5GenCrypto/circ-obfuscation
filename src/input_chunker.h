@@ -21,5 +21,5 @@ type_degree(int *rop, acircref ref, const acirc *c, size_t nsyms, input_chunker 
 
 int *
 get_input_syms(const int *inputs, size_t ninputs, reverse_chunker rchunker,
-               size_t c, size_t ell, size_t q, bool rachel);
+               size_t c, size_t ell, size_t q, bool sigma);
 #endif
