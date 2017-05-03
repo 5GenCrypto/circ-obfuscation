@@ -42,6 +42,6 @@ AC_SEARCH_LIBS(floor, m, [], AC_MSG_ERROR([libm not found]))
 AC_SEARCH_LIBS(_fmpz_clear_mpz, flint, [], AC_MSG_ERROR([libflint not found]))
 AC_SEARCH_LIBS(__gmpz_init, gmp, [], AC_MSG_ERROR([libgmp not found]))
 
-AC_CONFIG_FILES([Makefile src/Makefile src/lin/Makefile src/lz/Makefile src/mife/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile src/lin/Makefile src/lz/Makefile src/mife/Makefile src/mobf/Makefile])
 
 AC_OUTPUT

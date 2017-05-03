@@ -4,8 +4,9 @@
 
 #include "mife/mife_run.h"
 #include "mife/mife_params.h"
-#include "lin/obfuscator.h"
+/* #include "lin/obfuscator.h" */
 #include "lz/obfuscator.h"
+#include "mobf/obfuscator.h"
 
 #include <aesrand.h>
 #include <acirc.h>
@@ -25,6 +26,7 @@
 enum scheme_e {
     SCHEME_LIN,
     SCHEME_LZ,
+    SCHEME_MIFE,
 };
 
 enum mife_e {
@@ -55,6 +57,8 @@ scheme_to_string(enum scheme_e scheme)
         return "LIN";
     case SCHEME_LZ:
         return "LZ";
+    case SCHEME_MIFE:
+        return "MIFE";
     }
     abort();
 }
@@ -97,19 +101,23 @@ args_init(struct args_t *args)
 static void
 args_print(const struct args_t *args)
 {
+    char *type;
     char *scheme;
 
-    if (args->mife != MIFE_NONE)
-        scheme = "MIFE";
-    else
+    if (args->mife != MIFE_NONE) {
+        type = "MIFE";
+        scheme = "N/A";
+    } else {
+        type = "Obfuscation";
         scheme = scheme_to_string(args->scheme);
-    fprintf(stderr, "Info:\n"
-            "* Circuit: .......... %s\n"
-            "* Multilinear map: .. %s\n"
-            "* Security parameter: %lu\n"
-            "* Scheme: ........... %s\n"
+    }
+    fprintf(stderr, "%s info:\n"
+            "* circuit: .......... %s\n"
+            "* mmap: ............. %s\n"
+            "* security parameter: %lu\n"
+            "* scheme: ........... %s\n"
             "* # threads: ........ %lu\n"
-            ,
+            , type,
             args->circuit, mmap_to_string(args->mmap), args->secparam,
             scheme, args->nthreads);
 }
@@ -137,7 +145,7 @@ usage(bool longform, int ret)
 "    --obf-obfuscate       run obfuscation procedure\n"
 "    --obf-test            run obfuscation on circuit's test inputs\n"
 "    --obf-kappa           print κ value and exit\n"
-"    --scheme <NAME>       set scheme to NAME (options: LIN, LZ | default: %s)\n"
+"    --obf-scheme <NAME>   set scheme to NAME (options: LZ, MIFE | default: %s)\n"
 "\n"
 "  Other:\n"
 "    --lambda, -l <λ>  set security parameter to λ when obfuscating (default: %lu)\n"
@@ -176,8 +184,8 @@ static const struct option opts[] = {
     {"obf-obfuscate", no_argument, 0, 'o'},
     {"obf-test", no_argument, 0, 'T'},
     {"obf-kappa", no_argument, 0, 'g'},
+    {"obf-scheme", required_argument, 0, 'S'},
 
-    {"scheme", required_argument, 0, 'S'},
     {"sigma", no_argument, 0, 's'},
     {"symlen", required_argument, 0, 'L'},
     {"npowers", required_argument, 0, 'n'},
@@ -340,46 +348,39 @@ _obfuscate(const obfuscator_vtable *vt, const mmap_vtable *mmap,
            obf_params_t *params, FILE *f, size_t secparam, size_t *kappa,
            size_t nthreads)
 {
+    aes_randstate_t rng;
     obfuscation *obf;
     double start, end, _start, _end;
 
-    if (g_verbose)
-        fprintf(stderr, "Obfuscating...\n");
+    aes_randinit(rng);
 
     start = current_time();
     _start = current_time();
-    obf = vt->new(mmap, params, NULL, secparam, kappa, nthreads);
+    obf = vt->obfuscate(mmap, params, secparam, kappa, nthreads, rng);
     if (obf == NULL) {
-        fprintf(stderr, "error: initializing obfuscator failed\n");
-        goto error;
-    }
-    _end = current_time();
-    if (g_verbose)
-        fprintf(stderr, "    Initialize: %.2fs\n", _end - _start);
-
-    _start = current_time();
-    if (vt->obfuscate(obf, nthreads) == ERR) {
         fprintf(stderr, "error: obfuscation failed\n");
         goto error;
     }
     _end = current_time();
     if (g_verbose)
-        fprintf(stderr, "    Obfuscate: %.2fs\n", _end - _start);
+        fprintf(stderr, "obfuscate:     %.2fs\n", _end - _start);
+
+    aes_randclear(rng);
     
     if (f) {
         _start = current_time();
         if (vt->fwrite(obf, f) == ERR) {
-            fprintf(stderr, "error: writing obfuscator failed\n");
+            fprintf(stderr, "error: writing obfuscation to disk failed\n");
             goto error;
         }
         _end = current_time();
         if (g_verbose)
-            fprintf(stderr, "    Write to disk: %.2fs\n", _end - _start);
+            fprintf(stderr, "write to disk: %.2fs\n", _end - _start);
     }
 
     end = current_time();
     if (g_verbose)
-        fprintf(stderr, "    Total: %.2fs\n", end - start);
+        fprintf(stderr, "total:         %.2fs\n", end - start);
 
     vt->free(obf);
     return OK;
@@ -396,9 +397,6 @@ _evaluate(const obfuscator_vtable *vt, const mmap_vtable *mmap,
     double start, end, _start, _end;
     obfuscation *obf;
 
-    if (g_verbose)
-        fprintf(stderr, "Evaluating...\n");
-
     start = current_time();
     _start = current_time();
     if ((obf = vt->fread(mmap, params, f)) == NULL) {
@@ -407,18 +405,18 @@ _evaluate(const obfuscator_vtable *vt, const mmap_vtable *mmap,
     }
     _end = current_time();
     if (g_verbose)
-        fprintf(stderr, "    Read from disk: %.2fs\n", _end - _start);
+        fprintf(stderr, "read from disk: %.2fs\n", _end - _start);
 
     _start = current_time();
     if (vt->evaluate(obf, output, input, nthreads, kappa, max_npowers) == ERR)
         goto error;
     _end = current_time();
     if (g_verbose)
-        fprintf(stderr, "    Evaluate: %.2fs\n", _end - _start);
+        fprintf(stderr, "evaluate:       %.2fs\n", _end - _start);
 
     end = current_time();
     if (g_verbose)
-        fprintf(stderr, "    Total: %.2fs\n", end - start);
+        fprintf(stderr, "total:          %.2fs\n", end - start);
     vt->free(obf);
     return OK;
 error:
@@ -432,8 +430,9 @@ obf_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
     obf_params_t *params;
     const obfuscator_vtable *vt;
     const op_vtable *op_vt;
-    lin_obf_params_t lin_params;
+    /* lin_obf_params_t lin_params; */
     lz_obf_params_t lz_params;
+    mife_obf_params_t mife_params;
     void *vparams;
     size_t kappa = args->kappa;
     size_t npowers = args->npowers;
@@ -442,12 +441,12 @@ obf_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
     switch (args->scheme) {
     case SCHEME_LIN:
         fprintf(stderr, "LIN SCHEME BROKEN!\n");
-        exit(1);
+        abort();
         /* vt = &lin_obfuscator_vtable; */
         /* op_vt = &lin_op_vtable; */
-        lin_params.symlen = args->symlen;
-        lin_params.sigma = args->sigma;
-        vparams = &lin_params;
+        /* lin_params.symlen = args->symlen; */
+        /* lin_params.sigma = args->sigma; */
+        /* vparams = &lin_params; */
         break;
     case SCHEME_LZ:
         vt = &lz_obfuscator_vtable;
@@ -456,6 +455,14 @@ obf_run(const struct args_t *args, const mmap_vtable *mmap, acirc *circ)
         lz_params.symlen = args->symlen;
         lz_params.sigma = args->sigma;
         vparams = &lz_params;
+        break;
+    case SCHEME_MIFE:
+        vt = &mife_obfuscator_vtable;
+        op_vt = &mife_op_vtable;
+        mife_params.npowers = npowers;
+        mife_params.symlen = args->symlen;
+        mife_params.sigma = args->sigma;
+        vparams = &mife_params;
         break;
     }
 
@@ -718,13 +725,15 @@ main(int argc, char **argv)
         case 's':               /* --sigma */
             args.sigma = true;
             break;
-        case 'S':               /* --scheme */
+        case 'S':               /* --obf-scheme */
             if (optarg == NULL)
                 usage(true, EXIT_FAILURE);
-            if (strcmp(optarg, "LIN") == 0) {
-                args.scheme = SCHEME_LIN;
-            } else if (strcmp(optarg, "LZ") == 0) {
+            /* if (strcmp(optarg, "LIN") == 0) { */
+            /*     args.scheme = SCHEME_LIN; */
+            if (strcmp(optarg, "LZ") == 0) {
                 args.scheme = SCHEME_LZ;
+            } else if (strcmp(optarg, "MIFE") == 0) {
+                args.scheme = SCHEME_MIFE;
             } else {
                 fprintf(stderr, "error: unknown scheme \"%s\"\n", optarg);
                 usage(true, EXIT_FAILURE);

@@ -1,8 +1,8 @@
 #include "obfuscator.h"
 #include "obf_params.h"
 #include "vtables.h"
-#include "../reflist.h"
-#include "../util.h"
+#include "reflist.h"
+#include "util.h"
 
 #include <assert.h>
 #include <string.h>
@@ -16,7 +16,6 @@ typedef struct obfuscation {
     const obf_params_t *op;
     secret_params *sp;
     public_params *pp;
-    aes_randstate_t rng;
     encoding ****shat;          // [c][Σ][ℓ]
     encoding ****uhat;          // [c][Σ][npowers]
     encoding ****zhat;          // [c][Σ][γ]
@@ -86,11 +85,8 @@ __encode(threadpool *pool, const encoding_vtable *vt, encoding *enc, mpz_t inps[
     threadpool_add_job(pool, obf_worker, args);
 }
 
-static void
-_obfuscator_free(obfuscation *obf);
-
 static obfuscation *
-__obfuscator_new(const mmap_vtable *mmap, const obf_params_t *op)
+_alloc(const mmap_vtable *mmap, const obf_params_t *op)
 {
     obfuscation *obf;
 
@@ -128,60 +124,8 @@ __obfuscator_new(const mmap_vtable *mmap, const obf_params_t *op)
     return obf;
 }
 
-static obfuscation *
-_obfuscator_new(const mmap_vtable *mmap, const obf_params_t *op,
-                secret_params *sp, size_t secparam, size_t *kappa,
-                size_t ncores)
-{
-    obfuscation *obf;
-
-    const circ_params_t *cp = &op->cp;
-    const size_t ninputs = cp->n - 1;
-    const size_t nconsts = cp->ds[ninputs];
-    const size_t noutputs = cp->m;
-
-    if (op->npowers == 0 || secparam == 0)
-        return NULL;
-
-    obf = __obfuscator_new(mmap, op);
-    aes_randinit(obf->rng);
-    obf->sp = sp ? sp : secret_params_new(obf->sp_vt, &op->cp, secparam, kappa, ncores, obf->rng);
-    if (obf->sp == NULL)
-        goto error;
-    obf->pp = public_params_new(obf->pp_vt, obf->sp_vt, obf->sp);
-
-    for (size_t k = 0; k < ninputs; k++) {
-        for (size_t s = 0; s < cp->qs[k]; s++) {
-            for (size_t j = 0; j < cp->ds[k]; j++) {
-                obf->shat[k][s][j] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
-            }
-            for (size_t p = 0; p < op->npowers; p++) {
-                obf->uhat[k][s][p] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
-            }
-            for (size_t o = 0; o < noutputs; o++) {
-                obf->zhat[k][s][o] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
-                obf->what[k][s][o] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
-            }
-        }
-    }
-    for (size_t i = 0; i < nconsts; i++) {
-        obf->yhat[i] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
-    }
-    for (size_t p = 0; p < op->npowers; p++) {
-        obf->vhat[p] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
-    }
-    for (size_t i = 0; i < noutputs; i++) {
-        obf->Chatstar[i] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
-    }
-    return obf;
-
-error:
-     _obfuscator_free(obf);
-    return NULL;
-}
-
 static void
-_obfuscator_free(obfuscation *obf)
+_free(obfuscation *obf)
 {
     if (obf == NULL)
         return;
@@ -231,26 +175,65 @@ _obfuscator_free(obfuscation *obf)
     if (obf->sp)
         secret_params_free(obf->sp_vt, obf->sp);
 
-    aes_randclear(obf->rng);
-
     free(obf);
 }
 
-static int
-_obfuscate(obfuscation *obf, size_t nthreads)
+static obfuscation *
+_obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
+           size_t *kappa, size_t nthreads, aes_randstate_t rng)
 {
-    const obf_params_t *const op = obf->op;
-    const circ_params_t *const cp = &op->cp;
+    obfuscation *obf;
+
+    const circ_params_t *cp = &op->cp;
+    const size_t ninputs = cp->n - 1;
+    const size_t nconsts = cp->ds[ninputs];
+    const size_t noutputs = cp->m;
+
+    if (op->npowers == 0 || secparam == 0)
+        return NULL;
+
+    obf = _alloc(mmap, op);
+    obf->sp = secret_params_new(obf->sp_vt, &op->cp, secparam, kappa, nthreads, rng);
+    if (obf->sp == NULL) {
+        _free(obf);
+        return NULL;
+    }
+    obf->pp = public_params_new(obf->pp_vt, obf->sp_vt, obf->sp);
+    if (obf->pp == NULL) {
+        _free(obf);
+        return NULL;
+    }
+
+    for (size_t k = 0; k < ninputs; k++) {
+        for (size_t s = 0; s < cp->qs[k]; s++) {
+            for (size_t j = 0; j < cp->ds[k]; j++) {
+                obf->shat[k][s][j] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
+            }
+            for (size_t p = 0; p < op->npowers; p++) {
+                obf->uhat[k][s][p] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
+            }
+            for (size_t o = 0; o < noutputs; o++) {
+                obf->zhat[k][s][o] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
+                obf->what[k][s][o] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
+            }
+        }
+    }
+    for (size_t i = 0; i < nconsts; i++) {
+        obf->yhat[i] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
+    }
+    for (size_t p = 0; p < op->npowers; p++) {
+        obf->vhat[p] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
+    }
+    for (size_t i = 0; i < noutputs; i++) {
+        obf->Chatstar[i] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
+    }
+    
     acirc *const circ = cp->circ;
     mpz_t *const moduli =
         mpz_vect_create_of_fmpz(obf->mmap->sk->plaintext_fields(obf->sp->sk),
                                 obf->mmap->sk->nslots(obf->sp->sk));
-
     index_set *const ix = index_set_new(obf_params_nzs(cp));
 
-    const size_t ninputs = cp->n - 1;
-    const size_t nconsts = cp->ds[ninputs];
-    const size_t noutputs = cp->m;
     const size_t ell = array_max(cp->ds, ninputs);
     const size_t q = array_max(cp->qs, ninputs);
 
@@ -274,21 +257,21 @@ _obfuscate(obfuscation *obf, size_t nthreads)
     for (size_t k = 0; k < ninputs; k++) {
         for (size_t j = 0; j < cp->ds[k]; j++) {
             mpz_init(alpha[k * cp->ds[k] + j]);
-            mpz_randomm_inv(alpha[k * cp->ds[k] + j], obf->rng, moduli[1]);
+            mpz_randomm_inv(alpha[k * cp->ds[k] + j], rng, moduli[1]);
         }
     }
     for (size_t k = 0; k < ninputs; k++) {
         for (size_t s = 0; s < cp->qs[k]; s++) {
             for (size_t o = 0; o < noutputs; o++) {
                 mpz_inits(gamma[k][s][o], delta[k][s][o], NULL);
-                mpz_randomm_inv(delta[k][s][o], obf->rng, moduli[0]);
-                mpz_randomm_inv(gamma[k][s][o], obf->rng, moduli[1]);
+                mpz_randomm_inv(delta[k][s][o], rng, moduli[0]);
+                mpz_randomm_inv(gamma[k][s][o], rng, moduli[1]);
             }
         }
     }
     for (size_t i = 0; i < nconsts; i++) {
         mpz_init(beta[i]);
-        mpz_randomm_inv(beta[i], obf->rng, moduli[1]);
+        mpz_randomm_inv(beta[i], rng, moduli[1]);
     }
 
     for (size_t o = 0; o < noutputs; o++) {
@@ -433,11 +416,11 @@ _obfuscate(obfuscation *obf, size_t nthreads)
 
     mpz_vect_free(moduli, obf->mmap->sk->nslots(obf->sp->sk));
 
-    return OK;
+    return obf;
 }
 
 static int
-_obfuscator_fwrite(const obfuscation *const obf, FILE *const fp)
+_fwrite(const obfuscation *const obf, FILE *const fp)
 {
     const obf_params_t *const op = obf->op;
 
@@ -469,7 +452,7 @@ _obfuscator_fwrite(const obfuscation *const obf, FILE *const fp)
 }
 
 static obfuscation *
-_obfuscator_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
+_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
 {
     obfuscation *obf;
 
@@ -478,7 +461,7 @@ _obfuscator_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     const size_t nconsts = cp->ds[ninputs];
     const size_t noutputs = cp->m;
 
-    if ((obf = __obfuscator_new(mmap, op)) == NULL)
+    if ((obf = _alloc(mmap, op)) == NULL)
         return NULL;
 
     obf->pp = public_params_fread(obf->pp_vt, &op->cp, fp);
@@ -790,10 +773,9 @@ finish:
 }
 
 obfuscator_vtable lz_obfuscator_vtable = {
-    .new =  _obfuscator_new,
-    .free = _obfuscator_free,
+    .free = _free,
     .obfuscate = _obfuscate,
     .evaluate = _evaluate,
-    .fwrite = _obfuscator_fwrite,
-    .fread = _obfuscator_fread,
+    .fwrite = _fwrite,
+    .fread = _fread,
 };
