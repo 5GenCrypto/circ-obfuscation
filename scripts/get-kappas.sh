@@ -24,14 +24,46 @@ run () {
         return
     fi
     mode=$(basename "$circuit" | cut -d'.' -f2)
-    if [[ ! $mode =~ ^c2(a|v)$ && $mode != dsl && ! $mode =~ ^opt-(1|2|3)$ ]]; then
+    if [[ ! $mode =~ ^c2(a|v)$ && $mode != dsl && ! $mode =~ ^o(1|2|3)$ ]]; then
         mode=""
     fi
-    $prog --obf-kappa --scheme LIN --verbose $flags "$circuit" &>/tmp/results.txt
+    # $prog obf get-kappa --scheme LIN --verbose $flags "$circuit" &>/tmp/results.txt
+    # if [ $? -eq 0 ]; then
+    #     lin1=$(get "κ = ")
+    # else
+    #    lin1="[overflow]"
+    # fi
+    # $prog obf get-kappa --scheme LIN --verbose --smart $flags "$circuit" &>/tmp/results.txt
+    # if [ $? -eq 0 ]; then
+    #     lin2=$(get "κ = ")
+    # else
+    #    lin2="[overflow]"
+    # fi
+    lin1="_"
+    lin2="_"
+    $prog obf get-kappa --scheme LZ --verbose $flags "$circuit" &>/tmp/results.txt
     if [ $? -eq 0 ]; then
-        lin1=$(get "κ = ")
+        lz1=$(get "κ = ")
     else
-        lin1="[overflow]"
+        lz1="[overflow]"
+    fi
+    $prog obf get-kappa --scheme LZ --verbose --smart $flags "$circuit" &>/tmp/results.txt
+    if [ $? -eq 0 ]; then
+        lz2=$(get "κ = ")
+    else
+        lz2="[overflow]"
+    fi
+    $prog obf get-kappa --scheme MIFE --verbose $flags "$circuit" &>/tmp/results.txt
+    if [ $? -eq 0 ]; then
+        mife1=$(get "κ = ")
+    else
+        mife1="[overflow]"
+    fi
+    $prog obf get-kappa --scheme MIFE --verbose --smart $flags "$circuit" &>/tmp/results.txt
+    if [ $? -eq 0 ]; then
+        mife2=$(get "κ = ")
+    else
+        mife2="[overflow]"
     fi
     ninputs=$(get "ninputs")
     nconsts=$(get "nconsts")
@@ -40,29 +72,11 @@ run () {
     nmuls=$(get " *nmuls")
     depth=$(get "* depth")
     degree=$(get "* degree")
-    $prog --obf-kappa --scheme LIN --verbose --smart $flags "$circuit" &>/tmp/results.txt
-    if [ $? -eq 0 ]; then
-        lin2=$(get "κ = ")
-    else
-        lin2="[overflow]"
-    fi
-    $prog --obf-kappa --scheme LZ --verbose $flags "$circuit" &>/tmp/results.txt
-    if [ $? -eq 0 ]; then
-        lz1=$(get "κ = ")
-    else
-        lz1="[overflow]"
-    fi
-    $prog --obf-kappa --scheme LZ --verbose --smart $flags "$circuit" &>/tmp/results.txt
-    if [ $? -eq 0 ]; then
-        lz2=$(get "κ = ")
-    else
-        lz2="[overflow]"
-    fi
-    echo "$name, $mode, $ninputs, $nconsts, $noutputs, $ngates, $nmuls, $depth, $degree, $lin1 | $lin2, $lz1 | $lz2"
+    echo "$name, $mode, $ninputs, $nconsts, $noutputs, $ngates, $nmuls, $depth, $degree, $lin1 | $lin2, $lz1 | $lz2, $mife1 | $mife2"
     rm -f "$circuit.obf"
 }
 
-echo "name, mode, nins, nkey, nouts, ngates, nmuls, depth, degree, lin.κ, lz.κ"
+echo "name, mode, nins, nkey, nouts, ngates, nmuls, depth, degree, lin.κ, lz.κ, mife.κ"
 if [[ $1 != "" ]]; then
     run "$1" n
 else

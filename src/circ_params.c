@@ -60,16 +60,19 @@ circ_params_bit(const circ_params_t *cp, size_t pos)
 void
 circ_params_print(const circ_params_t *cp)
 {
-    printf("Circuit parameters:\n");
-    printf("* nslots: ...... %lu\n", cp->n);
+    fprintf(stderr, "Circuit parameters:\n");
+    fprintf(stderr, "* ninputs:...... %lu\n", circ_params_ninputs(cp));
+    fprintf(stderr, "* nslots: ...... %lu\n", cp->n);
     for (size_t i = 0; i < cp->n; ++i) {
         fprintf(stderr, "*   slot #%lu: ..... %lu (%lu)\n", i + 1,
                 cp->ds[i], cp->qs[i]);
     }
-    printf("* noutputs: .... %lu\n", cp->m);
-    printf("* ngates: ...... %lu\n", cp->circ->gates.n);
-    printf("* nmuls: ....... %lu\n", acirc_nmuls(cp->circ));
-    printf("* depth: ....... %lu\n", acirc_max_depth(cp->circ));
-    printf("* degree: ...... %lu\n", acirc_max_degree(cp->circ));
+    fprintf(stderr, "* nconsts:...... %lu\n", cp->circ->consts.n);
+
+    fprintf(stderr, "* noutputs: .... %lu\n", cp->m);
+    fprintf(stderr, "* ngates: ...... %lu\n", cp->circ->gates.n);
+    fprintf(stderr, "* nmuls: ....... %lu\n", acirc_nmuls(cp->circ));
+    fprintf(stderr, "* depth: ....... %lu\n", acirc_max_depth(cp->circ));
+    fprintf(stderr, "* degree: ...... %lu\n", acirc_max_degree(cp->circ));
 
 }

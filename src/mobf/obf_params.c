@@ -42,6 +42,7 @@ _new(acirc *circ, void *vparams)
     }
 
     if (g_verbose) {
+        circ_params_print(&op->cp);
         fprintf(stderr, "Obfuscation parameters:\n");
         fprintf(stderr, "* Σ: ......... %s\n", op->sigma ? "Yes" : "No");
         fprintf(stderr, "* n: ......... %lu\n", op->cp.n);

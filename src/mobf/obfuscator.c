@@ -4,6 +4,8 @@
 #include "../mife/mife.h"
 #include "util.h"
 
+#include <string.h>
+
 typedef struct obfuscation {
     const obf_params_t *op;
     mife_ek_t *ek;
@@ -51,8 +53,11 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     for (size_t i = 0; i < ninputs; ++i) {
         obf->cts[i] = my_calloc(cp->qs[i], sizeof obf->cts[i][0]);
         for (size_t j = 0; j < cp->qs[i]; ++j) {
-            int input = j;
-            obf->cts[i][j] = mife_encrypt(sk, i, &input, op->npowers, nthreads, rng);
+            int input[cp->ds[i]];
+            for (size_t k = 0; k < cp->ds[i]; ++k) {
+                input[k] = op->sigma ? j == k : bit(j, k);
+            }
+            obf->cts[i][j] = mife_encrypt(sk, i, input, op->npowers, nthreads, rng);
         }
     }
 
@@ -85,6 +90,7 @@ _evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
     if (consts)
         cts[cp->n - 1] = obf->cts[cp->n - 1][0];
 
+    memset(rop, '\0', cp->m * sizeof rop[0]);
     if (mife_decrypt(obf->ek, rop, cts, nthreads, kappa) == ERR)
         return ERR;
 

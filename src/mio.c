@@ -249,8 +249,10 @@ handle_options(int *argc, char ***argv, args_t *args, void *others,
         } else if (!strcmp(cmd, "--help")) {
             f(true, EXIT_SUCCESS);
         } else if (other) {
-            if (other(argc, argv, others) == ERR)
+            if (other(argc, argv, others) == ERR) {
+                fprintf(stderr, "error: unknown argument '%s'\n", cmd);
                 f(false, EXIT_FAILURE);
+            }
         } else {
             fprintf(stderr, "error: unknown argument '%s'\n", cmd);
             f(false, EXIT_FAILURE);
@@ -295,7 +297,7 @@ handle_options(int *argc, char ***argv, args_t *args, void *others,
 static void
 mife_setup_usage(bool longform, int ret)
 {
-    printf("usage: mio mife setup [<args>] circuit\n");
+    printf("usage: %s mife setup [<args>] circuit\n", progname);
     if (longform) {
         printf("\nAvailable arguments:\n\n");
         mife_setup_args_usage();
@@ -341,7 +343,7 @@ cmd_mife_setup(int argc, char **argv, args_t *args)
 static void
 mife_encrypt_usage(bool longform, int ret)
 {
-    printf("usage: mio mife encrypt [<args>] circuit input slot\n");
+    printf("usage: %s mife encrypt [<args>] circuit input slot\n", progname);
     if (longform) {
         printf("\nAvailable arguments:\n\n");
         mife_encrypt_args_usage();
@@ -408,7 +410,7 @@ cmd_mife_encrypt(int argc, char **argv, args_t *args)
 static void
 mife_decrypt_usage(bool longform, int ret)
 {
-    printf("usage: mio mife decrypt [<args>] circuit\n");
+    printf("usage: %s mife decrypt [<args>] circuit\n", progname);
     if (longform) {
         printf("\nAvailable arguments:\n\n");
         args_usage();
@@ -466,7 +468,7 @@ cleanup:
 static void
 mife_test_usage(bool longform, int ret)
 {
-    printf("usage: mio mife test [<args>] circuit\n");
+    printf("usage: %s mife test [<args>] circuit\n", progname);
     if (longform) {
         printf("\nAvailable arguments:\n\n");
         mife_test_args_usage();
@@ -527,7 +529,7 @@ cmd_mife_test(int argc, char **argv, args_t *args)
 static void
 mife_get_kappa_usage(bool longform, int ret)
 {
-    printf("usage: mio mife get-kappa [<args>] circuit\n");
+    printf("usage: %s mife get-kappa [<args>] circuit\n", progname);
     if (longform) {
         printf("\nAvailable arguments:\n\n");
         args_usage();
@@ -564,7 +566,7 @@ cmd_mife_get_kappa(int argc, char **argv, args_t *args)
 static void
 mife_usage(bool longform, int ret)
 {
-    printf("usage: mio mife <command> [<args>]\n");
+    printf("usage: %s mife <command> [<args>]\n", progname);
     if (longform) {
         printf("\nAvailable commands:\n\n"
                "   setup         run MIFE setup routine\n"
@@ -661,7 +663,7 @@ obf_select_scheme(enum scheme_e scheme, acirc *circ, size_t npowers, bool sigma,
 static void
 obf_obfuscate_usage(bool longform, int ret)
 {
-    printf("usage: mio obf obfuscate [<args>] circuit\n");
+    printf("usage: %s obf obfuscate [<args>] circuit\n", progname);
     if (longform) {
         printf("\nAvailable arguments:\n\n");
         obf_obfuscate_args_usage();
@@ -745,7 +747,7 @@ cmd_obf_obfuscate(int argc, char **argv, args_t *args)
 static void
 obf_evaluate_usage(bool longform, int ret)
 {
-    printf("usage: mio obf evaluate [<args>] circuit input\n");
+    printf("usage: %s obf evaluate [<args>] circuit input\n", progname);
     if (longform) {
         printf("\nAvailable arguments:\n\n");
         obf_evaluate_args_usage();
@@ -833,7 +835,7 @@ cmd_obf_evaluate(int argc, char **argv, args_t *args)
 static void
 obf_test_usage(bool longform, int ret)
 {
-    printf("usage: mio obf test [<args>] circuit\n");
+    printf("usage: %s obf test [<args>] circuit\n", progname);
     if (longform) {
         printf("\nAvailable arguments:\n\n");
         obf_test_args_usage();
@@ -890,7 +892,7 @@ cmd_obf_test(int argc, char **argv, args_t *args)
 static void
 obf_get_kappa_usage(bool longform, int ret)
 {
-    printf("usage: mio obf get-kappa [<args>] circuit\n");
+    printf("usage: %s obf get-kappa [<args>] circuit\n", progname);
     if (longform) {
         printf("\nAvailable arguments:\n\n");
         args_usage();
@@ -937,7 +939,7 @@ cmd_obf_get_kappa(int argc, char **argv, args_t *args)
 static void
 obf_usage(bool longform, int ret)
 {
-    printf("usage: mio obf <command> [<args>]\n");
+    printf("usage: %s obf <command> [<args>]\n", progname);
     if (longform) {
         printf("\nAvailable commands:\n\n"
                "   obfuscate    run circuit obfuscation\n"
