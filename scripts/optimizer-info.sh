@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-#
-# Prints optimizer info in latex from a CSV file containing info produced by
-# get-kappas.sh
-#
 
 set -e
 
@@ -52,7 +48,7 @@ while read -r input; do
     fi
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
     mode=$(echo "$line" | cut -d',' -f2)
-    if [[ $mode != dsl && $mode != opt ]]; then
+    if [[ $mode != dsl && ! $mode =~ ^o ]]; then
         continue
     fi
     if [[ $name != "$curname" ]]; then
@@ -67,7 +63,7 @@ while read -r input; do
     fi
     size=$(echo "$line" | cut -d',' -f6)
     muls=$(echo "$line" | cut -d',' -f7)
-    kappa=$(echo "$line" | cut -d',' -f11 | cut -d'|' -f2)
+    kappa=$(echo "$line" | cut -d',' -f12 | cut -d'|' -f2)
     case $mode in
         dsl )
             dslsize=$size

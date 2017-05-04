@@ -95,7 +95,7 @@ while read -r input; do
     circuits[$mode]=1
     size=$(echo "$line" | cut -d',' -f6)
     nmuls=$(echo "$line" | cut -d',' -f7)
-    kappa=$(echo "$line" | cut -d',' -f11 | cut -d'|' -f2)
+    kappa=$(echo "$line" | cut -d',' -f12 | cut -d'|' -f2)
     case $mode in
         c2a )
             c2asize=$size
