@@ -16,7 +16,7 @@ num_encodings(const obf_params_t *op)
 static obf_params_t *
 _new(acirc *circ, void *vparams)
 {
-    const mife_obf_params_t *const params = vparams;
+    const mobf_obf_params_t *const params = vparams;
     obf_params_t *const op = calloc(1, sizeof op[0]);
 
     if (circ->ninputs % params->symlen != 0) {
@@ -67,7 +67,7 @@ _free(obf_params_t *op)
     free(op);
 }
 
-op_vtable mife_op_vtable =
+op_vtable mobf_op_vtable =
 {
     .new = _new,
     .free = _free

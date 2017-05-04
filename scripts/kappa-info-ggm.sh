@@ -19,6 +19,8 @@ pretty () {
 scheme () {
     if [[ $1 == "[overflow]" ]]; then
         out=$1
+    elif [[ $1 == "_" ]]; then
+        out=""
     else
         a=$(pretty "$1")
         b=$(pretty "$2")
@@ -63,11 +65,13 @@ while read -r input; do
     fi
     lin=$(echo "$line" | cut -d',' -f10 | cut -d'|' -f2)
     lz=$(echo "$line" | cut -d',' -f11 | cut -d'|' -f2)
+    mife=$(echo "$line" | cut -d',' -f12 | cut -d'|' -f2)
     lin=$(scheme "$lin" "$lin")
     lz=$(scheme "$lz" "$lz")
+    mife=$(scheme "$mife" "$mife")
     if [ $sigma -eq 1 ]; then
         index=$((count - total))
-        row[$index]="${row[$index]} && $lin && $lz \\\\"
+        row[$index]="${row[$index]} && $lin && $lz && $mife \\\\"
         if [ $((count % 2)) == 1 ]; then
             echo "\rowcol ${row[$index]}"
         else

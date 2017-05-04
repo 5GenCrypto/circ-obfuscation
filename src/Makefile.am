@@ -14,5 +14,5 @@ AM_LDFLAGS =
 
 bin_PROGRAMS = mio
 mio_SOURCES  =  mio.c $(MY_SOURCES)
-mio_LDADD = lz/libobf_lz.la mife/libmife.la mobf/libobf_mobf.la # lin/libobf_lin.la
-SUBDIRS = lz mife mobf # lin
+mio_LDADD = lz/libobf_lz.la mife/libmife.la mobf/libobf_mobf.la lin/libobf_lin.la
+SUBDIRS = lz mife mobf lin

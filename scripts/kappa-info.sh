@@ -19,6 +19,8 @@ pretty () {
 kappas () {
     if [[ $1 == "[overflow]" ]]; then
         echo "$1"
+    elif [[ $1 == "_" ]]; then
+        echo "+"
     else
         a="\num{$1}"
         b="\num{$2}"
@@ -40,7 +42,7 @@ while read -r input; do
     fi
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
     mode=$(echo "$line" | cut -d',' -f2)
-    if [[ $mode != opt-2 ]]; then
+    if [[ $mode != o1 ]]; then
         continue
     fi
     lin=$(echo "$line" | cut -d',' -f10)

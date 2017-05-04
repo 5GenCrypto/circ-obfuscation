@@ -39,11 +39,11 @@ while read -r input; do
             mode="\CTV" ;;
         dsl )
             mode="\DSL" ;;
-        opt-1 )
+        o1 )
             mode="\DSL\ -O1" ;;
-        opt-2 )
+        o2 )
             mode="\DSL\ -O2" ;;
-        opt-3 )
+        o3 )
             mode="\DSL\ -O3" ;;
     esac
     if [[ $name != "$curname" ]]; then
@@ -55,7 +55,7 @@ while read -r input; do
     fi
     size=$(echo "$line" | cut -d',' -f6)
     nmuls=$(echo "$line" | cut -d',' -f7)
-    kappa=$(echo "$line" | cut -d',' -f11 | cut -d'|' -f2)
+    kappa=$(echo "$line" | cut -d',' -f12 | cut -d'|' -f2)
     if [[ $count != 0 && $((count % 2)) -eq 0 ]]; then
         echo "\rowcolor{white}"
     fi

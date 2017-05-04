@@ -2,9 +2,10 @@
 #include "obfuscator.h"
 #include "util.h"
 
+#include "mife/mife.h"
 #include "mife/mife_run.h"
 #include "mife/mife_params.h"
-/* #include "lin/obfuscator.h" */
+#include "lin/obfuscator.h"
 #include "lz/obfuscator.h"
 #include "mobf/obfuscator.h"
 #include "obf_run.h"
@@ -33,19 +34,19 @@ enum scheme_e {
     SCHEME_MIFE,
 };
 
-static char *
-scheme_to_string(enum scheme_e scheme)
-{
-    switch (scheme) {
-    case SCHEME_LIN:
-        return "LIN";
-    case SCHEME_LZ:
-        return "LZ";
-    case SCHEME_MIFE:
-        return "MIFE";
-    }
-    abort();
-}
+/* static char * */
+/* scheme_to_string(enum scheme_e scheme) */
+/* { */
+/*     switch (scheme) { */
+/*     case SCHEME_LIN: */
+/*         return "LIN"; */
+/*     case SCHEME_LZ: */
+/*         return "LZ"; */
+/*     case SCHEME_MIFE: */
+/*         return "MIFE"; */
+/*     } */
+/*     abort(); */
+/* } */
 
 typedef struct args_t {
     char *circuit;
@@ -294,6 +295,29 @@ handle_options(int *argc, char ***argv, args_t *args, void *others,
     (*argv)++; (*argc)--;
 }
 
+/*******************************************************************************/
+
+static int
+mife_select_scheme(acirc *circ, bool sigma, size_t symlen, op_vtable **op_vt,
+                   obf_params_t **op)
+{
+    mife_params_t params;
+    void *vparams;
+
+    params.symlen = symlen;
+    params.sigma = sigma;
+    vparams = &params;
+
+    *op_vt = &mife_op_vtable;
+    *op = (*op_vt)->new(circ, vparams);
+    if (*op == NULL) {
+        fprintf(stderr, "error: initializing mife parameters failed\n");
+        return ERR;
+    }
+    return OK;
+}
+
+
 static void
 mife_setup_usage(bool longform, int ret)
 {
@@ -327,14 +351,19 @@ mife_setup_handle_options(int *argc, char ***argv, void *vargs)
 static int
 cmd_mife_setup(int argc, char **argv, args_t *args)
 {
-    mife_setup_args_t setup_args;
-    mife_setup_args_init(&setup_args);
+    mife_setup_args_t args_;
+    op_vtable *op_vt;
+    obf_params_t *op;
 
     argv++; argc--;
-    handle_options(&argc, &argv, args, &setup_args, mife_setup_handle_options,
+    mife_setup_args_init(&args_);
+    handle_options(&argc, &argv, args, &args_, mife_setup_handle_options,
                    mife_setup_usage);
-    if (mife_run_setup(args->vt, args->circuit, &args->cp, args->rng,
-                       setup_args.secparam, NULL, args->nthreads) == ERR) {
+    if (mife_select_scheme(&args->circ, args->sigma, args->symlen, &op_vt, &op) == ERR) {
+        return EXIT_FAILURE;
+    }
+    if (mife_run_setup(args->vt, args->circuit, op, args->rng,
+                       args_.secparam, NULL, args->nthreads) == ERR) {
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;
@@ -374,11 +403,13 @@ mife_encrypt_handle_options(int *argc, char ***argv, void *vargs)
 static int
 cmd_mife_encrypt(int argc, char **argv, args_t *args)
 {
-    mife_encrypt_args_t encrypt_args;
-    mife_encrypt_args_init(&encrypt_args);
+    mife_encrypt_args_t args_;
+    op_vtable *op_vt;
+    obf_params_t *op;
 
     argv++; argc--;
-    handle_options(&argc, &argv, args, &encrypt_args,
+    mife_encrypt_args_init(&args_);
+    handle_options(&argc, &argv, args, &args_,
                    mife_encrypt_handle_options, mife_encrypt_usage);
     if (argc != 2) {
         switch (argc) {
@@ -399,9 +430,11 @@ cmd_mife_encrypt(int argc, char **argv, args_t *args)
         input[i] = argv[0][i] - '0';
     }
     int slot = atoi(argv[1]);
-
-    if (mife_run_encrypt(args->vt, args->circuit, &args->cp, args->rng, input, slot,
-                         &encrypt_args.npowers, args->nthreads, NULL) == ERR) {
+    if (mife_select_scheme(&args->circ, args->sigma, args->symlen, &op_vt, &op) == ERR) {
+        return EXIT_FAILURE;
+    }
+    if (mife_run_encrypt(args->vt, args->circuit, op, args->rng, input, slot,
+                         &args_.npowers, args->nthreads, NULL) == ERR) {
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;
@@ -422,6 +455,8 @@ mife_decrypt_usage(bool longform, int ret)
 static int
 cmd_mife_decrypt(int argc, char **argv, args_t *args)
 {
+    op_vtable *op_vt;
+    obf_params_t *op;
     char *ek = NULL;
     char **cts = NULL;
     int *rop = NULL;
@@ -430,6 +465,9 @@ cmd_mife_decrypt(int argc, char **argv, args_t *args)
     
     argv++; argc--;
     handle_options(&argc, &argv, args, NULL, NULL, mife_decrypt_usage);
+    if (mife_select_scheme(&args->circ, args->sigma, args->symlen, &op_vt, &op) == ERR) {
+        return EXIT_FAILURE;
+    }
     nslots = args->cp.n;
 
     length = snprintf(NULL, 0, "%s.ek\n", args->circuit);
@@ -442,7 +480,7 @@ cmd_mife_decrypt(int argc, char **argv, args_t *args)
         (void) snprintf(cts[i], length, "%s.%lu.ct\n", args->circuit, i);
     }
     rop = my_calloc(args->cp.m, sizeof rop[0]);
-    if (mife_run_decrypt(ek, cts, rop, args->vt, &args->cp, NULL, args->nthreads) == ERR) {
+    if (mife_run_decrypt(ek, cts, rop, args->vt, op, NULL, args->nthreads) == ERR) {
         fprintf(stderr, "error: mife decrypt failed\n");
         goto cleanup;
     }
@@ -508,17 +546,21 @@ cmd_mife_test(int argc, char **argv, args_t *args)
 {
     size_t kappa = 0;
     mife_test_args_t test_args;
-    mife_test_args_init(&test_args);
+    op_vtable *op_vt;
+    obf_params_t *op;
 
     argv++; argc--;
+    mife_test_args_init(&test_args);
     handle_options(&argc, &argv, args, &test_args, mife_test_handle_options, mife_test_usage);
+    if (mife_select_scheme(&args->circ, args->sigma, args->symlen, &op_vt, &op) == ERR) {
+        return EXIT_FAILURE;
+    }
     if (args->smart) {
-        kappa = mife_run_smart_kappa(args->circuit, &args->cp, &args->circ,
-                                     test_args.npowers, args->nthreads, args->rng);
+        kappa = mife_run_smart_kappa(args->circuit, op, args->nthreads, args->rng);
         if (kappa == 0)
             return EXIT_FAILURE;
     }
-    if (mife_run_test(args->vt, args->circuit, &args->cp, args->rng, test_args.secparam,
+    if (mife_run_test(args->vt, args->circuit, op, args->rng, test_args.secparam,
                       &kappa, &test_args.npowers, args->nthreads) == ERR) {
         fprintf(stderr, "error: mife test failed\n");
         return EXIT_FAILURE;
@@ -543,17 +585,20 @@ cmd_mife_get_kappa(int argc, char **argv, args_t *args)
 {
     const mmap_vtable *vt = &dummy_vtable;
     size_t kappa = 0;
-    size_t npowers = 8;
+    op_vtable *op_vt;
+    obf_params_t *op;
 
     argv++, argc--;
     handle_options(&argc, &argv, args, NULL, NULL, mife_get_kappa_usage);
+    if (mife_select_scheme(&args->circ, args->sigma, args->symlen, &op_vt, &op) == ERR) {
+        return EXIT_FAILURE;
+    }
     if (args->smart) {
-        kappa = mife_run_smart_kappa(args->circuit, &args->cp, &args->circ,
-                                     npowers, args->nthreads, args->rng);
+        kappa = mife_run_smart_kappa(args->circuit, op, args->nthreads, args->rng);
         if (kappa == 0)
             return EXIT_FAILURE;
     } else {
-        if (mife_run_setup(vt, args->circuit, &args->cp, args->rng, 8, &kappa,
+        if (mife_run_setup(vt, args->circuit, op, args->rng, 8, &kappa,
                            args->nthreads) == ERR) {
             fprintf(stderr, "error: mife setup failed\n");
             return EXIT_FAILURE;
@@ -619,19 +664,18 @@ static int
 obf_select_scheme(enum scheme_e scheme, acirc *circ, size_t npowers, bool sigma, size_t symlen,
                   obfuscator_vtable **vt, op_vtable **op_vt, obf_params_t **op)
 {
+    lin_obf_params_t lin_params;
     lz_obf_params_t lz_params;
-    mife_obf_params_t mife_params;
+    mobf_obf_params_t mobf_params;
     void *vparams;
 
     switch (scheme) {
     case SCHEME_LIN:
-        fprintf(stderr, "LIN SCHEME BROKEN!\n");
-        abort();
-        /* vt = &lin_obfuscator_vtable; */
-        /* op_vt = &lin_op_vtable; */
-        /* lin_params.symlen = args->symlen; */
-        /* lin_params.sigma = args->sigma; */
-        /* vparams = &lin_params; */
+        *vt = &lin_obfuscator_vtable;
+        *op_vt = &lin_op_vtable;
+        lin_params.symlen = symlen;
+        lin_params.sigma = sigma;
+        vparams = &lin_params;
         break;
     case SCHEME_LZ:
         *vt = &lz_obfuscator_vtable;
@@ -642,12 +686,12 @@ obf_select_scheme(enum scheme_e scheme, acirc *circ, size_t npowers, bool sigma,
         vparams = &lz_params;
         break;
     case SCHEME_MIFE:
-        *vt = &mife_obfuscator_vtable;
-        *op_vt = &mife_op_vtable;
-        mife_params.npowers = npowers;
-        mife_params.symlen = symlen;
-        mife_params.sigma = sigma;
-        vparams = &mife_params;
+        *vt = &mobf_obfuscator_vtable;
+        *op_vt = &mobf_op_vtable;
+        mobf_params.npowers = npowers;
+        mobf_params.symlen = symlen;
+        mobf_params.sigma = sigma;
+        vparams = &mobf_params;
         break;
     }
 

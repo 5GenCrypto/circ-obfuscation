@@ -45,7 +45,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
 
     obf = my_calloc(1, sizeof obf[0]);
     obf->op = op;
-    mife = mife_setup(mmap, cp, secparam, rng, kappa, nthreads);
+    mife = mife_setup(mmap, op, secparam, rng, kappa, nthreads);
     obf->ek = mife_ek(mife);
     sk = mife_sk(mife);
 
@@ -68,6 +68,7 @@ static int
 _evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
           size_t *kappa, size_t *max_npowers)
 {
+    (void) max_npowers;
     const circ_params_t *cp = &obf->op->cp;
     const acirc *const circ = cp->circ;
     const size_t consts = cp->circ->consts.n ? 1 : 0;
@@ -123,7 +124,7 @@ _fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
 
     obf = my_calloc(1, sizeof obf[0]);
     obf->op = op;
-    if ((obf->ek = mife_ek_fread(mmap, cp, fp)) == NULL)
+    if ((obf->ek = mife_ek_fread(mmap, op, fp)) == NULL)
         goto error;
 
     obf->cts = my_calloc(ninputs, sizeof obf->cts[0]);
@@ -141,7 +142,7 @@ error:
     return NULL;
 }
 
-obfuscator_vtable mife_obfuscator_vtable = {
+obfuscator_vtable mobf_obfuscator_vtable = {
     .free = _free,
     .obfuscate = _obfuscate,
     .evaluate = _evaluate,

@@ -1,12 +1,14 @@
 #include "mife_params.h"
+#include "mife.h"
+#include "util.h"
 
-size_t
+PRIVATE size_t
 mife_params_nzs(const circ_params_t *cp)
 {
     return 2 * cp->n + 1;
 }
 
-index_set *
+PRIVATE index_set *
 mife_params_new_toplevel(const circ_params_t *const cp, size_t nzs)
 {
     index_set *ix;
@@ -26,14 +28,61 @@ mife_params_new_toplevel(const circ_params_t *const cp, size_t nzs)
     return ix;
 }
 
-size_t
+PRIVATE size_t
 mife_params_num_encodings_setup(const circ_params_t *cp)
 {
     return 1 + cp->m;
 }
 
-size_t
+PRIVATE size_t
 mife_params_num_encodings_encrypt(const circ_params_t *cp, size_t slot, size_t npowers)
 {
     return cp->ds[slot] + npowers + cp->m;
 }
+
+static obf_params_t *
+_new(acirc *circ, void *vparams)
+{
+    const mife_params_t *const params = vparams;
+    obf_params_t *const op = calloc(1, sizeof op[0]);
+
+    size_t has_consts = circ->consts.n ? 1 : 0;
+    circ_params_init(&op->cp, circ->ninputs / params->symlen + has_consts, circ);
+    for (size_t i = 0; i < op->cp.n - has_consts; ++i) {
+        op->cp.ds[i] = params->symlen;
+        if (params->sigma)
+            op->cp.qs[i] = params->symlen;
+        else
+            op->cp.qs[i] = 1 << params->symlen;
+    }
+    if (has_consts) {
+        op->cp.ds[op->cp.n - 1] = circ->consts.n;
+        op->cp.qs[op->cp.n - 1] = 1;
+    }
+
+    if (g_verbose) {
+        circ_params_print(&op->cp);
+        fprintf(stderr, "MIFE parameters:\n");
+        /* fprintf(stderr, "* Σ: ......... %s\n", op->sigma ? "Yes" : "No"); */
+        fprintf(stderr, "* n: ......... %lu\n", op->cp.n);
+        for (size_t i = 0; i < op->cp.n; ++i) {
+            fprintf(stderr, "*   %lu: ....... %lu (%lu)\n", i + 1, op->cp.ds[i], op->cp.qs[i]);
+        }
+        fprintf(stderr, "* m: ......... %lu\n", op->cp.m);
+    }
+    
+    return op;
+}
+
+static void
+_free(obf_params_t *op)
+{
+    circ_params_clear(&op->cp);
+    free(op);
+}
+
+op_vtable mife_op_vtable =
+{
+    .new = _new,
+    .free = _free,
+};

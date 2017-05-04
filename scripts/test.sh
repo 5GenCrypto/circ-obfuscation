@@ -17,22 +17,22 @@ obf_test () {
     echo ""
     echo "***"
     echo "***"
-    echo "*** OBF $1 $2"
+    echo "*** OBF $1 $2 $3"
     echo "***"
     echo "***"
     echo ""
-    $prog obf test --smart --mmap $2 $1
+    $prog obf test --smart --mmap $2 --scheme $3 $1
 }
 
 obf_test_sigma () {
     echo ""
     echo "***"
     echo "***"
-    echo "*** OBF SIGMA $1 $2"
+    echo "*** OBF SIGMA $1 $2 $3"
     echo "***"
     echo "***"
     echo ""
-    $prog obf test --smart --sigma --symlen 16 $2 $1
+    $prog obf test --smart --sigma --symlen 16 --mmap $2 --scheme $3 $1
 }
 
 mife_test () {
@@ -58,11 +58,11 @@ mife_test_sigma () {
 }
 
 for circuit in $circuits/*.acirc; do
-    obf_test "$circuit" DUMMY
+    obf_test "$circuit" DUMMY LZ
 done
 
 for circuit in $circuits/sigma/*.acirc; do
-    obf_test_sigma "$circuit" DUMMY
+    obf_test_sigma "$circuit" DUMMY LZ
 done
 
 for circuit in $circuits/*.acirc; do

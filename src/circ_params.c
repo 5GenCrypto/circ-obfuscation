@@ -61,7 +61,7 @@ void
 circ_params_print(const circ_params_t *cp)
 {
     fprintf(stderr, "Circuit parameters:\n");
-    fprintf(stderr, "* ninputs:...... %lu\n", circ_params_ninputs(cp));
+    fprintf(stderr, "* ninputs:...... %lu\n", cp->circ->ninputs);
     fprintf(stderr, "* nslots: ...... %lu\n", cp->n);
     for (size_t i = 0; i < cp->n; ++i) {
         fprintf(stderr, "*   slot #%lu: ..... %lu (%lu)\n", i + 1,

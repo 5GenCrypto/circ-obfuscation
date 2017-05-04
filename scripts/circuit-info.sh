@@ -18,9 +18,9 @@ printline () {
         row="\\rowcol"
     fi
     circ="\texttt{$curname}"
-    if [[ $curmode == opt-2 ]]; then
+    if [[ $curmode == o2 ]]; then
         circ="$circ\$^{*}\$"
-    elif [[ $curmode == opt-3 ]]; then
+    elif [[ $curmode == o3 ]]; then
         circ="$circ\$^{**}\$"
     fi
     echo "$row $circ && $result"
@@ -40,7 +40,7 @@ while read -r input; do
         continue
     fi
     mode=$(echo "$line" | cut -d',' -f2)
-    if [[ $mode != opt-1 && $mode != opt-2 && $mode != opt-3 ]]; then
+    if [[ $mode != o1 && $mode != o2 && $mode != o3 ]]; then
         continue
     fi
     if [[ $curname == "" ]]; then
@@ -63,7 +63,7 @@ while read -r input; do
     else
         degree="\num{$degree}"
     fi
-    kappa=$(echo "$line" | cut -d',' -f11 | cut -d'|' -f2)
+    kappa=$(echo "$line" | cut -d',' -f12 | cut -d'|' -f2)
     if [[ $kappa != "[overflow]" ]]; then
         kappa="\num{$kappa}"
     fi

@@ -1,43 +1,45 @@
 #include "obf_params.h"
 #include "obfuscator.h"
-#include "../mmap.h"
-#include "../util.h"
+#include "mmap.h"
+#include "util.h"
 
 #include <assert.h>
 
 PRIVATE size_t
 obf_params_nzs(const circ_params_t *cp)
 {
-    const size_t ninputs = cp->n - 1;
+    size_t has_consts = cp->circ->consts.n ? 1 : 0;
+    const size_t ninputs = cp->n - has_consts;
     size_t q = array_max(cp->qs, ninputs);
-    return (2 + q) * ninputs + 1;
+    return (2 + q) * ninputs + has_consts;
 }
 
 PRIVATE index_set *
 obf_params_new_toplevel(const circ_params_t *cp, size_t nzs)
 {
     index_set *ix;
-    const size_t ninputs = cp->n - 1;
+    size_t has_consts = cp->circ->consts.n ? 1 : 0;
+    const size_t ninputs = cp->n - has_consts;
     if ((ix = index_set_new(nzs)) == NULL)
         return NULL;
-    IX_Y(ix) = acirc_max_const_degree(cp->circ);
+    ix_y_set(ix, cp, acirc_max_const_degree(cp->circ));
     for (size_t k = 0; k < ninputs; k++) {
         for (size_t s = 0; s < cp->qs[k]; s++) {
-            IX_S(ix, cp, k, s) = acirc_max_var_degree(cp->circ, k);
+            ix_s_set(ix, cp, k, s, acirc_max_var_degree(cp->circ, k));
         }
-        IX_Z(ix, cp, k) = 1;
-        IX_W(ix, cp, k) = 1;
+        ix_z_set(ix, cp, k, 1);
+        ix_w_set(ix, cp, k, 1);
     }
     return ix;
 }
-
 
 PRIVATE size_t
 obf_params_num_encodings(const obf_params_t *op)
 {
     const circ_params_t *cp = &op->cp;
-    const size_t ninputs = cp->n - 1;
-    const size_t nconsts = cp->ds[ninputs];
+    size_t nconsts = cp->circ->consts.n;
+    size_t has_consts = nconsts ? 1 : 0;
+    const size_t ninputs = cp->n - has_consts;
     const size_t noutputs = cp->m;
     size_t sum = nconsts + op->npowers + noutputs;
     for (size_t i = 0; i < ninputs; ++i) {
@@ -60,18 +62,22 @@ _op_new(acirc *circ, void *vparams)
         free(op);
         return NULL;
     }
-    circ_params_init(&op->cp, circ->ninputs / params->symlen + 1, circ);
+    size_t nconsts = circ->consts.n;
+    size_t has_consts = nconsts ? 1 : 0;
+    circ_params_init(&op->cp, circ->ninputs / params->symlen + has_consts, circ);
     op->sigma = params->sigma;
     op->npowers = params->npowers;
-    for (size_t i = 0; i < op->cp.n - 1; ++i) {
+    for (size_t i = 0; i < op->cp.n - has_consts; ++i) {
         op->cp.ds[i] = params->symlen;
         if (op->sigma)
             op->cp.qs[i] = params->symlen;
         else
             op->cp.qs[i] = 1 << params->symlen;
     }
-    op->cp.ds[op->cp.n - 1] = circ->consts.n;
-    op->cp.qs[op->cp.n - 1] = 1;
+    if (has_consts) {
+        op->cp.ds[op->cp.n - 1] = circ->consts.n;
+        op->cp.qs[op->cp.n - 1] = 1;
+    }
 
     if (g_verbose) {
         circ_params_print(&op->cp);

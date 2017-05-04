@@ -1,9 +1,7 @@
 #pragma once
 
 #include "obf_params.h"
-#include "../mmap.h"
-
-#include <stdio.h>
+#include "mmap.h"
 
 typedef struct {
     size_t q;                   /* # symbols in alphabet */
@@ -14,7 +12,7 @@ typedef struct {
 } level;
 
 level *
-level_new(const obf_params_t *op);
+level_new(const circ_params_t *cp);
 void
 level_free(level *lvl);
 void
@@ -29,24 +27,22 @@ int
 level_flatten(int *pows, const level *lvl);
 bool
 level_eq(const level *x, const level *y);
-// for testing whether we can use constrained addition, we dont consider the
-// degree (bottom right corner of the level)
 bool
 level_eq_z(level *x, level *y);
 level *
-level_create_vstar(const obf_params_t *op);
+level_create_vstar(const circ_params_t *cp);
 level *
-level_create_vks(const obf_params_t *op, size_t k, size_t s);
+level_create_vks(const circ_params_t *cp, size_t k, size_t s);
 level *
-level_create_vc(const obf_params_t *op);
+level_create_vc(const circ_params_t *cp);
 level *
-level_create_vhatkso(const obf_params_t *op, size_t k, size_t s, size_t o);
+level_create_vhatkso(const circ_params_t *cp, size_t k, size_t s, size_t o, int **types);
 level *
-level_create_vhato(const obf_params_t *op, size_t o);
+level_create_vhato(const circ_params_t *cp, size_t o, size_t M, int **types);
 level *
-level_create_vbaro(const obf_params_t *op, size_t o);
+level_create_vbaro(const circ_params_t *cp, size_t o);
 level *
-level_create_vzt(const obf_params_t *op);
+level_create_vzt(const circ_params_t *cp, size_t M, size_t D);
 void
 level_fwrite(const level *lvl, FILE *fp);
 void

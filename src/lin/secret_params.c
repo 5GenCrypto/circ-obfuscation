@@ -1,46 +1,51 @@
 #include "obf_params.h"
 #include "level.h"
 #include "vtables.h"
-#include "../mmap.h"
-#include "../util.h"
+#include "mmap.h"
+#include "util.h"
 
 struct sp_info {
-    const obf_params_t *op;
     level *toplevel;
+    const circ_params_t *cp;
 };
 #define spinfo(x) (x)->info
 
 static int
-_sp_init(secret_params *sp, mmap_params_t *params, const obf_params_t *op,
+_sp_init(secret_params *sp, mmap_params_t *mp, const obf_params_t *op,
          size_t kappa)
 {
+    const circ_params_t *cp = &op->cp;
+    const size_t ninputs = cp->n - (cp->circ->consts.n ? 1 : 0);
+    const size_t noutputs = cp->m;
+    const size_t q = array_max(cp->qs, cp->n);
     size_t t;
 
-    spinfo(sp) = my_calloc(1, sizeof(sp_info));
-    spinfo(sp)->op = op;
-    spinfo(sp)->toplevel = level_create_vzt(op);
+    spinfo(sp) = my_calloc(1, sizeof spinfo(sp)[0]);
+    spinfo(sp)->toplevel = level_create_vzt(cp, op->M, op->D);
+    spinfo(sp)->cp = cp;
 
     t = 0;
-    for (size_t o = 0; o < op->gamma; o++) {
-        size_t tmp = array_sum(op->types[o], op->c + 1);
+    for (size_t o = 0; o < noutputs; o++) {
+        size_t tmp = array_sum(op->types[o], ninputs + 1);
         if (tmp > t)
             t = tmp;
     }
     /* EC:Lin16, pg. 45 */
-    params->kappa = kappa ? kappa : (2 + op->c + t + op->D);
-    params->nzs = (op->q+1) * (op->c+2) + op->gamma;
-    params->pows = my_calloc(params->nzs, sizeof params->pows[0]);
-    if (level_flatten(params->pows, spinfo(sp)->toplevel) == ERR) {
+    mp->kappa = kappa ? kappa : (2 + ninputs + t + op->D);
+    mp->nzs = (q + 1) * (ninputs + 2) + noutputs;
+    mp->pows = my_calloc(mp->nzs, sizeof mp->pows[0]);
+    if (level_flatten(mp->pows, spinfo(sp)->toplevel) == ERR) {
         fprintf(stderr, "error: toplevel overflow\n");
-        free(params->pows);
-        level_free(spinfo(sp)->toplevel);
-        free(spinfo(sp));
-        return ERR;
+        goto error;
     }
-    params->my_pows = true;
-    params->nslots = op->c + 3;
-
+    mp->my_pows = true;
+    mp->nslots = ninputs + 3;
     return OK;
+error:
+    free(mp->pows);
+    level_free(spinfo(sp)->toplevel);
+    free(spinfo(sp));
+    return ERR;
 }
 
 static void
@@ -61,7 +66,7 @@ _sp_toplevel(const secret_params *sp)
 static const void *
 _sp_params(const secret_params *sp)
 {
-    return spinfo(sp)->op;
+    return spinfo(sp)->cp;
 }
 
 static sp_vtable _sp_vtable = {

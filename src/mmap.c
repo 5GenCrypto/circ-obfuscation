@@ -23,13 +23,13 @@ mmap_params_fprint(FILE *fp, const mmap_params_t *params)
 // secret params
 
 secret_params *
-secret_params_new(const sp_vtable *vt, const circ_params_t *cp, size_t lambda,
+secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
                   size_t *kappa, size_t ncores, aes_randstate_t rng)
 {
     mmap_params_t params;
     size_t _kappa = kappa ? *kappa : 0;
     secret_params *sp = my_calloc(1, sizeof sp[0]);
-    if (vt->init(sp, &params, cp, _kappa) == ERR) {
+    if (vt->init(sp, &params, op, _kappa) == ERR) {
         free(sp);
         return NULL;
     }
@@ -105,10 +105,10 @@ public_params_fwrite(const pp_vtable *vt, const public_params *pp, FILE *fp)
 }
 
 public_params *
-public_params_fread(const pp_vtable *vt, const circ_params_t *cp, FILE *fp)
+public_params_fread(const pp_vtable *vt, const obf_params_t *op, FILE *fp)
 {
     public_params *pp = my_calloc(1, sizeof pp[0]);
-    vt->fread(pp, cp, fp);
+    vt->fread(pp, op, fp);
     GET_NEWLINE(fp);
     pp->pp = my_calloc(1, vt->mmap->pp->size);
     vt->mmap->pp->fread(pp->pp, fp);

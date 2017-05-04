@@ -67,7 +67,7 @@ typedef struct decrypt_args_t {
     const mmap_vtable *mmap;
     acircref ref;
     const acirc *c;
-    const mife_ciphertext_t **cts;
+    mife_ciphertext_t **cts;
     const mife_ek_t *ek;
     bool *mine;
     int *ready;
@@ -137,11 +137,12 @@ mife_free(mife_t *mife)
 }
 
 mife_t *
-mife_setup(const mmap_vtable *mmap, const circ_params_t *cp,
-           size_t secparam, aes_randstate_t rng, size_t *kappa, size_t nthreads)
+mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
+           aes_randstate_t rng, size_t *kappa, size_t nthreads)
 {
     mife_t *mife;
-    const size_t consts = cp->circ->consts.n ? 1 : 0;
+    const circ_params_t *cp = &op->cp;
+    const size_t has_consts = cp->circ->consts.n ? 1 : 0;
     acirc *const circ = cp->circ;
 
     mife = my_calloc(1, sizeof mife[0]);
@@ -150,7 +151,7 @@ mife_setup(const mmap_vtable *mmap, const circ_params_t *cp,
     mife->enc_vt = get_encoding_vtable(mmap);
     mife->pp_vt = get_pp_vtable(mmap);
     mife->sp_vt = get_sp_vtable(mmap);
-    mife->sp = secret_params_new(mife->sp_vt, cp, secparam, kappa, nthreads, rng);
+    mife->sp = secret_params_new(mife->sp_vt, op, secparam, kappa, nthreads, rng);
     if (mife->sp == NULL) {
         mife_free(mife);
         return NULL;
@@ -180,14 +181,14 @@ mife_setup(const mmap_vtable *mmap, const circ_params_t *cp,
     /* populate vdeg and vdeg_max */
     {
         acirc_memo *memo = acirc_memo_new(circ);
-        for (size_t i = 0; i < cp->n - consts; ++i) {
+        for (size_t i = 0; i < cp->n - has_consts; ++i) {
             for (size_t o = 0; o < cp->m; ++o) {
                 vdeg[i][o] = acirc_var_degree(circ, circ->outputs.buf[o], i, memo);
                 if (vdeg[i][o] > vdeg_max[i])
                     vdeg_max[i] = vdeg[i][o];
             }
         }
-        if (consts) {
+        if (has_consts) {
             for (size_t o = 0; o < cp->m; ++o) {
                 vdeg[cp->n - 1][o] = acirc_max_const_degree(circ);
             }
@@ -284,8 +285,9 @@ mife_sk_fwrite(const mife_sk_t *sk, FILE *fp)
 }
 
 mife_sk_t *
-mife_sk_fread(const mmap_vtable *mmap, const circ_params_t *cp, FILE *fp)
+mife_sk_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
 {
+    const circ_params_t *cp = &op->cp;
     double start, end;
     mife_sk_t *sk;
 
@@ -296,7 +298,7 @@ mife_sk_fread(const mmap_vtable *mmap, const circ_params_t *cp, FILE *fp)
     sk->pp_vt = get_pp_vtable(mmap);
     sk->sp_vt = get_sp_vtable(mmap);
     start = current_time();
-    sk->pp = public_params_fread(sk->pp_vt, cp, fp);
+    sk->pp = public_params_fread(sk->pp_vt, op, fp);
     end = current_time();
     if (g_verbose)
         fprintf(stderr, "  Reading pp from disk: %.2fs\n", end - start);
@@ -342,8 +344,9 @@ mife_ek_fwrite(const mife_ek_t *ek, FILE *fp)
 }
 
 mife_ek_t *
-mife_ek_fread(const mmap_vtable *mmap, const circ_params_t *cp, FILE *fp)
+mife_ek_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
 {
+    const circ_params_t *cp = &op->cp;
     mife_ek_t *ek;
 
     ek = my_calloc(1, sizeof ek[0]);
@@ -351,7 +354,7 @@ mife_ek_fread(const mmap_vtable *mmap, const circ_params_t *cp, FILE *fp)
     ek->cp = cp;
     ek->enc_vt = get_encoding_vtable(mmap);
     ek->pp_vt = get_pp_vtable(mmap);
-    ek->pp = public_params_fread(ek->pp_vt, cp, fp);
+    ek->pp = public_params_fread(ek->pp_vt, op, fp);
     ek->Chatstar = encoding_fread(ek->enc_vt, fp);
     ek->zhat = my_calloc(cp->m, sizeof ek->zhat[0]);
     for (size_t o = 0; o < cp->m; ++o)
@@ -622,7 +625,7 @@ _raise_encoding(const mife_ek_t *ek, encoding *x, encoding **us, size_t npowers,
 }
 
 static int
-raise_encoding(const mife_ek_t *ek, const mife_ciphertext_t **cts,
+raise_encoding(const mife_ek_t *ek, mife_ciphertext_t **cts,
                encoding *x, const index_set *target)
 {
     const circ_params_t *const cp = ek->cp;
@@ -643,7 +646,7 @@ raise_encoding(const mife_ek_t *ek, const mife_ciphertext_t **cts,
 }
 
 static int
-raise_encodings(const mife_ek_t *ek, const mife_ciphertext_t **cts,
+raise_encodings(const mife_ek_t *ek, mife_ciphertext_t **cts,
                 encoding *x, encoding *y)
 {
     index_set *ix;
@@ -668,7 +671,7 @@ decrypt_worker(void *vargs)
     decrypt_args_t *const dargs = vargs;
     const acircref ref = dargs->ref;
     const acirc *const c = dargs->c;
-    const mife_ciphertext_t **cts = dargs->cts;
+    mife_ciphertext_t **cts = dargs->cts;
     const mife_ek_t *const ek = dargs->ek;
     bool *const mine = dargs->mine;
     int *const ready = dargs->ready;
@@ -804,7 +807,7 @@ decrypt_worker(void *vargs)
 }
 
 int
-mife_decrypt(const mife_ek_t *ek, int *rop, const mife_ciphertext_t **cts,
+mife_decrypt(const mife_ek_t *ek, int *rop, mife_ciphertext_t **cts,
              size_t nthreads, size_t *kappa)
 {
     const circ_params_t *cp = ek->cp;

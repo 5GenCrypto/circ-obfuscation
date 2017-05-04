@@ -11,31 +11,32 @@ struct pp_info {
 };
 #define info(x) (x)->info
 
-static void
-_pp_init(const sp_vtable *vt, public_params *pp,
-           const secret_params *sp)
+static int
+_pp_init(const sp_vtable *vt, public_params *pp, const secret_params *sp)
 {
-    pp->info = calloc(1, sizeof(pp_info));
+    pp->info = calloc(1, sizeof pp->info[0]);
     pp->info->toplevel = vt->toplevel(sp);
     pp->info->my_toplevel = false;
     pp->info->op = vt->params(sp);
+    return OK;
 }
 
-static void
+static int
 _pp_fwrite(const public_params *pp, FILE *fp)
 {
     (void) pp; (void) fp;
+    return OK;
 }
 
-static void
-_pp_fread(public_params *pp, const obf_params_t *op,
-          FILE *fp)
+static int
+_pp_fread(public_params *pp, const obf_params_t *op, FILE *fp)
 {
     (void) fp;
-    pp->info = calloc(1, sizeof(pp_info));
-    pp->info->toplevel = level_create_vzt(op);
+    pp->info = calloc(1, sizeof pp->info[0]);
+    pp->info->toplevel = level_create_vzt(&op->cp, op->M, op->D);
     pp->info->my_toplevel = true;
     pp->info->op = op;
+    return OK;
 }
 
 static void

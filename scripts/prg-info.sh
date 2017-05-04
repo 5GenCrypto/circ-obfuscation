@@ -26,7 +26,7 @@ printline () {
         row="\\rowcol "
     fi
     circ="\texttt{$curname}"
-    if [[ $curmode == opt ]]; then
+    if [[ $curmode =~ ^o ]]; then
         circ="$circ\$^*\$"
     fi
     echo "$row$circ && $result"
@@ -45,7 +45,7 @@ while read -r input; do
     fi
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
     mode=$(echo "$line" | cut -d',' -f2)
-    if [[ $mode != dsl && $mode != opt ]]; then
+    if [[ $mode != dsl && ! $mode =~ ^o ]]; then
         continue
     fi
     if [[ $curname == "" ]]; then
@@ -68,7 +68,7 @@ while read -r input; do
     else
         degree="\num{$degree}"
     fi
-    kappa=$(echo "$line" | cut -d',' -f11 | cut -d'|' -f2)
+    kappa=$(echo "$line" | cut -d',' -f12 | cut -d'|' -f2)
     if [[ $kappa != "[overflow]" ]]; then
         kappa="\num{$kappa}"
     fi

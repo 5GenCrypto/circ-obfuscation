@@ -27,9 +27,9 @@ static int
 _encoding_new(const pp_vtable *vt, encoding *enc, const public_params *pp)
 {
     const obf_params_t *op = vt->params(pp);
-    info(enc) = my_calloc(1, sizeof(encoding_info));
-    info(enc)->lvl = level_new(op);
-    info(enc)->nslots = op->c+3;
+    info(enc) = my_calloc(1, sizeof info(enc)[0]);
+    info(enc)->lvl = level_new(&op->cp);
+    info(enc)->nslots = op->cp.n + 3;
     return OK;
 }
 
@@ -131,18 +131,20 @@ _encoding_is_zero(const pp_vtable *vt, const encoding *x,
     return OK;
 }
 
-static void
+static int
 _encoding_fread(encoding *x, FILE *fp)
 {
-    info(x) = calloc(1, sizeof(encoding_info));
-    info(x)->lvl = calloc(1, sizeof(level));
+    info(x) = calloc(1, sizeof info(x)[0]);
+    info(x)->lvl = calloc(1, sizeof info(x)->lvl[0]);
     level_fread(info(x)->lvl, fp);
+    return OK;
 }
 
-static void
+static int
 _encoding_fwrite(const encoding *x, FILE *fp)
 {
     level_fwrite(info(x)->lvl, fp);
+    return OK;
 }
 
 static const void *

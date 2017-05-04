@@ -13,9 +13,11 @@ struct sp_info {
 #define spinfo(x) (x)->info
 
 static int
-_sp_init(secret_params *sp, mmap_params_t *params, const circ_params_t *cp,
+_sp_init(secret_params *sp, mmap_params_t *params, const obf_params_t *op,
          size_t kappa)
 {
+    const circ_params_t *cp = &op->cp;
+
     spinfo(sp) = my_calloc(1, sizeof spinfo(sp)[0]);
     spinfo(sp)->toplevel = obf_params_new_toplevel(cp, obf_params_nzs(cp));
     spinfo(sp)->cp = cp;
