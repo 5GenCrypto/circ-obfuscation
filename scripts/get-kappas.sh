@@ -27,20 +27,18 @@ run () {
     if [[ ! $mode =~ ^c2(a|v)$ && $mode != dsl && ! $mode =~ ^o(1|2|3)$ ]]; then
         mode=""
     fi
-    # $prog obf get-kappa --scheme LIN --verbose $flags "$circuit" &>/tmp/results.txt
-    # if [ $? -eq 0 ]; then
-    #     lin1=$(get "κ = ")
-    # else
-    #    lin1="[overflow]"
-    # fi
-    # $prog obf get-kappa --scheme LIN --verbose --smart $flags "$circuit" &>/tmp/results.txt
-    # if [ $? -eq 0 ]; then
-    #     lin2=$(get "κ = ")
-    # else
-    #    lin2="[overflow]"
-    # fi
-    lin1="_"
-    lin2="_"
+    $prog obf get-kappa --scheme LIN --verbose $flags "$circuit" &>/tmp/results.txt
+    if [ $? -eq 0 ]; then
+        lin1=$(get "κ = ")
+    else
+       lin1="[overflow]"
+    fi
+    $prog obf get-kappa --scheme LIN --verbose --smart $flags "$circuit" &>/tmp/results.txt
+    if [ $? -eq 0 ]; then
+        lin2=$(get "κ = ")
+    else
+       lin2="[overflow]"
+    fi
     $prog obf get-kappa --scheme LZ --verbose $flags "$circuit" &>/tmp/results.txt
     if [ $? -eq 0 ]; then
         lz1=$(get "κ = ")

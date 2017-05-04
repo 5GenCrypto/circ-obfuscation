@@ -11,8 +11,16 @@
 PRIVATE size_t
 obf_params_num_encodings(const obf_params_t *const op)
 {
-    abort();
-    return 0;
+    const circ_params_t *cp = &op->cp;
+    const size_t nconsts = cp->circ->consts.n;
+    const size_t has_consts = nconsts ? 1 : 0;
+    const size_t ninputs = cp->n - has_consts;
+    const size_t noutputs = cp->m;
+    const size_t q = array_max(cp->qs, ninputs);
+    const size_t d = array_max(cp->ds, ninputs);
+
+    return q * ninputs + q * d * ninputs + nconsts + 2 * q * ninputs * noutputs \
+        + 4 * noutputs + 1;
 }
 
 static obf_params_t *
@@ -27,27 +35,30 @@ _op_new(acirc *circ, void *vparams)
         free(op);
         return NULL;
     }
-    size_t consts = circ->consts.n ? 1 : 0;
-    circ_params_init(&op->cp, circ->ninputs / params->symlen + consts, circ);
+    const size_t has_consts = circ->consts.n ? 1 : 0;
+    circ_params_init(&op->cp, circ->ninputs / params->symlen + has_consts, circ);
+    const size_t nconsts = op->cp.circ->consts.n;
+    const size_t ninputs = op->cp.n - has_consts;
+    const size_t noutputs = op->cp.m;
     op->sigma = params->sigma;
-    for (size_t i = 0; i < op->cp.n - consts; ++i) {
+    for (size_t i = 0; i < ninputs; ++i) {
         op->cp.ds[i] = params->symlen;
         if (op->sigma)
             op->cp.qs[i] = params->symlen;
         else
             op->cp.qs[i] = 1 << params->symlen;
     }
-    if (consts) {
-        op->cp.ds[op->cp.n - 1] = circ->consts.n;
-        op->cp.qs[op->cp.n - 1] = 1;
+    if (has_consts) {
+        op->cp.ds[ninputs] = nconsts;
+        op->cp.qs[ninputs] = 1;
     }
 
     op->M = 0;
-    op->types = my_calloc(op->cp.m, sizeof op->types[0]);
-    for (size_t o = 0; o < op->cp.m; o++) {
-        op->types[o] = my_calloc(op->cp.n+1, sizeof op->types[0][0]);
-        type_degree(op->types[o], circ->outputs.buf[o], circ, op->cp.n, chunker_in_order);
-        for (size_t k = 0; k < op->cp.n+1; k++) {
+    op->types = my_calloc(noutputs, sizeof op->types[0]);
+    for (size_t o = 0; o < noutputs; o++) {
+        op->types[o] = my_calloc(ninputs + 1, sizeof op->types[0][0]);
+        type_degree(op->types[o], circ->outputs.buf[o], circ, ninputs, chunker_in_order);
+        for (size_t k = 0; k < ninputs + 1; k++) {
             if ((size_t) op->types[o][k] > op->M) {
                 op->M = op->types[o][k];
             }
@@ -55,7 +66,7 @@ _op_new(acirc *circ, void *vparams)
     }
     op->d = acirc_max_degree(circ);
     /* EC:Lin16, pg. 45 */
-    op->D = op->d + op->cp.n + 1;
+    op->D = op->d + ninputs + 1;
     if (g_verbose) {
         fprintf(stderr, "Obfuscation parameters:\n");
         fprintf(stderr, "* Σ: .... %s\n", op->sigma ? "Yes" : "No");
@@ -64,13 +75,8 @@ _op_new(acirc *circ, void *vparams)
             fprintf(stderr, "*   %lu: ....... %lu (%lu)\n", i + 1, op->cp.ds[i], op->cp.qs[i]);
         }
         fprintf(stderr, "* m: ......... %lu\n", op->cp.m);
-        /* fprintf(stderr, "* ℓ: .... %lu\n", op->ell); */
-        /* fprintf(stderr, "* c: .... %lu\n", op->c); */
-        /* fprintf(stderr, "* m: .... %lu\n", op->m); */
-        /* fprintf(stderr, "* γ: .... %lu\n", op->gamma); */
-        /* fprintf(stderr, "* q: .... %lu\n", op->q); */
         fprintf(stderr, "* M: .... %lu\n", op->M);
-        fprintf(stderr, "* degree: %lu\n", op->d);
+        fprintf(stderr, "* d: .... %lu\n", op->d);
         fprintf(stderr, "* D: .... %lu\n", op->D);
         fprintf(stderr, "* # encodings: %lu\n", obf_params_num_encodings(op));
     }

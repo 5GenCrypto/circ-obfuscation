@@ -304,7 +304,7 @@ mife_run_test(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
         }
         mife_run_all(mmap, circuit, op, rng, inps, outp, kappa, npowers, nthreads);
         if (!print_test_output(t + 1, circ->tests.inps[t], circ->ninputs,
-                               circ->tests.outs[t], outp, circ->outputs.n))
+                               circ->tests.outs[t], outp, circ->outputs.n, false))
             ret = ERR;
         for (size_t i = 0; i < cp->n - has_consts; ++i) {
             free(inps[i]);

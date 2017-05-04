@@ -17,7 +17,7 @@ _sp_init(secret_params *sp, mmap_params_t *mp, const obf_params_t *op,
     const circ_params_t *cp = &op->cp;
     const size_t ninputs = cp->n - (cp->circ->consts.n ? 1 : 0);
     const size_t noutputs = cp->m;
-    const size_t q = array_max(cp->qs, cp->n);
+    const size_t q = array_max(cp->qs, ninputs);
     size_t t;
 
     spinfo(sp) = my_calloc(1, sizeof spinfo(sp)[0]);

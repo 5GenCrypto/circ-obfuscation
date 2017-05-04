@@ -88,4 +88,4 @@ void print_progress(size_t cur, size_t total);
 
 bool
 print_test_output(size_t num, const int *inp, size_t ninputs, const int *expected,
-                  const int *got, size_t noutputs);
+                  const int *got, size_t noutputs, bool lin);

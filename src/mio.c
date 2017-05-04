@@ -34,24 +34,9 @@ enum scheme_e {
     SCHEME_MIFE,
 };
 
-/* static char * */
-/* scheme_to_string(enum scheme_e scheme) */
-/* { */
-/*     switch (scheme) { */
-/*     case SCHEME_LIN: */
-/*         return "LIN"; */
-/*     case SCHEME_LZ: */
-/*         return "LZ"; */
-/*     case SCHEME_MIFE: */
-/*         return "MIFE"; */
-/*     } */
-/*     abort(); */
-/* } */
-
 typedef struct args_t {
     char *circuit;
     acirc circ;
-    circ_params_t cp;
     size_t secparam;
     const mmap_vtable *vt;
     bool smart;
@@ -172,7 +157,7 @@ obf_obfuscate_args_init(obf_obfuscate_args_t *args)
 static void
 obf_obfuscate_args_usage(void)
 {
-    printf("    --scheme S         set obfuscation scheme to S (options: LZ, MIFE | default: LZ)\n"
+    printf("    --scheme S         set obfuscation scheme to S (options: LIN, LZ, MIFE | default: LZ)\n"
            "    --secparam λ       set security parameter to λ (default: 8)\n"
            "    --npowers N        set the number of powers to N (default: 8)\n");
 }
@@ -280,16 +265,6 @@ handle_options(int *argc, char ***argv, args_t *args, void *others,
             fprintf(stderr, "error: parsing circuit '%s' failed\n", args->circuit);
             exit(EXIT_FAILURE);
         }
-    }
-    const size_t consts = args->circ.consts.n ? 1 : 0;
-    circ_params_init(&args->cp, args->circ.ninputs / args->symlen + consts, &args->circ);
-    for (size_t i = 0; i < args->cp.n; ++i) {
-        args->cp.ds[i] = args->symlen;
-        args->cp.qs[i] = args->sigma ? args->symlen : (size_t) 1 << args->symlen;
-    }
-    if (consts) {
-        args->cp.ds[args->cp.n - 1] = args->circ.consts.n;
-        args->cp.qs[args->cp.n - 1] = 1;
     }
 
     (*argv)++; (*argc)--;
@@ -468,7 +443,7 @@ cmd_mife_decrypt(int argc, char **argv, args_t *args)
     if (mife_select_scheme(&args->circ, args->sigma, args->symlen, &op_vt, &op) == ERR) {
         return EXIT_FAILURE;
     }
-    nslots = args->cp.n;
+    nslots = op->cp.n;
 
     length = snprintf(NULL, 0, "%s.ek\n", args->circuit);
     ek = my_calloc(length, sizeof ek[0]);
@@ -479,13 +454,13 @@ cmd_mife_decrypt(int argc, char **argv, args_t *args)
         cts[i] = my_calloc(length, sizeof cts[i][0]);
         (void) snprintf(cts[i], length, "%s.%lu.ct\n", args->circuit, i);
     }
-    rop = my_calloc(args->cp.m, sizeof rop[0]);
+    rop = my_calloc(op->cp.m, sizeof rop[0]);
     if (mife_run_decrypt(ek, cts, rop, args->vt, op, NULL, args->nthreads) == ERR) {
         fprintf(stderr, "error: mife decrypt failed\n");
         goto cleanup;
     }
     printf("result: ");
-    for (size_t o = 0; o < args->cp.m; ++o) {
+    for (size_t o = 0; o < op->cp.m; ++o) {
         printf("%d", rop[o]);
     }
     printf("\n");
@@ -737,7 +712,9 @@ obf_obfuscate_handle_options(int *argc, char ***argv, void *vargs)
         if (*argc <= 1)
             return ERR;
         const char *scheme = (*argv)[1];
-        if (!strcmp(scheme, "LZ")) {
+        if (!strcmp(scheme, "LIN")) {
+            args->scheme = SCHEME_LIN;
+        } else if (!strcmp(scheme, "LZ")) {
             args->scheme = SCHEME_LZ;
         } else if (!strcmp(scheme, "MIFE")) {
             args->scheme = SCHEME_MIFE;
@@ -816,7 +793,9 @@ obf_evaluate_handle_options(int *argc, char ***argv, void *vargs)
         if (*argc <= 1)
             return ERR;
         const char *scheme = (*argv)[1];
-        if (!strcmp(scheme, "LZ")) {
+        if (!strcmp(scheme, "LIN")) {
+            args->scheme = SCHEME_LIN;
+        } else if (!strcmp(scheme, "LZ")) {
             args->scheme = SCHEME_LZ;
         } else if (!strcmp(scheme, "MIFE")) {
             args->scheme = SCHEME_MIFE;
@@ -860,7 +839,7 @@ cmd_obf_evaluate(int argc, char **argv, args_t *args)
     for (size_t i = 0; i < strlen(argv[0]); ++i) {
         input[i] = argv[0][i] - '0';
     }
-    int output[args->cp.m];
+    int output[op->cp.m];
     char fname[strlen(args->circuit) + sizeof ".obf\0"];
     snprintf(fname, sizeof fname, "%s.obf", args->circuit);
 
@@ -868,7 +847,7 @@ cmd_obf_evaluate(int argc, char **argv, args_t *args)
                          NULL, NULL) == ERR)
         return ERR;
     printf("result: ");
-    for (size_t i = 0; i < args->cp.m; ++i) {
+    for (size_t i = 0; i < op->cp.m; ++i) {
         printf("%d", output[i]);
     }
     printf("\n");
@@ -922,12 +901,13 @@ cmd_obf_test(int argc, char **argv, args_t *args)
     }
 
     for (size_t t = 0; t < args->circ.tests.n; ++t) {
-        int outp[args->cp.m];
+        int outp[op->cp.m];
         if (obf_run_evaluate(args->vt, vt, fname, op, args->circ.tests.inps[t],
                              outp, args->nthreads, &kappa, NULL) == ERR)
             return ERR;
         if (!print_test_output(t + 1, args->circ.tests.inps[t], args->circ.ninputs,
-                               args->circ.tests.outs[t], outp, args->circ.outputs.n))
+                               args->circ.tests.outs[t], outp, args->circ.outputs.n,
+                               test_args.scheme == SCHEME_LIN))
             ret = EXIT_FAILURE;
     }
     return ret;

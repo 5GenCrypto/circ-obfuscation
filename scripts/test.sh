@@ -57,12 +57,13 @@ mife_test_sigma () {
     $prog mife test --smart --sigma --symlen 16 $2 $1
 }
 
-for circuit in $circuits/*.acirc; do
-    obf_test "$circuit" DUMMY LZ
-done
+# for circuit in $circuits/*.acirc; do
+#     obf_test "$circuit" DUMMY LZ
+# done
 
 for circuit in $circuits/sigma/*.acirc; do
     obf_test_sigma "$circuit" DUMMY LZ
+    obf_test_sigma "$circuit" DUMMY MIFE
 done
 
 for circuit in $circuits/*.acirc; do

@@ -11,14 +11,16 @@
 level *
 level_new(const circ_params_t *cp)
 {
-    const size_t q = array_max(cp->qs, cp->n);
+    const size_t has_consts = cp->circ->consts.n ? 1 : 0;
+    const size_t ninputs = cp->n - has_consts;
+    const size_t q = array_max(cp->qs, ninputs);
     level *lvl = calloc(1, sizeof lvl[0]);
     lvl->q = q;
-    lvl->c = cp->n;
+    lvl->c = ninputs;
     lvl->gamma = cp->m;
     lvl->mat = my_calloc(lvl->q + 1, sizeof lvl->mat[0]);
     for (size_t i = 0; i < lvl->q + 1; ++i)
-        lvl->mat[i] = my_calloc(cp->n + 2, sizeof lvl->mat[i][0]);
+        lvl->mat[i] = my_calloc(lvl->c + 2, sizeof lvl->mat[i][0]);
     lvl->vec = my_calloc(cp->m, sizeof lvl->vec[0]);
     return lvl;
 }
@@ -220,16 +222,16 @@ level_create_vzt(const circ_params_t *cp, size_t M, size_t D)
 {
     level *lvl = level_new(cp);
     for (size_t i = 0; i < lvl->q + 1; i++) {
-        for (size_t j = 0; j < lvl->c+1; j++) {
+        for (size_t j = 0; j < lvl->c + 1; j++) {
             if (i < lvl->q)
                 lvl->mat[i][j] = M;
             else
                 lvl->mat[i][j] = 1;
         }
         if (i < lvl->q)
-            lvl->mat[i][lvl->c+1] = 1;
+            lvl->mat[i][lvl->c + 1] = 1;
         else
-            lvl->mat[i][lvl->c+1] = D;
+            lvl->mat[i][lvl->c + 1] = D;
     }
     for (size_t i = 0; i < lvl->gamma; i++) {
         lvl->vec[i] = lvl->c;

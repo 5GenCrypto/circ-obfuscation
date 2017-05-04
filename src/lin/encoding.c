@@ -29,7 +29,7 @@ _encoding_new(const pp_vtable *vt, encoding *enc, const public_params *pp)
     const obf_params_t *op = vt->params(pp);
     info(enc) = my_calloc(1, sizeof info(enc)[0]);
     info(enc)->lvl = level_new(&op->cp);
-    info(enc)->nslots = op->cp.n + 3;
+    info(enc)->nslots = info(enc)->lvl->c + 3;
     return OK;
 }
 
