@@ -30,6 +30,7 @@ run () {
     $prog obf get-kappa --scheme LIN --verbose $flags "$circuit" &>/tmp/results.txt
     if [ $? -eq 0 ]; then
         lin1=$(get "κ = ")
+        lin_enc=$(get "* # encodings")
     else
        lin1="[overflow]"
     fi
@@ -42,6 +43,7 @@ run () {
     $prog obf get-kappa --scheme LZ --verbose $flags "$circuit" &>/tmp/results.txt
     if [ $? -eq 0 ]; then
         lz1=$(get "κ = ")
+        lz_enc=$(get "* # encodings")
     else
         lz1="[overflow]"
     fi
@@ -54,6 +56,7 @@ run () {
     $prog obf get-kappa --scheme MIFE --verbose $flags "$circuit" &>/tmp/results.txt
     if [ $? -eq 0 ]; then
         mife1=$(get "κ = ")
+        mife_enc=$(get "* # encodings")
     else
         mife1="[overflow]"
     fi
@@ -70,11 +73,13 @@ run () {
     nmuls=$(get " *nmuls")
     depth=$(get "* depth")
     degree=$(get "* degree")
-    echo "$name, $mode, $ninputs, $nconsts, $noutputs, $ngates, $nmuls, $depth, $degree, $lin1 | $lin2, $lz1 | $lz2, $mife1 | $mife2"
+    echo "$name, $mode, $ninputs, $nconsts, $noutputs, $ngates, $nmuls, $depth, $degree,    " \
+         "$lin_enc, $lz_enc, $mife_enc,    " \
+         "$lin1 | $lin2, $lz1 | $lz2, $mife1 | $mife2"
     rm -f "$circuit.obf"
 }
 
-echo "name, mode, nins, nkey, nouts, ngates, nmuls, depth, degree, lin.κ, lz.κ, mife.κ"
+echo "name, mode, nins, nkey, nouts, ngates, nmuls, depth, degree, nencodings, lin.nenc, lz.nenc, mife.nenc, lin.κ, lz.κ, mife.κ"
 if [[ $1 != "" ]]; then
     run "$1" n
 else

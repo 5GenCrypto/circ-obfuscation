@@ -197,7 +197,7 @@ cleanup:
     return ret;
 }
 
-int
+static int
 mife_run_all(const mmap_vtable *mmap, const char *circuit,
              obf_params_t *op, aes_randstate_t rng, int **inp,
              int *outp, size_t *kappa, size_t *npowers, size_t nthreads)
@@ -314,15 +314,14 @@ mife_run_test(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
 }
 
 size_t
-mife_run_smart_kappa(const char *circuit, obf_params_t *op, size_t nthreads,
-                     aes_randstate_t rng)
+mife_run_smart_kappa(const char *circuit, obf_params_t *op, size_t npowers,
+                     size_t nthreads, aes_randstate_t rng)
 {
     const circ_params_t *cp = &op->cp;
     const size_t has_consts = cp->circ->consts.n ? 1 : 0;
     int *inps[cp->n - has_consts];
     int ret = OK;
     size_t kappa = 0;
-
 
     if (g_verbose) {
         fprintf(stderr, "Choosing κ smartly...\n");
@@ -337,7 +336,7 @@ mife_run_smart_kappa(const char *circuit, obf_params_t *op, size_t nthreads,
     for (size_t i = 0; i < cp->n - has_consts; ++i) {
         inps[i] = my_calloc(cp->ds[i], sizeof inps[i][0]);
     }
-    if (mife_run_all(&dummy_vtable, circuit, op, rng, inps, NULL, &kappa, NULL,
+    if (mife_run_all(&dummy_vtable, circuit, op, rng, inps, NULL, &kappa, &npowers,
                      nthreads) == ERR) {
         fprintf(stderr, "error: unable to determine κ smartly\n");
         ret = ERR;

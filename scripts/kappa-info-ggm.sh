@@ -7,6 +7,7 @@
 set -e
 
 fname=${1:-kappas.csv}
+source "$(dirname "$0")/utils.sh"
 
 pretty () {
     if [ ${#1} -gt 6 ]; then
@@ -38,7 +39,7 @@ total=0
 declare -A row
 while read -r input; do
     line=$(echo "$input" | tr -d ' ')
-    name=$(echo "$line" | cut -d',' -f1)
+    name=$(get_name "$line")
     # skip column names row
     if [[ $name == name ]]; then
         continue
@@ -58,14 +59,14 @@ while read -r input; do
         noutputs=$(echo $line | cut -d',' -f5)
     fi
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
-    mode=$(echo "$line" | cut -d',' -f2)
+    mode=$(get_mode "$line")
     # skip non-dsl compiled circuits
     if [[ $mode != dsl ]]; then
         continue
     fi
-    lin=$(echo "$line" | cut -d',' -f10 | cut -d'|' -f2)
-    lz=$(echo "$line" | cut -d',' -f11 | cut -d'|' -f2)
-    mife=$(echo "$line" | cut -d',' -f12 | cut -d'|' -f2)
+    lin=$(get_kappa_lin "$line" | cut -d'|' -f2)
+    lz=$(get_kappa_lz "$line" | cut -d'|' -f2)
+    mife=$(get_kappa_mife "$line" | cut -d'|' -f2)
     lin=$(scheme "$lin" "$lin")
     lz=$(scheme "$lz" "$lz")
     mife=$(scheme "$mife" "$mife")

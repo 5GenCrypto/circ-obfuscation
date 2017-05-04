@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
-#
-# Prints kappa info for the DSL compiler in latex for a CSV file containing info
-# produced by get-kappas.sh
-#
 
 set -e
 
 fname=${1:-kappas.csv}
+source "$(dirname "$0")/utils.sh"
 
 pretty () {
     if [ ${#1} -gt 6 ]; then
@@ -36,27 +33,33 @@ count=0
 
 while read -r input; do
     line=$(echo "$input" | tr -d ' ')
-    name=$(echo "$line" | cut -d',' -f1)
+    name=$(get_name "$line")
     if [[ $name == name || $name =~ ^f || $name =~ ^ggm_sigma || $name =~ ^aes1r_(3|5|6|7) || $name =~ ^prg ]]; then
         continue
     fi
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
-    mode=$(echo "$line" | cut -d',' -f2)
+    mode=$(get_mode "$line")
     if [[ $mode != o1 ]]; then
         continue
     fi
-    lin=$(echo "$line" | cut -d',' -f10)
-    lz=$(echo "$line" | cut -d',' -f11)
-    lin1=$(echo "$lin" | cut -d'|' -f1)
-    lin2=$(echo "$lin" | cut -d'|' -f2)
-    lz1=$(echo "$lz" | cut -d'|' -f1)
-    lz2=$(echo "$lz" | cut -d'|' -f2)
-    lin=$(kappas "$lin1" "$lin2")
-    lz=$(kappas "$lz1" "$lz2")
+    lin_enc="\num{$(get_nencodings_lin "$line")}"
+    lz_enc="\num{$(get_nencodings_lz "$line")}"
+    mife_enc="\num{$(get_nencodings_mife "$line")}"
+
+    lin=$(get_kappa_lin "$line")
+    lz=$(get_kappa_lz "$line")
+    mife=$(get_kappa_mife "$line")
+    lin=$(pretty "$(echo "$lin" | cut -d'|' -f2)")
+    lz=$(pretty "$(echo "$lz" | cut -d'|' -f2)")
+    mife=$(pretty "$(echo "$mife" | cut -d'|' -f2)")
+    # lin=$(kappas "$lin2" "$lin2")
+    # lz=$(kappas "$lz2" "$lz2")
+    # mife=$(kappas "$mife2" "$mife2")
+    result="\texttt{$name} && $lin_enc & $lin && $lz_enc & $lz && $mife_enc & $mife \\\\"
     if [[ "$((count % 2))" == 1 ]]; then
-        echo "\rowcol \texttt{$name} && $lin && $lz \\\\"
+        echo "\rowcol$result"
     else
-        echo "\texttt{$name} && $lin && $lz \\\\"
+        echo "$result"
     fi
     count=$((count + 1))
 done < "$fname"

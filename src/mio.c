@@ -140,6 +140,22 @@ mife_test_args_usage(void)
            "    --npowers N        set the number of powers to N (default: 8)\n");
 }
 
+typedef struct mife_get_kappa_args_t {
+    size_t npowers;
+} mife_get_kappa_args_t;
+
+static void
+mife_get_kappa_args_init(mife_get_kappa_args_t *args)
+{
+    args->npowers = 8;
+}
+
+static void
+mife_get_kappa_args_usage(void)
+{
+    printf("    --npowers N        set the number of powers to N (default: 8)\n");
+}
+
 typedef struct {
     size_t secparam;
     size_t npowers;
@@ -520,23 +536,23 @@ static int
 cmd_mife_test(int argc, char **argv, args_t *args)
 {
     size_t kappa = 0;
-    mife_test_args_t test_args;
+    mife_test_args_t args_;
     op_vtable *op_vt;
     obf_params_t *op;
 
     argv++; argc--;
-    mife_test_args_init(&test_args);
-    handle_options(&argc, &argv, args, &test_args, mife_test_handle_options, mife_test_usage);
+    mife_test_args_init(&args_);
+    handle_options(&argc, &argv, args, &args_, mife_test_handle_options, mife_test_usage);
     if (mife_select_scheme(&args->circ, args->sigma, args->symlen, &op_vt, &op) == ERR) {
         return EXIT_FAILURE;
     }
     if (args->smart) {
-        kappa = mife_run_smart_kappa(args->circuit, op, args->nthreads, args->rng);
+        kappa = mife_run_smart_kappa(args->circuit, op, args_.npowers, args->nthreads, args->rng);
         if (kappa == 0)
             return EXIT_FAILURE;
     }
-    if (mife_run_test(args->vt, args->circuit, op, args->rng, test_args.secparam,
-                      &kappa, &test_args.npowers, args->nthreads) == ERR) {
+    if (mife_run_test(args->vt, args->circuit, op, args->rng, args_.secparam,
+                      &kappa, &args_.npowers, args->nthreads) == ERR) {
         fprintf(stderr, "error: mife test failed\n");
         return EXIT_FAILURE;
     }
@@ -549,6 +565,7 @@ mife_get_kappa_usage(bool longform, int ret)
     printf("usage: %s mife get-kappa [<args>] circuit\n", progname);
     if (longform) {
         printf("\nAvailable arguments:\n\n");
+        mife_get_kappa_args_usage();
         args_usage();
         printf("\n");
     }
@@ -556,20 +573,42 @@ mife_get_kappa_usage(bool longform, int ret)
 }
 
 static int
+mife_get_kappa_handle_options(int *argc, char ***argv, void *vargs)
+{
+    assert(*argc > 0);
+
+    mife_test_args_t *args = vargs;
+    const char *cmd = (*argv)[0];
+
+    if (!strcmp(cmd, "--npowers")) {
+        if (*argc <= 1)
+            return ERR;
+        args->npowers = atoi((*argv)[1]);
+        (*argv)++; (*argc)--;
+    } else {
+        return ERR;
+    }
+    return OK;
+
+}
+
+static int
 cmd_mife_get_kappa(int argc, char **argv, args_t *args)
 {
+    mife_get_kappa_args_t args_;
     const mmap_vtable *vt = &dummy_vtable;
     size_t kappa = 0;
     op_vtable *op_vt;
     obf_params_t *op;
 
     argv++, argc--;
-    handle_options(&argc, &argv, args, NULL, NULL, mife_get_kappa_usage);
+    mife_get_kappa_args_init(&args_);
+    handle_options(&argc, &argv, args, &args_, mife_get_kappa_handle_options, mife_get_kappa_usage);
     if (mife_select_scheme(&args->circ, args->sigma, args->symlen, &op_vt, &op) == ERR) {
         return EXIT_FAILURE;
     }
     if (args->smart) {
-        kappa = mife_run_smart_kappa(args->circuit, op, args->nthreads, args->rng);
+        kappa = mife_run_smart_kappa(args->circuit, op, args_.npowers, args->nthreads, args->rng);
         if (kappa == 0)
             return EXIT_FAILURE;
     } else {

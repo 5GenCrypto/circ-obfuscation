@@ -3,6 +3,7 @@
 set -e
 
 fname=${1:-kappas.csv}
+source "$(dirname "$0")/utils.sh"
 
 count=0
 curname=
@@ -39,12 +40,12 @@ printline () {
 
 while read -r input; do
     line=$(echo "$input" | tr -d ' ')
-    name=$(echo "$line" | cut -d',' -f1)
+    name=$(get_name "$line")
     if [[ ! $name =~ ^prg ]]; then
         continue
     fi
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
-    mode=$(echo "$line" | cut -d',' -f2)
+    mode=$(get_mode "$line")
     if [[ $mode != dsl && ! $mode =~ ^o ]]; then
         continue
     fi
@@ -56,19 +57,19 @@ while read -r input; do
         printline
     fi
     curmode=$mode
-    ninputs="\num{$(echo "$line" | cut -d',' -f3)}"
-    nconsts="\num{$(echo "$line" | cut -d',' -f4)}"
-    nouts="\num{$(echo "$line" | cut -d',' -f5)}"
-    size="\num{$(echo "$line" | cut -d',' -f6)}"
-    nmuls="\num{$(echo "$line" | cut -d',' -f7)}"
-    depth="\num{$(echo "$line" | cut -d',' -f8)}"
-    degree=$(echo "$line" | cut -d',' -f9)
+    ninputs="\num{$(get_ninputs "$line")}"
+    nconsts="\num{$(get_nconsts "$line")}"
+    nouts="\num{$(get_nouts "$line")}"
+    size="\num{$(get_size "$line")}"
+    nmuls="\num{$(get_nmuls "$line")}"
+    depth="\num{$(get_depth "$line")}"
+    degree=$(get_degree "$line")
     if (( ${#degree} > 6 )); then
         degree=$(printf %.2e "$degree")
     else
         degree="\num{$degree}"
     fi
-    kappa=$(echo "$line" | cut -d',' -f12 | cut -d'|' -f2)
+    kappa=$(get_kappa_mife "$line" | cut -d'|' -f2)
     if [[ $kappa != "[overflow]" ]]; then
         kappa="\num{$kappa}"
     fi

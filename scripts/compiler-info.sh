@@ -3,6 +3,7 @@
 set -e
 
 fname=${1:-kappas.csv}
+source "$(dirname "$0")/utils.sh"
 
 pretty () {
     if [ x"$1" == x"[overflow]" ]; then
@@ -67,15 +68,15 @@ declare -A circuits
 
 while read -r input; do
     line=$(echo "$input" | tr -d ' ')
-    name=$(echo "$line" | cut -d',' -f1)
+    name=$(get_name "$line")
+    name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
     if [[ ! $name =~ aes1r && ! $name == "sbox" ]]; then
         continue
     fi
-    name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
     if [[ $curname == "" ]]; then
         curname=$name
     fi
-    mode=$(echo "$line" | cut -d',' -f2)
+    mode=$(get_mode "$line")
     if [[ $mode == "" ]]; then
         continue
     fi
@@ -93,9 +94,9 @@ while read -r input; do
         declare -A circuits
     fi
     circuits[$mode]=1
-    size=$(echo "$line" | cut -d',' -f6)
-    nmuls=$(echo "$line" | cut -d',' -f7)
-    kappa=$(echo "$line" | cut -d',' -f12 | cut -d'|' -f2)
+    size=$(get_size "$line")
+    nmuls=$(get_nmuls "$line")
+    kappa=$(get_kappa_mife "$line" | cut -d'|' -f2)
     case $mode in
         c2a )
             c2asize=$size

@@ -3,6 +3,7 @@
 set -e
 
 fname=${1:-kappas.csv}
+source "$(dirname "$0")/utils.sh"
 
 circcount=0
 count=0
@@ -14,13 +15,10 @@ printline () {
 
 while read -r input; do
     line=$(echo "$input" | tr -d ' ')
-    name=$(echo "$line" | cut -d',' -f1)
+    name=$(get_name "$line")
     if [[ ! $name =~ ^aes1r ]]; then
         continue
     fi
-    # if [[ $name =~ ^aes1r_(4|16) ]]; then
-    #     continue
-    # fi
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
     if [[ $curname != "" ]]; then
         if [[ $name != "$curname" ]]; then
@@ -28,7 +26,7 @@ while read -r input; do
         fi
         printline
     fi
-    mode=$(echo "$line" | cut -d',' -f2)
+    mode=$(get_mode "$line")
     if [[ $mode == "" ]]; then
         continue
     fi
@@ -53,9 +51,9 @@ while read -r input; do
         circcount=0
         curname=$name
     fi
-    size=$(echo "$line" | cut -d',' -f6)
-    nmuls=$(echo "$line" | cut -d',' -f7)
-    kappa=$(echo "$line" | cut -d',' -f12 | cut -d'|' -f2)
+    size=$(get_size "$line")
+    nmuls=$(get_nmuls "$line")
+    kappa=$(get_kappa_mife "$line" | cut -d'|' -f2)
     if [[ $count != 0 && $((count % 2)) -eq 0 ]]; then
         echo "\rowcolor{white}"
     fi
