@@ -12,16 +12,16 @@ PRIVATE index_set *
 mife_params_new_toplevel(const circ_params_t *const cp, size_t nzs)
 {
     index_set *ix;
-    size_t consts = cp->circ->consts.n ? 1 : 0;
+    size_t has_consts = cp->c ? 1 : 0;
 
     if ((ix = index_set_new(nzs)) == NULL)
         return NULL;
     IX_Z(ix) = 1;
-    for (size_t i = 0; i < cp->n - consts; ++i) {
+    for (size_t i = 0; i < cp->n - has_consts; ++i) {
         IX_W(ix, cp, i) = 1;
         IX_X(ix, cp, i) = acirc_max_var_degree(cp->circ, i);
     }
-    if (consts) {
+    if (has_consts) {
         IX_W(ix, cp, cp->n - 1) = 1;
         IX_X(ix, cp, cp->n - 1) = acirc_max_const_degree(cp->circ);
     }
@@ -32,7 +32,7 @@ PRIVATE size_t
 mife_params_num_encodings_setup(const circ_params_t *cp)
 {
     if (cp->c) {
-        return cp->m + cp->ds[cp->n - 1] + 1 + cp->m;
+        return cp->m + cp->ds[cp->n - 1] + 1;
     } else {
         return 1 + cp->m;
     }

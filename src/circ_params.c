@@ -1,6 +1,8 @@
 #include "circ_params.h"
 #include "util.h"
 
+#include <assert.h>
+
 int
 circ_params_init(circ_params_t *cp, size_t n, const acirc *circ)
 {

@@ -241,18 +241,6 @@ mife_run_all(const mmap_vtable *mmap, const char *circuit,
             return ERR;
         }
     }
-    /* Encrypt the constants */
-    /* if (consts) { */
-    /*     ret = mife_run_encrypt(mmap, circuit, op, rng, circ->consts.buf, */
-    /*                            cp->n - 1, npowers, nthreads, NULL); */
-    /*     if (ret == ERR) { */
-    /*         fprintf(stderr, "error: mife encryption of '"); */
-    /*         for (size_t j = 0; j < circ->consts.n; ++j) */
-    /*             fprintf(stderr, "%d", circ->consts.buf[j]); */
-    /*         fprintf(stderr, "' in slot %lu failed\n", circ->ninputs); */
-    /*         return ERR; */
-    /*     } */
-    /* } */
     mife_sk_free(sk);
 
     {
@@ -266,7 +254,7 @@ mife_run_all(const mmap_vtable *mmap, const char *circuit,
             snprintf(cts[j], length, "%s.%lu.ct", circuit, j);
         }
         ret = mife_run_decrypt(ek, cts, outp, mmap, op, kappa, nthreads);
-        for (size_t j = 0; j < cp->n; ++j) {
+        for (size_t j = 0; j < cp->n - consts; ++j) {
             free(cts[j]);
         }
     }
@@ -328,7 +316,7 @@ mife_run_smart_kappa(const char *circuit, obf_params_t *op, size_t npowers,
         fprintf(stderr, "Choosing κ smartly...\n");
     }
 
-    if (mife_run_setup(&dummy_vtable, circuit, op, rng, 8, &kappa, nthreads) == ERR) {
+    if (mife_run_setup(&dummy_vtable, circuit, op, rng, npowers, &kappa, nthreads) == ERR) {
         fprintf(stderr, "error: mife setup failed\n");
         return EXIT_FAILURE;
     }

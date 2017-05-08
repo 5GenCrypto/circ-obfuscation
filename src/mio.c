@@ -121,7 +121,7 @@ mife_encrypt_args_usage(void)
     printf("    --npowers N        set the number of powers to N (default: 8)\n");
 }
 
-typedef struct mife_test_args_t {
+typedef struct {
     size_t secparam;
     size_t npowers;
 } mife_test_args_t;
@@ -140,7 +140,7 @@ mife_test_args_usage(void)
            "    --npowers N        set the number of powers to N (default: 8)\n");
 }
 
-typedef struct mife_get_kappa_args_t {
+typedef struct {
     size_t npowers;
 } mife_get_kappa_args_t;
 
@@ -511,10 +511,8 @@ static int
 mife_test_handle_options(int *argc, char ***argv, void *vargs)
 {
     assert(*argc > 0);
-
     mife_test_args_t *args = vargs;
     const char *cmd = (*argv)[0];
-
     if (!strcmp(cmd, "--npowers")) {
         if (*argc <= 1)
             return ERR;
@@ -529,7 +527,6 @@ mife_test_handle_options(int *argc, char ***argv, void *vargs)
         return ERR;
     }
     return OK;
-
 }
 
 static int
@@ -576,10 +573,8 @@ static int
 mife_get_kappa_handle_options(int *argc, char ***argv, void *vargs)
 {
     assert(*argc > 0);
-
-    mife_test_args_t *args = vargs;
+    mife_get_kappa_args_t *args = vargs;
     const char *cmd = (*argv)[0];
-
     if (!strcmp(cmd, "--npowers")) {
         if (*argc <= 1)
             return ERR;
@@ -589,7 +584,6 @@ mife_get_kappa_handle_options(int *argc, char ***argv, void *vargs)
         return ERR;
     }
     return OK;
-
 }
 
 static int
@@ -612,7 +606,7 @@ cmd_mife_get_kappa(int argc, char **argv, args_t *args)
         if (kappa == 0)
             return EXIT_FAILURE;
     } else {
-        if (mife_run_setup(vt, args->circuit, op, args->rng, 8, &kappa,
+        if (mife_run_setup(vt, args->circuit, op, args->rng, args_.npowers, &kappa,
                            args->nthreads) == ERR) {
             fprintf(stderr, "error: mife setup failed\n");
             return EXIT_FAILURE;
