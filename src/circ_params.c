@@ -5,6 +5,7 @@ int
 circ_params_init(circ_params_t *cp, size_t n, const acirc *circ)
 {
     cp->n = n;
+    cp->c = circ->consts.n;
     cp->m = circ->outputs.n;
     cp->circ = circ;
     cp->ds = my_calloc(n, sizeof cp->ds[0]);
@@ -67,7 +68,7 @@ circ_params_print(const circ_params_t *cp)
         fprintf(stderr, "*   slot #%lu: ..... %lu (%lu)\n", i + 1,
                 cp->ds[i], cp->qs[i]);
     }
-    fprintf(stderr, "* nconsts:...... %lu\n", cp->circ->consts.n);
+    fprintf(stderr, "* nconsts:...... %lu\n", cp->c);
 
     fprintf(stderr, "* noutputs: .... %lu\n", cp->m);
     fprintf(stderr, "* ngates: ...... %lu\n", cp->circ->gates.n);

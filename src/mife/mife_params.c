@@ -31,7 +31,11 @@ mife_params_new_toplevel(const circ_params_t *const cp, size_t nzs)
 PRIVATE size_t
 mife_params_num_encodings_setup(const circ_params_t *cp)
 {
-    return 1 + cp->m;
+    if (cp->c) {
+        return cp->m + cp->ds[cp->n - 1] + 1 + cp->m;
+    } else {
+        return 1 + cp->m;
+    }
 }
 
 PRIVATE size_t
@@ -60,16 +64,8 @@ _new(acirc *circ, void *vparams)
         op->cp.qs[op->cp.n - 1] = 1;
     }
 
-    if (g_verbose) {
+    if (g_verbose)
         circ_params_print(&op->cp);
-        fprintf(stderr, "MIFE parameters:\n");
-        /* fprintf(stderr, "* Σ: ......... %s\n", op->sigma ? "Yes" : "No"); */
-        fprintf(stderr, "* n: ......... %lu\n", op->cp.n);
-        for (size_t i = 0; i < op->cp.n; ++i) {
-            fprintf(stderr, "*   %lu: ....... %lu (%lu)\n", i + 1, op->cp.ds[i], op->cp.qs[i]);
-        }
-        fprintf(stderr, "* m: ......... %lu\n", op->cp.m);
-    }
     
     return op;
 }

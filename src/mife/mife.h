@@ -17,7 +17,7 @@ extern op_vtable mife_op_vtable;
 
 mife_t *
 mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
-           aes_randstate_t rng, size_t *kappa, size_t nthreads);
+           size_t *kappa, size_t nthreads, aes_randstate_t rng);
 void
 mife_free(mife_t *mife);
 

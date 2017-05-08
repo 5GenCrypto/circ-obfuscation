@@ -28,7 +28,7 @@ mife_run_setup(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
         circ_params_print(cp);
     }
 
-    mife = mife_setup(mmap, op, secparam, rng, kappa, nthreads);
+    mife = mife_setup(mmap, op, secparam, kappa, nthreads, rng);
     if (mife == NULL)
         goto cleanup;
     sk = mife_sk(mife);
@@ -143,6 +143,7 @@ mife_run_decrypt(const char *ek_s, char **cts_s, int *rop,
                  size_t nthreads)
 {
     const circ_params_t *cp = &op->cp;
+    const size_t has_consts = cp->circ->consts.n ? 1 : 0;
     mife_ciphertext_t *cts[cp->n];
     mife_ek_t *ek = NULL;
     FILE *fp;
@@ -154,7 +155,7 @@ mife_run_decrypt(const char *ek_s, char **cts_s, int *rop,
         fprintf(stderr, "MIFE decryption details:\n");
         fprintf(stderr, "* evaluation key: . %s\n", ek_s);
         fprintf(stderr, "* ciphertexts: .... ");
-        for (size_t i = 0; i < cp->n; ++i) {
+        for (size_t i = 0; i < cp->n - has_consts; ++i) {
             fprintf(stderr, "%s%s\n", i == 0 ? "" : "                    ", cts_s[i]);
         }
     }
@@ -169,7 +170,7 @@ mife_run_decrypt(const char *ek_s, char **cts_s, int *rop,
         fprintf(stderr, "error: unable to read evaluation key\n");
         goto cleanup;
     }
-    for (size_t i = 0; i < cp->n; ++i) {
+    for (size_t i = 0; i < cp->n - has_consts; ++i) {
         if ((fp = fopen(cts_s[i], "r")) == NULL) {
             fprintf(stderr, "error: unable to open '%s' for reading\n", cts_s[i]);
             goto cleanup;
@@ -241,17 +242,17 @@ mife_run_all(const mmap_vtable *mmap, const char *circuit,
         }
     }
     /* Encrypt the constants */
-    if (consts) {
-        ret = mife_run_encrypt(mmap, circuit, op, rng, circ->consts.buf,
-                               cp->n - 1, npowers, nthreads, NULL);
-        if (ret == ERR) {
-            fprintf(stderr, "error: mife encryption of '");
-            for (size_t j = 0; j < circ->consts.n; ++j)
-                fprintf(stderr, "%d", circ->consts.buf[j]);
-            fprintf(stderr, "' in slot %lu failed\n", circ->ninputs);
-            return ERR;
-        }
-    }
+    /* if (consts) { */
+    /*     ret = mife_run_encrypt(mmap, circuit, op, rng, circ->consts.buf, */
+    /*                            cp->n - 1, npowers, nthreads, NULL); */
+    /*     if (ret == ERR) { */
+    /*         fprintf(stderr, "error: mife encryption of '"); */
+    /*         for (size_t j = 0; j < circ->consts.n; ++j) */
+    /*             fprintf(stderr, "%d", circ->consts.buf[j]); */
+    /*         fprintf(stderr, "' in slot %lu failed\n", circ->ninputs); */
+    /*         return ERR; */
+    /*     } */
+    /* } */
     mife_sk_free(sk);
 
     {
@@ -259,7 +260,7 @@ mife_run_all(const mmap_vtable *mmap, const char *circuit,
         char *cts[cp->n];
 
         snprintf(ek, sizeof ek, "%s.ek", circuit);
-        for (size_t j = 0; j < cp->n; ++j) {
+        for (size_t j = 0; j < cp->n - consts; ++j) {
             size_t length = strlen(circuit) + 10 + sizeof ".ct\0";
             cts[j] = my_calloc(length, sizeof cts[j][0]);
             snprintf(cts[j], length, "%s.%lu.ct", circuit, j);
