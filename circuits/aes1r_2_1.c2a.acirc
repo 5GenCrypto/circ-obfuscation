@@ -1,12 +1,12 @@
-:test 01 0
-:test 01 0
-:test 01 0
-:test 00 0
 :test 10 1
 :test 00 0
+:test 10 1
+:test 01 0
+:test 11 1
+:test 11 1
+:test 01 0
+:test 11 1
 :test 00 0
-:test 01 0
-:test 01 0
 :test 11 1
 :nins 2
 0 const 1

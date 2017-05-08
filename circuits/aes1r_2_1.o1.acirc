@@ -1,13 +1,14 @@
-:test 00 0
-:test 00 0
+:test 01 0
+:test 10 1
+:test 11 1
 :test 11 1
 :test 10 1
 :test 01 0
 :test 11 1
-:test 00 0
+:test 10 1
 :test 11 1
 :test 00 0
-:test 00 0
+:symlen 1
 0 input 0
 1 input 1
 2 const 1

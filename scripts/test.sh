@@ -9,10 +9,6 @@ circuits=$(readlink -f "$scriptdir/../circuits")
 
 set -e
 
-run () {
-    $prog --mmap "$2" --scheme LZ "$1" --smart $3
-}
-
 obf_test () {
     echo ""
     echo "***"
@@ -54,17 +50,8 @@ mife_test_sigma () {
     echo "***"
     echo "***"
     echo ""
-    $prog mife test --smart --sigma --symlen 16 $2 $1
+    $prog mife test --smart --sigma --symlen 16 -mmap $2 $1
 }
-
-# for circuit in $circuits/*.acirc; do
-#     obf_test "$circuit" DUMMY LZ
-# done
-
-for circuit in $circuits/sigma/*.acirc; do
-    obf_test_sigma "$circuit" DUMMY LZ
-    obf_test_sigma "$circuit" DUMMY MIFE
-done
 
 for circuit in $circuits/*.acirc; do
     mife_test "$circuit" DUMMY
@@ -72,4 +59,14 @@ done
 
 for circuit in $circuits/sigma/*.acirc; do
     mife_test_sigma "$circuit" DUMMY
+done
+
+for circuit in $circuits/*.acirc; do
+    obf_test "$circuit" DUMMY LZ
+    obf_test "$circuit" DUMMY MIFE
+done
+
+for circuit in $circuits/sigma/*.acirc; do
+    obf_test_sigma "$circuit" DUMMY LZ
+    obf_test_sigma "$circuit" DUMMY MIFE
 done
