@@ -72,16 +72,16 @@ array_printstring_rev(const int *xs, size_t n)
 mpz_t *
 mpz_vect_new(size_t n)
 {
-    mpz_t *vec = malloc(n * sizeof(mpz_t));
-    mpz_vect_init(vec, n);
-    return vec;
+    mpz_t *xs = my_calloc(n, sizeof xs[0]);
+    mpz_vect_init(xs, n);
+    return xs;
 }
 
 void
-mpz_vect_init(mpz_t *vec, size_t n)
+mpz_vect_init(mpz_t *xs, size_t n)
 {
     for (size_t i = 0; i < n; i++)
-        mpz_init(vec[i]);
+        mpz_init(xs[i]);
 }
 
 mpz_t * mpz_vect_create_of_fmpz(fmpz_t *fvec, size_t n)
@@ -113,17 +113,17 @@ void mpz_vect_print(mpz_t *xs, size_t len)
 }
 
 void
-mpz_vect_free(mpz_t *vec, size_t n)
+mpz_vect_free(mpz_t *xs, size_t n)
 {
-    mpz_vect_clear(vec, n);
-    free(vec);
+    mpz_vect_clear(xs, n);
+    free(xs);
 }
 
 void
-mpz_vect_clear(mpz_t *vec, size_t n)
+mpz_vect_clear(mpz_t *xs, size_t n)
 {
     for (size_t i = 0; i < n; i++)
-        mpz_clear(vec[i]);
+        mpz_clear(xs[i]);
 }
 
 void mpz_vect_set(mpz_t *rop, const mpz_t *xs, size_t n)

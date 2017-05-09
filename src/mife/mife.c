@@ -149,15 +149,22 @@ static int
 eval_circ(const circ_params_t *cp, size_t slot, mpz_t *outputs,
           const mpz_t *inputs, const mpz_t *consts, const mpz_t *moduli)
 {
-    bool known[acirc_nrefs(cp->circ)];
-    mpz_t cache[acirc_nrefs(cp->circ)];
-    memset(known, '\0', sizeof known);
-    mpz_vect_init(cache, acirc_nrefs(cp->circ));
+    const size_t nrefs = acirc_nrefs(cp->circ);
+    bool *known;
+    mpz_t *cache;
+
+    known = my_calloc(nrefs, sizeof known[0]);
+    cache = my_calloc(nrefs, sizeof cache[0]);
     for (size_t o = 0; o < cp->m; ++o) {
         acirc_eval_mpz_mod_memo(outputs[o], cp->circ, cp->circ->outputs.buf[o],
                                 inputs, consts, moduli[1 + slot], known, cache);
     }
-    mpz_vect_clear(cache, acirc_nrefs(cp->circ));
+    for (size_t i = 0; i < nrefs; ++i) {
+        if (known[i])
+            mpz_clear(cache[i]);
+    }
+    free(cache);
+    free(known);
     return OK;
 }
 
@@ -205,9 +212,11 @@ mife_free(mife_t *mife)
         return;
     if (mife->Chatstar)
         encoding_free(mife->enc_vt, mife->Chatstar);
-    if (mife->zhat)
+    if (mife->zhat) {
         for (size_t o = 0; o < mife->cp->m; ++o)
             encoding_free(mife->enc_vt, mife->zhat[o]);
+        free(mife->zhat);
+    }
     if (mife->constants)
         mife_ciphertext_free(mife->constants, mife->cp);
     if (mife->pp)
@@ -440,7 +449,11 @@ mife_ek_free(mife_ek_t *ek)
             public_params_free(ek->pp_vt, ek->pp);
         if (ek->Chatstar)
             encoding_free(ek->enc_vt, ek->Chatstar);
-        /* XXX: */
+        if (ek->zhat) {
+            for (size_t o = 0; o < ek->cp->m; ++o)
+                encoding_free(ek->enc_vt, ek->zhat[o]);
+            free(ek->zhat);
+        }
     }
     free(ek);
 }
@@ -469,21 +482,27 @@ mife_ek_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     int has_consts;
 
     ek = my_calloc(1, sizeof ek[0]);
+    ek->local = true;
     ek->mmap = mmap;
     ek->cp = cp;
     ek->enc_vt = get_encoding_vtable(mmap);
     ek->pp_vt = get_pp_vtable(mmap);
     ek->pp = public_params_fread(ek->pp_vt, op, fp);
     fscanf(fp, "%d\n", &has_consts);
-    if (has_consts)
-        ek->constants = mife_ciphertext_fread(ek->mmap, ek->cp, fp);
-    else
-        ek->Chatstar = encoding_fread(ek->enc_vt, fp);
+    if (has_consts) {
+        if ((ek->constants = mife_ciphertext_fread(ek->mmap, ek->cp, fp)) == NULL)
+            goto error;
+    } else {
+        if ((ek->Chatstar = encoding_fread(ek->enc_vt, fp)) == NULL)
+            goto error;
+    }
     ek->zhat = my_calloc(cp->m, sizeof ek->zhat[0]);
     for (size_t o = 0; o < cp->m; ++o)
         ek->zhat[o] = encoding_fread(ek->enc_vt, fp);
-    ek->local = true;
     return ek;
+error:
+    mife_ek_free(ek);
+    return NULL;
 }
 
 void

@@ -312,9 +312,8 @@ mife_run_smart_kappa(const char *circuit, obf_params_t *op, size_t npowers,
     int ret = OK;
     size_t kappa = 0;
 
-    if (g_verbose) {
+    if (g_verbose)
         fprintf(stderr, "Choosing κ smartly...\n");
-    }
 
     if (mife_run_setup(&dummy_vtable, circuit, op, rng, npowers, &kappa, nthreads) == ERR) {
         fprintf(stderr, "error: mife setup failed\n");

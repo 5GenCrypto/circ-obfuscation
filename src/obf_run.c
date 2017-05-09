@@ -11,47 +11,42 @@ obf_run_obfuscate(const mmap_vtable *mmap, const obfuscator_vtable *vt,
 {
     obfuscation *obf;
     double start, end, _start, _end;
+    int ret = ERR;
 
     start = current_time();
     _start = current_time();
     obf = vt->obfuscate(mmap, op, secparam, kappa, nthreads, rng);
     if (obf == NULL) {
         fprintf(stderr, "error: obfuscation failed\n");
-        goto error;
+        goto cleanup;
     }
     _end = current_time();
     if (g_verbose)
         fprintf(stderr, "obfuscate:     %.2fs\n", _end - _start);
-
     if (fname) {
         FILE *fp;
-
         if ((fp = fopen(fname, "w")) == NULL) {
             fprintf(stderr, "error: unable to open '%s' for writing\n", fname);
             exit(EXIT_FAILURE);
         }
-
         _start = current_time();
         if (vt->fwrite(obf, fp) == ERR) {
             fprintf(stderr, "error: writing obfuscation to disk failed\n");
             fclose(fp);
-            goto error;
+            goto cleanup;
         }
         fclose(fp);
         _end = current_time();
         if (g_verbose)
             fprintf(stderr, "write to disk: %.2fs\n", _end - _start);
     }
-
     end = current_time();
     if (g_verbose)
         fprintf(stderr, "total:         %.2fs\n", end - start);
-
+    ret = OK;
+cleanup:
     vt->free(obf);
-    return OK;
-error:
-    vt->free(obf);
-    return ERR;
+    return ret;
 }
 
 int
@@ -106,7 +101,7 @@ obf_run_smart_kappa(const obfuscator_vtable *vt, const acirc *circ,
     size_t kappa = 0;
 
     if (g_verbose) {
-        fprintf(stderr, "Choosing κ and #powers smartly...\n");
+        fprintf(stderr, "Choosing κ smartly...\n");
     }
 
     g_verbose = false;

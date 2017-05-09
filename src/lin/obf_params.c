@@ -48,11 +48,11 @@ _new(acirc *circ, void *vparams)
         free(op);
         return NULL;
     }
-    const size_t nconsts = op->cp.c;
+    const size_t nconsts = circ->consts.n;
     const size_t has_consts = nconsts ? 1 : 0;
+    circ_params_init(&op->cp, circ->ninputs / params->symlen + has_consts, circ);
     const size_t ninputs = op->cp.n - has_consts;
     const size_t noutputs = op->cp.m;
-    circ_params_init(&op->cp, circ->ninputs / params->symlen + has_consts, circ);
     for (size_t i = 0; i < ninputs; ++i) {
         op->cp.ds[i] = params->symlen;
         if (op->sigma)
