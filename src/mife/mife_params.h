@@ -14,6 +14,4 @@ struct obf_params_t {
 
 size_t mife_params_nzs(const circ_params_t *cp);
 index_set * mife_params_new_toplevel(const circ_params_t *const cp, size_t nzs);
-size_t mife_params_num_encodings_setup(const circ_params_t *cp);
-size_t mife_params_num_encodings_encrypt(const circ_params_t *cp, size_t slot, size_t npowers);
 

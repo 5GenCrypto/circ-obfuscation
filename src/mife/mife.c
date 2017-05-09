@@ -240,7 +240,7 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, const size_t secpara
     threadpool *pool = threadpool_create(nthreads);
     pthread_mutex_t lock;
     size_t count = 0;
-    size_t total = mife_params_num_encodings_setup(cp);
+    size_t total = mife_num_encodings_setup(cp);
     index_set *const ix = index_set_new(mife_params_nzs(cp));
     mpz_t inps[1 + cp->n];
     mpz_vect_init(inps, 1 + cp->n);
@@ -685,7 +685,7 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const int *inputs,
         lock = my_calloc(1, sizeof lock[0]);
         pthread_mutex_init(lock, NULL);
         count = my_calloc(1, sizeof count[0]);
-        total = mife_params_num_encodings_encrypt(cp, slot, npowers);
+        total = mife_num_encodings_encrypt(cp, slot, npowers);
     }
 
     _start = current_time();
@@ -834,12 +834,22 @@ raise_encodings(const mife_ek_t *ek, mife_ciphertext_t **cts,
     index_set *ix;
     int ret = ERR;
     ix = index_set_union(ek->enc_vt->mmap_set(x), ek->enc_vt->mmap_set(y));
+    /* printf("==========\n%d %d\n", */
+    /*        encoding_get_degree(ek->enc_vt, x), */
+    /*        encoding_get_degree(ek->enc_vt, y)); */
+    /* encoding_print(ek->enc_vt, x); */
+    /* encoding_print(ek->enc_vt, y); */
     if (ix == NULL)
         goto cleanup;
     if (raise_encoding(ek, cts, x, ix) == ERR)
         goto cleanup;
     if (raise_encoding(ek, cts, y, ix) == ERR)
         goto cleanup;
+    /* printf("%d %d\n", */
+    /*        encoding_get_degree(ek->enc_vt, x), */
+    /*        encoding_get_degree(ek->enc_vt, y)); */
+    /* encoding_print(ek->enc_vt, x); */
+    /* encoding_print(ek->enc_vt, y); */
     ret = OK;
 cleanup:
     if (ix)
@@ -866,7 +876,7 @@ decrypt_worker(void *vargs)
     const circ_params_t *const cp = ek->cp;
     const acirc_operation op = c->gates.gates[ref].op;
     const acircref *const args = c->gates.gates[ref].args;
-    encoding *res;
+    encoding *res = NULL;
     size_t idx = 0;
 
     switch (op) {
@@ -955,8 +965,6 @@ decrypt_worker(void *vargs)
         rhs = encoding_new(ek->enc_vt, ek->pp_vt, ek->pp);
 
         /* Compute LHS */
-        /* encoding_print(ek->enc_vt, res); */
-        /* encoding_print(ek->enc_vt, ek->zhat[output]); */
         encoding_mul(ek->enc_vt, ek->pp_vt, lhs, res, ek->zhat[output], ek->pp);
         raise_encoding(ek, cts, lhs, toplevel);
         if (!index_set_eq(ek->enc_vt->mmap_set(lhs), toplevel)) {
@@ -973,9 +981,8 @@ decrypt_worker(void *vargs)
             for (size_t i = 0; i < cp->n; ++i)
                 encoding_mul(ek->enc_vt, ek->pp_vt, rhs, rhs, cts[i]->what[output], ek->pp);
         } else {
-            const size_t has_consts = cp->c ? 1 : 0;
             encoding_set(ek->enc_vt, rhs, cts[0]->what[output]);
-            for (size_t i = 1; i < cp->n - has_consts; ++i)
+            for (size_t i = 1; i < cp->n - 1; ++i)
                 encoding_mul(ek->enc_vt, ek->pp_vt, rhs, rhs, cts[i]->what[output], ek->pp);
         }
         if (!index_set_eq(ek->enc_vt->mmap_set(rhs), toplevel)) {

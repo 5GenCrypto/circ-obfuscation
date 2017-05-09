@@ -1,4 +1,5 @@
 #include "obf_params.h"
+#include "../mife/mife.h"
 #include "obfuscator.h"
 #include "util.h"
 
@@ -7,9 +8,9 @@ num_encodings(const obf_params_t *op)
 {
     const circ_params_t *cp = &op->cp;
     size_t count = 0;
-    count += 1 + cp->m;
-    for (size_t i = 0; i < cp->n; ++i)
-        count += cp->qs[i] * (cp->ds[i] + op->npowers + cp->m);
+    count += mife_num_encodings_setup(cp);
+    for (size_t i = 0; i < cp->n - (cp->c ? 1 : 0); ++i)
+        count += cp->qs[i] * mife_num_encodings_encrypt(cp, i, op->npowers);
     return count;
 }
 
@@ -38,10 +39,7 @@ _new(acirc *circ, void *vparams)
     circ_params_init(&op->cp, circ->ninputs / params->symlen + consts, circ);
     for (size_t i = 0; i < op->cp.n - consts; ++i) {
         op->cp.ds[i] = params->symlen;
-        if (op->sigma)
-            op->cp.qs[i] = params->symlen;
-        else
-            op->cp.qs[i] = 1 << params->symlen;
+        op->cp.qs[i] = params->sigma ? params->symlen : params->base;
     }
     if (consts) {
         op->cp.ds[op->cp.n - 1] = circ->consts.n;

@@ -55,7 +55,7 @@ _new(acirc *circ, void *vparams)
     const size_t noutputs = op->cp.m;
     for (size_t i = 0; i < ninputs; ++i) {
         op->cp.ds[i] = params->symlen;
-        if (op->sigma)
+        if (params->sigma)
             op->cp.qs[i] = params->symlen;
         else
             op->cp.qs[i] = 1 << params->symlen;

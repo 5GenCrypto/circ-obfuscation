@@ -57,15 +57,29 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     for (size_t i = 0; i < ninputs; ++i) {
         obf->cts[i] = my_calloc(cp->qs[i], sizeof obf->cts[i][0]);
         for (size_t j = 0; j < cp->qs[i]; ++j) {
-            int input[cp->ds[i]];
+            int inputs[cp->ds[i]];
             for (size_t k = 0; k < cp->ds[i]; ++k) {
-                input[k] = op->sigma ? j == k : bit(j, k);
+                if (op->sigma)
+                    inputs[k] = j == k;
+                else if (cp->qs[i] == 2)
+                    inputs[k] = bit(j, k);
+                else {
+                    if (cp->ds[i] != 1) {
+                        fprintf(stderr, "error: don't yet support base != 2 and symlen > 1\n");
+                        goto error;
+                    }
+                    inputs[k] = j;
+                }
             }
-            obf->cts[i][j] = mife_encrypt(sk, i, input, op->npowers, nthreads, rng);
+            obf->cts[i][j] = mife_encrypt(sk, i, inputs, op->npowers, nthreads, rng);
         }
     }
     mife_sk_free(sk);
     return obf;
+error:
+    mife_sk_free(sk);
+    _free(obf);
+    return NULL;
 }
 
 static int

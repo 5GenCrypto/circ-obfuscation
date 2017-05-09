@@ -96,35 +96,30 @@ size_t
 obf_run_smart_kappa(const obfuscator_vtable *vt, const acirc *circ,
                     obf_params_t *op, size_t nthreads, aes_randstate_t rng)
 {
-    bool verbosity = g_verbose;
     const char *fname = "/tmp/smart-kappa.obf";
-    size_t kappa = 0;
-
-    if (g_verbose) {
-        fprintf(stderr, "Choosing κ smartly...\n");
-    }
-
-    g_verbose = false;
-
-    if (obf_run_obfuscate(&dummy_vtable, vt, fname, op, 8, &kappa, nthreads, rng) == ERR) {
-        fprintf(stderr, "error: unable to obfuscate to determine smart κ settings\n");
-        return 0;
-    }
-
     int input[circ->ninputs];
     int output[circ->outputs.n];
+    bool verbosity = g_verbose;
+    size_t kappa = 0;
+
+    if (g_verbose)
+        fprintf(stderr, "Choosing κ smartly...\n");
+
+    g_verbose = false;
+    if (obf_run_obfuscate(&dummy_vtable, vt, fname, op, 8, &kappa, nthreads, rng) == ERR) {
+        fprintf(stderr, "error: unable to obfuscate to determine smart κ settings\n");
+        goto cleanup;
+    }
 
     memset(input, '\0', sizeof input);
     memset(output, '\0', sizeof output);
     if (obf_run_evaluate(&dummy_vtable, vt, fname, op, input, output, nthreads,
                           &kappa, NULL) == ERR) {
         fprintf(stderr, "error: unable to evaluate to determine smart κ settings\n");
-        return 0;
+        kappa = 0;
     }
 
+cleanup:
     g_verbose = verbosity;
-    if (g_verbose)
-        fprintf(stderr, "* setting κ →  %lu\n", kappa);
-
     return kappa;
 }

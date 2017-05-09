@@ -76,7 +76,7 @@ _new(acirc *circ, void *vparams)
     circ_params_init(&op->cp, circ->ninputs / params->symlen + has_consts, circ);
     for (size_t i = 0; i < op->cp.n - has_consts; ++i) {
         op->cp.ds[i] = params->symlen;
-        if (op->sigma)
+        if (params->sigma)
             op->cp.qs[i] = params->symlen;
         else
             op->cp.qs[i] = 1 << params->symlen;

@@ -24,7 +24,7 @@ mife_run_setup(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
         fprintf(stderr, "* circuit: ............. %s\n", circuit);
         fprintf(stderr, "* security parameter: .. %lu\n", secparam);
         fprintf(stderr, "* # threads: ........... %lu\n", nthreads);
-        fprintf(stderr, "* # encodings: ......... %lu\n", mife_params_num_encodings_setup(cp));
+        fprintf(stderr, "* # encodings: ......... %lu\n", mife_num_encodings_setup(cp));
         circ_params_print(cp);
     }
 
@@ -87,7 +87,7 @@ mife_run_encrypt(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
         fprintf(stderr, "* # powers: ...... %lu\n", *npowers);
         fprintf(stderr, "* # threads: ..... %lu\n", nthreads);
         fprintf(stderr, "* # encodings: ... %lu\n",
-                mife_params_num_encodings_encrypt(cp, slot, *npowers));
+                mife_num_encodings_encrypt(cp, slot, *npowers));
     }
 
     if (cached_sk == NULL) {
@@ -309,17 +309,17 @@ mife_run_smart_kappa(const char *circuit, obf_params_t *op, size_t npowers,
     const circ_params_t *cp = &op->cp;
     const size_t has_consts = cp->circ->consts.n ? 1 : 0;
     int *inps[cp->n - has_consts];
-    int ret = OK;
     size_t kappa = 0;
+    bool verbosity = g_verbose;
 
     if (g_verbose)
         fprintf(stderr, "Choosing κ smartly...\n");
 
+    g_verbose = false;
     if (mife_run_setup(&dummy_vtable, circuit, op, rng, npowers, &kappa, nthreads) == ERR) {
         fprintf(stderr, "error: mife setup failed\n");
-        return EXIT_FAILURE;
+        goto cleanup;
     }
-
 
     for (size_t i = 0; i < cp->n - has_consts; ++i) {
         inps[i] = my_calloc(cp->ds[i], sizeof inps[i][0]);
@@ -327,13 +327,12 @@ mife_run_smart_kappa(const char *circuit, obf_params_t *op, size_t npowers,
     if (mife_run_all(&dummy_vtable, circuit, op, rng, inps, NULL, &kappa, &npowers,
                      nthreads) == ERR) {
         fprintf(stderr, "error: unable to determine κ smartly\n");
-        ret = ERR;
+        kappa = 0;
     }
     for (size_t i = 0; i < cp->n - has_consts; ++i) {
         free(inps[i]);
     }
-    if (ret == ERR)
-        return 0;
-
+cleanup:
+    g_verbose = verbosity;
     return kappa;
 }

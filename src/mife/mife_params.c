@@ -28,8 +28,8 @@ mife_params_new_toplevel(const circ_params_t *const cp, size_t nzs)
     return ix;
 }
 
-PRIVATE size_t
-mife_params_num_encodings_setup(const circ_params_t *cp)
+size_t
+mife_num_encodings_setup(const circ_params_t *cp)
 {
     if (cp->c) {
         return cp->m + cp->ds[cp->n - 1] + 1;
@@ -38,8 +38,8 @@ mife_params_num_encodings_setup(const circ_params_t *cp)
     }
 }
 
-PRIVATE size_t
-mife_params_num_encodings_encrypt(const circ_params_t *cp, size_t slot, size_t npowers)
+size_t
+mife_num_encodings_encrypt(const circ_params_t *cp, size_t slot, size_t npowers)
 {
     return cp->ds[slot] + npowers + cp->m;
 }
@@ -54,10 +54,7 @@ _new(acirc *circ, void *vparams)
     circ_params_init(&op->cp, circ->ninputs / params->symlen + has_consts, circ);
     for (size_t i = 0; i < op->cp.n - has_consts; ++i) {
         op->cp.ds[i] = params->symlen;
-        if (params->sigma)
-            op->cp.qs[i] = params->symlen;
-        else
-            op->cp.qs[i] = 1 << params->symlen;
+        op->cp.qs[i] = params->sigma ? params->symlen : params->base;
     }
     if (has_consts) {
         op->cp.ds[op->cp.n - 1] = circ->consts.n;

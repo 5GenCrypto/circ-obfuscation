@@ -8,9 +8,9 @@ typedef struct mife_ek_t mife_ek_t;
 typedef struct mife_ciphertext_t mife_ciphertext_t;
 
 typedef struct {
-    size_t npowers;
-    size_t symlen;
     bool sigma;
+    size_t symlen;
+    size_t base;
 } mife_params_t;
 
 extern op_vtable mife_op_vtable;
@@ -43,3 +43,8 @@ mife_encrypt(const mife_sk_t *sk, size_t slot, const int *inputs,
 int
 mife_decrypt(const mife_ek_t *ek, int *rop, mife_ciphertext_t **cts,
              size_t nthreads, size_t *kappa);
+
+size_t
+mife_num_encodings_setup(const circ_params_t *cp);
+size_t
+mife_num_encodings_encrypt(const circ_params_t *cp, size_t slot, size_t npowers);

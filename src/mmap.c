@@ -194,12 +194,6 @@ encoding_mul(const encoding_vtable *vt, const pp_vtable *pp_vt, encoding *rop,
     if (vt->mul(pp_vt, rop, x, y, p) == ERR)
         return ERR;
     vt->mmap->enc->mul(rop->enc, p->pp, x->enc, y->enc);
-    if (LOG_INFO) {
-        printf("[%s]\n", __func__);
-        encoding_print(vt, x);
-        encoding_print(vt, y);
-        encoding_print(vt, rop);
-    }
     return OK;
 }
 
@@ -210,12 +204,6 @@ encoding_add(const encoding_vtable *vt, const pp_vtable *pp_vt, encoding *rop,
     if (vt->add(pp_vt, rop, x, y, p) == ERR)
         return ERR;
     vt->mmap->enc->add(rop->enc, p->pp, x->enc, y->enc);
-    if (LOG_INFO) {
-        printf("[%s]\n", __func__);
-        encoding_print(vt, x);
-        encoding_print(vt, y);
-        encoding_print(vt, rop);
-    }
     return OK;
 }
 
@@ -226,12 +214,6 @@ encoding_sub(const encoding_vtable *vt, const pp_vtable *pp_vt, encoding *rop,
     if (vt->sub(pp_vt, rop, x, y, p) == ERR)
         return ERR;
     vt->mmap->enc->sub(rop->enc, p->pp, x->enc, y->enc);
-    if (LOG_INFO) {
-        printf("[%s]\n", __func__);
-        encoding_print(vt, x);
-        encoding_print(vt, y);
-        encoding_print(vt, rop);
-    }
     return OK;
 }
 
