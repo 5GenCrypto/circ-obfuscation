@@ -22,7 +22,7 @@ obf_run_obfuscate(const mmap_vtable *mmap, const obfuscator_vtable *vt,
     }
     _end = current_time();
     if (g_verbose)
-        fprintf(stderr, "obfuscate:     %.2fs\n", _end - _start);
+        fprintf(stderr, "obfuscate:       %.2fs\n", _end - _start);
     if (fname) {
         FILE *fp;
         if ((fp = fopen(fname, "w")) == NULL) {
@@ -38,11 +38,11 @@ obf_run_obfuscate(const mmap_vtable *mmap, const obfuscator_vtable *vt,
         fclose(fp);
         _end = current_time();
         if (g_verbose)
-            fprintf(stderr, "write to disk: %.2fs\n", _end - _start);
+            fprintf(stderr, "write to disk:   %.2fs\n", _end - _start);
     }
     end = current_time();
     if (g_verbose)
-        fprintf(stderr, "total:         %.2fs\n", end - start);
+        fprintf(stderr, "obfuscate total: %.2fs\n", end - start);
     ret = OK;
 cleanup:
     vt->free(obf);
@@ -84,7 +84,7 @@ obf_run_evaluate(const mmap_vtable *mmap, const obfuscator_vtable *vt,
 
     end = current_time();
     if (g_verbose)
-        fprintf(stderr, "total:          %.2fs\n", end - start);
+        fprintf(stderr, "evaluate total: %.2fs\n", end - start);
     ret = OK;
 cleanup:
     fclose(fp);
