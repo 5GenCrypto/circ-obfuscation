@@ -3,8 +3,8 @@
 #include "obfuscator.h"
 #include "util.h"
 
-static size_t
-num_encodings(const obf_params_t *op)
+size_t
+mobf_num_encodings(const obf_params_t *op)
 {
     const circ_params_t *cp = &op->cp;
     size_t count = 0;
@@ -55,7 +55,7 @@ _new(acirc *circ, void *vparams)
         fprintf(stderr, "Obfuscation parameters:\n");
         fprintf(stderr, "* Σ: ......... %s\n", op->sigma ? "Yes" : "No");
         fprintf(stderr, "* # powers: .. %lu\n", op->npowers);
-        fprintf(stderr, "* # encodings: %lu\n", num_encodings(op));
+        fprintf(stderr, "* # encodings: %lu\n", mobf_num_encodings(op));
     }
 
     return op;

@@ -8,14 +8,6 @@
 
 #include <assert.h>
 #include <string.h>
-#include <threadpool.h>
-
-typedef struct {
-    threadpool *pool;
-    pthread_mutex_t *lock;
-    size_t *count;
-    size_t total;
-} pool_info_t;
 
 typedef struct mife_t {
     const mmap_vtable *mmap;
@@ -94,7 +86,7 @@ typedef struct {
 static mife_ciphertext_t *
 _mife_encrypt(const mife_sk_t *sk, const size_t slot, const int *inputs,
               const size_t npowers, const size_t nthreads, aes_randstate_t rng,
-              pool_info_t *_pi, mpz_t *betas);
+              mife_encrypt_pool_info_t *_pi, mpz_t *betas);
 
 static int
 populate_circ_degrees(const circ_params_t *cp, size_t **deg, size_t *deg_max)
@@ -275,7 +267,7 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, const size_t secpara
 
     pthread_mutex_init(&lock, NULL);
 
-    pool_info_t pi = {
+    mife_encrypt_pool_info_t pi = {
         .pool = pool,
         .lock = &lock,
         .count = &count,
@@ -591,7 +583,7 @@ error:
 static mife_ciphertext_t *
 _mife_encrypt(const mife_sk_t *sk, const size_t slot, const int *inputs,
               const size_t npowers, const size_t nthreads, aes_randstate_t rng,
-              pool_info_t *_pi, mpz_t *_betas)
+              mife_encrypt_pool_info_t *_pi, mpz_t *_betas)
 {
     mife_ciphertext_t *ct;
     double start, end, _start, _end;
@@ -778,13 +770,14 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const int *inputs,
 
 mife_ciphertext_t *
 mife_encrypt(const mife_sk_t *sk, const size_t slot, const int *inputs,
-             const size_t npowers, const size_t nthreads, aes_randstate_t rng)
+             const size_t npowers, const size_t nthreads,
+             mife_encrypt_pool_info_t *pi, aes_randstate_t rng)
 {
     if (sk == NULL || slot >= sk->cp->n || inputs == NULL || npowers == 0) {
         fprintf(stderr, "error: mife encrypt: invalid input\n");
         return NULL;
     }
-    return _mife_encrypt(sk, slot, inputs, npowers, nthreads, rng, NULL, NULL);
+    return _mife_encrypt(sk, slot, inputs, npowers, nthreads, rng, pi, NULL);
 }
 
 static void

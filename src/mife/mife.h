@@ -2,6 +2,8 @@
 
 #include "mmap.h"
 
+#include <threadpool.h>
+
 typedef struct mife_t mife_t;
 typedef struct mife_sk_t mife_sk_t;
 typedef struct mife_ek_t mife_ek_t;
@@ -12,6 +14,13 @@ typedef struct {
     size_t symlen;
     size_t base;
 } mife_params_t;
+
+typedef struct {
+    threadpool *pool;
+    pthread_mutex_t *lock;
+    size_t *count;
+    size_t total;
+} mife_encrypt_pool_info_t;
 
 extern op_vtable mife_op_vtable;
 
@@ -37,8 +46,8 @@ mife_ciphertext_t * mife_ciphertext_fread(const mmap_vtable *mmap, const circ_pa
 
 
 mife_ciphertext_t *
-mife_encrypt(const mife_sk_t *sk, size_t slot, const int *inputs,
-             size_t npowers, size_t nthreads, aes_randstate_t rng);
+mife_encrypt(const mife_sk_t *sk, size_t slot, const int *inputs, size_t npowers,
+             size_t nthreads, mife_encrypt_pool_info_t *pi, aes_randstate_t rng);
 
 int
 mife_decrypt(const mife_ek_t *ek, int *rop, mife_ciphertext_t **cts,

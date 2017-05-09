@@ -44,6 +44,9 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
 {
     obfuscation *obf;
     mife_sk_t *sk;
+    mife_encrypt_pool_info_t pi;
+    pthread_mutex_t lock;
+    size_t count = 0;
 
     const circ_params_t *const cp = &op->cp;
     const size_t ninputs = cp->n;
@@ -54,6 +57,13 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     obf->ek = mife_ek(obf->mife);
     sk = mife_sk(obf->mife);
     obf->cts = my_calloc(ninputs, sizeof obf->cts[0]);
+
+    pthread_mutex_init(&lock, NULL);
+    pi.pool = threadpool_create(nthreads);
+    pi.lock = &lock;
+    pi.count = &count;
+    pi.total = mobf_num_encodings(op);
+    
     for (size_t i = 0; i < ninputs; ++i) {
         obf->cts[i] = my_calloc(cp->qs[i], sizeof obf->cts[i][0]);
         for (size_t j = 0; j < cp->qs[i]; ++j) {
@@ -71,12 +81,17 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
                     inputs[k] = j;
                 }
             }
-            obf->cts[i][j] = mife_encrypt(sk, i, inputs, op->npowers, nthreads, rng);
+            obf->cts[i][j] = mife_encrypt(sk, i, inputs, op->npowers, nthreads,
+                                          &pi, rng);
         }
     }
+    threadpool_destroy(pi.pool);
+    pthread_mutex_destroy(&lock);
     mife_sk_free(sk);
     return obf;
 error:
+    threadpool_destroy(pi.pool);
+    pthread_mutex_destroy(&lock);
     mife_sk_free(sk);
     _free(obf);
     return NULL;
