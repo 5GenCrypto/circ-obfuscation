@@ -51,7 +51,7 @@ cleanup:
 
 int
 obf_run_evaluate(const mmap_vtable *mmap, const obfuscator_vtable *vt, 
-                 const char *fname, obf_params_t *op, const int *input,
+                 const char *fname, obf_params_t *op, const int *inputs,
                  int *output, size_t nthreads, size_t *kappa,
                  size_t *max_npowers)
 {
@@ -76,7 +76,7 @@ obf_run_evaluate(const mmap_vtable *mmap, const obfuscator_vtable *vt,
         fprintf(stderr, "read from disk: %.2fs\n", _end - _start);
 
     _start = current_time();
-    if (vt->evaluate(obf, output, input, nthreads, kappa, max_npowers) == ERR)
+    if (vt->evaluate(obf, output, inputs, nthreads, kappa, max_npowers) == ERR)
         goto cleanup;
     _end = current_time();
     if (g_verbose)

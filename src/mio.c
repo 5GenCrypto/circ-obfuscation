@@ -486,7 +486,8 @@ cmd_mife_encrypt(int argc, char **argv, args_t *args)
     handle_options(&argc, &argv, 2, args, &args_, mife_encrypt_handle_options, mife_encrypt_usage);
     int input[strlen(argv[0])];
     for (size_t i = 0; i < strlen(argv[0]); ++i) {
-        input[i] = argv[0][i] - '0';
+        if ((input[i] = char_to_int(argv[0][i])) < 0)
+            goto cleanup;
     }
     int slot = atoi(argv[1]);
     if (mife_select_scheme(&args->circ, args->sigma, args->symlen, args->base, &op_vt, &op) == ERR)
@@ -876,7 +877,8 @@ cmd_obf_evaluate(int argc, char **argv, args_t *args)
         int output[op->cp.m];
         char fname[strlen(args->circuit) + sizeof ".obf\0"];
         for (size_t i = 0; i < strlen(argv[0]); ++i) {
-            input[i] = argv[0][i] - '0';
+            if ((input[i] = char_to_int(argv[0][i])) < 0)
+                goto cleanup;
         }
         snprintf(fname, sizeof fname, "%s.obf", args->circuit);
         if (obf_run_evaluate(args->vt, vt, fname, op, input, output, args->nthreads,

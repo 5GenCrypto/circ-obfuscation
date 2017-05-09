@@ -834,22 +834,12 @@ raise_encodings(const mife_ek_t *ek, mife_ciphertext_t **cts,
     index_set *ix;
     int ret = ERR;
     ix = index_set_union(ek->enc_vt->mmap_set(x), ek->enc_vt->mmap_set(y));
-    /* printf("==========\n%d %d\n", */
-    /*        encoding_get_degree(ek->enc_vt, x), */
-    /*        encoding_get_degree(ek->enc_vt, y)); */
-    /* encoding_print(ek->enc_vt, x); */
-    /* encoding_print(ek->enc_vt, y); */
     if (ix == NULL)
         goto cleanup;
     if (raise_encoding(ek, cts, x, ix) == ERR)
         goto cleanup;
     if (raise_encoding(ek, cts, y, ix) == ERR)
         goto cleanup;
-    /* printf("%d %d\n", */
-    /*        encoding_get_degree(ek->enc_vt, x), */
-    /*        encoding_get_degree(ek->enc_vt, y)); */
-    /* encoding_print(ek->enc_vt, x); */
-    /* encoding_print(ek->enc_vt, y); */
     ret = OK;
 cleanup:
     if (ix)
@@ -877,18 +867,19 @@ decrypt_worker(void *vargs)
     const acirc_operation op = c->gates.gates[ref].op;
     const acircref *const args = c->gates.gates[ref].args;
     encoding *res = NULL;
-    size_t idx = 0;
 
     switch (op) {
     case OP_CONST: {
         const size_t bit = circ_params_bit(cp, cp->circ->ninputs + args[0]);
+        /* XXX: check that bit is valid! */
         res = ek->constants->xhat[bit];
         mine[ref] = false;
         break;
     }
     case OP_INPUT: {
-        const size_t slot = circ_params_slot(cp, args[0] + idx);
-        const size_t bit = circ_params_bit(cp, args[0] + idx);
+        const size_t slot = circ_params_slot(cp, args[0]);
+        const size_t bit = circ_params_bit(cp, args[0]);
+        /* XXX: check that slot and bit are valid! */
         res = cts[slot]->xhat[bit];
         mine[ref] = false;
         break;

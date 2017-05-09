@@ -98,11 +98,11 @@ get_input_syms(const int *inputs, size_t ninputs, reverse_chunker rchunker,
             else
                 input_syms[i] += inputs[k] << j;
         }
-        if ((size_t) input_syms[i] >= q) {
-            fprintf(stderr, "error: invalid input (%d > |Σ|)\n", input_syms[i]);
-            free(input_syms);
-            return NULL;
-        }
+        /* if ((size_t) input_syms[i] >= q) { */
+        /*     fprintf(stderr, "error: invalid input (%d > |Σ|)\n", input_syms[i]); */
+        /*     free(input_syms); */
+        /*     return NULL; */
+        /* } */
     }
     return input_syms;
 }

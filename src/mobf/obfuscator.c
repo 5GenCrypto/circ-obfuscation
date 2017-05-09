@@ -64,7 +64,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
                 else if (cp->qs[i] == 2)
                     inputs[k] = bit(j, k);
                 else {
-                    if (cp->ds[i] != 1) {
+                    if (cp->qs[i] != 1 && cp->ds[i] != 1) {
                         fprintf(stderr, "error: don't yet support base != 2 and symlen > 1\n");
                         goto error;
                     }

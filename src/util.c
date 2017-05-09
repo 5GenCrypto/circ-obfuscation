@@ -1,6 +1,7 @@
 #include "util.h"
 
 #include <assert.h>
+#include <ctype.h>
 #include <fcntl.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -66,7 +67,7 @@ static void
 array_printstring_rev(const int *xs, size_t n)
 {
     for (size_t i = n; i > 0; i--)
-        printf("%d", xs[i-1]);
+        printf("%c", int_to_char(xs[i-1]));
 }
 
 mpz_t *
@@ -370,4 +371,28 @@ print_test_output(size_t num, const int *inp, size_t ninputs, const int *expecte
     array_printstring_rev(got, noutputs);
     printf("\033[0m\n");
     return ok;
+}
+
+int
+char_to_int(char c)
+{
+    if (toupper(c) >= 'A' && toupper(c) <= 'Z')
+        return toupper(c) - 'A' + 10;
+    else if (c >= '0' && c <= '9')
+        return c - '0';
+    else {
+        fprintf(stderr, "error: invalid input '%c'\n", c);
+        return -1;
+    }
+}
+
+char
+int_to_char(int i)
+{
+    if (i > 36)
+        return -1;
+    else if (i >= 10)
+        return i + 55;
+    else
+        return i + 48;
 }
