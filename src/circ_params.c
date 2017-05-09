@@ -4,7 +4,7 @@
 #include <assert.h>
 
 int
-circ_params_init(circ_params_t *cp, size_t n, const acirc *circ)
+circ_params_init(circ_params_t *cp, size_t n, acirc *circ)
 {
     cp->n = n;
     cp->c = circ->consts.n;
@@ -12,8 +12,6 @@ circ_params_init(circ_params_t *cp, size_t n, const acirc *circ)
     cp->circ = circ;
     cp->ds = my_calloc(n, sizeof cp->ds[0]);
     cp->qs = my_calloc(n, sizeof cp->ds[0]);
-    if (cp->ds == NULL)
-        return ERR;
     return OK;
 }
 
@@ -24,6 +22,39 @@ circ_params_clear(circ_params_t *cp)
         free(cp->ds);
     if (cp->qs)
         free(cp->qs);
+}
+
+int
+circ_params_fwrite(const circ_params_t *const cp, FILE *fp)
+{
+    fprintf(fp, "%lu\n", cp->n);
+    fprintf(fp, "%lu\n", cp->c);
+    fprintf(fp, "%lu\n", cp->m);
+    for (size_t i = 0; i < cp->n; ++i) {
+        fprintf(fp, "%lu\n", cp->ds[i]);
+    }
+    for (size_t i = 0; i < cp->n; ++i) {
+        fprintf(fp, "%lu\n", cp->qs[i]);
+    }
+    return OK;
+}
+
+int
+circ_params_fread(circ_params_t *const cp, acirc *circ, FILE *fp)
+{
+    fscanf(fp, "%lu\n", &cp->n);
+    fscanf(fp, "%lu\n", &cp->c);
+    fscanf(fp, "%lu\n", &cp->m);
+    cp->ds = my_calloc(cp->n, sizeof cp->ds[0]);
+    cp->qs = my_calloc(cp->n, sizeof cp->qs[0]);
+    for (size_t i = 0; i < cp->n; ++i) {
+        fscanf(fp, "%lu\n", &cp->ds[i]);
+    }
+    for (size_t i = 0; i < cp->n; ++i) {
+        fscanf(fp, "%lu\n", &cp->qs[i]);
+    }
+    cp->circ = circ;
+    return OK;
 }
 
 size_t

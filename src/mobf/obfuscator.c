@@ -45,7 +45,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
 
     obf = my_calloc(1, sizeof obf[0]);
     obf->op = op;
-    mife = mife_setup(mmap, op, secparam, rng, kappa, nthreads);
+    mife = mife_setup(mmap, op, secparam, kappa, nthreads, rng);
     obf->ek = mife_ek(mife);
     sk = mife_sk(mife);
 
@@ -71,8 +71,8 @@ _evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
     (void) max_npowers;
     const circ_params_t *cp = &obf->op->cp;
     const acirc *const circ = cp->circ;
-    const size_t consts = cp->circ->consts.n ? 1 : 0;
-    const size_t ninputs = cp->n - consts;
+    const size_t has_consts = cp->c ? 1 : 0;
+    const size_t ninputs = cp->n - has_consts;
     const size_t ell = array_max(cp->ds, ninputs);
     const size_t q = array_max(cp->qs, ninputs);
 
@@ -80,15 +80,15 @@ _evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
     int *input_syms;
 
     input_syms = get_input_syms(inputs, circ->ninputs, obf->op->rchunker,
-                                cp->n - consts, ell, q, obf->op->sigma);
+                                cp->n - has_consts, ell, q, obf->op->sigma);
     if (input_syms == NULL)
         return ERR;
     cts = my_calloc(cp->n, sizeof cts[0]);
 
-    for (size_t i = 0; i < cp->n - consts; ++i) {
+    for (size_t i = 0; i < cp->n - has_consts; ++i) {
         cts[i] = obf->cts[i][input_syms[i]];
     }
-    if (consts)
+    if (has_consts)
         cts[cp->n - 1] = obf->cts[cp->n - 1][0];
 
     memset(rop, '\0', cp->m * sizeof rop[0]);

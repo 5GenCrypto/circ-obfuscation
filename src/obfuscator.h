@@ -1,6 +1,6 @@
 #pragma once
 
-#include "./mmap.h"
+#include "mmap.h"
 
 typedef struct obfuscation obfuscation;
 typedef struct {

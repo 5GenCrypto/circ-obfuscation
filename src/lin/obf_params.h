@@ -12,7 +12,7 @@ struct obf_params_t {
     size_t M;       // max type degree in circuit over all output wires
     size_t d;       // max regular degree of the circuit over all output wires
     size_t D;
-    bool sigma;
+    int sigma;
     input_chunker chunker;
     reverse_chunker rchunker;
 };

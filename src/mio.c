@@ -83,8 +83,7 @@ args_usage(void)
 "    --nthreads N       set the number of threads to N (default: %lu)\n"
 "    --verbose          be verbose\n"
 "    --help             print this message and exit\n",
-mmap, defaults.sigma ? "yes" : "no", defaults.symlen, defaults.nthreads
-        );
+mmap, defaults.sigma ? "yes" : "no", defaults.symlen, defaults.nthreads);
     args_clear(&defaults);
 }
 
@@ -167,13 +166,13 @@ obf_obfuscate_args_init(obf_obfuscate_args_t *args)
 {
     args->secparam = 8;
     args->npowers = 8;
-    args->scheme = SCHEME_LZ;
+    args->scheme = SCHEME_MIFE;
 }
 
 static void
 obf_obfuscate_args_usage(void)
 {
-    printf("    --scheme S         set obfuscation scheme to S (options: LIN, LZ, MIFE | default: LZ)\n"
+    printf("    --scheme S         set obfuscation scheme to S (options: LIN, LZ, MIFE | default: MIFE)\n"
            "    --secparam λ       set security parameter to λ (default: 8)\n"
            "    --npowers N        set the number of powers to N (default: 8)\n");
 }
@@ -187,13 +186,13 @@ static void
 obf_evaluate_args_init(obf_evaluate_args_t *args)
 {
     args->npowers = 8;
-    args->scheme = SCHEME_LZ;
+    args->scheme = SCHEME_MIFE;
 }
 
 static void
 obf_evaluate_args_usage(void)
 {
-    printf("    --scheme S         set obfuscation scheme to S (options: LZ, MIFE | default: LZ)\n"
+    printf("    --scheme S         set obfuscation scheme to S (options: LZ, MIFE | default: MIFE)\n"
            "    --npowers N        set the number of powers to N (default: 8)\n");
 }
 
@@ -952,6 +951,7 @@ obf_get_kappa_usage(bool longform, int ret)
     printf("usage: %s obf get-kappa [<args>] circuit\n", progname);
     if (longform) {
         printf("\nAvailable arguments:\n\n");
+        obf_get_kappa_args_usage();
         args_usage();
         printf("\n");
     }
