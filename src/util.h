@@ -94,3 +94,5 @@ int
 char_to_int(char c);
 char
 int_to_char(int i);
+int
+memory(unsigned long *size, unsigned long *resident);

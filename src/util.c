@@ -396,3 +396,20 @@ int_to_char(int i)
     else
         return i + 48;
 }
+
+int
+memory(unsigned long *size, unsigned long *resident)
+{
+    FILE *fp;
+    const char *f = "/proc/self/statm";
+
+    if ((fp = fopen(f, "r")) == NULL)
+        return ERR;
+    if (fscanf(fp, "%ld %ld", size, resident) != 2) {
+        return ERR;
+    }
+    fclose(fp);
+    *size = *size * 4 / 1024;
+    *resident = *resident * 4 / 1024;
+    return OK;
+}

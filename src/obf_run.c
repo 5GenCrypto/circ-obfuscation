@@ -43,6 +43,11 @@ obf_run_obfuscate(const mmap_vtable *mmap, const obfuscator_vtable *vt,
     end = current_time();
     if (g_verbose)
         fprintf(stderr, "obfuscate total: %.2fs\n", end - start);
+    if (g_verbose) {
+        unsigned long size, resident;
+        if (memory(&size, &resident) == OK)
+            fprintf(stderr, "memory:          %luM\n", resident);
+    }
     ret = OK;
 cleanup:
     vt->free(obf);
@@ -85,6 +90,11 @@ obf_run_evaluate(const mmap_vtable *mmap, const obfuscator_vtable *vt,
     end = current_time();
     if (g_verbose)
         fprintf(stderr, "evaluate total: %.2fs\n", end - start);
+    if (g_verbose) {
+        unsigned long size, resident;
+        if (memory(&size, &resident) == OK)
+            fprintf(stderr, "memory:          %luM\n", resident);
+    }
     ret = OK;
 cleanup:
     fclose(fp);
