@@ -20,6 +20,7 @@ typedef struct {
     pthread_mutex_t *lock;
     size_t *count;
     size_t total;
+    FILE *fp;
 } mife_encrypt_pool_info_t;
 
 extern op_vtable mife_op_vtable;

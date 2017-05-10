@@ -23,6 +23,7 @@ typedef struct mife_t {
     encoding ***uhat;           /* [n][npowers] */
     mife_ciphertext_t *constants;
     mpz_t *const_betas;
+    size_t *deg_max;            /* [n] */
 } mife_t;
 
 typedef struct mife_sk_t {
@@ -34,6 +35,7 @@ typedef struct mife_sk_t {
     secret_params *sp;
     public_params *pp;
     mpz_t *const_betas;
+    size_t *deg_max;            /* [n] */
     bool local;
 } mife_sk_t;
 
@@ -79,7 +81,7 @@ typedef struct {
     bool *mine;
     int *ready;
     void *cache;
-    ref_list **deps;
+    ref_list *deps;
     threadpool *pool;
     int *rop;
     size_t *kappas;
@@ -105,9 +107,8 @@ populate_circ_degrees(const circ_params_t *cp, size_t **deg, size_t *deg_max)
         }
     }
     if (has_consts) {
-        for (size_t o = 0; o < noutputs; ++o) {
+        for (size_t o = 0; o < noutputs; ++o)
             deg[cp->n - 1][o] = acirc_max_const_degree(circ);
-        }
         deg_max[cp->n - 1] = acirc_max_const_degree(circ);
     }
     acirc_memo_free(memo, circ);
@@ -226,6 +227,8 @@ mife_free(mife_t *mife)
         public_params_free(mife->pp_vt, mife->pp);
     if (mife->sp)
         secret_params_free(mife->sp_vt, mife->sp);
+    if (mife->deg_max)
+        free(mife->deg_max);
     free(mife);
 }
 
@@ -238,8 +241,8 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     const circ_params_t *cp = &op->cp;
     const size_t has_consts = cp->c ? 1 : 0;
     const size_t noutputs = cp->m;
+    size_t **deg;
     mpz_t *moduli = NULL;
-    size_t **deg, *deg_max;
     threadpool *pool = threadpool_create(nthreads);
     pthread_mutex_t lock;
     size_t count = 0;
@@ -267,22 +270,20 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     mife->uhat = my_calloc(cp->n, sizeof mife->uhat[0]);
     for (size_t i = 0; i < cp->n; ++i) {
         mife->uhat[i] = my_calloc(mife->npowers, sizeof mife->uhat[i][0]);
-        for (size_t p = 0; p < mife->npowers; ++p) {
+        for (size_t p = 0; p < mife->npowers; ++p)
             mife->uhat[i][p] = encoding_new(mife->enc_vt, mife->pp_vt, mife->pp);
-        }
     }
     if (has_consts)
         mife->const_betas = my_calloc(cp->c, sizeof mife->const_betas[0]);
 
-    moduli = mpz_vect_create_of_fmpz(mmap->sk->plaintext_fields(mife->sp->sk),
-                                     mmap->sk->nslots(mife->sp->sk));
-
     deg = my_calloc(cp->n, sizeof deg[0]);
     for (size_t i = 0; i < cp->n; ++i)
         deg[i] = my_calloc(noutputs, sizeof deg[i][0]);
-    deg_max = my_calloc(cp->n, sizeof deg_max[0]);
+    mife->deg_max = my_calloc(cp->n, sizeof mife->deg_max[0]);
+    populate_circ_degrees(cp, deg, mife->deg_max);
 
-    populate_circ_degrees(cp, deg, deg_max);
+    moduli = mpz_vect_create_of_fmpz(mmap->sk->plaintext_fields(mife->sp->sk),
+                                     mmap->sk->nslots(mife->sp->sk));
 
     pthread_mutex_init(&lock, NULL);
 
@@ -305,7 +306,7 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         for (size_t i = 0; i < cp->n; ++i) {
             mpz_set_ui(inps[1 + i], 1);
             IX_W(ix, cp, i) = 1;
-            IX_X(ix, cp, i) = deg_max[i] - deg[i][o];
+            IX_X(ix, cp, i) = mife->deg_max[i] - deg[i][o];
         }
         IX_Z(ix) = 1;
         __encode(pool, mife->enc_vt, mife->zhat[o], inps, 1 + cp->n,
@@ -344,7 +345,7 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         mpz_set_ui(inps[0], 0);
         for (size_t i = 0; i < cp->n; ++i) {
             mpz_set_ui(inps[1 + i], 1);
-            IX_X(ix, cp, i) = deg_max[i];
+            IX_X(ix, cp, i) = mife->deg_max[i];
         }
         IX_Z(ix) = 1;
         __encode(pool, mife->enc_vt, mife->Chatstar, inps, 1 + cp->n,
@@ -358,7 +359,6 @@ cleanup:
     for (size_t i = 0; i < cp->n; ++i)
         free(deg[i]);
     free(deg);
-    free(deg_max);
     mpz_vect_free(moduli, mmap->sk->nslots(mife->sp->sk));
     threadpool_destroy(pool);
     pthread_mutex_destroy(&lock);
@@ -383,6 +383,7 @@ mife_sk(const mife_t *mife)
     sk->sp = mife->sp;
     sk->pp = mife->pp;
     sk->const_betas = mife->const_betas;
+    sk->deg_max = mife->deg_max;
     sk->local = false;
     return sk;
 }
@@ -399,6 +400,8 @@ mife_sk_free(mife_sk_t *sk)
             secret_params_free(sk->sp_vt, sk->sp);
         if (sk->const_betas)
             mpz_vect_free(sk->const_betas, sk->cp->c);
+        if (sk->deg_max)
+            free(sk->deg_max);
     }
     free(sk);
 }
@@ -411,6 +414,8 @@ mife_sk_fwrite(const mife_sk_t *sk, FILE *fp)
     if (sk->cp->c)
         for (size_t o = 0; o < sk->cp->c; ++o)
             gmp_fprintf(fp, "%Zd\n", sk->const_betas[o]);
+    for (size_t i = 0; i < sk->cp->n; ++i)
+        fprintf(fp, "%lu\n", sk->deg_max[i]);
     return OK;
 }
 
@@ -441,6 +446,10 @@ mife_sk_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
         sk->const_betas = my_calloc(sk->cp->c, sizeof sk->const_betas[0]);
         for (size_t o = 0; o < sk->cp->c; ++o)
             gmp_fscanf(fp, "%Zd\n", &sk->const_betas[o]);
+    }
+    sk->deg_max = my_calloc(sk->cp->n, sizeof sk->deg_max[0]);
+    for (size_t i = 0; i < sk->cp->n; ++i) {
+            fscanf(fp, "%lu\n", &sk->deg_max[i]);
     }
     sk->local = true;
     return sk;
@@ -727,22 +736,10 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const int *inputs,
         index_set_clear(ix);
         IX_W(ix, cp, slot) = 1;
         if (slot == 0 && has_consts) {
-            size_t **deg;
-            size_t *deg_max;
-
-            deg = my_calloc(cp->n, sizeof deg[0]);
             for (size_t i = 0; i < cp->n; ++i)
-                deg[i] = my_calloc(noutputs, sizeof deg[i][0]);
-            deg_max = my_calloc(cp->n, sizeof deg_max[0]);
-            populate_circ_degrees(cp, deg, deg_max);
-            for (size_t i = 0; i < cp->n; ++i)
-                IX_X(ix, cp, i) = deg_max[i];
+                IX_X(ix, cp, i) = sk->deg_max[i];
             IX_W(ix, cp, cp->n - 1) = 1;
             IX_Z(ix) = 1;
-            for (size_t i = 0; i < cp->n; ++i)
-                free(deg[i]);
-            free(deg);
-            free(deg_max);
         }
         mpz_set_ui(slots[0], 0);
         for (size_t o = 0; o < noutputs; ++o) {
@@ -860,7 +857,7 @@ decrypt_worker(void *vargs)
     bool *const mine = dargs->mine;
     int *const ready = dargs->ready;
     encoding **cache = dargs->cache;
-    ref_list *const *const deps = dargs->deps;
+    ref_list *const deps = dargs->deps;
     threadpool *const pool = dargs->pool;
     int *const rop = dargs->rop;
     size_t *const kappas = dargs->kappas;
@@ -923,18 +920,14 @@ decrypt_worker(void *vargs)
 
     cache[ref] = res;
 
-    {
-        ref_list_node *cur = deps[ref]->first;
-        while (cur != NULL) {
-            const int num = __sync_add_and_fetch(&ready[cur->ref], 1);
-            if (num == 2) {
-                decrypt_args_t *newargs = my_calloc(1, sizeof newargs[0]);
-                memcpy(newargs, dargs, sizeof newargs[0]);
-                newargs->ref = cur->ref;
-                threadpool_add_job(pool, decrypt_worker, newargs);
-            } else {
-                cur = cur->next;
-            }
+    ref_list_node *node = &deps->refs[ref];
+    for (size_t i = 0; i < node->cur; ++i) {
+        const int num = __sync_add_and_fetch(&ready[node->refs[i]], 1);
+        if (num == 2) {
+            decrypt_args_t *newargs = my_calloc(1, sizeof newargs[0]);
+            memcpy(newargs, dargs, sizeof newargs[0]);
+            newargs->ref = node->refs[i];
+            threadpool_add_job(pool, decrypt_worker, newargs);
         }
     }
 
@@ -1015,7 +1008,7 @@ mife_decrypt(const mife_ek_t *ek, int *rop, mife_ciphertext_t **cts,
     bool *mine = my_calloc(acirc_nrefs(circ), sizeof mine[0]);
     int *ready = my_calloc(acirc_nrefs(circ), sizeof ready[0]);
     size_t *kappas = NULL;
-    ref_list **deps = ref_lists_new(circ);
+    ref_list *deps = ref_list_new(circ);
     threadpool *pool = threadpool_create(nthreads);
 
     if (kappa)
@@ -1059,7 +1052,7 @@ mife_decrypt(const mife_ek_t *ek, int *rop, mife_ciphertext_t **cts,
             encoding_free(ek->enc_vt, cache[i]);
         }
     }
-    ref_lists_free(deps, circ);
+    ref_list_free(deps);
     free(cache);
     free(mine);
     free(ready);

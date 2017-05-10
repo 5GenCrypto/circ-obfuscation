@@ -44,7 +44,7 @@ typedef struct work_args {
     bool *mine;
     int *ready;
     void *cache;
-    ref_list **deps;
+    ref_list *deps;
     threadpool *pool;
     size_t *kappas;
     int *rop;
@@ -962,7 +962,6 @@ wire_constrained_sub(const encoding_vtable *vt, const pp_vtable *pp_vt,
     return OK;
 }
 
-#define info(x) (x)->info
 static bool
 wire_type_eq(const wire *x, const wire *y)
 {
@@ -973,7 +972,8 @@ wire_type_eq(const wire *x, const wire *y)
     return true;
 }
 
-static void eval_worker(void *vargs)
+static void
+eval_worker(void *vargs)
 {
     work_args *const wargs = vargs;
     const acircref ref = wargs->ref;
@@ -983,7 +983,7 @@ static void eval_worker(void *vargs)
     bool *const mine = wargs->mine;
     int *const ready = wargs->ready;
     wire **cache = wargs->cache;
-    ref_list *const *const deps = wargs->deps;
+    ref_list *const deps = wargs->deps;
     threadpool *const pool = wargs->pool;
     size_t *const kappas = wargs->kappas;
     int *const rop = wargs->rop;
@@ -1056,17 +1056,14 @@ static void eval_worker(void *vargs)
 
     assert(ret == OK);
 
-    // signal parents that this ref is done
-    ref_list_node *cur = deps[ref]->first;
-    while (cur != NULL) {
-        const int num = __sync_add_and_fetch(&ready[cur->ref], 1);
+    ref_list_node *node = &deps->refs[ref];
+    for (size_t i = 0; i < node->cur; ++i) {
+        const int num = __sync_add_and_fetch(&ready[node->refs[i]], 1);
         if (num == 2) {
             work_args *newargs = my_calloc(1, sizeof newargs[0]);
             memcpy(newargs, wargs, sizeof newargs[0]);
-            newargs->ref = cur->ref;
+            newargs->ref = node->refs[i];
             threadpool_add_job(pool, eval_worker, newargs);
-        } else {
-            cur = cur->next;
         }
     }
 
@@ -1117,25 +1114,32 @@ static void eval_worker(void *vargs)
 
 
 static int
-_evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
+_evaluate(const obfuscation *obf, int *outputs, size_t noutputs,
+          const int *inputs, size_t ninputs, size_t nthreads,
           size_t *kappa, size_t *max_npowers)
 {
     (void) max_npowers;
     const circ_params_t *cp = &obf->op->cp;
     const acirc *const c = cp->circ;
     const size_t has_consts = cp->circ->consts.n ? 1 : 0;
-    const size_t ninputs = cp->n - has_consts;
-    const size_t noutputs = cp->m;
-    const size_t ell = array_max(cp->ds, ninputs);
-    const size_t q = array_max(cp->qs, ninputs);
+    const size_t ell = array_max(cp->ds, cp->n - has_consts);
+    const size_t q = array_max(cp->qs, cp->n - has_consts);
+
+    if (ninputs != c->ninputs) {
+        fprintf(stderr, "error: obf evaluate: invalid number of inputs\n");
+        return ERR;
+    } else if (noutputs != cp->m) {
+        fprintf(stderr, "error: obf evaluate: invalid number of outputs\n");
+        return ERR;
+    }
 
     wire **cache = my_calloc(acirc_nrefs(c), sizeof cache[0]);
     bool *mine = my_calloc(acirc_nrefs(c), sizeof mine[0]);
     int *ready = my_calloc(acirc_nrefs(c), sizeof ready[0]);
     size_t *kappas = my_calloc(noutputs, sizeof kappas[0]);
     int *input_syms = get_input_syms(inputs, c->ninputs, obf->op->rchunker,
-                                     ninputs, ell, q, obf->op->sigma);
-    ref_list **deps = ref_lists_new(c);
+                                     cp->n - has_consts, ell, q, obf->op->sigma);
+    ref_list *deps = ref_list_new(c);
     threadpool *pool = threadpool_create(nthreads);
 
     for (size_t ref = 0; ref < acirc_nrefs(c); ref++) {
@@ -1153,7 +1157,7 @@ _evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
         args->cache  = cache;
         args->deps   = deps;
         args->pool   = pool;
-        args->rop    = rop;
+        args->rop    = outputs;
         args->kappas = kappas;
         threadpool_add_job(pool, eval_worker, args);
     }
@@ -1175,7 +1179,7 @@ _evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
             free(cache[i]);
         }
     }
-    ref_lists_free(deps, c);
+    ref_list_free(deps);
     free(cache);
     free(mine);
     free(ready);

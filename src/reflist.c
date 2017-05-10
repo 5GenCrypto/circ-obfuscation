@@ -1,76 +1,40 @@
 #include "reflist.h"
 #include "util.h"
 
-static ref_list_node *
-ref_list_node_create(acircref ref)
-{
-    ref_list_node *new = my_calloc(1, sizeof(ref_list_node));
-    new->next = NULL;
-    new->ref  = ref;
-    return new;
-}
-
-static ref_list *
-ref_list_create(void)
-{
-    ref_list *list = my_calloc(1, sizeof(ref_list));
-    list->first = NULL;
-    return list;
-}
-
 static void
-ref_list_destroy(ref_list *list)
+push(ref_list_node *node, acircref ref)
 {
-    ref_list_node *cur = list->first;
-    while (cur != NULL) {
-        ref_list_node *tmp = cur;
-        cur = cur->next;
-        free(tmp);
+    if (node->max == 0) {
+        node->max = 2;
+        node->refs = my_calloc(node->max, sizeof node->refs[0]);
+    } else if (node->cur == node->max) {
+        node->max *= 2;
+        node->refs = realloc(node->refs, node->max * sizeof node->refs[0]);
     }
-    free(list);
+    node->refs[node->cur++] = ref;
 }
 
-static void
-ref_list_push(ref_list *list, acircref ref)
+ref_list *
+ref_list_new(const acirc *c)
 {
-    ref_list_node *cur = list->first;
-    if (cur == NULL) {
-        list->first = ref_list_node_create(ref);
-        return;
-    }
-    while (1) {
-        if (cur->next == NULL) {
-            cur->next = ref_list_node_create(ref);
-            return;
-        }
-        cur = cur->next;
-    }
-}
-
-ref_list **
-ref_lists_new(const acirc *c)
-{
-    ref_list **lists = my_calloc(acirc_nrefs(c), sizeof lists[0]);
-    for (size_t i = 0; i < acirc_nrefs(c); i++) {
-        lists[i] = ref_list_create();
-    }
-    for (size_t ref = 0; ref < acirc_nrefs(c); ref++) {
+    const size_t nrefs = acirc_nrefs(c);
+    ref_list *lst = my_calloc(1, sizeof lst[0]);
+    lst->refs = my_calloc(nrefs, sizeof lst->refs[0]);
+    for (size_t ref = 0; ref < nrefs; ++ref) {
         acirc_operation op = c->gates.gates[ref].op;
         if (op == OP_INPUT || op == OP_CONST)
             continue;
         acircref x = c->gates.gates[ref].args[0];
         acircref y = c->gates.gates[ref].args[1];
-        ref_list_push(lists[x], ref);
-        ref_list_push(lists[y], ref);
+        push(&lst->refs[x], ref);
+        push(&lst->refs[y], ref);
     }
-    return lists;
+    return lst;
 }
 
 void
-ref_lists_free(ref_list **lists, const acirc *c)
+ref_list_free(ref_list *lst)
 {
-    for (size_t i = 0; i < acirc_nrefs(c); i++) {
-        ref_list_destroy(lists[i]);
-    }
-    free(lists);
+    free(lst->refs);
+    free(lst);
 }

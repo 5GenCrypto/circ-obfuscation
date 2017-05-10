@@ -863,40 +863,49 @@ cleanup:
 static int
 cmd_obf_evaluate(int argc, char **argv, args_t *args)
 {
-    obf_evaluate_args_t evaluate_args;
+    obf_evaluate_args_t args_;
     obfuscator_vtable *vt = NULL;
     op_vtable *op_vt = NULL;
     obf_params_t *op = NULL;
+    int *input = NULL, *output = NULL;
+    char *fname = NULL;
+    size_t length;
     int ret = ERR;
 
     argv++; argc--;
-    obf_evaluate_args_init(&evaluate_args);
-    handle_options(&argc, &argv, 1, args, &evaluate_args,
-                   obf_evaluate_handle_options, obf_evaluate_usage);
-    if (obf_select_scheme(evaluate_args.scheme, &args->circ, evaluate_args.npowers,
-                          args->sigma, args->symlen, args->base, &vt, &op_vt, &op) == ERR)
+    obf_evaluate_args_init(&args_);
+    handle_options(&argc, &argv, 1, args, &args_, obf_evaluate_handle_options, obf_evaluate_usage);
+    if (obf_select_scheme(args_.scheme, &args->circ, args_.npowers, args->sigma,
+                          args->symlen, args->base, &vt, &op_vt, &op) == ERR)
         goto cleanup;
 
-    {
-        int input[strlen(argv[0])];
-        int output[op->cp.m];
-        char fname[strlen(args->circuit) + sizeof ".obf\0"];
-        for (size_t i = 0; i < strlen(argv[0]); ++i) {
-            if ((input[i] = char_to_int(argv[0][i])) < 0)
-                goto cleanup;
-        }
-        snprintf(fname, sizeof fname, "%s.obf", args->circuit);
-        if (obf_run_evaluate(args->vt, vt, fname, op, input, output, args->nthreads,
-                             NULL, NULL) == ERR)
+    input = my_calloc(strlen(argv[0]), sizeof input[0]);
+    output = my_calloc(op->cp.m, sizeof output[0]);
+    length = snprintf(NULL, 0, "%s.obf\n", args->circuit);
+    fname = my_calloc(length, sizeof fname[0]);
+    snprintf(fname, length, "%s.obf", args->circuit);
+    
+    for (size_t i = 0; i < strlen(argv[0]); ++i) {
+        if ((input[i] = char_to_int(argv[0][i])) < 0)
             goto cleanup;
-        printf("result: ");
-        for (size_t i = 0; i < op->cp.m; ++i)
-            printf("%d", output[i]);
-        printf("\n");
     }
+    if (obf_run_evaluate(args->vt, vt, fname, op, input, strlen(argv[0]), output,
+                         op->cp.m, args->nthreads, NULL, NULL) == ERR)
+        goto cleanup;
+
+    printf("result: ");
+    for (size_t i = 0; i < op->cp.m; ++i)
+        printf("%c", int_to_char(output[i]));
+    printf("\n");
 
     ret = OK;
 cleanup:
+    if (input)
+        free(input);
+    if (output)
+        free(output);
+    if (fname)
+        free(fname);
     if (op)
         op_vt->free(op);
     return ret;
@@ -936,7 +945,8 @@ cmd_obf_test(int argc, char **argv, args_t *args)
     for (size_t t = 0; t < args->circ.tests.n; ++t) {
         int outp[op->cp.m];
         if (obf_run_evaluate(args->vt, vt, fname, op, args->circ.tests.inps[t],
-                             outp, args->nthreads, &kappa, NULL) == ERR)
+                             args->circ.ninputs, outp, args->circ.outputs.n,
+                             args->nthreads, &kappa, NULL) == ERR)
             goto cleanup;
         if (!print_test_output(t + 1, args->circ.tests.inps[t], args->circ.ninputs,
                                args->circ.tests.outs[t], outp, args->circ.outputs.n,

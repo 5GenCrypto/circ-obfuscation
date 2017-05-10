@@ -306,7 +306,7 @@ mife_run_smart_kappa(const char *circuit, obf_params_t *op, size_t npowers,
     const circ_params_t *cp = &op->cp;
     const size_t has_consts = cp->circ->consts.n ? 1 : 0;
     int *inps[cp->n - has_consts];
-    size_t kappa = 0;
+    size_t kappa = 1;
     bool verbosity = g_verbose;
 
     if (g_verbose)

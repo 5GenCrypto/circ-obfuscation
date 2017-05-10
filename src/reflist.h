@@ -2,16 +2,16 @@
 
 #include <acirc.h>
 
-typedef struct ref_list_node {
-    acircref ref;
-    struct ref_list_node *next;
+typedef struct {
+    size_t cur, max;
+    acircref *refs;
 } ref_list_node;
 
 typedef struct {
-    ref_list_node *first;
+    ref_list_node *refs;
 } ref_list;
 
-ref_list **
-ref_lists_new(const acirc *c);
+ref_list *
+ref_list_new(const acirc *c);
 void
-ref_lists_free(ref_list **lists, const acirc *c);
+ref_list_free(ref_list *lst);

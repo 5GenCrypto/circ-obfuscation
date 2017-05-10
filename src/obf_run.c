@@ -57,8 +57,8 @@ cleanup:
 int
 obf_run_evaluate(const mmap_vtable *mmap, const obfuscator_vtable *vt, 
                  const char *fname, obf_params_t *op, const int *inputs,
-                 int *output, size_t nthreads, size_t *kappa,
-                 size_t *max_npowers)
+                 size_t ninputs, int *outputs, size_t noutputs, size_t nthreads,
+                 size_t *kappa, size_t *npowers)
 {
     double start, end, _start, _end;
     obfuscation *obf;
@@ -81,7 +81,7 @@ obf_run_evaluate(const mmap_vtable *mmap, const obfuscator_vtable *vt,
         fprintf(stderr, "read from disk: %.2fs\n", _end - _start);
 
     _start = current_time();
-    if (vt->evaluate(obf, output, inputs, nthreads, kappa, max_npowers) == ERR)
+    if (vt->evaluate(obf, outputs, noutputs, inputs, ninputs, nthreads, kappa, npowers) == ERR)
         goto cleanup;
     _end = current_time();
     if (g_verbose)
@@ -110,7 +110,7 @@ obf_run_smart_kappa(const obfuscator_vtable *vt, const acirc *circ,
     int input[circ->ninputs];
     int output[circ->outputs.n];
     bool verbosity = g_verbose;
-    size_t kappa = 0;
+    size_t kappa = 1;
 
     if (g_verbose)
         fprintf(stderr, "Choosing κ smartly...\n");
@@ -118,13 +118,14 @@ obf_run_smart_kappa(const obfuscator_vtable *vt, const acirc *circ,
     g_verbose = false;
     if (obf_run_obfuscate(&dummy_vtable, vt, fname, op, 8, &kappa, nthreads, rng) == ERR) {
         fprintf(stderr, "error: unable to obfuscate to determine smart κ settings\n");
+        kappa = 0;
         goto cleanup;
     }
 
     memset(input, '\0', sizeof input);
     memset(output, '\0', sizeof output);
-    if (obf_run_evaluate(&dummy_vtable, vt, fname, op, input, output, nthreads,
-                          &kappa, NULL) == ERR) {
+    if (obf_run_evaluate(&dummy_vtable, vt, fname, op, input, circ->ninputs,
+                         output, circ->outputs.n, nthreads, &kappa, NULL) == ERR) {
         fprintf(stderr, "error: unable to evaluate to determine smart κ settings\n");
         kappa = 0;
     }

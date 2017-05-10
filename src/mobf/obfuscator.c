@@ -47,9 +47,13 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     mife_encrypt_pool_info_t pi;
     pthread_mutex_t lock;
     size_t count = 0;
+    double start, end, _start, _end;
 
     const circ_params_t *const cp = &op->cp;
     const size_t ninputs = cp->n;
+
+    /* MIFE setup */
+    start = _start = current_time();
 
     obf = my_calloc(1, sizeof obf[0]);
     obf->op = op;
@@ -57,6 +61,13 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     obf->ek = mife_ek(obf->mife);
     sk = mife_sk(obf->mife);
     obf->cts = my_calloc(ninputs, sizeof obf->cts[0]);
+
+    _end = current_time();
+    if (g_verbose)
+        fprintf(stderr, "  MIFE setup: %.2fs\n", _end - _start);
+
+    /* MIFE encryption */
+    _start = current_time();
 
     pthread_mutex_init(&lock, NULL);
     pi.pool = threadpool_create(nthreads);
@@ -87,6 +98,11 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     threadpool_destroy(pi.pool);
     pthread_mutex_destroy(&lock);
     mife_sk_free(sk);
+    end = _end = current_time();
+    if (g_verbose) {
+        fprintf(stderr, "  MIFE encrypt: %.2fs\n", _end - _start);
+        fprintf(stderr, "  Obfuscate: %.2fs\n", end - start);
+    }
     return obf;
 error:
     threadpool_destroy(pi.pool);
@@ -97,20 +113,27 @@ error:
 }
 
 static int
-_evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
-          size_t *kappa, size_t *max_npowers)
+_evaluate(const obfuscation *obf, int *outputs, size_t noutputs,
+          const int *inputs, size_t ninputs, size_t nthreads, size_t *kappa,
+          size_t *npowers)
 {
-    (void) max_npowers;
+    (void) npowers;
     const circ_params_t *cp = &obf->op->cp;
     const acirc *const circ = cp->circ;
     const size_t has_consts = cp->c ? 1 : 0;
-    const size_t ninputs = cp->n - has_consts;
-    const size_t ell = array_max(cp->ds, ninputs);
-    const size_t q = array_max(cp->qs, ninputs);
-    int ret = ERR;
-
+    const size_t ell = array_max(cp->ds, cp->n - has_consts);
+    const size_t q = array_max(cp->qs, cp->n - has_consts);
     mife_ciphertext_t **cts = NULL;
     int *input_syms = NULL;
+    int ret = ERR;
+
+    if (ninputs != circ->ninputs) {
+        fprintf(stderr, "error: obf evaluate: invalid number of inputs\n");
+        goto cleanup;
+    } else if (noutputs != cp->m) {
+        fprintf(stderr, "error: obf evaluate: invalid number of outputs\n");
+        goto cleanup;
+    }
 
     input_syms = get_input_syms(inputs, circ->ninputs, obf->op->rchunker,
                                 cp->n - has_consts, ell, q, obf->op->sigma);
@@ -122,8 +145,7 @@ _evaluate(const obfuscation *obf, int *rop, const int *inputs, size_t nthreads,
     }
     if (has_consts)
         cts[cp->n - 1] = obf->cts[cp->n - 1][0];
-    memset(rop, '\0', cp->m * sizeof rop[0]);
-    if (mife_decrypt(obf->ek, rop, cts, nthreads, kappa) == ERR)
+    if (mife_decrypt(obf->ek, outputs, cts, nthreads, kappa) == ERR)
         goto cleanup;
 
     ret = OK;
