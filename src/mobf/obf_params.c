@@ -51,10 +51,12 @@ _new(acirc *circ, void *vparams)
 
     if (g_verbose) {
         circ_params_print(&op->cp);
+        size_t nencodings = mobf_num_encodings(op);
+        nencodings += op->cp.m + op->cp.n * op->npowers + (op->cp.c ? op->cp.ds[op->cp.n - 1] : 1);
         fprintf(stderr, "Obfuscation parameters:\n");
         fprintf(stderr, "* Σ: ......... %s\n", op->sigma ? "Yes" : "No");
         fprintf(stderr, "* # powers: .. %lu\n", op->npowers);
-        fprintf(stderr, "* # encodings: %lu\n", mobf_num_encodings(op));
+        fprintf(stderr, "* # encodings: %lu\n", nencodings);
     }
 
     return op;
