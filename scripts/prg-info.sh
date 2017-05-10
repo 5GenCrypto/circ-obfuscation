@@ -46,7 +46,7 @@ while read -r input; do
     fi
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
     mode=$(get_mode "$line")
-    if [[ $mode != dsl && ! $mode =~ ^o ]]; then
+    if [[ $mode != dsl ]]; then
         continue
     fi
     if [[ $curname == "" ]]; then

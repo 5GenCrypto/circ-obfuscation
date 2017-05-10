@@ -49,6 +49,9 @@ while read -r input; do
         continue
     fi
     if [[ $name =~ ^ggm_sigma ]]; then
+        if [[ ! $name =~ ^ggm_sigma_(1|2|3|4)_16 ]]; then
+            continue
+        fi
         sigma=1
         if [ $total == 0 ]; then
             total=$count
@@ -57,6 +60,9 @@ while read -r input; do
         sigma=0
         ninputs=$(echo $line | cut -d',' -f3)
         noutputs=$(echo $line | cut -d',' -f5)
+        if [[ $noutputs != 128 ]]; then
+            continue
+        fi
     fi
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
     mode=$(get_mode "$line")

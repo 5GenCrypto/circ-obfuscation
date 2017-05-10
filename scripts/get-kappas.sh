@@ -4,8 +4,8 @@
 #
 
 dir=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
-prog=$(readlink -f "$dir/../mio.sh")
-circuits=$(readlink -f "$dir/../circuits")
+prog=$(readlink -f "${dir}/../mio.sh")
+circuits=$(readlink -f "${dir}/../circuits")
 
 get () {
     grep "$1" /tmp/results.txt | tr -s ' ' | awk -F' ' '{print $NF}'
@@ -15,18 +15,23 @@ run () {
     circuit=$1
     issigma=$2
 
-    if [[ $issigma == y ]]; then
-        flags="--sigma --symlen 16 --npowers 8"
-    fi
-    name=$(basename "$circuit" | cut -d'.' -f1)
+    name=$(basename "${circuit}" | cut -d'.' -f1)
     # Skip some circuits
     if [[ $name =~ ^f ]]; then
         return
     fi
-    mode=$(basename "$circuit" | cut -d'.' -f2)
-    if [[ ! $mode =~ ^c2(a|v)$ && $mode != dsl && ! $mode =~ ^o(1|2|3)$ ]]; then
-        mode=""
+    symlen=$(echo "${name}" | cut -d'_' -f4)
+    if [[ $issigma == y ]]; then
+        flags="--sigma --symlen ${symlen} --npowers 4"
     fi
+
+    mode=$(basename "${circuit}" | cut -d'.' -f2)
+    if [[ $mode != dsl && ! $mode =~ ^o(1|2|3) ]]; then
+        return
+    fi
+    # if [[ ! $mode =~ ^c2(a|v)$ && $mode != dsl && ! $mode =~ ^o(1|2|3)$ ]]; then
+    #     mode=""
+    # fi
     $prog obf get-kappa --scheme LIN --verbose $flags "$circuit" &>/tmp/results.txt
     if [ $? -eq 0 ]; then
         lin1=$(get "κ = ")
