@@ -1,0 +1,97 @@
+:test acc3092dee9d35a570bc6 1
+:test bd5a58c14d4a54b49e950 1
+:test 25d6585e658a0c95bb9de 1
+:test a2d84706a087508c5b225 1
+:test 4cb9a15b6417ce15c8e6c 1
+:test 1447a529cd35e7e1a39e5 1
+:test dc179a458cd85858044e8 1
+:test c3e6324352131d05079ac 1
+:test a34c2333e0055b542445d 1
+:test 4bc0e6e7a4da4e069a490 1
+:symlen 1
+:base 15
+0 input 0
+1 input 1
+2 input 2
+3 input 3
+4 input 4
+5 input 5
+6 input 6
+7 input 7
+8 input 8
+9 input 9
+10 input 10
+11 input 11
+12 input 12
+13 input 13
+14 input 14
+15 input 15
+16 input 16
+17 input 17
+18 input 18
+19 input 19
+20 input 20
+21 const 3
+22 const 5
+23 const 13
+24 const 13
+25 const 14
+26 const 8
+27 const 12
+28 const 2
+29 const 14
+30 const 9
+31 const 11
+32 const 4
+33 const 12
+34 const 2
+35 const 1
+36 const 0
+37 const 8
+38 const 14
+39 const 11
+40 const 10
+41 const 13
+42 SUB 0 21
+43 SUB 1 22
+44 ADD 42 43
+45 SUB 2 23
+46 SUB 3 24
+47 ADD 45 46
+48 ADD 44 47
+49 SUB 4 25
+50 SUB 5 26
+51 ADD 49 50
+52 SUB 6 27
+53 SUB 7 28
+54 ADD 52 53
+55 ADD 51 54
+56 ADD 48 55
+57 SUB 8 29
+58 SUB 9 30
+59 ADD 57 58
+60 SUB 10 31
+61 SUB 11 32
+62 ADD 60 61
+63 ADD 59 62
+64 SUB 12 33
+65 SUB 13 34
+66 ADD 64 65
+67 SUB 14 35
+68 SUB 15 36
+69 ADD 67 68
+70 ADD 66 69
+71 ADD 63 70
+72 ADD 56 71
+73 SUB 16 37
+74 SUB 17 38
+75 ADD 73 74
+76 SUB 18 39
+77 SUB 19 40
+78 ADD 76 77
+79 ADD 75 78
+80 SUB 20 41
+81 ADD 79 80
+82 ADD 72 81
+:outputs 82
+:secrets 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41

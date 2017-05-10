@@ -15,6 +15,10 @@ circuits/sigma/*.obf
 circuits/sigma/*.ct
 circuits/sigma/*.ek
 circuits/sigma/*.sk
+circuits/point/*.obf
+circuits/point/*.ct
+circuits/point/*.ek
+circuits/point/*.sk
 Makefile
 *.in
 *.m4

@@ -1,0 +1,109 @@
+:test 90a0710713594374a57a8218 1
+:test 472a36894640914a05a56a89 1
+:test 154a6a729aa0916a84174505 1
+:test 56568176995933355a102612 1
+:test 986359273177a130969468a8 1
+:test 0367490600412326a4807171 1
+:test 990096288022728479794272 1
+:test a063319604a45a7485a10008 1
+:test 33187157655146334a225944 1
+:test 2026327566642205a2349918 1
+:symlen 1
+:base 11
+0 input 0
+1 input 1
+2 input 2
+3 input 3
+4 input 4
+5 input 5
+6 input 6
+7 input 7
+8 input 8
+9 input 9
+10 input 10
+11 input 11
+12 input 12
+13 input 13
+14 input 14
+15 input 15
+16 input 16
+17 input 17
+18 input 18
+19 input 19
+20 input 20
+21 input 21
+22 input 22
+23 input 23
+24 const 9
+25 const 6
+26 const 5
+27 const 9
+28 const 2
+29 const 8
+30 const 7
+31 const 5
+32 const 10
+33 const 10
+34 const 8
+35 const 6
+36 const 8
+37 const 6
+38 const 2
+39 const 5
+40 const 9
+41 const 10
+42 const 6
+43 const 7
+44 const 9
+45 const 4
+46 const 6
+47 const 6
+48 SUB 0 24
+49 SUB 1 25
+50 ADD 48 49
+51 SUB 2 26
+52 SUB 3 27
+53 ADD 51 52
+54 ADD 50 53
+55 SUB 4 28
+56 SUB 5 29
+57 ADD 55 56
+58 SUB 6 30
+59 SUB 7 31
+60 ADD 58 59
+61 ADD 57 60
+62 ADD 54 61
+63 SUB 8 32
+64 SUB 9 33
+65 ADD 63 64
+66 SUB 10 34
+67 SUB 11 35
+68 ADD 66 67
+69 ADD 65 68
+70 SUB 12 36
+71 SUB 13 37
+72 ADD 70 71
+73 SUB 14 38
+74 SUB 15 39
+75 ADD 73 74
+76 ADD 72 75
+77 ADD 69 76
+78 ADD 62 77
+79 SUB 16 40
+80 SUB 17 41
+81 ADD 79 80
+82 SUB 18 42
+83 SUB 19 43
+84 ADD 82 83
+85 ADD 81 84
+86 SUB 20 44
+87 SUB 21 45
+88 ADD 86 87
+89 SUB 22 46
+90 SUB 23 47
+91 ADD 89 90
+92 ADD 88 91
+93 ADD 85 92
+94 ADD 78 93
+:outputs 94
+:secrets 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47
