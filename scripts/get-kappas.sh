@@ -16,7 +16,7 @@ run () {
     issigma=$2
 
     if [[ $issigma == y ]]; then
-        flags="--sigma --symlen 16"
+        flags="--sigma --symlen 16 --npowers 8"
     fi
     name=$(basename "$circuit" | cut -d'.' -f1)
     # Skip some circuits
