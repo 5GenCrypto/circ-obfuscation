@@ -53,7 +53,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
 
     obf = my_calloc(1, sizeof obf[0]);
     obf->op = op;
-    obf->mife = mife_setup(mmap, op, secparam, kappa, nthreads, rng);
+    obf->mife = mife_setup(mmap, op, secparam, kappa, op->npowers, nthreads, rng);
     obf->ek = mife_ek(obf->mife);
     sk = mife_sk(obf->mife);
     obf->cts = my_calloc(ninputs, sizeof obf->cts[0]);
@@ -81,8 +81,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
                     inputs[k] = j;
                 }
             }
-            obf->cts[i][j] = mife_encrypt(sk, i, inputs, op->npowers, nthreads,
-                                          &pi, rng);
+            obf->cts[i][j] = mife_encrypt(sk, i, inputs, nthreads, &pi, rng);
         }
     }
     threadpool_destroy(pi.pool);

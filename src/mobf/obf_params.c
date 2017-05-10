@@ -8,9 +8,8 @@ mobf_num_encodings(const obf_params_t *op)
 {
     const circ_params_t *cp = &op->cp;
     size_t count = 0;
-    count += mife_num_encodings_setup(cp);
-    for (size_t i = 0; i < cp->n - (cp->c ? 1 : 0); ++i)
-        count += cp->qs[i] * mife_num_encodings_encrypt(cp, i, op->npowers);
+    for (size_t i = 0; i < cp->n; ++i)
+        count += cp->qs[i] * mife_num_encodings_encrypt(cp, i);
     return count;
 }
 

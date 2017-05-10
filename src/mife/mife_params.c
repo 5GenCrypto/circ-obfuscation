@@ -29,19 +29,16 @@ mife_params_new_toplevel(const circ_params_t *const cp, size_t nzs)
 }
 
 size_t
-mife_num_encodings_setup(const circ_params_t *cp)
+mife_num_encodings_setup(const circ_params_t *cp, size_t npowers)
 {
-    if (cp->c) {
-        return cp->m + cp->ds[cp->n - 1] + 1;
-    } else {
-        return 1 + cp->m;
-    }
+    size_t nconsts = cp->c ? cp->ds[cp->n - 1] : 1;
+    return cp->m + cp->n * npowers + nconsts;
 }
 
 size_t
-mife_num_encodings_encrypt(const circ_params_t *cp, size_t slot, size_t npowers)
+mife_num_encodings_encrypt(const circ_params_t *cp, size_t slot)
 {
-    return cp->ds[slot] + npowers + cp->m;
+    return cp->ds[slot] + cp->m;
 }
 
 static obf_params_t *
