@@ -22,7 +22,7 @@ run () {
     fi
     symlen=$(echo "${name}" | cut -d'_' -f4)
     if [[ $issigma == y ]]; then
-        flags="--sigma --symlen ${symlen} --npowers 4"
+        flags="--sigma --symlen ${symlen} --npowers 8"
     fi
 
     mode=$(basename "${circuit}" | cut -d'.' -f2)

@@ -49,7 +49,7 @@ while read -r input; do
         continue
     fi
     if [[ $name =~ ^ggm_sigma ]]; then
-        if [[ ! $name =~ ^ggm_sigma_(1|2|3|4)_16 ]]; then
+        if [[ ! $name =~ ^ggm_sigma_(1|2|3|4)_16_128 ]]; then
             continue
         fi
         sigma=1
