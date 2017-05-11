@@ -44,7 +44,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
 {
     obfuscation *obf;
     mife_sk_t *sk;
-    mife_encrypt_pool_info_t pi;
+    mife_encrypt_cache_t cache;
     pthread_mutex_t lock;
     size_t count = 0;
     double start, end, _start, _end;
@@ -70,10 +70,12 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     _start = current_time();
 
     pthread_mutex_init(&lock, NULL);
-    pi.pool = threadpool_create(nthreads);
-    pi.lock = &lock;
-    pi.count = &count;
-    pi.total = mobf_num_encodings(op);
+    cache.pool = threadpool_create(nthreads);
+    cache.lock = &lock;
+    cache.count = &count;
+    cache.total = mobf_num_encodings(op);
+    cache.known = my_calloc(acirc_nrefs(op->cp.circ), sizeof cache.known[0]);
+    cache.refs = my_calloc(acirc_nrefs(op->cp.circ), sizeof cache.refs[0]);
     
     for (size_t i = 0; i < ninputs; ++i) {
         obf->cts[i] = my_calloc(cp->qs[i], sizeof obf->cts[i][0]);
@@ -92,10 +94,14 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
                     inputs[k] = j;
                 }
             }
-            obf->cts[i][j] = mife_encrypt(sk, i, inputs, nthreads, &pi, rng);
+            obf->cts[i][j] = mife_encrypt(sk, i, inputs, nthreads, &cache, rng);
         }
     }
-    threadpool_destroy(pi.pool);
+    threadpool_destroy(cache.pool);
+    for (size_t ref = 0; ref < acirc_nrefs(op->cp.circ); ++ref) {
+        if (cache.known)
+            mpz_clear(cache.refs[ref]);
+    }
     pthread_mutex_destroy(&lock);
     mife_sk_free(sk);
     end = _end = current_time();
@@ -105,7 +111,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     }
     return obf;
 error:
-    threadpool_destroy(pi.pool);
+    threadpool_destroy(cache.pool);
     pthread_mutex_destroy(&lock);
     mife_sk_free(sk);
     _free(obf);

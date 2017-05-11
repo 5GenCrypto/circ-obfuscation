@@ -21,7 +21,9 @@ typedef struct {
     size_t *count;
     size_t total;
     FILE *fp;
-} mife_encrypt_pool_info_t;
+    bool *known;
+    mpz_t *refs;
+} mife_encrypt_cache_t;
 
 extern op_vtable mife_op_vtable;
 
@@ -48,7 +50,7 @@ mife_ciphertext_t * mife_ciphertext_fread(const mmap_vtable *mmap, const circ_pa
 
 mife_ciphertext_t *
 mife_encrypt(const mife_sk_t *sk, size_t slot, const int *inputs,
-             size_t nthreads, mife_encrypt_pool_info_t *pi, aes_randstate_t rng);
+             size_t nthreads, mife_encrypt_cache_t *cache, aes_randstate_t rng);
 
 int
 mife_decrypt(const mife_ek_t *ek, int *rop, mife_ciphertext_t **cts,
