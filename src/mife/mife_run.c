@@ -108,7 +108,7 @@ mife_run_encrypt(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
         sk = cached_sk;
     }
 
-    ct = mife_encrypt(sk, slot, input, nthreads, NULL, rng);
+    ct = mife_encrypt(sk, slot, input, nthreads, NULL, rng, false);
     if (ct == NULL) {
         fprintf(stderr, "error: encryption failed\n");
         exit(EXIT_FAILURE);

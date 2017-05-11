@@ -48,8 +48,9 @@ mife_ciphertext_t * mife_ciphertext_fread(const mmap_vtable *mmap, const circ_pa
 
 
 mife_ciphertext_t *
-mife_encrypt(const mife_sk_t *sk, size_t slot, const int *inputs,
-             size_t nthreads, mife_encrypt_cache_t *cache, aes_randstate_t rng);
+mife_encrypt(const mife_sk_t *sk, size_t slot, const int *inputs, size_t nthreads,
+             mife_encrypt_cache_t *cache, aes_randstate_t rng,
+             bool parallelize_circ_eval);
 
 int
 mife_decrypt(const mife_ek_t *ek, int *rop, mife_ciphertext_t **cts,

@@ -47,6 +47,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     mife_encrypt_cache_t cache;
     pthread_mutex_t lock;
     size_t count = 0;
+    bool parallelize_circ_eval = secparam >= 40;
     double start, end, _start, _end;
 
     const circ_params_t *const cp = &op->cp;
@@ -67,6 +68,8 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         fprintf(stderr, "  MIFE setup: %.2fs\n", _end - _start);
 
     /* MIFE encryption */
+    if (g_verbose && parallelize_circ_eval)
+        fprintf(stderr, "  Parallelizing circuit evaluation...\n");
     _start = current_time();
 
     pthread_mutex_init(&lock, NULL);
@@ -95,7 +98,8 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
                     inputs[k] = j;
                 }
             }
-            obf->cts[i][j] = mife_encrypt(sk, i, inputs, nthreads, &cache, rng);
+            obf->cts[i][j] = mife_encrypt(sk, i, inputs, nthreads, &cache, rng,
+                                          parallelize_circ_eval);
         }
     }
     threadpool_destroy(cache.pool);

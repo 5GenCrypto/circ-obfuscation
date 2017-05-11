@@ -91,7 +91,7 @@ typedef struct {
 static mife_ciphertext_t *
 _mife_encrypt(const mife_sk_t *sk, const size_t slot, const int *inputs,
               size_t nthreads, aes_randstate_t rng, mife_encrypt_cache_t *cache,
-              mpz_t *betas);
+              mpz_t *betas, bool parallelize_circ_eval);
 
 static int
 populate_circ_degrees(const circ_params_t *cp, size_t **deg, size_t *deg_max)
@@ -143,7 +143,7 @@ populate_circ_input(const circ_params_t *cp, size_t slot, mpz_t *inputs,
 
 static int
 eval_circ(const circ_params_t *cp, size_t slot, mpz_t *outputs, mpz_t *inputs,
-          mpz_t *consts, const mpz_t *moduli, mpz_t *_refs)
+          mpz_t *consts, const mpz_t *moduli, mpz_t *_refs, size_t nthreads)
 {
     const size_t nrefs = acirc_nrefs(cp->circ);
     mpz_t *refs;
@@ -153,7 +153,7 @@ eval_circ(const circ_params_t *cp, size_t slot, mpz_t *outputs, mpz_t *inputs,
         refs = _refs;
     } else
         refs = my_calloc(nrefs, sizeof refs[0]);
-    circ_eval(cp->circ, inputs, consts, moduli[1 + slot], refs);
+    circ_eval(cp->circ, inputs, consts, moduli[1 + slot], refs, nthreads);
     for (size_t o = 0; o < cp->m; ++o) {
         mpz_set(outputs[o], refs[cp->circ->outputs.buf[o]]);
     }
@@ -333,7 +333,8 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     if (has_consts) {
         mife_sk_t *sk = mife_sk(mife);
         mife->constants = _mife_encrypt(sk, cp->n - 1, cp->circ->consts.buf,
-                                        nthreads, rng, &cache, mife->const_betas);
+                                        nthreads, rng, &cache, mife->const_betas,
+                                        false);
         if (mife->constants == NULL) {
             fprintf(stderr, "error: mife setup: unable to encrypt constants\n");
             goto cleanup;
@@ -624,7 +625,7 @@ error:
 static mife_ciphertext_t *
 _mife_encrypt(const mife_sk_t *sk, const size_t slot, const int *inputs,
               size_t nthreads, aes_randstate_t rng, mife_encrypt_cache_t *cache,
-              mpz_t *_betas)
+              mpz_t *_betas, bool parallelize_circ_eval)
 {
     mife_ciphertext_t *ct;
     double start, end, _start, _end;
@@ -707,6 +708,7 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const int *inputs,
         mpz_t const_cs[noutputs];
         mpz_t circ_inputs[circ_params_ninputs(cp)];
         mpz_t consts[nconsts];
+        size_t _nthreads = parallelize_circ_eval ? nthreads : 0;
 
         mpz_vect_init(cs, noutputs);
         mpz_vect_init(const_cs, noutputs);
@@ -714,10 +716,10 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const int *inputs,
         mpz_vect_init(consts, nconsts);
 
         populate_circ_input(cp, slot, circ_inputs, consts, betas);
-        eval_circ(cp, slot, cs, circ_inputs, consts, moduli, refs);
+        eval_circ(cp, slot, cs, circ_inputs, consts, moduli, refs, _nthreads);
         if (slot == 0 && has_consts) {
             populate_circ_input(cp, cp->n - 1, circ_inputs, consts, sk->const_betas);
-            eval_circ(cp, cp->n - 1, const_cs, circ_inputs, consts, moduli, refs);
+            eval_circ(cp, cp->n - 1, const_cs, circ_inputs, consts, moduli, refs, _nthreads);
         }
 
         IX_W(ix, cp, slot) = 1;
@@ -769,13 +771,15 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const int *inputs,
 
 mife_ciphertext_t *
 mife_encrypt(const mife_sk_t *sk, const size_t slot, const int *inputs,
-             size_t nthreads, mife_encrypt_cache_t *cache, aes_randstate_t rng)
+             size_t nthreads, mife_encrypt_cache_t *cache, aes_randstate_t rng,
+             bool parallelize_circ_eval)
 {
     if (sk == NULL || slot >= sk->cp->n || inputs == NULL) {
         fprintf(stderr, "error: mife encrypt: invalid input\n");
         return NULL;
     }
-    return _mife_encrypt(sk, slot, inputs, nthreads, rng, cache, NULL);
+    return _mife_encrypt(sk, slot, inputs, nthreads, rng, cache, NULL,
+                         parallelize_circ_eval);
 }
 
 static void
