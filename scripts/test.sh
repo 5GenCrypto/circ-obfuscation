@@ -50,7 +50,7 @@ mife_test_sigma () {
     echo "***"
     echo "***"
     echo ""
-    $prog mife test --smart --sigma --symlen 16 -mmap $2 $1
+    $prog mife test --smart --sigma --symlen 16 --mmap $2 $1
 }
 
 for circuit in $circuits/*.acirc; do

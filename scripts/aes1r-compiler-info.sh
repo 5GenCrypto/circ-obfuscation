@@ -10,13 +10,13 @@ count=0
 curname=
 
 printline () {
-    echo " && $mode && \num{$size} & \num{$nmuls} & \num{$kappa} \tabularnewline"
+    echo " && $mode && \num{$size} & \num{$nmuls} & \num{$degree} \tabularnewline"
 }
 
 while read -r input; do
     line=$(echo "$input" | tr -d ' ')
     name=$(get_name "$line")
-    if [[ ! $name =~ ^aes1r ]]; then
+    if [[ $name != aes1r && $name != aes1r_64_1 ]]; then
         continue
     fi
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
@@ -27,22 +27,18 @@ while read -r input; do
         printline
     fi
     mode=$(get_mode "$line")
-    if [[ $mode == "" ]]; then
+    if [[ $mode != "dsl" && ! $mode =~ ^o(1|2|3) ]]; then
         continue
     fi
     case $mode in
-        c2a )
-            mode="\CTA" ;;
-        c2v )
-            mode="\CTV" ;;
         dsl )
-            mode="\DSL" ;;
+            mode="-O0" ;;
         o1 )
-            mode="\DSL\ -O1" ;;
+            mode="-O1" ;;
         o2 )
-            mode="\DSL\ -O2" ;;
+            mode="-O2" ;;
         o3 )
-            mode="\DSL\ -O3" ;;
+            mode="-O3" ;;
     esac
     if [[ $name != "$curname" ]]; then
         if [[ $curname != "" ]]; then
@@ -53,7 +49,7 @@ while read -r input; do
     fi
     size=$(get_size "$line")
     nmuls=$(get_nmuls "$line")
-    kappa=$(get_kappa_mife "$line" | cut -d'|' -f2)
+    degree=$(get_degree "$line")
     if [[ $count != 0 && $((count % 2)) -eq 0 ]]; then
         echo "\rowcolor{white}"
     fi

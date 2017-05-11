@@ -48,3 +48,4 @@ fi
 "$scriptdir"/kappa-info.sh > "$dir"/table-kappas-data.tex
 "$scriptdir"/optimizer-info.sh > "$dir"/table-optimizer-data.tex
 "$scriptdir"/prg-info.sh > "$dir"/table-prgs-data.tex
+"$scriptdir"/standard-vs-sigma.sh > "$dir"/table-kappas-ggm-prf-data.tex

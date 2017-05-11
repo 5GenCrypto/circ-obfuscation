@@ -390,7 +390,7 @@ char
 int_to_char(int i)
 {
     if (i > 36)
-        return -1;
+        return '-';
     else if (i >= 10)
         return i + 55;
     else
