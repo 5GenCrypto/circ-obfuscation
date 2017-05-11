@@ -681,12 +681,13 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const int *inputs,
         mpz_t consts[nconsts];
         mpz_vect_init(consts, nconsts);
 
-        populate_circ_input(cp, slot, circ_inputs, consts, betas);
-        eval_circ(cp, slot, cs, circ_inputs, consts, moduli);
-
-        if (!_betas && slot == 0 && has_consts) {
-            populate_circ_input(cp, cp->n - 1, circ_inputs, consts, sk->const_betas);
-            eval_circ(cp, cp->n - 1, const_cs, circ_inputs, consts, moduli);
+        if (!_betas) {
+            populate_circ_input(cp, slot, circ_inputs, consts, betas);
+            eval_circ(cp, slot, cs, circ_inputs, consts, moduli);
+            if (slot == 0 && has_consts) {
+                populate_circ_input(cp, cp->n - 1, circ_inputs, consts, sk->const_betas);
+                eval_circ(cp, cp->n - 1, const_cs, circ_inputs, consts, moduli);
+            }
         }
 
         mpz_vect_clear(circ_inputs, circ_params_ninputs(cp));
