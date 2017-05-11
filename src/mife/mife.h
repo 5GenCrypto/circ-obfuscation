@@ -21,7 +21,6 @@ typedef struct {
     size_t *count;
     size_t total;
     FILE *fp;
-    bool *known;
     mpz_t *refs;
 } mife_encrypt_cache_t;
 

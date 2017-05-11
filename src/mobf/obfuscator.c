@@ -74,8 +74,9 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     cache.lock = &lock;
     cache.count = &count;
     cache.total = mobf_num_encodings(op);
-    cache.known = my_calloc(acirc_nrefs(op->cp.circ), sizeof cache.known[0]);
     cache.refs = my_calloc(acirc_nrefs(op->cp.circ), sizeof cache.refs[0]);
+    for (size_t ref = 0; ref < acirc_nrefs(op->cp.circ); ++ref)
+        mpz_init(cache.refs[ref]);
     
     for (size_t i = 0; i < ninputs; ++i) {
         obf->cts[i] = my_calloc(cp->qs[i], sizeof obf->cts[i][0]);
@@ -98,10 +99,8 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         }
     }
     threadpool_destroy(cache.pool);
-    for (size_t ref = 0; ref < acirc_nrefs(op->cp.circ); ++ref) {
-        if (cache.known)
-            mpz_clear(cache.refs[ref]);
-    }
+    for (size_t ref = 0; ref < acirc_nrefs(op->cp.circ); ++ref)
+        mpz_clear(cache.refs[ref]);
     pthread_mutex_destroy(&lock);
     mife_sk_free(sk);
     end = _end = current_time();

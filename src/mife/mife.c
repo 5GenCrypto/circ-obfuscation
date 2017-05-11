@@ -1,5 +1,6 @@
 #include "mife.h"
 
+#include "circ.h"
 #include "index_set.h"
 #include "mife_params.h"
 #include "reflist.h"
@@ -142,33 +143,24 @@ populate_circ_input(const circ_params_t *cp, size_t slot, mpz_t *inputs,
 
 static int
 eval_circ(const circ_params_t *cp, size_t slot, mpz_t *outputs, mpz_t *inputs,
-          mpz_t *consts, const mpz_t *moduli, bool *_known, mpz_t *_refs)
+          mpz_t *consts, const mpz_t *moduli, mpz_t *_refs)
 {
     const size_t nrefs = acirc_nrefs(cp->circ);
-    bool *known;
     mpz_t *refs;
 
-    if (_known) {
-        memset(_known, '\0', nrefs * sizeof _known[0]);
-        known = _known;
-    } else
-        known = my_calloc(nrefs, sizeof known[0]);
     if (_refs) {
         memset(_refs, '\0', nrefs * sizeof _refs[0]);
         refs = _refs;
     } else
         refs = my_calloc(nrefs, sizeof refs[0]);
+    circ_eval(cp->circ, inputs, consts, moduli[1 + slot], refs);
     for (size_t o = 0; o < cp->m; ++o) {
-        acirc_eval_mpz_mod_memo(cp->circ, cp->circ->outputs.buf[o], inputs,
-                                consts, moduli[1 + slot], known, refs);
         mpz_set(outputs[o], refs[cp->circ->outputs.buf[o]]);
     }
-    if (!_known) {
+    if (!_refs) {
         for (size_t i = 0; i < nrefs; ++i)
-            if (known[i])
-                mpz_clear(refs[i]);
+            mpz_clear(refs[i]);
         free(refs);
-        free(known);
     }
     return OK;
 }
@@ -197,9 +189,9 @@ __encode(threadpool *pool, const encoding_vtable *vt, encoding *enc, mpz_t *inps
     encode_args_t *args = my_calloc(1, sizeof args[0]);
     args->vt = vt;
     args->enc = enc;
-    args->inps = mpz_vect_new(nslots);
+    args->inps = my_calloc(nslots, sizeof args->inps[0]);
     for (size_t i = 0; i < nslots; ++i) {
-        mpz_set(args->inps[i], inps[i]);
+        mpz_init_set(args->inps[i], inps[i]);
     }
     args->nslots = nslots;
     args->ix = ix;
@@ -302,7 +294,6 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         .lock = &lock,
         .count = &count,
         .total = total,
-        .known = NULL,
         .refs = NULL,
     };
     
@@ -638,7 +629,6 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const int *inputs,
     mife_ciphertext_t *ct;
     double start, end, _start, _end;
     const circ_params_t *cp = sk->cp;
-    bool *known = cache ? cache->known : NULL;
     mpz_t *refs = cache ? cache->refs : NULL;
 
     if (g_verbose && !cache)
@@ -724,10 +714,10 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const int *inputs,
         mpz_vect_init(consts, nconsts);
 
         populate_circ_input(cp, slot, circ_inputs, consts, betas);
-        eval_circ(cp, slot, cs, circ_inputs, consts, moduli, known, refs);
+        eval_circ(cp, slot, cs, circ_inputs, consts, moduli, refs);
         if (slot == 0 && has_consts) {
             populate_circ_input(cp, cp->n - 1, circ_inputs, consts, sk->const_betas);
-            eval_circ(cp, cp->n - 1, const_cs, circ_inputs, consts, moduli, known, refs);
+            eval_circ(cp, cp->n - 1, const_cs, circ_inputs, consts, moduli, refs);
         }
 
         IX_W(ix, cp, slot) = 1;
@@ -882,7 +872,6 @@ decrypt_worker(void *vargs)
         break;
     }
     case OP_ADD: case OP_SUB: case OP_MUL: {
-        assert(c->gates.gates[ref].nargs == 2);
         res = encoding_new(ek->enc_vt, ek->pp_vt, ek->pp);
         mine[ref] = true;
 
@@ -901,10 +890,8 @@ decrypt_worker(void *vargs)
                 raise_encodings(ek, tmp_x, tmp_y);
             if (op == OP_ADD) {
                 encoding_add(ek->enc_vt, ek->pp_vt, res, tmp_x, tmp_y, ek->pp);
-            } else if (op == OP_SUB) {
-                encoding_sub(ek->enc_vt, ek->pp_vt, res, tmp_x, tmp_y, ek->pp);
             } else {
-                abort();
+                encoding_sub(ek->enc_vt, ek->pp_vt, res, tmp_x, tmp_y, ek->pp);
             }
             encoding_free(ek->enc_vt, tmp_x);
             encoding_free(ek->enc_vt, tmp_y);
