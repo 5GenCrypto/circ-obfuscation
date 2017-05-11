@@ -564,9 +564,9 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
             }
         }
         for (size_t o = 0; o < noutputs; o++) {
-            mpz_init(ybars[o]);
-            acirc_eval_mpz_mod_memo(ybars[o], c, c->outputs.buf[o], xs,
-                                    ykjc, moduli[0], known, cache);
+            acirc_eval_mpz_mod_memo(c, c->outputs.buf[o], xs, ykjc, moduli[0],
+                                    known, cache);
+            mpz_init_set(ybars[o], cache[c->outputs.buf[o]]);
             mpz_vect_urandomms(rs, moduli, ninputs + 3, obf->rng);
             encode_Rbaro(obf->enc_vt, cp, obf->Rbaro[o], obf->sp, rs, o);
             if (g_verbose)

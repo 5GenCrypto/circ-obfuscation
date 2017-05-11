@@ -141,8 +141,8 @@ populate_circ_input(const circ_params_t *cp, size_t slot, mpz_t *inputs,
 }
 
 static int
-eval_circ(const circ_params_t *cp, size_t slot, mpz_t *outputs,
-          const mpz_t *inputs, const mpz_t *consts, const mpz_t *moduli)
+eval_circ(const circ_params_t *cp, size_t slot, mpz_t *outputs, mpz_t *inputs,
+          mpz_t *consts, const mpz_t *moduli)
 {
     const size_t nrefs = acirc_nrefs(cp->circ);
     bool *known;
@@ -151,8 +151,9 @@ eval_circ(const circ_params_t *cp, size_t slot, mpz_t *outputs,
     known = my_calloc(nrefs, sizeof known[0]);
     cache = my_calloc(nrefs, sizeof cache[0]);
     for (size_t o = 0; o < cp->m; ++o) {
-        acirc_eval_mpz_mod_memo(outputs[o], cp->circ, cp->circ->outputs.buf[o],
-                                inputs, consts, moduli[1 + slot], known, cache);
+        acirc_eval_mpz_mod_memo(cp->circ, cp->circ->outputs.buf[o], inputs,
+                                consts, moduli[1 + slot], known, cache);
+        mpz_set(outputs[o], cache[cp->circ->outputs.buf[o]]);
     }
     for (size_t i = 0; i < nrefs; ++i) {
         if (known[i])
@@ -683,7 +684,7 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const int *inputs,
         populate_circ_input(cp, slot, circ_inputs, consts, betas);
         eval_circ(cp, slot, cs, circ_inputs, consts, moduli);
 
-        if (has_consts) {
+        if (!_betas && slot == 0 && has_consts) {
             populate_circ_input(cp, cp->n - 1, circ_inputs, consts, sk->const_betas);
             eval_circ(cp, cp->n - 1, const_cs, circ_inputs, consts, moduli);
         }
