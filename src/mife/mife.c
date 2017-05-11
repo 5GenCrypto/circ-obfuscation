@@ -722,6 +722,7 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const int *inputs,
             eval_circ(cp, cp->n - 1, const_cs, circ_inputs, consts, moduli, refs, _nthreads);
         }
 
+        index_set_clear(ix);
         IX_W(ix, cp, slot) = 1;
         if (slot == 0 && has_consts) {
             for (size_t i = 0; i < cp->n; ++i)
