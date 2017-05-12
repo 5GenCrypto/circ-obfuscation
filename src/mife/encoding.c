@@ -98,12 +98,12 @@ static int
 _encoding_fread(encoding *x, FILE *fp)
 {
     x->info = calloc(1, sizeof x->info[0]);
-    x->info->index = index_set_fread(fp);
-    if (x->info->index == NULL) {
-        free(x->info);
-        return ERR;
-    }
+    if ((x->info->index = index_set_fread(fp)) == NULL)
+        goto error;
     return OK;
+error:
+    free(x->info);
+    return ERR;
 }
 
 static int

@@ -52,9 +52,7 @@ int
 secret_params_fwrite(const sp_vtable *vt, const secret_params *sp, FILE *fp)
 {
     vt->fwrite(sp, fp);
-    PUT_NEWLINE(fp);
     vt->mmap->sk->fwrite(sp->sk, fp);
-    PUT_NEWLINE(fp);
     return OK;
 }
 
@@ -63,10 +61,8 @@ secret_params_fread(const sp_vtable *vt, const circ_params_t *cp, FILE *fp)
 {
     secret_params *sp = my_calloc(1, sizeof sp[0]);
     vt->fread(sp, cp, fp);
-    GET_NEWLINE(fp);
     sp->sk = my_calloc(1, vt->mmap->sk->size);
     vt->mmap->sk->fread(sp->sk, fp);
-    GET_NEWLINE(fp);
     return sp;
 }
 
@@ -98,9 +94,7 @@ int
 public_params_fwrite(const pp_vtable *vt, const public_params *pp, FILE *fp)
 {
     vt->fwrite(pp, fp);
-    PUT_NEWLINE(fp);
     vt->mmap->pp->fwrite(pp->pp, fp);
-    PUT_NEWLINE(fp);
     return OK;
 }
 
@@ -109,10 +103,8 @@ public_params_fread(const pp_vtable *vt, const obf_params_t *op, FILE *fp)
 {
     public_params *pp = my_calloc(1, sizeof pp[0]);
     vt->fread(pp, op, fp);
-    GET_NEWLINE(fp);
     pp->pp = my_calloc(1, vt->mmap->pp->size);
     vt->mmap->pp->fread(pp->pp, fp);
-    GET_NEWLINE(fp);
     return pp;
 }
 
@@ -230,11 +222,7 @@ encoding_is_zero(const encoding_vtable *vt, const pp_vtable *pp_vt,
 unsigned int
 encoding_get_degree(const encoding_vtable *vt, const encoding *x)
 {
-    if (vt->mmap->enc->degree) {
-        return vt->mmap->enc->degree(x->enc);
-    } else {
-        return 0;
-    }
+    return vt->mmap->enc->degree ? vt->mmap->enc->degree(x->enc) : 0;
 }
 
 encoding *
@@ -247,9 +235,10 @@ encoding_fread(const encoding_vtable *vt, FILE *fp)
     return x;
 }
 
-void
+int
 encoding_fwrite(const encoding_vtable *vt, const encoding *x, FILE *fp)
 {
     vt->fwrite(x, fp);
     vt->mmap->enc->fwrite(x->enc, fp);
+    return OK;
 }

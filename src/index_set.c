@@ -121,9 +121,11 @@ error:
 int
 index_set_fwrite(const index_set *ix, FILE *fp)
 {
-    ulong_fwrite(ix->nzs, fp);
+    if (ulong_fwrite(ix->nzs, fp) == ERR)
+        return ERR;
     for (size_t i = 0; i < ix->nzs; i++) {
-        int_fwrite(ix->pows[i], fp);
+        if (int_fwrite(ix->pows[i], fp) == ERR)
+            return ERR;
     }
     return OK;
 }

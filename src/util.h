@@ -62,22 +62,16 @@ void * my_calloc(size_t nmemb, size_t size);
 void * my_malloc(size_t size);
 void * my_realloc(void *ptr, size_t size);
 
+int mpz_fread(mpz_t *x, FILE *fp);
+int mpz_fwrite(mpz_t x, FILE *fp);
 int int_fread(int *x, FILE *fp);
 int int_fwrite(int x, FILE *fp);
-
 int ulong_fread(unsigned long *x, FILE *fp);
 int ulong_fwrite(unsigned long x, FILE *fp);
-
 int size_t_fread(size_t *x, FILE *fp);
 int size_t_fwrite(size_t x, FILE *fp);
-
 int bool_fread(bool *x, FILE *fp);
 int bool_fwrite(bool x, FILE *fp);
-
-#define PUT_NEWLINE(fp) fprintf(fp, "\n")
-#define PUT_SPACE(fp) fprintf(fp, " ")
-#define GET_NEWLINE(fp) fscanf(fp, "\n")
-#define GET_SPACE(fp) fscanf(fp, " ")
 
 void array_add(int *rop, const int *xs, const int *ys, size_t n);
 bool array_eq(const int *xs, const int *ys, size_t n);

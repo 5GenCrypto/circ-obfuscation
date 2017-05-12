@@ -128,5 +128,5 @@ encoding_is_zero(const encoding_vtable *vt, const pp_vtable *pp_vt,
                  const encoding *x, const public_params *p);
 encoding *
 encoding_fread(const encoding_vtable *vt, FILE *fp);
-void
+int
 encoding_fwrite(const encoding_vtable *vt, const encoding *x, FILE *fp);

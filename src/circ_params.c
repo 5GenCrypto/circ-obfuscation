@@ -27,34 +27,54 @@ circ_params_clear(circ_params_t *cp)
 int
 circ_params_fwrite(const circ_params_t *const cp, FILE *fp)
 {
-    fprintf(fp, "%lu\n", cp->n);
-    fprintf(fp, "%lu\n", cp->c);
-    fprintf(fp, "%lu\n", cp->m);
+    if (size_t_fwrite(cp->n, fp) == ERR)
+        goto error;
+    if (size_t_fwrite(cp->c, fp) == ERR)
+        goto error;
+    if (size_t_fwrite(cp->m, fp) == ERR)
+        goto error;
     for (size_t i = 0; i < cp->n; ++i) {
-        fprintf(fp, "%lu\n", cp->ds[i]);
+        if (size_t_fwrite(cp->ds[i], fp) == ERR)
+            goto error;
     }
     for (size_t i = 0; i < cp->n; ++i) {
-        fprintf(fp, "%lu\n", cp->qs[i]);
+        if (size_t_fwrite(cp->qs[i], fp) == ERR)
+            goto error;
     }
     return OK;
+error:
+    fprintf(stderr, "error: writing circuit parameters failed\n");
+    return ERR;
 }
 
 int
 circ_params_fread(circ_params_t *const cp, acirc *circ, FILE *fp)
 {
-    fscanf(fp, "%lu\n", &cp->n);
-    fscanf(fp, "%lu\n", &cp->c);
-    fscanf(fp, "%lu\n", &cp->m);
+    if (size_t_fread(&cp->n, fp) == ERR)
+        goto error;
+    if (size_t_fread(&cp->c, fp) == ERR)
+        goto error;
+    if (size_t_fread(&cp->m, fp) == ERR)
+        goto error;
     cp->ds = my_calloc(cp->n, sizeof cp->ds[0]);
     cp->qs = my_calloc(cp->n, sizeof cp->qs[0]);
     for (size_t i = 0; i < cp->n; ++i) {
-        fscanf(fp, "%lu\n", &cp->ds[i]);
+        if (size_t_fread(&cp->ds[i], fp) == ERR)
+            goto error;
     }
     for (size_t i = 0; i < cp->n; ++i) {
-        fscanf(fp, "%lu\n", &cp->qs[i]);
+        if (size_t_fread(&cp->qs[i], fp) == ERR)
+            goto error;
     }
     cp->circ = circ;
     return OK;
+error:
+    if (cp->ds)
+        free(cp->ds);
+    if (cp->qs)
+        free(cp->qs);
+    fprintf(stderr, "error: reading circuit parameters failed\n");
+    return ERR;
 }
 
 size_t

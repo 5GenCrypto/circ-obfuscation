@@ -16,7 +16,7 @@ mife_run_setup(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
     mife_t *mife = NULL;
     mife_sk_t *sk = NULL;
     mife_ek_t *ek = NULL;
-    FILE *fp;
+    FILE *fp = NULL;
     int ret = ERR;
 
     if (g_verbose) {
@@ -37,7 +37,8 @@ mife_run_setup(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
         fprintf(stderr, "error: unable to open '%s' for writing\n", skname);
         goto cleanup;
     }
-    mife_sk_fwrite(sk, fp);
+    if (mife_sk_fwrite(sk, fp) == ERR)
+        goto cleanup;
     fclose(fp);
 
     ek = mife_ek(mife);
@@ -46,15 +47,21 @@ mife_run_setup(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
         fprintf(stderr, "error: unable to open '%s' for writing\n", ekname);
         goto cleanup;
     }
-    mife_ek_fwrite(ek, fp);
+    if (mife_ek_fwrite(ek, fp) == ERR)
+        goto cleanup;
     fclose(fp);
 
+    fp = NULL;
     ret = OK;
 cleanup:
-    mife_sk_free(sk);
-    mife_ek_free(ek);
-    mife_free(mife);
-
+    if (fp)
+        fclose(fp);
+    if (sk)
+        mife_sk_free(sk);
+    if (ek)
+        mife_ek_free(ek);
+    if (mife)
+        mife_free(mife);
     return ret;
 }
 

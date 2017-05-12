@@ -47,7 +47,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     mife_encrypt_cache_t cache;
     pthread_mutex_t lock;
     size_t count = 0;
-    bool parallelize_circ_eval = secparam >= 40;
+    bool parallelize_circ_eval = false; /* XXX: should this be nthreads > ?? */
     double start, end, _start, _end;
 
     const circ_params_t *const cp = &op->cp;

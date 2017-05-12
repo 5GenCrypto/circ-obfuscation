@@ -231,9 +231,31 @@ my_realloc(void *ptr, size_t size)
 // serialization
 
 int
+mpz_fread(mpz_t *x, FILE *fp)
+{
+    if (mpz_inp_raw(*x, fp) == 0) {
+        fprintf(stderr, "error: reading mpz failed\n");
+        return ERR;
+    }
+    (void) fscanf(fp, "\n");
+    return OK;
+}
+
+int
+mpz_fwrite(mpz_t x, FILE *fp)
+{
+    if (mpz_out_raw(fp, x) == 0) {
+        fprintf(stderr, "error: writing mpz failed\n");
+        return ERR;
+    }
+    (void) fprintf(fp, "\n");
+    return OK;
+}
+
+int
 int_fread(int *x, FILE *fp)
 {
-    if (fscanf(fp, "%d\n", x) != 1) {
+    if (fread(x, sizeof x[0], 1, fp) != 1) {
         fprintf(stderr, "error: reading int failed\n");
         return ERR;
     }
@@ -243,14 +265,17 @@ int_fread(int *x, FILE *fp)
 int
 int_fwrite(int x, FILE *fp)
 {
-    fprintf(fp, "%d\n", x);
+    if (fwrite(&x, sizeof x, 1, fp) != 1) {
+        fprintf(stderr, "error: writing int failed\n");
+        return ERR;
+    }
     return OK;
 }
 
 int
 ulong_fread(unsigned long *x, FILE *fp)
 {
-    if (fscanf(fp, "%lu\n", x) != 1) {
+    if (fread(x, sizeof x[0], 1, fp) != 1) {
         fprintf(stderr, "error: reading unsigned long failed\n");
         return ERR;
     }
@@ -260,14 +285,17 @@ ulong_fread(unsigned long *x, FILE *fp)
 int
 ulong_fwrite(unsigned long x, FILE *fp)
 {
-    fprintf(fp, "%lu\n", x);
+    if (fwrite(&x, sizeof x, 1, fp) != 1) {
+        fprintf(stderr, "error: writing unsigned long failed\n");
+        return ERR;
+    }
     return OK;
 }
 
 int
 size_t_fread(size_t *x, FILE *fp)
 {
-    if (fscanf(fp, "%lu\n", x) != 1) {
+    if (fread(x, sizeof x[0], 1, fp) != 1) {
         fprintf(stderr, "error: reading size_t failed\n");
         return ERR;
     }
@@ -277,24 +305,30 @@ size_t_fread(size_t *x, FILE *fp)
 int
 size_t_fwrite(size_t x, FILE *fp)
 {
-    fprintf(fp, "%lu\n", x);
+    if (fwrite(&x, sizeof x, 1, fp) != 1) {
+        fprintf(stderr, "error: writing size_t failed\n");
+        return ERR;
+    }
     return OK;
 }
 
 int
 bool_fread(bool *x, FILE *fp)
 {
-    int tmp;
-    fscanf(fp, "%d", &tmp);
-    *x = tmp;
+    if (fread(x, sizeof x[0], 1, fp) != 1) {
+        fprintf(stderr, "error: reading bool failed\n");
+        return ERR;
+    }
     return OK;
 }
 
 int
 bool_fwrite(bool x, FILE *fp)
 {
-    int tmp = x;
-    fprintf(fp, "%d", tmp);
+    if (fwrite(&x, sizeof x, 1, fp) != 1) {
+        fprintf(stderr, "error: writing bool failed\n");
+        return ERR;
+    }
     return OK;
 }
 
@@ -364,7 +398,6 @@ print_test_output(size_t num, const int *inp, size_t ninputs, const int *expecte
         printf(" ✓ ");
     else
         printf(" ̣✗ ");
-        
     printf("expected=");
     array_printstring_rev(expected, noutputs);
     printf(" got=");

@@ -417,10 +417,15 @@ mife_sk_fwrite(const mife_sk_t *sk, FILE *fp)
     secret_params_fwrite(sk->sp_vt, sk->sp, fp);
     if (sk->cp->c)
         for (size_t o = 0; o < sk->cp->c; ++o)
-            gmp_fprintf(fp, "%Zd\n", sk->const_betas[o]);
+            if (mpz_fwrite(sk->const_betas[o], fp) == ERR)
+                goto error;
     for (size_t i = 0; i < sk->cp->n; ++i)
-        fprintf(fp, "%lu\n", sk->deg_max[i]);
+        if (size_t_fwrite(sk->deg_max[i], fp) == ERR)
+            goto error;
     return OK;
+error:
+    fprintf(stderr, "error: writing mife secret key failed\n");
+    return ERR;
 }
 
 mife_sk_t *
@@ -431,32 +436,39 @@ mife_sk_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     mife_sk_t *sk;
 
     sk = my_calloc(1, sizeof sk[0]);
+    sk->local = true;
     sk->mmap = mmap;
     sk->cp = cp;
     sk->enc_vt = get_encoding_vtable(mmap);
     sk->pp_vt = get_pp_vtable(mmap);
     sk->sp_vt = get_sp_vtable(mmap);
     start = current_time();
-    sk->pp = public_params_fread(sk->pp_vt, op, fp);
+    if ((sk->pp = public_params_fread(sk->pp_vt, op, fp)) == NULL)
+        goto error;
     end = current_time();
     if (g_verbose)
         fprintf(stderr, "  Reading pp from disk: %.2fs\n", end - start);
     start = current_time();
-    sk->sp = secret_params_fread(sk->sp_vt, cp, fp);
+    if ((sk->sp = secret_params_fread(sk->sp_vt, cp, fp)) == NULL)
+        goto error;
     end = current_time();
     if (g_verbose)
         fprintf(stderr, "  Reading sp from disk: %.2fs\n", end - start);
     if (sk->cp->c) {
         sk->const_betas = my_calloc(sk->cp->c, sizeof sk->const_betas[0]);
         for (size_t o = 0; o < sk->cp->c; ++o)
-            gmp_fscanf(fp, "%Zd\n", &sk->const_betas[o]);
+            if (mpz_fread(&sk->const_betas[o], fp) == ERR)
+                goto error;
     }
     sk->deg_max = my_calloc(sk->cp->n, sizeof sk->deg_max[0]);
-    for (size_t i = 0; i < sk->cp->n; ++i) {
-            fscanf(fp, "%lu\n", &sk->deg_max[i]);
-    }
-    sk->local = true;
+    for (size_t i = 0; i < sk->cp->n; ++i)
+        if (size_t_fread(&sk->deg_max[i], fp) == ERR)
+            goto error;
     return sk;
+error:
+    fprintf(stderr, "error: reading mife secret key failed\n");
+    mife_sk_free(sk);
+    return NULL;
 }
 
 mife_ek_t *
@@ -510,15 +522,15 @@ mife_ek_fwrite(const mife_ek_t *ek, FILE *fp)
 {
     public_params_fwrite(ek->pp_vt, ek->pp, fp);
     if (ek->constants) {
-        fprintf(fp, "1\n");
+        bool_fwrite(true, fp);
         mife_ciphertext_fwrite(ek->constants, ek->cp, fp);
     } else {
-        fprintf(fp, "0\n");
+        bool_fwrite(false, fp);
         encoding_fwrite(ek->enc_vt, ek->Chatstar, fp);
     }
     for (size_t o = 0; o < ek->cp->m; ++o)
         encoding_fwrite(ek->enc_vt, ek->zhat[o], fp);
-    fprintf(fp, "%lu\n", ek->npowers);
+    size_t_fwrite(ek->npowers, fp);
     for (size_t i = 0; i < ek->cp->n; ++i)
         for (size_t p = 0; p < ek->npowers; ++p)
             encoding_fwrite(ek->enc_vt, ek->uhat[i][p], fp);
@@ -530,7 +542,7 @@ mife_ek_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
 {
     const circ_params_t *cp = &op->cp;
     mife_ek_t *ek;
-    int has_consts;
+    bool has_consts;
 
     ek = my_calloc(1, sizeof ek[0]);
     ek->local = true;
@@ -539,7 +551,7 @@ mife_ek_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     ek->enc_vt = get_encoding_vtable(mmap);
     ek->pp_vt = get_pp_vtable(mmap);
     ek->pp = public_params_fread(ek->pp_vt, op, fp);
-    fscanf(fp, "%d\n", &has_consts);
+    bool_fread(&has_consts, fp);
     if (has_consts) {
         if ((ek->constants = mife_ciphertext_fread(ek->mmap, ek->cp, fp)) == NULL)
             goto error;
@@ -550,7 +562,7 @@ mife_ek_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     ek->zhat = my_calloc(cp->m, sizeof ek->zhat[0]);
     for (size_t o = 0; o < cp->m; ++o)
         ek->zhat[o] = encoding_fread(ek->enc_vt, fp);
-    fscanf(fp, "%lu\n", &ek->npowers);
+    size_t_fread(&ek->npowers, fp);
     ek->uhat = my_calloc(ek->cp->n, sizeof ek->uhat[0]);
     for (size_t i = 0; i < ek->cp->n; ++i) {
         ek->uhat[i] = my_calloc(ek->npowers, sizeof ek->uhat[i][0]);
@@ -583,11 +595,14 @@ mife_ciphertext_fwrite(const mife_ciphertext_t *ct, const circ_params_t *cp,
                        FILE *fp)
 {
     const size_t ninputs = cp->ds[ct->slot];
-    fprintf(fp, "%lu\n", ct->slot);
+    if (size_t_fwrite(ct->slot, fp) == ERR)
+        return ERR;
     for (size_t j = 0; j < ninputs; ++j)
-        encoding_fwrite(ct->enc_vt, ct->xhat[j], fp);
+        if (encoding_fwrite(ct->enc_vt, ct->xhat[j], fp) == ERR)
+            return ERR;
     for (size_t o = 0; o < cp->m; ++o)
-        encoding_fwrite(ct->enc_vt, ct->what[o], fp);
+        if (encoding_fwrite(ct->enc_vt, ct->what[o], fp) == ERR)
+            return ERR;
     return OK;
 }
 
@@ -599,25 +614,25 @@ mife_ciphertext_fread(const mmap_vtable *mmap, const circ_params_t *cp, FILE *fp
 
     ct = my_calloc(1, sizeof ct[0]);
     ct->enc_vt = get_encoding_vtable(mmap);
-    if (fscanf(fp, "%lu\n", &ct->slot) != 1) {
-        fprintf(stderr, "error (%s): cannot read slot number\n", __func__);
+    if (size_t_fread(&ct->slot, fp) == ERR)
         goto error;
-    }
     if (ct->slot >= cp->n) {
-        fprintf(stderr, "error (%s): slot number > number of slots\n", __func__);
+        fprintf(stderr, "error: slot number > number of slots\n");
         goto error;
     }
     ninputs = cp->ds[ct->slot];
     ct->xhat = my_calloc(ninputs, sizeof ct->xhat[0]);
     for (size_t j = 0; j < ninputs; ++j) {
-        ct->xhat[j] = encoding_fread(ct->enc_vt, fp);
+        if ((ct->xhat[j] = encoding_fread(ct->enc_vt, fp)) == NULL)
+            goto error;
     }
     ct->what = my_calloc(cp->m, sizeof ct->what[0]);
-    for (size_t o = 0; o < cp->m; ++o) {
-        ct->what[o] = encoding_fread(ct->enc_vt, fp);
-    }
+    for (size_t o = 0; o < cp->m; ++o)
+        if ((ct->what[o] = encoding_fread(ct->enc_vt, fp)) == NULL)
+            goto error;
     return ct;
 error:
+    fprintf(stderr, "error: reading ciphertext failed\n");
     free(ct);
     return NULL;
 }
