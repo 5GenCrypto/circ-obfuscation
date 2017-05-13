@@ -34,7 +34,7 @@ count=0
 while read -r input; do
     line=$(echo "$input" | tr -d ' ')
     name=$(get_name "$line")
-    if [[ $name == name || $name =~ ^f || $name =~ ^ggm_sigma || $name =~ ^aes1r_(3|5|6|7) || $name =~ ^prg ]]; then
+    if [[ $name == name || $name =~ ^f || $name =~ ^ggm_sigma || $name =~ ^aes1r_ || $name =~ ^prg ]]; then
         continue
     fi
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
