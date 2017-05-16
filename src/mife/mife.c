@@ -149,7 +149,6 @@ eval_circ(const circ_params_t *cp, size_t slot, mpz_t *outputs, mpz_t *inputs,
     mpz_t *refs;
 
     if (_refs) {
-        memset(_refs, '\0', nrefs * sizeof _refs[0]);
         refs = _refs;
     } else
         refs = my_calloc(nrefs, sizeof refs[0]);
@@ -223,6 +222,8 @@ mife_free(mife_t *mife)
         }
         free(mife->uhat);
     }
+    if (mife->const_betas)
+        mpz_vect_free(mife->const_betas, mife->cp->c);
     if (mife->constants)
         mife_ciphertext_free(mife->constants, mife->cp);
     if (mife->pp)
