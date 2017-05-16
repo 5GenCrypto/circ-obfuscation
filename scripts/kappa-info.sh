@@ -37,6 +37,9 @@ while read -r input; do
     if [[ $name == name || $name =~ ^f || $name =~ ^ggm_sigma || $name =~ ^aes1r_ || $name =~ ^prg ]]; then
         continue
     fi
+    if [[ $name =~ 64 || $name == sbox ]]; then
+        continue
+    fi
     name=$(perl -e "\$line = \"$name\"; \$line =~ s/_/\\\_/g; print \$line")
     mode=$(get_mode "$line")
     if [[ $mode != o1 ]]; then
