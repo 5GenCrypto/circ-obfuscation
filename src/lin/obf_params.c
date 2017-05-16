@@ -105,13 +105,13 @@ _fwrite(const obf_params_t *op, FILE *fp)
     const size_t noutputs = op->cp.m;
 
     circ_params_fwrite(&op->cp, fp);
-    fprintf(fp, "%d\n", op->sigma);
-    fprintf(fp, "%lu\n", op->M);
-    fprintf(fp, "%lu\n", op->d);
-    fprintf(fp, "%lu\n", op->D);
+    int_fwrite(op->sigma, fp);
+    size_t_fwrite(op->M, fp);
+    size_t_fwrite(op->d, fp);
+    size_t_fwrite(op->D, fp);
     for (size_t o = 0; o < noutputs; ++o) {
         for (size_t k = 0; k < ninputs + 1; ++k) {
-            fprintf(fp, "%d\n", op->types[o][k]);
+            int_fwrite(op->types[o][k], fp);
         }
     }
     return OK;
@@ -130,15 +130,15 @@ _fread(acirc *circ, FILE *fp)
     const size_t ninputs = op->cp.n - has_consts;
     const size_t noutputs = op->cp.m;
 
-    fscanf(fp, "%d\n", &op->sigma);
-    fscanf(fp, "%lu\n", &op->M);
-    fscanf(fp, "%lu\n", &op->d);
-    fscanf(fp, "%lu\n", &op->D);
+    int_fread(&op->sigma, fp);
+    size_t_fread(&op->M, fp);
+    size_t_fread(&op->d, fp);
+    size_t_fread(&op->D, fp);
     op->types = my_calloc(noutputs, sizeof op->types[0]);
     for (size_t o = 0; o < noutputs; ++o) {
         op->types[o] = my_calloc(ninputs + 1, sizeof op->types[0][0]);
         for (size_t k = 0; k < ninputs + 1; ++k) {
-            fscanf(fp, "%d\n", &op->types[o][k]);
+            int_fread(&op->types[o][k], fp);
         }
     }
     op->chunker = chunker_in_order;

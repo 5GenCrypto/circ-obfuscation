@@ -66,8 +66,8 @@ static int
 _fwrite(const obf_params_t *op, FILE *fp)
 {
     circ_params_fwrite(&op->cp, fp);
-    fprintf(fp, "%d\n", op->sigma);
-    fprintf(fp, "%lu\n", op->npowers);
+    int_fwrite(op->sigma, fp);
+    size_t_fwrite(op->npowers, fp);
     return OK;
 }
 
@@ -78,8 +78,8 @@ _fread(acirc *circ, FILE *fp)
 
     op = my_calloc(1, sizeof op[0]);
     circ_params_fread(&op->cp, circ, fp);
-    fscanf(fp, "%d\n", &op->sigma);
-    fscanf(fp, "%lu\n", &op->npowers);
+    int_fread(&op->sigma, fp);
+    size_t_fread(&op->npowers, fp);
     op->chunker = chunker_in_order;
     op->rchunker = rchunker_in_order;
     return op;
