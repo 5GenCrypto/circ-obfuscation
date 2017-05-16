@@ -50,22 +50,6 @@ typedef struct work_args {
     int *rop;
 } work_args;
 
-/* static size_t */
-/* num_encodings(const obf_params_t *op) */
-/* { */
-/*     return 1 */
-/*         + op->c * op->q */
-/*         + op->c * op->q * op->ell */
-/*         + 1 */
-/*         + op->m */
-/*         + op->c * op->q * op->gamma */
-/*         + op->c * op->q * op->gamma */
-/*         + op->gamma */
-/*         + op->gamma */
-/*         + op->gamma */
-/*         + op->gamma; */
-/* } */
-
 static void
 encode_Zstar(const encoding_vtable *vt, const circ_params_t *cp,
              encoding *enc, const secret_params *sp,
@@ -1179,7 +1163,7 @@ _evaluate(const obfuscation *obf, int *outputs, size_t noutputs,
             free(cache[i]);
         }
     }
-    ref_list_free(deps);
+    ref_list_free(deps, c);
     free(cache);
     free(mine);
     free(ready);

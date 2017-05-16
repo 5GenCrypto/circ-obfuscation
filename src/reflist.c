@@ -8,7 +8,7 @@ push(ref_list_node *node, acircref ref)
         node->max = 2;
         node->refs = my_calloc(node->max, sizeof node->refs[0]);
     } else if (node->cur == node->max) {
-        node->max *= 2;
+        node->max += 1000;
         node->refs = realloc(node->refs, node->max * sizeof node->refs[0]);
     }
     node->refs[node->cur++] = ref;
@@ -33,8 +33,13 @@ ref_list_new(const acirc *c)
 }
 
 void
-ref_list_free(ref_list *lst)
+ref_list_free(ref_list *lst, const acirc *c)
 {
+    const size_t nrefs = acirc_nrefs(c);
+    for (size_t ref = 0; ref < nrefs; ++ref) {
+        if (lst->refs[ref].max > 0)
+            free(lst->refs[ref].refs);
+    }
     free(lst->refs);
     free(lst);
 }

@@ -500,6 +500,8 @@ mife_ek_free(mife_ek_t *ek)
             public_params_free(ek->pp_vt, ek->pp);
         if (ek->Chatstar)
             encoding_free(ek->enc_vt, ek->Chatstar);
+        if (ek->constants)
+            mife_ciphertext_free(ek->constants, ek->cp);
         if (ek->zhat) {
             for (size_t o = 0; o < ek->cp->m; ++o)
                 encoding_free(ek->enc_vt, ek->zhat[o]);
@@ -1057,7 +1059,7 @@ mife_decrypt(const mife_ek_t *ek, int *rop, mife_ciphertext_t **cts,
             encoding_free(ek->enc_vt, cache[i]);
         }
     }
-    ref_list_free(deps);
+    ref_list_free(deps, circ);
     free(cache);
     free(mine);
     free(ready);

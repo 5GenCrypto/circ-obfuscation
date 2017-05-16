@@ -766,7 +766,7 @@ finish:
             encoding_free(obf->enc_vt, cache[i]);
         }
     }
-    ref_list_free(deps);
+    ref_list_free(deps, c);
     free(cache);
     free(mine);
     free(ready);

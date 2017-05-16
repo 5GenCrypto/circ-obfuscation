@@ -124,7 +124,7 @@ circ_eval(acirc *circ, const mpz_t *xs, const mpz_t *ys, const mpz_t modulus,
 
         threadpool_destroy(pool);
         free(ready);
-        ref_list_free(deps);
+        ref_list_free(deps, circ);
     }
     return OK;
 }

@@ -49,6 +49,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     size_t count = 0;
     bool parallelize_circ_eval = false; /* XXX: should this be nthreads > ?? */
     double start, end, _start, _end;
+    int res = ERR;
 
     const circ_params_t *const cp = &op->cp;
     const size_t ninputs = cp->n;
@@ -93,7 +94,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
                 else {
                     if (cp->qs[i] != 1 && cp->ds[i] != 1) {
                         fprintf(stderr, "error: don't yet support base != 2 and symlen > 1\n");
-                        goto error;
+                        goto cleanup;
                     }
                     inputs[k] = j;
                 }
@@ -102,23 +103,25 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
                                           parallelize_circ_eval);
         }
     }
+    res = OK;
+cleanup:
     threadpool_destroy(cache.pool);
     for (size_t ref = 0; ref < acirc_nrefs(op->cp.circ); ++ref)
         mpz_clear(cache.refs[ref]);
+    free(cache.refs);
     pthread_mutex_destroy(&lock);
     mife_sk_free(sk);
-    end = _end = current_time();
-    if (g_verbose) {
-        fprintf(stderr, "  MIFE encrypt: %.2fs\n", _end - _start);
-        fprintf(stderr, "  Obfuscate: %.2fs\n", end - start);
+    if (res == OK) {
+        end = _end = current_time();
+        if (g_verbose) {
+            fprintf(stderr, "  MIFE encrypt: %.2fs\n", _end - _start);
+            fprintf(stderr, "  Obfuscate: %.2fs\n", end - start);
+        }
+        return obf;
+    } else {
+        _free(obf);
+        return NULL;
     }
-    return obf;
-error:
-    threadpool_destroy(cache.pool);
-    pthread_mutex_destroy(&lock);
-    mife_sk_free(sk);
-    _free(obf);
-    return NULL;
 }
 
 static int
