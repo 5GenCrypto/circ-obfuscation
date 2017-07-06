@@ -413,7 +413,7 @@ typedef obf_obfuscate_args_t obf_test_args_t;
 static void
 obf_test_usage(bool longform, int ret)
 {
-    printf("usage: %s obf test [<args>] circuit input\n", progname);
+    printf("usage: %s obf test [<args>] circuit\n", progname);
     if (longform) {
         printf("\nAvailable arguments:\n\n");
         printf("    --scheme S         set obfuscation scheme to S (options: LIN, LZ, MIFE | default: MIFE)\n"
@@ -485,7 +485,7 @@ handle_options(int *argc, char ***argv, int left, args_t *args, void *others,
                 f(false, EXIT_FAILURE);
         } else if (!strcmp(cmd, "--verbose")) {
             g_verbose = true;
-        } else if (!strcmp(cmd, "--help")) {
+        } else if (!strcmp(cmd, "--help") || !strcmp(cmd, "-h")) {
             f(true, EXIT_SUCCESS);
         } else if (other) {
             if (other(argc, argv, others) == ERR) {
@@ -732,7 +732,7 @@ mife_usage(bool longform, int ret)
                "   decrypt       run MIFE decryption routine\n"
                "   test          run test suite\n"
                "   get-kappa     get κ value\n"
-               "\n");
+               "   help          print this message and exit\n\n");
     }
     exit(ret);
 }
@@ -760,6 +760,10 @@ cmd_mife(int argc, char **argv)
         ret = cmd_mife_test(argc, argv, &args);
     } else if (!strcmp(cmd, "get-kappa")) {
         ret = cmd_mife_get_kappa(argc, argv, &args);
+    } else if (!strcmp(cmd, "help")
+               || !strcmp(cmd, "--help")
+               || !strcmp(cmd, "-h")) {
+        mife_usage(true, EXIT_SUCCESS);
     } else {
         fprintf(stderr, "error: unknown command '%s'\n", cmd);
         mife_usage(true, EXIT_FAILURE);
@@ -1007,7 +1011,7 @@ obf_usage(bool longform, int ret)
                "   evaluate     run circuit evaluation\n"
                "   test         run test suite\n"
                "   get-kappa    get κ value\n"
-               "\n");
+               "   help         print this message and exit\n\n");
     }
     exit(ret);
 }
@@ -1033,6 +1037,10 @@ cmd_obf(int argc, char **argv)
         ret = cmd_obf_test(argc, argv, &args);
     } else if (!strcmp(cmd, "get-kappa")) {
         ret = cmd_obf_get_kappa(argc, argv, &args);
+    } else if (!strcmp(cmd, "help")
+               || !strcmp(cmd, "--help")
+               || !strcmp(cmd, "-h")) {
+        obf_usage(true, EXIT_SUCCESS);
     } else {
         fprintf(stderr, "error: unknown command '%s'\n", cmd);
         obf_usage(true, EXIT_FAILURE);
@@ -1071,7 +1079,9 @@ main(int argc, char **argv)
         ret = cmd_mife(argc, argv);
     } else if (!strcmp(command, "obf")) {
         ret = cmd_obf(argc, argv);
-    } else if (!strcmp(command, "help")) {
+    } else if (!strcmp(command, "help")
+               || !strcmp(command, "--help")
+               || !strcmp(command, "-h")) {
         usage(true, EXIT_SUCCESS);
     } else if (!strcmp(command, "version")) {
         printf("%s %s\n", progname, progversion);
