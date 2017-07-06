@@ -293,6 +293,7 @@ mife_get_kappa_handle_options(int *argc, char ***argv, void *vargs)
 typedef struct {
     size_t secparam;
     size_t npowers;
+    size_t kappa;
     enum scheme_e scheme;
 } obf_obfuscate_args_t;
 
@@ -302,22 +303,31 @@ obf_obfuscate_args_init(obf_obfuscate_args_t *args)
     args->secparam = SECPARAM_DEFAULT;
     args->npowers = NPOWERS_DEFAULT;
     args->scheme = SCHEME_MIFE;
+    args->kappa = 0;
+}
+
+static void
+obf_obfuscate_or_test_usage(bool longform, int ret, const char *cmd)
+{
+    printf("usage: %s obf %s [<args>] circuit\n", progname, cmd);
+    if (longform) {
+        printf("\nAvailable arguments:\n\n");
+        printf(
+            "    --kappa Κ          set kappa to Κ\n"
+            "    --scheme S         set obfuscation scheme to S (options: LIN, LZ, MIFE | default: MIFE)\n"
+            "    --secparam λ       set security parameter to λ (default: %d)\n"
+            "    --npowers N        set the number of powers to N (default: %d)\n",
+            SECPARAM_DEFAULT, NPOWERS_DEFAULT);
+        args_usage();
+        printf("\n");
+    }
+    exit(ret);
 }
 
 static void
 obf_obfuscate_usage(bool longform, int ret)
 {
-    printf("usage: %s obf obfuscate [<args>] circuit\n", progname);
-    if (longform) {
-        printf("\nAvailable arguments:\n\n");
-        printf("    --scheme S         set obfuscation scheme to S (options: LIN, LZ, MIFE | default: MIFE)\n"
-               "    --secparam λ       set security parameter to λ (default: %d)\n"
-               "    --npowers N        set the number of powers to N (default: %d)\n",
-               SECPARAM_DEFAULT, NPOWERS_DEFAULT);
-        args_usage();
-        printf("\n");
-    }
-    exit(ret);
+    obf_obfuscate_or_test_usage(longform, ret, "obfuscate");
 }
 
 static int
@@ -343,6 +353,21 @@ obf_obfuscate_handle_options(int *argc, char ***argv, void *vargs)
             args->scheme = SCHEME_MIFE;
         } else {
             fprintf(stderr, "error: unknown scheme '%s'\n", scheme);
+            return ERR;
+        }
+        (*argv)++; (*argc)--;
+    } else if (!strcmp(cmd, "--kappa")) {
+        if (*argc <= 1)
+            return ERR;
+        const char *str = (*argv)[1];
+        char *endptr;
+        args->kappa = strtol(str, &endptr, 10);
+        if (*endptr != '\0') {
+            fprintf(stderr, "error: invalid κ value given\n");
+            return ERR;
+        }
+        if (args->kappa == 0) {
+            fprintf(stderr, "error: κ value cannot be zero\n");
             return ERR;
         }
         (*argv)++; (*argc)--;
@@ -413,17 +438,7 @@ typedef obf_obfuscate_args_t obf_test_args_t;
 static void
 obf_test_usage(bool longform, int ret)
 {
-    printf("usage: %s obf test [<args>] circuit\n", progname);
-    if (longform) {
-        printf("\nAvailable arguments:\n\n");
-        printf("    --scheme S         set obfuscation scheme to S (options: LIN, LZ, MIFE | default: MIFE)\n"
-               "    --secparam λ       set security parameter to λ (default: %d)\n"
-               "    --npowers N        set the number of powers to N (default: %d)\n",
-               SECPARAM_DEFAULT, NPOWERS_DEFAULT);
-        args_usage();
-        printf("\n");
-    }
-    exit(ret);
+    obf_obfuscate_or_test_usage(longform, ret, "test");
 }
 #define obf_test_handle_options obf_obfuscate_handle_options
 typedef obf_evaluate_args_t obf_get_kappa_args_t;
@@ -467,7 +482,7 @@ handle_options(int *argc, char ***argv, int left, args_t *args, void *others,
                 args->vt = &dummy_vtable;
             } else {
                 fprintf(stderr, "error: unknown mmap \"%s\"\n", mmap);
-                f(false, EXIT_FAILURE);
+                f(true, EXIT_FAILURE);
             }
             (*argv)++; (*argc)--;
         } else if (!strcmp(cmd, "--smart")) {
@@ -488,13 +503,11 @@ handle_options(int *argc, char ***argv, int left, args_t *args, void *others,
         } else if (!strcmp(cmd, "--help") || !strcmp(cmd, "-h")) {
             f(true, EXIT_SUCCESS);
         } else if (other) {
-            if (other(argc, argv, others) == ERR) {
-                fprintf(stderr, "error: unknown argument '%s'\n", cmd);
-                f(false, EXIT_FAILURE);
-            }
+            if (other(argc, argv, others) == ERR)
+                f(true, EXIT_FAILURE);
         } else {
             fprintf(stderr, "error: unknown argument '%s'\n", cmd);
-            f(false, EXIT_FAILURE);
+            f(true, EXIT_FAILURE);
         }
         (*argv)++; (*argc)--;
     }
@@ -847,6 +860,8 @@ cmd_obf_obfuscate(int argc, char **argv, args_t *args)
         if (kappa == 0)
             goto cleanup;
     }
+    if (args_.kappa)
+        kappa = args_.kappa;
 
     length = snprintf(NULL, 0, "%s.obf\n", args->circuit);
     fname = my_calloc(length, sizeof fname[0]);
@@ -938,6 +953,9 @@ cmd_obf_test(int argc, char **argv, args_t *args)
         if (kappa == 0)
             goto cleanup;
     }
+    if (args_.kappa)
+        kappa = args_.kappa;
+
 
     length = snprintf(NULL, 0, "%s.obf\n", args->circuit);
     fname = my_calloc(length, sizeof fname[0]);
