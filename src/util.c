@@ -387,6 +387,8 @@ print_test_output(size_t num, const int *inp, size_t ninputs, const int *expecte
             ok = !(got[i] == (expected[i] != 1));
         else
             ok = !(!!got[i] != !!expected[i]);
+        if (!ok)
+            break;
     }
     if (ok)
         printf("\033[1;42m");
