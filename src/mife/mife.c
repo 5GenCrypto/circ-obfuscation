@@ -1,11 +1,11 @@
 #include "mife.h"
 
-#include "circ.h"
-#include "index_set.h"
+#include "../circ.h"
+#include "../index_set.h"
 #include "mife_params.h"
-#include "reflist.h"
-#include "vtables.h"
-#include "util.h"
+#include "../reflist.h"
+#include "../vtables.h"
+#include "../util.h"
 
 #include <assert.h>
 #include <string.h>

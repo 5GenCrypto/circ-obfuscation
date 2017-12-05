@@ -10,7 +10,7 @@
 #include "mobf/obfuscator.h"
 #include "obf_run.h"
 
-#include <aesrand.h>
+#include <aesrand/aesrand.h>
 #include <acirc.h>
 #include <mmap/mmap_clt.h>
 #include <mmap/mmap_dummy.h>
@@ -827,6 +827,8 @@ obf_select_scheme(enum scheme_e scheme, acirc *circ, size_t npowers, bool sigma,
         mobf_params.base = base;
         vparams = &mobf_params;
         break;
+    default:
+        return ERR;
     }
 
     *op = (*op_vt)->new(circ, vparams);

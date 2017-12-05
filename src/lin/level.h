@@ -1,7 +1,7 @@
 #pragma once
 
 #include "obf_params.h"
-#include "mmap.h"
+#include "../mmap.h"
 
 typedef struct {
     size_t q;                   /* # symbols in alphabet */

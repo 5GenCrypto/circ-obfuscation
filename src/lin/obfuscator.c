@@ -1,9 +1,9 @@
 #include "obfuscator.h"
 #include "encoding.h"
 #include "level.h"
-#include "reflist.h"
-#include "vtables.h"
-#include "util.h"
+#include "../reflist.h"
+#include "../vtables.h"
+#include "../util.h"
 
 #include <assert.h>
 #include <gmp.h>

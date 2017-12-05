@@ -1,8 +1,8 @@
 #pragma once
 
-#include <aesrand.h>
+#include <aesrand/aesrand.h>
 #include <gmp.h>
-#include <mmap.h>
+#include <mmap/mmap.h>
 
 #include <stdbool.h>
 

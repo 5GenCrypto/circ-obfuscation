@@ -1,6 +1,6 @@
 #include "obf_params.h"
 #include "level.h"
-#include "vtables.h"
+#include "../vtables.h"
 #include "../mmap.h"
 #include "../util.h"
 

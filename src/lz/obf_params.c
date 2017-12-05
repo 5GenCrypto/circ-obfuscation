@@ -1,7 +1,7 @@
 #include "obf_params.h"
 #include "obfuscator.h"
-#include "mmap.h"
-#include "util.h"
+#include "../mmap.h"
+#include "../util.h"
 
 #include <assert.h>
 

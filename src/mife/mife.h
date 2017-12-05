@@ -1,7 +1,6 @@
 #pragma once
 
-#include "mmap.h"
-
+#include "../mmap.h"
 #include <threadpool.h>
 
 typedef struct mife_t mife_t;

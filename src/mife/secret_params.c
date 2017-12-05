@@ -1,10 +1,10 @@
-#include "mmap.h"
-#include "vtables.h"
+#include "../mmap.h"
+#include "../vtables.h"
 
-#include "circ_params.h"
-#include "index_set.h"
+#include "../circ_params.h"
+#include "../index_set.h"
 #include "mife_params.h"
-#include "util.h"
+#include "../util.h"
 
 struct sp_info {
     index_set *toplevel;

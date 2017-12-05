@@ -3,7 +3,7 @@
 #abort if any command fails
 set -e
 
-mkdir -p build/autoconf
+mkdir -p build
 builddir=$(readlink -f build)
 
 usage () {
@@ -19,7 +19,7 @@ usage () {
 if [ x"$1" == x"" ]; then
     debug=''
 elif [ x"$1" == x"debug" ]; then
-    debug='--enable-debug'
+    debug='-DCMAKE_BUILD_TYPE=Debug'
 elif [ x"$1" == x"clean" ]; then
     rm -rf build libaesrand clt13 libmmap libacirc libthreadpool
     exit 0
@@ -32,7 +32,6 @@ else
     exit 1
 fi
 
-export CPPFLAGS=-I$builddir/include
 export CFLAGS=-I$builddir/include
 export LDFLAGS=-L$builddir/lib
 
@@ -42,7 +41,7 @@ build () {
     branch=$3
     flags=$debug
     if [ $path = "libmmap" ]; then
-        flags+=" --without-gghlite"
+        flags+=" -DHAVE_GGHLITE=OFF"
     fi
 
     echo
@@ -50,27 +49,31 @@ build () {
     echo
 
     if [ ! -d $path ]; then
-        git clone $url $path;
+        git clone $url $path -b $branch;
+    else
+        pushd $path; git pull origin $branch; popd
     fi
     pushd $path
-        git pull origin $branch
-        mkdir -p build/autoconf
-        autoreconf -i
-        ./configure --prefix=$builddir $flags
-        make
-        make check
-        make install
+    cmake -DCMAKE_INSTALL_PREFIX="${builddir}" $flags .
+    make
+    make install
     popd
 }
 
 echo builddir = $builddir
 
-build libaesrand    https://github.com/5GenCrypto/libaesrand master
-build clt13         https://github.com/5GenCrypto/clt13 master
-build libmmap       https://github.com/5GenCrypto/libmmap master
-build libacirc      https://github.com/5GenCrypto/libacirc master
-build libthreadpool https://github.com/5GenCrypto/libthreadpool master
+build libaesrand    https://github.com/5GenCrypto/libaesrand cmake
+build clt13         https://github.com/5GenCrypto/clt13 cmake
+build libmmap       https://github.com/5GenCrypto/libmmap cmake
+build libacirc      https://github.com/5GenCrypto/libacirc cmake
+build libthreadpool https://github.com/5GenCrypto/libthreadpool cmake
 
-autoreconf -i
-./configure --prefix=$builddir $debug
+echo
+echo Building mio
+echo
+
+echo $CFLAGS
+
+rm -rf CMakeCache CMakeFiles
+cmake "${debug}" -DCMAKE_C_FLAGS:STRING="${CFLAGS}" -DCMAKE_LIBRARY_PATH:STRING="${builddir}/lib" .
 make

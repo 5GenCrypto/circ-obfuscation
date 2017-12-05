@@ -1,6 +1,6 @@
 #include "mife_params.h"
-#include "vtables.h"
-#include "util.h"
+#include "../vtables.h"
+#include "../util.h"
 
 #include <string.h>
 

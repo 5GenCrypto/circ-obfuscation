@@ -1,7 +1,7 @@
 #include "obf_params.h"
 #include "../mife/mife.h"
 #include "obfuscator.h"
-#include "util.h"
+#include "../util.h"
 
 size_t
 mobf_num_encodings(const obf_params_t *op)

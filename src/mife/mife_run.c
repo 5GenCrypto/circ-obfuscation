@@ -1,6 +1,6 @@
 #include "mife_run.h"
 #include "mife_params.h"
-#include "util.h"
+#include "../util.h"
 
 #include <string.h>
 #include <mmap/mmap_dummy.h>

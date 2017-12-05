@@ -41,7 +41,7 @@ while read -r input; do
         continue
     fi
     mode=$(get_mode "$line")
-    if [[ $mode != o1 && $mode != o2 && $mode != o3 ]]; then
+    if [[ $mode != o1 && $mode != o2 && $mode != o3  &&  ! $name =~ ^ggm\\_sigma ]]; then
         continue
     fi
     if [[ $curname == "" ]]; then
@@ -68,6 +68,6 @@ while read -r input; do
     if [[ $kappa != "[overflow]" ]]; then
         kappa="\num{$kappa}"
     fi
-    result="$ninputs && $nconsts && $nouts && $size && $nmuls && $depth && $degree && $kappa \\\\"
+    result="\num{$ninputs} && \num{$nconsts} && \num{$nouts} && \num{$size} && \num{$nmuls} && \num{$depth} && $degree && $kappa \\\\"
 done < "$fname"
 printline

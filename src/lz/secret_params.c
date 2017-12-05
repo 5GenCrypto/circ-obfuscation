@@ -1,7 +1,7 @@
 #include "obf_params.h"
-#include "circ_params.h"
-#include "index_set.h"
-#include "vtables.h"
+#include "../circ_params.h"
+#include "../index_set.h"
+#include "../vtables.h"
 #include "../util.h"
 
 #include <err.h>

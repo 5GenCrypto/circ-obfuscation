@@ -1,8 +1,8 @@
 #include "obfuscator.h"
 #include "obf_params.h"
-#include "vtables.h"
-#include "reflist.h"
-#include "util.h"
+#include "../vtables.h"
+#include "../reflist.h"
+#include "../util.h"
 
 #include <assert.h>
 #include <string.h>

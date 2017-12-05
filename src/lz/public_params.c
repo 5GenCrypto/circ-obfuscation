@@ -1,8 +1,8 @@
-#include "circ_params.h"
-#include "index_set.h"
+#include "../circ_params.h"
+#include "../index_set.h"
 #include "obf_params.h"
-#include "vtables.h"
-#include "util.h"
+#include "../vtables.h"
+#include "../util.h"
 
 struct pp_info {
     const circ_params_t *cp;

@@ -37,3 +37,7 @@ TAGS
 libtool
 config.h.in~
 .libs/
+*.so
+CMakeCache.txt
+CMakeFiles/
+*.cmake

@@ -1,10 +1,9 @@
 #pragma once
 
-#include "mmap.h"
-#include "circ_params.h"
+#include <aesrand/aesrand.h>
+#include "../mmap.h"
+#include "../circ_params.h"
 #include "mife.h"
-
-#include <aesrand.h>
 
 int
 mife_run_setup(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,

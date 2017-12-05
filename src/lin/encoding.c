@@ -1,6 +1,6 @@
 #include "encoding.h"
 #include "level.h"
-#include "vtables.h"
+#include "../vtables.h"
 #include "../util.h"
 
 #include <assert.h>

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "circ_params.h"
-#include "input_chunker.h"
-#include "mmap.h"
+#include "../circ_params.h"
+#include "../input_chunker.h"
+#include "../mmap.h"
 
 #include <stddef.h>
 

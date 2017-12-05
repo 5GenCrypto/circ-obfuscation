@@ -1,6 +1,6 @@
 #include "mife_params.h"
 #include "mife.h"
-#include "util.h"
+#include "../util.h"
 
 PRIVATE size_t
 mife_params_nzs(const circ_params_t *cp)

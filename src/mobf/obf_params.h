@@ -1,7 +1,7 @@
 #pragma once
 
-#include "circ_params.h"
-#include "input_chunker.h"
+#include "../circ_params.h"
+#include "../input_chunker.h"
 
 #include <stddef.h>
 

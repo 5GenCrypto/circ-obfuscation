@@ -1,8 +1,8 @@
 #pragma once
 
-#include "circ_params.h"
-#include "index_set.h"
-#include "mmap.h"
+#include "../circ_params.h"
+#include "../index_set.h"
+#include "../mmap.h"
 
 struct obf_params_t {
     circ_params_t cp;
