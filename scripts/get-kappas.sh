@@ -4,7 +4,7 @@
 #
 
 dir=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
-prog=$(readlink -f "${dir}/../mio.sh")
+prog=$(readlink -f "${dir}/../mio")
 circuits=$(readlink -f "${dir}/../circuits")
 
 get () {

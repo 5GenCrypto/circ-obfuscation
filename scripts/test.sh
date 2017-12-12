@@ -4,7 +4,7 @@
 #
 
 scriptdir=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
-prog=$(readlink -f "$scriptdir/../mio.sh")
+prog=$(readlink -f "$scriptdir/../mio")
 circuits=$(readlink -f "$scriptdir/../circuits")
 
 set -e

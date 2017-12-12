@@ -38,8 +38,16 @@ secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
     if (kappa)
         *kappa = params.kappa;
     sp->sk = calloc(1, vt->mmap->sk->size);
-    if (vt->mmap->sk->init(sp->sk, lambda, params.kappa, params.nzs,
-                           params.pows, params.nslots, ncores, rng, g_verbose)) {
+    mmap_sk_params p = {
+        .lambda = lambda,
+        .kappa = params.kappa,
+        .gamma = params.nzs,
+        .pows = params.pows,
+    };
+    mmap_sk_opt_params o = {
+        .nslots = params.nslots,
+    };
+    if (vt->mmap->sk->init(sp->sk, &p, &o, ncores, rng, g_verbose)) {
         free(sp);
         sp = NULL;
     }

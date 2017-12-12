@@ -63,8 +63,8 @@ build () {
 echo builddir = $builddir
 
 build libaesrand    https://github.com/5GenCrypto/libaesrand cmake
-build clt13         https://github.com/5GenCrypto/clt13 cmake
-build libmmap       https://github.com/5GenCrypto/libmmap cmake
+build clt13         https://github.com/5GenCrypto/clt13 dev
+build libmmap       https://github.com/5GenCrypto/libmmap dev
 build libacirc      https://github.com/5GenCrypto/libacirc cmake
 build libthreadpool https://github.com/5GenCrypto/libthreadpool cmake
 
