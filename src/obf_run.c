@@ -103,12 +103,12 @@ cleanup:
 }
 
 size_t
-obf_run_smart_kappa(const obfuscator_vtable *vt, const acirc *circ,
+obf_run_smart_kappa(const obfuscator_vtable *vt, const acirc_t *circ,
                     obf_params_t *op, size_t nthreads, aes_randstate_t rng)
 {
     const char *fname = "/tmp/smart-kappa.obf";
-    int input[circ->ninputs];
-    int output[circ->outputs.n];
+    int input[acirc_ninputs(circ)];
+    int output[acirc_noutputs(circ)];
     bool verbosity = g_verbose;
     size_t kappa = 1;
 
@@ -124,8 +124,8 @@ obf_run_smart_kappa(const obfuscator_vtable *vt, const acirc *circ,
 
     memset(input, '\0', sizeof input);
     memset(output, '\0', sizeof output);
-    if (obf_run_evaluate(&dummy_vtable, vt, fname, op, input, circ->ninputs,
-                         output, circ->outputs.n, nthreads, &kappa, NULL) == ERR) {
+    if (obf_run_evaluate(&dummy_vtable, vt, fname, op, input, acirc_ninputs(circ),
+                         output, acirc_noutputs(circ), nthreads, &kappa, NULL) == ERR) {
         fprintf(stderr, "error: unable to evaluate to determine smart κ settings\n");
         kappa = 0;
     }

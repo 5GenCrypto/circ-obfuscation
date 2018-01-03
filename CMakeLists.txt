@@ -15,7 +15,6 @@ set(mio_SOURCES
   src/input_chunker.c
   src/mmap.c
   src/obf_run.c
-  src/reflist.c
   src/util.c
   )
 set(lin_SOURCES
@@ -51,13 +50,15 @@ set(mobf_SOURCES
   )
 
 add_library(lz SHARED ${lz_SOURCES})
-add_library(lin SHARED ${lin_SOURCES})
-add_library(mife SHARED ${mife_SOURCES})
-add_library(mobf SHARED ${mobf_SOURCES})
+# add_library(lin SHARED ${lin_SOURCES})
+# add_library(mife SHARED ${mife_SOURCES})
+# add_library(mobf SHARED ${mobf_SOURCES})
 add_executable(mio src/mio.c)
-target_link_libraries(mio lz lin mife mobf)
+# target_link_libraries(mio lz lin mife mobf)
+target_link_libraries(mio lz)
 find_library(libacirc acirc)
 find_library(libmmap mmap)
+find_library(libclt13 clt13)
 find_library(libthreadpool threadpool)
 find_library(libaesrand aesrand)
 target_link_libraries(mio "${libacirc}" "${libmmap}" "${libclt13}" "${libthreadpool}" "${libaesrand}")

@@ -9,17 +9,17 @@ typedef struct circ_params_t {
     size_t m;                   /* number of output bits */
     size_t *ds;                 /* number of bits in each input string */
     size_t *qs;                 /* number of symbols associated with input string */
-    acirc *circ;
+    acirc_t *circ;
 } circ_params_t;
 
 int
-circ_params_init(circ_params_t *cp, size_t n, acirc *circ);
+circ_params_init(circ_params_t *cp, size_t n, acirc_t *circ);
 void
 circ_params_clear(circ_params_t *cp);
 int
 circ_params_fwrite(const circ_params_t *const cp, FILE *fp);
 int
-circ_params_fread(circ_params_t *const cp, acirc *circ, FILE *fp);
+circ_params_fread(circ_params_t *const cp, acirc_t *circ, FILE *fp);
 size_t
 circ_params_ninputs(const circ_params_t *cp);
 size_t

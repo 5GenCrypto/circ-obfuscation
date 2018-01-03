@@ -1,7 +1,7 @@
 #include "obfuscator.h"
 #include "obf_params.h"
 #include "../vtables.h"
-#include "../reflist.h"
+/* #include "../reflist.h" */
 #include "../util.h"
 
 #include <assert.h>
@@ -25,20 +25,20 @@ typedef struct obfuscation {
     encoding **Chatstar;        // [γ]
 } obfuscation;
 
-typedef struct work_args {
-    const mmap_vtable *mmap;
-    acircref ref;
-    const acirc *c;
-    const int *inputs;
-    const obfuscation *obf;
-    bool *mine;
-    int *ready;
-    void *cache;
-    ref_list *deps;
-    threadpool *pool;
-    unsigned int *kappas;
-    int *rop;
-} work_args;
+/* typedef struct work_args { */
+/*     const mmap_vtable *mmap; */
+/*     acircref ref; */
+/*     const acirc *c; */
+/*     const int *inputs; */
+/*     const obfuscation *obf; */
+/*     bool *mine; */
+/*     int *ready; */
+/*     void *cache; */
+/*     ref_list *deps; */
+/*     threadpool *pool; */
+/*     unsigned int *kappas; */
+/*     int *rop; */
+/* } work_args; */
 
 typedef struct obf_args {
     const encoding_vtable *vt;
@@ -91,7 +91,7 @@ _alloc(const mmap_vtable *mmap, const obf_params_t *op)
     obfuscation *obf;
 
     const circ_params_t *cp = &op->cp;
-    const size_t nconsts = cp->circ->consts.n;
+    const size_t nconsts = acirc_nconsts(cp->circ);
     const size_t has_consts = nconsts ? 1 : 0;
     const size_t ninputs = cp->n - has_consts;
     const size_t noutputs = cp->m;
@@ -133,7 +133,7 @@ _free(obfuscation *obf)
 
     const obf_params_t *op = obf->op;
     const circ_params_t *cp = &op->cp;
-    const size_t nconsts = cp->circ->consts.n;
+    const size_t nconsts = acirc_nconsts(cp->circ);
     const size_t has_consts = nconsts ? 1 : 0;
     const size_t ninputs = cp->n - has_consts;
     const size_t noutputs = cp->m;
@@ -187,7 +187,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     obfuscation *obf;
 
     const circ_params_t *cp = &op->cp;
-    const size_t nconsts = cp->circ->consts.n;
+    const size_t nconsts = acirc_nconsts(cp->circ);
     const size_t has_consts = nconsts ? 1 : 0;
     const size_t ninputs = cp->n - has_consts;
     const size_t noutputs = cp->m;
@@ -230,8 +230,8 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     for (size_t i = 0; i < noutputs; i++) {
         obf->Chatstar[i] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
     }
-    
-    acirc *const circ = cp->circ;
+
+    acirc_t *const circ = cp->circ;
     mpz_t *const moduli =
         mpz_vect_create_of_fmpz(obf->mmap->sk->plaintext_fields(obf->sp->sk),
                                 obf->mmap->sk->nslots(obf->sp->sk));
@@ -277,38 +277,58 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         mpz_randomm_inv(beta[i], rng, moduli[1]);
     }
 
-    for (size_t o = 0; o < noutputs; o++) {
-        mpz_init(Cstar[o]);
-        acirc_eval_mpz_mod(Cstar[o], circ, circ->outputs.buf[o], alpha, beta, moduli[1]);
+    (void) acirc_eval_mpz(circ, alpha, beta, moduli[1]);
+    for (size_t o = 0; o < noutputs; ++o) {
+        mpz_t *tmp;
+        tmp = acirc_output(circ, o);
+        mpz_init_set(Cstar[o], *tmp);
     }
+    /* for (size_t o = 0; o < noutputs; o++) { */
+    /*     mpz_init(Cstar[o]); */
+    /*     acirc_eval_mpz_mod(Cstar[o], circ, circ->outputs.buf[o], alpha, beta, moduli[1]); */
+    /* } */
 
     unsigned long const_deg[noutputs];
     unsigned long const_deg_max = 0;
     unsigned long var_deg[ninputs][noutputs];
     unsigned long var_deg_max[ninputs];
-    acirc_memo *memo;
+    /* acirc_memo *memo; */
 
     memset(const_deg, '\0', sizeof const_deg);
     memset(var_deg, '\0', sizeof var_deg);
     memset(var_deg_max, '\0', sizeof var_deg_max);
 
-    memo = acirc_memo_new(circ);
+    (void) acirc_const_degrees(circ);
     for (size_t o = 0; o < noutputs; o++) {
-        const_deg[o] = acirc_const_degree(circ, circ->outputs.buf[o], memo);
+        const_deg[o] = (unsigned long) acirc_output(circ, o);
         if (const_deg[o] > const_deg_max)
             const_deg_max = const_deg[o];
     }
-    acirc_memo_free(memo, circ);
+    /* memo = acirc_memo_new(circ); */
+    /* for (size_t o = 0; o < noutputs; o++) { */
+    /*     const_deg[o] = acirc_const_degree(circ, circ->outputs.buf[o], memo); */
+    /*     if (const_deg[o] > const_deg_max) */
+    /*         const_deg_max = const_deg[o]; */
+    /* } */
+    /* acirc_memo_free(memo, circ); */
 
-    memo = acirc_memo_new(circ);
-    for (size_t k = 0; k < ninputs; k++) {
+    for (size_t k = 0; k < ninputs; ++k) {
+        (void) acirc_var_degrees(circ, k);
         for (size_t o = 0; o < noutputs; o++) {
-            var_deg[k][o] = acirc_var_degree(circ, circ->outputs.buf[o], k, memo);
+            var_deg[k][o] = (unsigned long) acirc_output(circ, o);
             if (var_deg[k][o] > var_deg_max[k])
                 var_deg_max[k] = var_deg[k][o];
         }
     }
-    acirc_memo_free(memo, circ);
+    /* memo = acirc_memo_new(circ); */
+    /* for (size_t k = 0; k < ninputs; k++) { */
+    /*     for (size_t o = 0; o < noutputs; o++) { */
+    /*         var_deg[k][o] = acirc_var_degree(circ, circ->outputs.buf[o], k, memo); */
+    /*         if (var_deg[k][o] > var_deg_max[k]) */
+    /*             var_deg_max[k] = var_deg[k][o]; */
+    /*     } */
+    /* } */
+    /* acirc_memo_free(memo, circ); */
 
     if (g_verbose)
         print_progress(count, total);
@@ -361,7 +381,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     for (size_t i = 0; i < nconsts; i++) {
         index_set_clear(ix);
         ix_y_set(ix, cp, 1);
-        mpz_set_si(inps[0], circ->consts.buf[i]);
+        mpz_set_si(inps[0], acirc_const(circ, i));
         mpz_set   (inps[1], beta[i]);
         __encode(pool, obf->enc_vt, obf->yhat[i], inps, index_set_copy(ix),
                  obf->sp, &count_lock, &count, total);
@@ -427,7 +447,7 @@ _fwrite(const obfuscation *const obf, FILE *const fp)
     const obf_params_t *const op = obf->op;
 
     const circ_params_t *cp = &op->cp;
-    const size_t nconsts = cp->circ->consts.n;
+    const size_t nconsts = acirc_nconsts(cp->circ);
     const size_t has_consts = nconsts ? 1 : 0;
     const size_t ninputs = cp->n - has_consts;
     const size_t noutputs = cp->m;
@@ -460,7 +480,7 @@ _fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     obfuscation *obf;
 
     const circ_params_t *cp = &op->cp;
-    const size_t nconsts = cp->circ->consts.n;
+    const size_t nconsts = acirc_nconsts(cp->circ);
     const size_t has_consts = nconsts ? 1 : 0;
     const size_t ninputs = cp->n - has_consts;
     const size_t noutputs = cp->m;
@@ -509,7 +529,7 @@ static void _raise_encoding(const obfuscation *obf, encoding *x, encoding **ys, 
 static void raise_encoding(const obfuscation *obf, encoding *x, const index_set *target)
 {
     const circ_params_t *cp = &obf->op->cp;
-    const size_t ninputs = cp->n - (cp->circ->consts.n ? 1 : 0);
+    const size_t ninputs = cp->n - (acirc_nconsts(cp->circ) ? 1 : 0);
 
     index_set *const ix =
         index_set_difference(target, obf->enc_vt->mmap_set(x));
@@ -535,114 +555,276 @@ raise_encodings(const obfuscation *obf, encoding *x, encoding *y)
     index_set_free(ix);
 }
 
-static void eval_worker(void *vargs)
-{
-    work_args *const wargs = vargs;
-    const acircref ref = wargs->ref;
-    const acirc *const c = wargs->c;
-    const int *const inputs = wargs->inputs;
-    const obfuscation *const obf = wargs->obf;
-    bool *const mine = wargs->mine;
-    int *const ready = wargs->ready;
-    encoding **cache = wargs->cache;
-    ref_list *const deps = wargs->deps;
-    threadpool *const pool = wargs->pool;
-    unsigned int *const kappas = wargs->kappas;
-    int *const rop = wargs->rop;
+/* static void eval_worker(void *vargs) */
+/* { */
+/*     work_args *const wargs = vargs; */
+/*     const acircref ref = wargs->ref; */
+/*     const acirc *const c = wargs->c; */
+/*     const int *const inputs = wargs->inputs; */
+/*     const obfuscation *const obf = wargs->obf; */
+/*     bool *const mine = wargs->mine; */
+/*     int *const ready = wargs->ready; */
+/*     encoding **cache = wargs->cache; */
+/*     ref_list *const deps = wargs->deps; */
+/*     threadpool *const pool = wargs->pool; */
+/*     unsigned int *const kappas = wargs->kappas; */
+/*     int *const rop = wargs->rop; */
 
-    const acirc_operation op = c->gates.gates[ref].op;
-    const acircref *const args = c->gates.gates[ref].args;
+/*     const acirc_operation op = c->gates.gates[ref].op; */
+/*     const acircref *const args = c->gates.gates[ref].args; */
+/*     encoding *res; */
+
+/*     const circ_params_t *cp = &obf->op->cp; */
+/*     const size_t has_consts = cp->circ->consts.n ? 1 : 0; */
+/*     const size_t ninputs = cp->n - has_consts; */
+/*     const size_t noutputs = cp->m; */
+
+/*     switch (op) { */
+/*     case OP_INPUT: { */
+/*         const size_t id = args[0]; */
+/*         const sym_id sym = obf->op->chunker(id, c->ninputs, ninputs); */
+/*         const size_t k = sym.sym_number; */
+/*         const size_t s = inputs[k]; */
+/*         const size_t j = sym.bit_number; */
+/*         res = obf->shat[k][s][j]; */
+/*         mine[ref] = false; */
+/*         break; */
+/*     } */
+/*     case OP_CONST: { */
+/*         const size_t i = args[0]; */
+/*         res = obf->yhat[i]; */
+/*         mine[ref] = false; */
+/*         break; */
+/*     } */
+/*     case OP_ADD: case OP_SUB: case OP_MUL: { */
+/*         assert(c->gates.gates[ref].nargs == 2); */
+/*         res = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp); */
+/*         mine[ref] = true; */
+
+/*         const encoding *const x = cache[args[0]]; */
+/*         const encoding *const y = cache[args[1]]; */
+
+/*         if (op == OP_MUL) { */
+/*             encoding_mul(obf->enc_vt, obf->pp_vt, res, x, y, obf->pp); */
+/*         } else { */
+/*             encoding *tmp_x, *tmp_y; */
+/*             tmp_x = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp); */
+/*             tmp_y = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp); */
+/*             encoding_set(obf->enc_vt, tmp_x, x); */
+/*             encoding_set(obf->enc_vt, tmp_y, y); */
+/*             if (!index_set_eq(obf->enc_vt->mmap_set(tmp_x), obf->enc_vt->mmap_set(tmp_y))) */
+/*                 raise_encodings(obf, tmp_x, tmp_y); */
+/*             if (op == OP_ADD) { */
+/*                 encoding_add(obf->enc_vt, obf->pp_vt, res, tmp_x, tmp_y, obf->pp); */
+/*             } else if (op == OP_SUB) { */
+/*                 encoding_sub(obf->enc_vt, obf->pp_vt, res, tmp_x, tmp_y, obf->pp); */
+/*             } else { */
+/*                 abort(); */
+/*             } */
+/*             encoding_free(obf->enc_vt, tmp_x); */
+/*             encoding_free(obf->enc_vt, tmp_y); */
+/*         } */
+/*         break; */
+/*     } */
+/*     case OP_SET: */
+/*         res = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp); */
+/*         mine[ref] = true; */
+/*         encoding_set(obf->enc_vt, res, cache[args[0]]); */
+/*         break; */
+/*     default: */
+/*         fprintf(stderr, "fatal: op not supported\n"); */
+/*         abort(); */
+/*     } */
+
+/*     cache[ref] = res; */
+
+/*     ref_list_node *node = &deps->refs[ref]; */
+/*     for (size_t i = 0; i < node->cur; ++i) { */
+/*         const int num = __sync_add_and_fetch(&ready[node->refs[i]], 1); */
+/*         if (num == 2) { */
+/*             work_args *newargs = my_calloc(1, sizeof newargs[0]); */
+/*             memcpy(newargs, wargs, sizeof newargs[0]); */
+/*             newargs->ref = node->refs[i]; */
+/*             threadpool_add_job(pool, eval_worker, newargs); */
+/*         } */
+/*     } */
+
+/*     free(wargs); */
+
+/*     // addendum: is this ref an output bit? if so, we should zero test it. */
+/*     ssize_t output = -1; */
+/*     for (size_t i = 0; i < noutputs; i++) { */
+/*         if (ref == c->outputs.buf[i]) { */
+/*             output = i; */
+/*             break; */
+/*         } */
+/*     } */
+
+/*     if (output != -1) { */
+/*         encoding *out, *lhs, *rhs, *tmp; */
+/*         const index_set *const toplevel = obf->pp_vt->toplevel(obf->pp); */
+
+/*         out = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp); */
+/*         lhs = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp); */
+/*         rhs = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp); */
+/*         tmp = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp); */
+
+/*         /\* Compute LHS *\/ */
+/*         encoding_set(obf->enc_vt, lhs, res); */
+/*         for (size_t k = 0; k < ninputs; k++) { */
+/*             encoding_set(obf->enc_vt, tmp, lhs); */
+/*             encoding_mul(obf->enc_vt, obf->pp_vt, lhs, tmp, */
+/*                          obf->zhat[k][inputs[k]][output], obf->pp); */
+/*         } */
+/*         raise_encoding(obf, lhs, toplevel); */
+/*         if (!index_set_eq(obf->enc_vt->mmap_set(lhs), toplevel)) { */
+/*             fprintf(stderr, "lhs != toplevel\n"); */
+/*             index_set_print(obf->enc_vt->mmap_set(lhs)); */
+/*             index_set_print(toplevel); */
+/*             rop[output] = 1; */
+/*             goto cleanup; */
+/*         } */
+
+/*         /\* Compute RHS *\/ */
+/*         encoding_set(obf->enc_vt, rhs, obf->Chatstar[output]); */
+/*         for (size_t k = 0; k < ninputs; k++) { */
+/*             encoding_set(obf->enc_vt, tmp, rhs); */
+/*             encoding_mul(obf->enc_vt, obf->pp_vt, rhs, tmp, */
+/*                          obf->what[k][inputs[k]][output], obf->pp); */
+/*         } */
+/*         if (!index_set_eq(obf->enc_vt->mmap_set(rhs), toplevel)) { */
+/*             fprintf(stderr, "rhs != toplevel\n"); */
+/*             index_set_print(obf->enc_vt->mmap_set(rhs)); */
+/*             index_set_print(toplevel); */
+/*             rop[output] = 1; */
+/*             goto cleanup; */
+/*         } */
+/*         encoding_sub(obf->enc_vt, obf->pp_vt, out, lhs, rhs, obf->pp); */
+/*         rop[output] = !encoding_is_zero(obf->enc_vt, obf->pp_vt, out, obf->pp); */
+/*         if (kappas) */
+/*             kappas[output] = encoding_get_degree(obf->enc_vt, out); */
+
+/*     cleanup: */
+/*         encoding_free(obf->enc_vt, out); */
+/*         encoding_free(obf->enc_vt, lhs); */
+/*         encoding_free(obf->enc_vt, rhs); */
+/*         encoding_free(obf->enc_vt, tmp); */
+/*     } */
+/* } */
+
+typedef struct {
+    const obfuscation *obf;
+    int *inputs;
+} obf_args_t;
+
+static void *
+input_f(size_t i, void *args_)
+{
+    obf_args_t *args = args_;
+    const obfuscation *const obf = args->obf;
+    const circ_params_t *cp = &obf->op->cp;
+    const size_t has_consts = acirc_nconsts(cp->circ) ? 1 : 0;
+    const size_t ninputs = cp->n - has_consts;
+    const sym_id sym = obf->op->chunker(i, acirc_ninputs(cp->circ), ninputs);
+    const size_t k = sym.sym_number;
+    const size_t s = args->inputs[k];
+    const size_t j = sym.bit_number;
+    return obf->shat[k][s][j];
+}
+
+static void *
+const_f(size_t i, int val, void *args_)
+{
+    (void) val;
+    obf_args_t *args = args_;
+    const obfuscation *const obf = args->obf;
+    return obf->yhat[i];
+}
+
+static void *
+eval_f(acirc_op op, void *x_, void *y_, void *args_)
+{
+    obf_args_t *args = args_;
+    const obfuscation *const obf = args->obf;
+    encoding *x = x_;
+    encoding *y = y_;
     encoding *res;
 
-    const circ_params_t *cp = &obf->op->cp;
-    const size_t has_consts = cp->circ->consts.n ? 1 : 0;
-    const size_t ninputs = cp->n - has_consts;
-    const size_t noutputs = cp->m;
-
+    res = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
     switch (op) {
-    case OP_INPUT: {
-        const size_t id = args[0];
-        const sym_id sym = obf->op->chunker(id, c->ninputs, ninputs);
-        const size_t k = sym.sym_number;
-        const size_t s = inputs[k];
-        const size_t j = sym.bit_number;
-        res = obf->shat[k][s][j];
-        mine[ref] = false;
+    case ACIRC_OP_MUL:
+        encoding_mul(obf->enc_vt, obf->pp_vt, res, x, y, obf->pp);
         break;
-    }
-    case OP_CONST: {
-        const size_t i = args[0];
-        res = obf->yhat[i];
-        mine[ref] = false;
-        break;
-    }
-    case OP_ADD: case OP_SUB: case OP_MUL: {
-        assert(c->gates.gates[ref].nargs == 2);
-        res = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
-        mine[ref] = true;
-
-        const encoding *const x = cache[args[0]];
-        const encoding *const y = cache[args[1]];
-
-        if (op == OP_MUL) {
-            encoding_mul(obf->enc_vt, obf->pp_vt, res, x, y, obf->pp);
+    case ACIRC_OP_ADD:
+    case ACIRC_OP_SUB: {
+        encoding *tmp_x, *tmp_y;
+        tmp_x = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
+        tmp_y = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
+        encoding_set(obf->enc_vt, tmp_x, x);
+        encoding_set(obf->enc_vt, tmp_y, y);
+        if (!index_set_eq(obf->enc_vt->mmap_set(tmp_x), obf->enc_vt->mmap_set(tmp_y)))
+            raise_encodings(obf, tmp_x, tmp_y);
+        if (op == ACIRC_OP_ADD) {
+            encoding_add(obf->enc_vt, obf->pp_vt, res, tmp_x, tmp_y, obf->pp);
+        } else if (op == ACIRC_OP_SUB) {
+            encoding_sub(obf->enc_vt, obf->pp_vt, res, tmp_x, tmp_y, obf->pp);
         } else {
-            encoding *tmp_x, *tmp_y;
-            tmp_x = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
-            tmp_y = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
-            encoding_set(obf->enc_vt, tmp_x, x);
-            encoding_set(obf->enc_vt, tmp_y, y);
-            if (!index_set_eq(obf->enc_vt->mmap_set(tmp_x), obf->enc_vt->mmap_set(tmp_y)))
-                raise_encodings(obf, tmp_x, tmp_y);
-            if (op == OP_ADD) {
-                encoding_add(obf->enc_vt, obf->pp_vt, res, tmp_x, tmp_y, obf->pp);
-            } else if (op == OP_SUB) {
-                encoding_sub(obf->enc_vt, obf->pp_vt, res, tmp_x, tmp_y, obf->pp);
-            } else {
-                abort();
-            }
-            encoding_free(obf->enc_vt, tmp_x);
-            encoding_free(obf->enc_vt, tmp_y);
+            abort();
         }
+        encoding_free(obf->enc_vt, tmp_x);
+        encoding_free(obf->enc_vt, tmp_y);
         break;
     }
-    case OP_SET:
-        res = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
-        mine[ref] = true;
-        encoding_set(obf->enc_vt, res, cache[args[0]]);
-        break;
-    default:
-        fprintf(stderr, "fatal: op not supported\n");
-        abort();
-    }        
+    }
+    return res;
+}
 
-    cache[ref] = res;
+static int
+_evaluate(const obfuscation *obf, int *outputs, size_t noutputs,
+          const int *inputs, size_t ninputs, size_t nthreads,
+          size_t *kappa, size_t *npowers)
+{
+    const circ_params_t *cp = &obf->op->cp;
+    acirc_t *c = cp->circ;
+    const size_t has_consts = acirc_nconsts(c) ? 1 : 0;
+    const size_t ell = array_max(cp->ds, cp->n - has_consts);
+    const size_t q = array_max(cp->qs, cp->n - has_consts);
+    int ret = ERR;
 
-    ref_list_node *node = &deps->refs[ref];
-    for (size_t i = 0; i < node->cur; ++i) {
-        const int num = __sync_add_and_fetch(&ready[node->refs[i]], 1);
-        if (num == 2) {
-            work_args *newargs = my_calloc(1, sizeof newargs[0]);
-            memcpy(newargs, wargs, sizeof newargs[0]);
-            newargs->ref = node->refs[i];
-            threadpool_add_job(pool, eval_worker, newargs);
-        }
+    if (ninputs != acirc_ninputs(c)) {
+        fprintf(stderr, "error: obf evaluate: invalid number of inputs\n");
+        return ERR;
+    }
+    if (noutputs != acirc_noutputs(c)) {
+        fprintf(stderr, "error: obf evaluate: invalid number of outputs\n");
+        return ERR;
     }
 
-    free(wargs);
+    /* encoding **cache = my_calloc(acirc_nrefs(c), sizeof cache[0]); */
+    /* bool *mine = my_calloc(acirc_nrefs(c), sizeof mine[0]); */
+    /* int *ready = my_calloc(acirc_nrefs(c), sizeof ready[0]); */
+    unsigned int *kappas = my_calloc(acirc_noutputs(c), sizeof kappas[0]);
+    int *input_syms = get_input_syms(inputs, acirc_ninputs(c), obf->op->rchunker,
+                                     cp->n - has_consts, ell, q, obf->op->sigma);
+    /* ref_list *deps = ref_list_new(c); */
+    /* threadpool *pool = threadpool_create(nthreads); */
+    g_max_npowers = 0;
 
-    // addendum: is this ref an output bit? if so, we should zero test it.
-    ssize_t output = -1;
-    for (size_t i = 0; i < noutputs; i++) {
-        if (ref == c->outputs.buf[i]) {
-            output = i;
-            break;
-        }
+    if (input_syms == NULL)
+        goto finish;
+
+    {
+        obf_args_t args;
+        args.obf = obf;
+        args.inputs = input_syms;
+        acirc_traverse(c, input_f, const_f, eval_f, &args);
     }
 
-    if (output != -1) {
-        encoding *out, *lhs, *rhs, *tmp;
+    for (size_t o = 0; o < acirc_noutputs(c); ++o) {
+        encoding *out, *lhs, *rhs, *tmp, *res;
         const index_set *const toplevel = obf->pp_vt->toplevel(obf->pp);
+
+        res = acirc_output(c, o);
 
         out = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
         lhs = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
@@ -654,101 +836,67 @@ static void eval_worker(void *vargs)
         for (size_t k = 0; k < ninputs; k++) {
             encoding_set(obf->enc_vt, tmp, lhs);
             encoding_mul(obf->enc_vt, obf->pp_vt, lhs, tmp,
-                         obf->zhat[k][inputs[k]][output], obf->pp);
+                         obf->zhat[k][inputs[k]][o], obf->pp);
         }
         raise_encoding(obf, lhs, toplevel);
         if (!index_set_eq(obf->enc_vt->mmap_set(lhs), toplevel)) {
             fprintf(stderr, "lhs != toplevel\n");
             index_set_print(obf->enc_vt->mmap_set(lhs));
             index_set_print(toplevel);
-            rop[output] = 1;
+            outputs[o] = 1;
             goto cleanup;
         }
 
         /* Compute RHS */
-        encoding_set(obf->enc_vt, rhs, obf->Chatstar[output]);
+        encoding_set(obf->enc_vt, rhs, obf->Chatstar[o]);
         for (size_t k = 0; k < ninputs; k++) {
             encoding_set(obf->enc_vt, tmp, rhs);
             encoding_mul(obf->enc_vt, obf->pp_vt, rhs, tmp,
-                         obf->what[k][inputs[k]][output], obf->pp);
+                         obf->what[k][inputs[k]][o], obf->pp);
         }
         if (!index_set_eq(obf->enc_vt->mmap_set(rhs), toplevel)) {
             fprintf(stderr, "rhs != toplevel\n");
             index_set_print(obf->enc_vt->mmap_set(rhs));
             index_set_print(toplevel);
-            rop[output] = 1;
+            outputs[o] = 1;
             goto cleanup;
         }
         encoding_sub(obf->enc_vt, obf->pp_vt, out, lhs, rhs, obf->pp);
-        rop[output] = !encoding_is_zero(obf->enc_vt, obf->pp_vt, out, obf->pp);
+        outputs[o] = !encoding_is_zero(obf->enc_vt, obf->pp_vt, out, obf->pp);
         if (kappas)
-            kappas[output] = encoding_get_degree(obf->enc_vt, out);
+            kappas[o] = encoding_get_degree(obf->enc_vt, out);
 
     cleanup:
         encoding_free(obf->enc_vt, out);
         encoding_free(obf->enc_vt, lhs);
         encoding_free(obf->enc_vt, rhs);
         encoding_free(obf->enc_vt, tmp);
-    }
-}
 
-
-static int
-_evaluate(const obfuscation *obf, int *outputs, size_t noutputs,
-          const int *inputs, size_t ninputs, size_t nthreads,
-          size_t *kappa, size_t *npowers)
-{
-    const circ_params_t *cp = &obf->op->cp;
-    const acirc *const c = cp->circ;
-    const size_t has_consts = cp->circ->consts.n ? 1 : 0;
-    const size_t ell = array_max(cp->ds, cp->n - has_consts);
-    const size_t q = array_max(cp->qs, cp->n - has_consts);
-    int ret = ERR;
-
-    if (ninputs != c->ninputs) {
-        fprintf(stderr, "error: obf evaluate: invalid number of inputs\n");
-        return ERR;
-    } else if (noutputs != cp->m) {
-        fprintf(stderr, "error: obf evaluate: invalid number of outputs\n");
-        return ERR;
     }
 
-    encoding **cache = my_calloc(acirc_nrefs(c), sizeof cache[0]);
-    bool *mine = my_calloc(acirc_nrefs(c), sizeof mine[0]);
-    int *ready = my_calloc(acirc_nrefs(c), sizeof ready[0]);
-    unsigned int *kappas = my_calloc(c->outputs.n, sizeof kappas[0]);
-    int *input_syms = get_input_syms(inputs, c->ninputs, obf->op->rchunker,
-                                     cp->n - has_consts, ell, q, obf->op->sigma);
-    ref_list *deps = ref_list_new(c);
-    threadpool *pool = threadpool_create(nthreads);
-    g_max_npowers = 0;
-
-    if (input_syms == NULL)
-        goto finish;
-
-    for (size_t ref = 0; ref < acirc_nrefs(c); ref++) {
-        acirc_operation op = c->gates.gates[ref].op;
-        if (!(op == OP_INPUT || op == OP_CONST))
-            continue;
-        work_args *args = calloc(1, sizeof args[0]);
-        args->mmap   = obf->mmap;
-        args->ref    = ref;
-        args->c      = c;
-        args->inputs = input_syms;
-        args->obf    = obf;
-        args->mine   = mine;
-        args->ready  = ready;
-        args->cache  = cache;
-        args->deps   = deps;
-        args->pool   = pool;
-        args->rop    = outputs;
-        args->kappas = kappas;
-        threadpool_add_job(pool, eval_worker, args);
-    }
+    /* for (size_t ref = 0; ref < acirc_nrefs(c); ref++) { */
+    /*     acirc_operation op = c->gates.gates[ref].op; */
+    /*     if (!(op == OP_INPUT || op == OP_CONST)) */
+    /*         continue; */
+    /*     work_args *args = calloc(1, sizeof args[0]); */
+    /*     args->mmap   = obf->mmap; */
+    /*     args->ref    = ref; */
+    /*     args->c      = c; */
+    /*     args->inputs = input_syms; */
+    /*     args->obf    = obf; */
+    /*     args->mine   = mine; */
+    /*     args->ready  = ready; */
+    /*     args->cache  = cache; */
+    /*     args->deps   = deps; */
+    /*     args->pool   = pool; */
+    /*     args->rop    = outputs; */
+    /*     args->kappas = kappas; */
+    /*     threadpool_add_job(pool, eval_worker, args); */
+    /* } */
     ret = OK;
 
 finish:
-    threadpool_destroy(pool);
+    /* threadpool_destroy(pool); */
 
     if (kappa) {
         unsigned int maxkappa = 0;
@@ -761,15 +909,15 @@ finish:
     if (npowers)
         *npowers = g_max_npowers;
 
-    for (size_t i = 0; i < acirc_nrefs(c); i++) {
-        if (mine[i]) {
-            encoding_free(obf->enc_vt, cache[i]);
-        }
-    }
-    ref_list_free(deps, c);
-    free(cache);
-    free(mine);
-    free(ready);
+    /* for (size_t i = 0; i < acirc_nrefs(c); i++) { */
+    /*     if (mine[i]) { */
+    /*         encoding_free(obf->enc_vt, cache[i]); */
+    /*     } */
+    /* } */
+    /* ref_list_free(deps, c); */
+    /* free(cache); */
+    /* free(mine); */
+    /* free(ready); */
     free(kappas);
     free(input_syms);
 

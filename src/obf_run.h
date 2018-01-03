@@ -14,5 +14,5 @@ obf_run_evaluate(const mmap_vtable *mmap, const obfuscator_vtable *vt,
                  size_t *kappa, size_t *npowers);
 
 size_t
-obf_run_smart_kappa(const obfuscator_vtable *vt, const acirc *circ, obf_params_t *op, size_t nthreads,
+obf_run_smart_kappa(const obfuscator_vtable *vt, const acirc_t *circ, obf_params_t *op, size_t nthreads,
                     aes_randstate_t rng);

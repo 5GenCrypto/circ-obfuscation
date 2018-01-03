@@ -4,11 +4,11 @@
 #include <assert.h>
 
 int
-circ_params_init(circ_params_t *cp, size_t n, acirc *circ)
+circ_params_init(circ_params_t *cp, size_t n, acirc_t *circ)
 {
     cp->n = n;
-    cp->c = circ->consts.n;
-    cp->m = circ->outputs.n;
+    cp->c = acirc_nconsts(circ);
+    cp->m = acirc_noutputs(circ);
     cp->circ = circ;
     cp->ds = my_calloc(n, sizeof cp->ds[0]);
     cp->qs = my_calloc(n, sizeof cp->ds[0]);
@@ -48,7 +48,7 @@ error:
 }
 
 int
-circ_params_fread(circ_params_t *const cp, acirc *circ, FILE *fp)
+circ_params_fread(circ_params_t *const cp, acirc_t *circ, FILE *fp)
 {
     if (size_t_fread(&cp->n, fp) == ERR)
         goto error;
@@ -115,18 +115,16 @@ void
 circ_params_print(const circ_params_t *cp)
 {
     fprintf(stderr, "Circuit parameters:\n");
-    fprintf(stderr, "* ninputs:...... %lu\n", cp->circ->ninputs);
+    fprintf(stderr, "* ninputs:...... %lu\n", acirc_ninputs(cp->circ));
     fprintf(stderr, "* nslots: ...... %lu\n", cp->n);
     for (size_t i = 0; i < cp->n; ++i) {
         fprintf(stderr, "*   slot #%lu: ..... %lu (%lu)\n", i + 1,
                 cp->ds[i], cp->qs[i]);
     }
     fprintf(stderr, "* nconsts:...... %lu\n", cp->c);
-
     fprintf(stderr, "* noutputs: .... %lu\n", cp->m);
-    fprintf(stderr, "* ngates: ...... %lu\n", cp->circ->gates.n);
+    fprintf(stderr, "* ngates: ...... %lu\n", acirc_ngates(cp->circ));
     fprintf(stderr, "* nmuls: ....... %lu\n", acirc_nmuls(cp->circ));
     fprintf(stderr, "* depth: ....... %lu\n", acirc_max_depth(cp->circ));
     fprintf(stderr, "* degree: ...... %lu\n", acirc_max_degree(cp->circ));
-
 }

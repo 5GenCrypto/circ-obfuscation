@@ -2,6 +2,7 @@
 
 #include "circ_params.h"
 
+#include <stdbool.h>
 #include <stdlib.h>
 
 typedef struct {

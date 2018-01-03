@@ -16,8 +16,8 @@ typedef size_t (*reverse_chunker) (sym_id sym, size_t ninputs, size_t nsyms);
 sym_id chunker_in_order(size_t id, size_t ninputs, size_t nsyms);
 size_t rchunker_in_order(sym_id sym, size_t ninputs, size_t nsyms);
 
-void
-type_degree(int *rop, acircref ref, const acirc *c, size_t nsyms, input_chunker chunker);
+/* void */
+/* type_degree(int *rop, acircref ref, const acirc *c, size_t nsyms, input_chunker chunker); */
 
 int *
 get_input_syms(const int *inputs, size_t ninputs, reverse_chunker rchunker,

@@ -4,5 +4,5 @@
 #include <gmp.h>
 
 int
-circ_eval(acirc *circ, const mpz_t *xs, const mpz_t *ys, const mpz_t modulus,
-          mpz_t *cache, size_t nthreads);
+circ_eval(acirc_t *circ, mpz_t *xs, size_t n, mpz_t *ys, size_t m,
+          mpz_t modulus, size_t nthreads);
