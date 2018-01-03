@@ -9,7 +9,6 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 include(GNUInstallDirs)
 
 set(mio_SOURCES
-  src/circ.c
   src/circ_params.c
   src/index_set.c
   src/input_chunker.c

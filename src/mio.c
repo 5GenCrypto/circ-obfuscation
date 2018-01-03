@@ -72,7 +72,7 @@ static void
 args_clear(args_t *args)
 {
     if (args->circ)
-        acirc_free(args->circ);
+        acirc_free(args->circ, NULL);
     aes_randclear(args->rng);
 }
 

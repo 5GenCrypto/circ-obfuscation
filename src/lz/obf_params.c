@@ -3,6 +3,7 @@
 #include "../mmap.h"
 #include "../util.h"
 
+#include <acirc.h>
 #include <assert.h>
 
 PRIVATE size_t

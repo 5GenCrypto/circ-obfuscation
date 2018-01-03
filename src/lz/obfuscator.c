@@ -25,21 +25,6 @@ typedef struct obfuscation {
     encoding **Chatstar;        // [γ]
 } obfuscation;
 
-/* typedef struct work_args { */
-/*     const mmap_vtable *mmap; */
-/*     acircref ref; */
-/*     const acirc *c; */
-/*     const int *inputs; */
-/*     const obfuscation *obf; */
-/*     bool *mine; */
-/*     int *ready; */
-/*     void *cache; */
-/*     ref_list *deps; */
-/*     threadpool *pool; */
-/*     unsigned int *kappas; */
-/*     int *rop; */
-/* } work_args; */
-
 typedef struct obf_args {
     const encoding_vtable *vt;
     encoding *enc;
@@ -241,12 +226,17 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     const size_t q = array_max(cp->qs, ninputs);
 
     mpz_t inps[2];
-    mpz_t alpha[ninputs * ell];
-    mpz_t beta[nconsts];
+    mpz_t **alpha;
+    mpz_t **beta;
     mpz_t gamma[ninputs][q][noutputs];
     mpz_t delta[ninputs][q][noutputs];
     mpz_t Cstar[noutputs];
     threadpool *pool = threadpool_create(nthreads);
+
+    alpha = calloc(ninputs * ell, sizeof alpha[0]);
+    for (size_t i = 0; i < ninputs * ell; ++i) {
+        alpha[i] = calloc(1, sizeof alpha[i][0]);
+    }
 
     pthread_mutex_t count_lock;
     size_t count = 0;
@@ -259,8 +249,8 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
 
     for (size_t k = 0; k < ninputs; k++) {
         for (size_t j = 0; j < cp->ds[k]; j++) {
-            mpz_init(alpha[k * cp->ds[k] + j]);
-            mpz_randomm_inv(alpha[k * cp->ds[k] + j], rng, moduli[1]);
+            mpz_init(*alpha[k * cp->ds[k] + j]);
+            mpz_randomm_inv(*alpha[k * cp->ds[k] + j], rng, moduli[1]);
         }
     }
     for (size_t k = 0; k < ninputs; k++) {
@@ -272,63 +262,35 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
             }
         }
     }
+
+    beta = calloc(nconsts, sizeof beta[0]);
     for (size_t i = 0; i < nconsts; i++) {
-        mpz_init(beta[i]);
-        mpz_randomm_inv(beta[i], rng, moduli[1]);
+        beta[i] = calloc(1, sizeof beta[i][0]);
+        mpz_init(*beta[i]);
+        mpz_randomm_inv(*beta[i], rng, moduli[1]);
     }
 
-    (void) acirc_eval_mpz(circ, alpha, beta, moduli[1]);
-    for (size_t o = 0; o < noutputs; ++o) {
-        mpz_t *tmp;
-        tmp = acirc_output(circ, o);
-        mpz_init_set(Cstar[o], *tmp);
-    }
-    /* for (size_t o = 0; o < noutputs; o++) { */
-    /*     mpz_init(Cstar[o]); */
-    /*     acirc_eval_mpz_mod(Cstar[o], circ, circ->outputs.buf[o], alpha, beta, moduli[1]); */
-    /* } */
+    long *const_deg;
+    long const_deg_max = 0;
+    long *var_deg[ninputs];
+    long var_deg_max[ninputs];
 
-    unsigned long const_deg[noutputs];
-    unsigned long const_deg_max = 0;
-    unsigned long var_deg[ninputs][noutputs];
-    unsigned long var_deg_max[ninputs];
-    /* acirc_memo *memo; */
-
-    memset(const_deg, '\0', sizeof const_deg);
     memset(var_deg, '\0', sizeof var_deg);
     memset(var_deg_max, '\0', sizeof var_deg_max);
 
-    (void) acirc_const_degrees(circ);
+    const_deg = acirc_const_degrees(circ);
     for (size_t o = 0; o < noutputs; o++) {
-        const_deg[o] = (unsigned long) acirc_output(circ, o);
         if (const_deg[o] > const_deg_max)
             const_deg_max = const_deg[o];
     }
-    /* memo = acirc_memo_new(circ); */
-    /* for (size_t o = 0; o < noutputs; o++) { */
-    /*     const_deg[o] = acirc_const_degree(circ, circ->outputs.buf[o], memo); */
-    /*     if (const_deg[o] > const_deg_max) */
-    /*         const_deg_max = const_deg[o]; */
-    /* } */
-    /* acirc_memo_free(memo, circ); */
 
     for (size_t k = 0; k < ninputs; ++k) {
-        (void) acirc_var_degrees(circ, k);
+        var_deg[k] = acirc_var_degrees(circ, k);
         for (size_t o = 0; o < noutputs; o++) {
-            var_deg[k][o] = (unsigned long) acirc_output(circ, o);
             if (var_deg[k][o] > var_deg_max[k])
                 var_deg_max[k] = var_deg[k][o];
         }
     }
-    /* memo = acirc_memo_new(circ); */
-    /* for (size_t k = 0; k < ninputs; k++) { */
-    /*     for (size_t o = 0; o < noutputs; o++) { */
-    /*         var_deg[k][o] = acirc_var_degree(circ, circ->outputs.buf[o], k, memo); */
-    /*         if (var_deg[k][o] > var_deg_max[k]) */
-    /*             var_deg_max[k] = var_deg[k][o]; */
-    /*     } */
-    /* } */
-    /* acirc_memo_free(memo, circ); */
 
     if (g_verbose)
         print_progress(count, total);
@@ -337,7 +299,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         for (size_t s = 0; s < cp->qs[k]; s++) {
             for (size_t j = 0; j < cp->ds[k]; j++) {
                 mpz_set_ui(inps[0], op->sigma ? s == j : bit(s, j));
-                mpz_set   (inps[1], alpha[k * cp->ds[k] + j]);
+                mpz_set   (inps[1], *alpha[k * cp->ds[k] + j]);
                 index_set_clear(ix);
                 ix_s_set(ix, cp, k, s, 1);
                 __encode(pool, obf->enc_vt, obf->shat[k][s][j], inps,
@@ -382,7 +344,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         index_set_clear(ix);
         ix_y_set(ix, cp, 1);
         mpz_set_si(inps[0], acirc_const(circ, i));
-        mpz_set   (inps[1], beta[i]);
+        mpz_set   (inps[1], *beta[i]);
         __encode(pool, obf->enc_vt, obf->yhat[i], inps, index_set_copy(ix),
                  obf->sp, &count_lock, &count, total);
     }
@@ -393,6 +355,17 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         mpz_set_ui(inps[1], 1);
         __encode(pool, obf->enc_vt, obf->vhat[p], inps, index_set_copy(ix),
                  obf->sp, &count_lock, &count, total);
+    }
+
+    {
+        mpz_t **outputs;
+        outputs = acirc_eval_mpz(circ, alpha, beta, moduli[1]);
+        for (size_t o = 0; o < noutputs; ++o) {
+            mpz_init_set(Cstar[o], *outputs[o]);
+            mpz_clear(*outputs[o]);
+            free(outputs[o]);
+        }
+        free(outputs);
     }
 
     for (size_t i = 0; i < noutputs; i++) {
@@ -418,11 +391,13 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     index_set_free(ix);
     mpz_vect_clear(inps, 2);
 
-    for (size_t k = 0; k < ninputs; k++) {
-        for (size_t j = 0; j < cp->ds[k]; j++) {
-            mpz_clear(alpha[k * cp->ds[k] + j]);
-        }
-    }
+    /* for (size_t k = 0; k < ninputs; k++) { */
+    /*     for (size_t j = 0; j < cp->ds[k]; j++) { */
+    /*         mpz_clear(*alpha[k * cp->ds[k] + j]); */
+    /*         free(alpha[k * cp->ds[k] + j]); */
+    /*     } */
+    /* } */
+    free(alpha);
 
     for (size_t k = 0; k < ninputs; k++) {
         for (size_t s = 0; s < cp->qs[k]; s++) {
@@ -431,10 +406,18 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
             }
         }
     }
-    for (size_t i = 0; i < nconsts; i++)
-        mpz_clear(beta[i]);
+    /* for (size_t i = 0; i < nconsts; i++) { */
+    /*     mpz_clear(*beta[i]); */
+    /*     free(beta[i]); */
+    /* } */
+    free(beta);
     for (size_t i = 0; i < noutputs; i++)
         mpz_clear(Cstar[i]);
+
+    free(const_deg);
+    for (size_t i = 0; i < ninputs; ++i) {
+        free(var_deg[i]);
+    }
 
     mpz_vect_free(moduli, obf->mmap->sk->nslots(obf->sp->sk));
 
@@ -555,167 +538,22 @@ raise_encodings(const obfuscation *obf, encoding *x, encoding *y)
     index_set_free(ix);
 }
 
-/* static void eval_worker(void *vargs) */
-/* { */
-/*     work_args *const wargs = vargs; */
-/*     const acircref ref = wargs->ref; */
-/*     const acirc *const c = wargs->c; */
-/*     const int *const inputs = wargs->inputs; */
-/*     const obfuscation *const obf = wargs->obf; */
-/*     bool *const mine = wargs->mine; */
-/*     int *const ready = wargs->ready; */
-/*     encoding **cache = wargs->cache; */
-/*     ref_list *const deps = wargs->deps; */
-/*     threadpool *const pool = wargs->pool; */
-/*     unsigned int *const kappas = wargs->kappas; */
-/*     int *const rop = wargs->rop; */
-
-/*     const acirc_operation op = c->gates.gates[ref].op; */
-/*     const acircref *const args = c->gates.gates[ref].args; */
-/*     encoding *res; */
-
-/*     const circ_params_t *cp = &obf->op->cp; */
-/*     const size_t has_consts = cp->circ->consts.n ? 1 : 0; */
-/*     const size_t ninputs = cp->n - has_consts; */
-/*     const size_t noutputs = cp->m; */
-
-/*     switch (op) { */
-/*     case OP_INPUT: { */
-/*         const size_t id = args[0]; */
-/*         const sym_id sym = obf->op->chunker(id, c->ninputs, ninputs); */
-/*         const size_t k = sym.sym_number; */
-/*         const size_t s = inputs[k]; */
-/*         const size_t j = sym.bit_number; */
-/*         res = obf->shat[k][s][j]; */
-/*         mine[ref] = false; */
-/*         break; */
-/*     } */
-/*     case OP_CONST: { */
-/*         const size_t i = args[0]; */
-/*         res = obf->yhat[i]; */
-/*         mine[ref] = false; */
-/*         break; */
-/*     } */
-/*     case OP_ADD: case OP_SUB: case OP_MUL: { */
-/*         assert(c->gates.gates[ref].nargs == 2); */
-/*         res = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp); */
-/*         mine[ref] = true; */
-
-/*         const encoding *const x = cache[args[0]]; */
-/*         const encoding *const y = cache[args[1]]; */
-
-/*         if (op == OP_MUL) { */
-/*             encoding_mul(obf->enc_vt, obf->pp_vt, res, x, y, obf->pp); */
-/*         } else { */
-/*             encoding *tmp_x, *tmp_y; */
-/*             tmp_x = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp); */
-/*             tmp_y = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp); */
-/*             encoding_set(obf->enc_vt, tmp_x, x); */
-/*             encoding_set(obf->enc_vt, tmp_y, y); */
-/*             if (!index_set_eq(obf->enc_vt->mmap_set(tmp_x), obf->enc_vt->mmap_set(tmp_y))) */
-/*                 raise_encodings(obf, tmp_x, tmp_y); */
-/*             if (op == OP_ADD) { */
-/*                 encoding_add(obf->enc_vt, obf->pp_vt, res, tmp_x, tmp_y, obf->pp); */
-/*             } else if (op == OP_SUB) { */
-/*                 encoding_sub(obf->enc_vt, obf->pp_vt, res, tmp_x, tmp_y, obf->pp); */
-/*             } else { */
-/*                 abort(); */
-/*             } */
-/*             encoding_free(obf->enc_vt, tmp_x); */
-/*             encoding_free(obf->enc_vt, tmp_y); */
-/*         } */
-/*         break; */
-/*     } */
-/*     case OP_SET: */
-/*         res = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp); */
-/*         mine[ref] = true; */
-/*         encoding_set(obf->enc_vt, res, cache[args[0]]); */
-/*         break; */
-/*     default: */
-/*         fprintf(stderr, "fatal: op not supported\n"); */
-/*         abort(); */
-/*     } */
-
-/*     cache[ref] = res; */
-
-/*     ref_list_node *node = &deps->refs[ref]; */
-/*     for (size_t i = 0; i < node->cur; ++i) { */
-/*         const int num = __sync_add_and_fetch(&ready[node->refs[i]], 1); */
-/*         if (num == 2) { */
-/*             work_args *newargs = my_calloc(1, sizeof newargs[0]); */
-/*             memcpy(newargs, wargs, sizeof newargs[0]); */
-/*             newargs->ref = node->refs[i]; */
-/*             threadpool_add_job(pool, eval_worker, newargs); */
-/*         } */
-/*     } */
-
-/*     free(wargs); */
-
-/*     // addendum: is this ref an output bit? if so, we should zero test it. */
-/*     ssize_t output = -1; */
-/*     for (size_t i = 0; i < noutputs; i++) { */
-/*         if (ref == c->outputs.buf[i]) { */
-/*             output = i; */
-/*             break; */
-/*         } */
-/*     } */
-
-/*     if (output != -1) { */
-/*         encoding *out, *lhs, *rhs, *tmp; */
-/*         const index_set *const toplevel = obf->pp_vt->toplevel(obf->pp); */
-
-/*         out = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp); */
-/*         lhs = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp); */
-/*         rhs = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp); */
-/*         tmp = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp); */
-
-/*         /\* Compute LHS *\/ */
-/*         encoding_set(obf->enc_vt, lhs, res); */
-/*         for (size_t k = 0; k < ninputs; k++) { */
-/*             encoding_set(obf->enc_vt, tmp, lhs); */
-/*             encoding_mul(obf->enc_vt, obf->pp_vt, lhs, tmp, */
-/*                          obf->zhat[k][inputs[k]][output], obf->pp); */
-/*         } */
-/*         raise_encoding(obf, lhs, toplevel); */
-/*         if (!index_set_eq(obf->enc_vt->mmap_set(lhs), toplevel)) { */
-/*             fprintf(stderr, "lhs != toplevel\n"); */
-/*             index_set_print(obf->enc_vt->mmap_set(lhs)); */
-/*             index_set_print(toplevel); */
-/*             rop[output] = 1; */
-/*             goto cleanup; */
-/*         } */
-
-/*         /\* Compute RHS *\/ */
-/*         encoding_set(obf->enc_vt, rhs, obf->Chatstar[output]); */
-/*         for (size_t k = 0; k < ninputs; k++) { */
-/*             encoding_set(obf->enc_vt, tmp, rhs); */
-/*             encoding_mul(obf->enc_vt, obf->pp_vt, rhs, tmp, */
-/*                          obf->what[k][inputs[k]][output], obf->pp); */
-/*         } */
-/*         if (!index_set_eq(obf->enc_vt->mmap_set(rhs), toplevel)) { */
-/*             fprintf(stderr, "rhs != toplevel\n"); */
-/*             index_set_print(obf->enc_vt->mmap_set(rhs)); */
-/*             index_set_print(toplevel); */
-/*             rop[output] = 1; */
-/*             goto cleanup; */
-/*         } */
-/*         encoding_sub(obf->enc_vt, obf->pp_vt, out, lhs, rhs, obf->pp); */
-/*         rop[output] = !encoding_is_zero(obf->enc_vt, obf->pp_vt, out, obf->pp); */
-/*         if (kappas) */
-/*             kappas[output] = encoding_get_degree(obf->enc_vt, out); */
-
-/*     cleanup: */
-/*         encoding_free(obf->enc_vt, out); */
-/*         encoding_free(obf->enc_vt, lhs); */
-/*         encoding_free(obf->enc_vt, rhs); */
-/*         encoding_free(obf->enc_vt, tmp); */
-/*     } */
-/* } */
-
 typedef struct {
     const obfuscation *obf;
     int *inputs;
 } obf_args_t;
+
+static void *
+copy_f(void *x, void *args_)
+{
+    obf_args_t *args = args_;
+    const obfuscation *const obf = args->obf;
+    encoding *out;
+
+    out = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
+    encoding_set(obf->enc_vt, out, x);
+    return out;
+}
 
 static void *
 input_f(size_t i, void *args_)
@@ -729,16 +567,16 @@ input_f(size_t i, void *args_)
     const size_t k = sym.sym_number;
     const size_t s = args->inputs[k];
     const size_t j = sym.bit_number;
-    return obf->shat[k][s][j];
+    return copy_f(obf->shat[k][s][j], args_);
 }
 
 static void *
-const_f(size_t i, int val, void *args_)
+const_f(size_t i, long val, void *args_)
 {
     (void) val;
     obf_args_t *args = args_;
     const obfuscation *const obf = args->obf;
-    return obf->yhat[i];
+    return copy_f(obf->yhat[i], args_);
 }
 
 static void *
@@ -779,6 +617,15 @@ eval_f(acirc_op op, void *x_, void *y_, void *args_)
     return res;
 }
 
+static void
+free_f(void *x, void *args_)
+{
+    obf_args_t *args = args_;
+    const obfuscation *const obf = args->obf;
+
+    encoding_free(obf->enc_vt, x);
+}
+
 static int
 _evaluate(const obfuscation *obf, int *outputs, size_t noutputs,
           const int *inputs, size_t ninputs, size_t nthreads,
@@ -800,31 +647,25 @@ _evaluate(const obfuscation *obf, int *outputs, size_t noutputs,
         return ERR;
     }
 
-    /* encoding **cache = my_calloc(acirc_nrefs(c), sizeof cache[0]); */
-    /* bool *mine = my_calloc(acirc_nrefs(c), sizeof mine[0]); */
-    /* int *ready = my_calloc(acirc_nrefs(c), sizeof ready[0]); */
     unsigned int *kappas = my_calloc(acirc_noutputs(c), sizeof kappas[0]);
     int *input_syms = get_input_syms(inputs, acirc_ninputs(c), obf->op->rchunker,
                                      cp->n - has_consts, ell, q, obf->op->sigma);
-    /* ref_list *deps = ref_list_new(c); */
-    /* threadpool *pool = threadpool_create(nthreads); */
     g_max_npowers = 0;
 
     if (input_syms == NULL)
         goto finish;
 
+    encoding **encs;
     {
         obf_args_t args;
         args.obf = obf;
         args.inputs = input_syms;
-        acirc_traverse(c, input_f, const_f, eval_f, &args);
+        encs = (encoding **) acirc_traverse(c, input_f, const_f, eval_f, copy_f, free_f, &args);
     }
 
     for (size_t o = 0; o < acirc_noutputs(c); ++o) {
-        encoding *out, *lhs, *rhs, *tmp, *res;
+        encoding *out, *lhs, *rhs, *tmp;
         const index_set *const toplevel = obf->pp_vt->toplevel(obf->pp);
-
-        res = acirc_output(c, o);
 
         out = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
         lhs = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
@@ -832,7 +673,7 @@ _evaluate(const obfuscation *obf, int *outputs, size_t noutputs,
         tmp = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
 
         /* Compute LHS */
-        encoding_set(obf->enc_vt, lhs, res);
+        encoding_set(obf->enc_vt, lhs, encs[o]);
         for (size_t k = 0; k < ninputs; k++) {
             encoding_set(obf->enc_vt, tmp, lhs);
             encoding_mul(obf->enc_vt, obf->pp_vt, lhs, tmp,
@@ -871,33 +712,11 @@ _evaluate(const obfuscation *obf, int *outputs, size_t noutputs,
         encoding_free(obf->enc_vt, lhs);
         encoding_free(obf->enc_vt, rhs);
         encoding_free(obf->enc_vt, tmp);
-
+        encoding_free(obf->enc_vt, encs[0]);
     }
-
-    /* for (size_t ref = 0; ref < acirc_nrefs(c); ref++) { */
-    /*     acirc_operation op = c->gates.gates[ref].op; */
-    /*     if (!(op == OP_INPUT || op == OP_CONST)) */
-    /*         continue; */
-    /*     work_args *args = calloc(1, sizeof args[0]); */
-    /*     args->mmap   = obf->mmap; */
-    /*     args->ref    = ref; */
-    /*     args->c      = c; */
-    /*     args->inputs = input_syms; */
-    /*     args->obf    = obf; */
-    /*     args->mine   = mine; */
-    /*     args->ready  = ready; */
-    /*     args->cache  = cache; */
-    /*     args->deps   = deps; */
-    /*     args->pool   = pool; */
-    /*     args->rop    = outputs; */
-    /*     args->kappas = kappas; */
-    /*     threadpool_add_job(pool, eval_worker, args); */
-    /* } */
+    free(encs);
     ret = OK;
-
 finish:
-    /* threadpool_destroy(pool); */
-
     if (kappa) {
         unsigned int maxkappa = 0;
         for (size_t i = 0; i < noutputs; i++) {
@@ -908,16 +727,6 @@ finish:
     }
     if (npowers)
         *npowers = g_max_npowers;
-
-    /* for (size_t i = 0; i < acirc_nrefs(c); i++) { */
-    /*     if (mine[i]) { */
-    /*         encoding_free(obf->enc_vt, cache[i]); */
-    /*     } */
-    /* } */
-    /* ref_list_free(deps, c); */
-    /* free(cache); */
-    /* free(mine); */
-    /* free(ready); */
     free(kappas);
     free(input_syms);
 
