@@ -19,7 +19,7 @@ size_t rchunker_in_order(sym_id sym, size_t ninputs, size_t nsyms);
 /* void */
 /* type_degree(int *rop, acircref ref, const acirc *c, size_t nsyms, input_chunker chunker); */
 
-int *
-get_input_syms(const int *inputs, size_t ninputs, reverse_chunker rchunker,
+long *
+get_input_syms(const long *inputs, size_t ninputs, reverse_chunker rchunker,
                size_t c, size_t ell, size_t q, bool sigma);
 #endif

@@ -72,7 +72,7 @@ static void
 args_clear(args_t *args)
 {
     if (args->circ)
-        acirc_free(args->circ, NULL);
+        acirc_free(args->circ);
     aes_randclear(args->rng);
 }
 
@@ -871,7 +871,7 @@ cleanup:
         op_vt->free(op);
     return ret;
 }
-    
+
 static int
 cmd_obf_evaluate(int argc, char **argv, args_t *args)
 {
@@ -879,7 +879,7 @@ cmd_obf_evaluate(int argc, char **argv, args_t *args)
     obfuscator_vtable *vt = NULL;
     op_vtable *op_vt = NULL;
     obf_params_t *op = NULL;
-    int *input = NULL, *output = NULL;
+    long *input = NULL, *output = NULL;
     char *fname = NULL;
     size_t length;
     int ret = ERR;
@@ -896,7 +896,7 @@ cmd_obf_evaluate(int argc, char **argv, args_t *args)
     length = snprintf(NULL, 0, "%s.obf\n", args->circuit);
     fname = my_calloc(length, sizeof fname[0]);
     snprintf(fname, length, "%s.obf", args->circuit);
-    
+
     for (size_t i = 0; i < strlen(argv[0]); ++i) {
         if ((input[i] = char_to_int(argv[0][i])) < 0)
             goto cleanup;
@@ -958,7 +958,9 @@ cmd_obf_test(int argc, char **argv, args_t *args)
         goto cleanup;
 
     for (size_t t = 0; t < acirc_ntests(args->circ); ++t) {
-        int outp[op->cp.m];
+        long outp[op->cp.m];
+        array_printstring_rev(acirc_test_input(args->circ, t), acirc_ninputs(args->circ));
+        printf("\n");
         if (obf_run_evaluate(args->vt, vt, fname, op, acirc_test_input(args->circ, t),
                              acirc_ninputs(args->circ), outp, acirc_noutputs(args->circ),
                              args->nthreads, &kappa, NULL) == ERR)

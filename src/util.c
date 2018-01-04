@@ -63,8 +63,8 @@ size_t array_max(const size_t *xs, size_t n)
     return max;
 }
 
-static void
-array_printstring_rev(const int *xs, size_t n)
+void
+array_printstring_rev(const long *xs, size_t n)
 {
     for (size_t i = n; i > 0; i--)
         printf("%c", int_to_char(xs[i-1]));
@@ -378,8 +378,8 @@ mmap_to_mmap(enum mmap_e mmap)
 }
 
 bool
-print_test_output(size_t num, const int *inp, size_t ninputs, const int *expected,
-                  const int *got, size_t noutputs, bool lin)
+print_test_output(size_t num, const long *inp, size_t ninputs, const long *expected,
+                  const long *got, size_t noutputs, bool lin)
 {
     bool ok = true;
     for (size_t i = 0; i < noutputs; ++i) {

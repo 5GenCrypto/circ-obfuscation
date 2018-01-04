@@ -55,9 +55,9 @@ cleanup:
 }
 
 int
-obf_run_evaluate(const mmap_vtable *mmap, const obfuscator_vtable *vt, 
-                 const char *fname, obf_params_t *op, const int *inputs,
-                 size_t ninputs, int *outputs, size_t noutputs, size_t nthreads,
+obf_run_evaluate(const mmap_vtable *mmap, const obfuscator_vtable *vt,
+                 const char *fname, obf_params_t *op, const long *inputs,
+                 size_t ninputs, long *outputs, size_t noutputs, size_t nthreads,
                  size_t *kappa, size_t *npowers)
 {
     double start, end, _start, _end;
@@ -107,8 +107,8 @@ obf_run_smart_kappa(const obfuscator_vtable *vt, const acirc_t *circ,
                     obf_params_t *op, size_t nthreads, aes_randstate_t rng)
 {
     const char *fname = "/tmp/smart-kappa.obf";
-    int input[acirc_ninputs(circ)];
-    int output[acirc_noutputs(circ)];
+    long input[acirc_ninputs(circ)];
+    long output[acirc_noutputs(circ)];
     bool verbosity = g_verbose;
     size_t kappa = 1;
 

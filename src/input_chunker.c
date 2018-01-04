@@ -83,11 +83,11 @@ size_t rchunker_in_order(sym_id sym, size_t ninputs, size_t nsyms)
 /*         free(memo[i]); */
 /* } */
 
-int *
-get_input_syms(const int *inputs, size_t ninputs, reverse_chunker rchunker,
+long *
+get_input_syms(const long *inputs, size_t ninputs, reverse_chunker rchunker,
                size_t c, size_t ell, size_t q, bool sigma)
 {
-    int *input_syms = my_calloc(c, sizeof input_syms[0]);
+    long *input_syms = my_calloc(c, sizeof input_syms[0]);
     for (size_t i = 0; i < c; i++) {
         input_syms[i] = 0;
         for (size_t j = 0; j < ell; j++) {
@@ -99,7 +99,7 @@ get_input_syms(const int *inputs, size_t ninputs, reverse_chunker rchunker,
                 input_syms[i] += inputs[k] << j;
         }
         if ((size_t) input_syms[i] >= q) {
-            fprintf(stderr, "error: invalid input (%d > |Σ|)\n", input_syms[i]);
+            fprintf(stderr, "error: invalid input (%ld > |Σ|)\n", input_syms[i]);
             free(input_syms);
             return NULL;
         }

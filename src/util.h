@@ -77,12 +77,14 @@ void array_add(int *rop, const int *xs, const int *ys, size_t n);
 bool array_eq(const int *xs, const int *ys, size_t n);
 int array_sum(const int *xs, size_t n);
 size_t array_max(const size_t *xs, size_t n);
+void array_printstring_rev(const long *xs, size_t n);
+
 
 void print_progress(size_t cur, size_t total);
 
 bool
-print_test_output(size_t num, const int *inp, size_t ninputs, const int *expected,
-                  const int *got, size_t noutputs, bool lin);
+print_test_output(size_t num, const long *inp, size_t ninputs, const long *expected,
+                  const long *got, size_t noutputs, bool lin);
 
 int
 char_to_int(char c);

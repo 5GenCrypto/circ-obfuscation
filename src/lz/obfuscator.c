@@ -227,7 +227,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
 
     mpz_t inps[2];
     mpz_t **alpha;
-    mpz_t **beta;
+    mpz_t **beta = NULL;
     mpz_t gamma[ninputs][q][noutputs];
     mpz_t delta[ninputs][q][noutputs];
     mpz_t Cstar[noutputs];
@@ -263,7 +263,8 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         }
     }
 
-    beta = calloc(nconsts, sizeof beta[0]);
+    if (nconsts)
+        beta = calloc(nconsts, sizeof beta[0]);
     for (size_t i = 0; i < nconsts; i++) {
         beta[i] = calloc(1, sizeof beta[i][0]);
         mpz_init(*beta[i]);
@@ -540,7 +541,7 @@ raise_encodings(const obfuscation *obf, encoding *x, encoding *y)
 
 typedef struct {
     const obfuscation *obf;
-    int *inputs;
+    long *inputs;
 } obf_args_t;
 
 static void *
@@ -627,10 +628,11 @@ free_f(void *x, void *args_)
 }
 
 static int
-_evaluate(const obfuscation *obf, int *outputs, size_t noutputs,
-          const int *inputs, size_t ninputs, size_t nthreads,
+_evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
+          const long *inputs, size_t ninputs, size_t nthreads,
           size_t *kappa, size_t *npowers)
 {
+    (void) nthreads;
     const circ_params_t *cp = &obf->op->cp;
     acirc_t *c = cp->circ;
     const size_t has_consts = acirc_nconsts(c) ? 1 : 0;
@@ -648,8 +650,8 @@ _evaluate(const obfuscation *obf, int *outputs, size_t noutputs,
     }
 
     unsigned int *kappas = my_calloc(acirc_noutputs(c), sizeof kappas[0]);
-    int *input_syms = get_input_syms(inputs, acirc_ninputs(c), obf->op->rchunker,
-                                     cp->n - has_consts, ell, q, obf->op->sigma);
+    long *input_syms = get_input_syms(inputs, acirc_ninputs(c), obf->op->rchunker,
+                                      cp->n - has_consts, ell, q, obf->op->sigma);
     g_max_npowers = 0;
 
     if (input_syms == NULL)
