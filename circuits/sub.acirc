@@ -1,7 +1,10 @@
+:ninputs 2
+:consts
+:outputs 2
 :test 00 0
 :test 01 1
 :test 11 0
+:start
 0 input 0
 1 input 1
 2 SUB 0 1
-:outputs 2

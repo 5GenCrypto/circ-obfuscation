@@ -63,11 +63,11 @@ size_t array_max(const size_t *xs, size_t n)
     return max;
 }
 
-void
-array_printstring_rev(const long *xs, size_t n)
+static void
+array_printstring(const long *xs, size_t n)
 {
-    for (size_t i = n; i > 0; i--)
-        printf("%c", int_to_char(xs[i-1]));
+    for (size_t i = 0; i < n; ++i)
+        printf("%c", long_to_char(xs[i]));
 }
 
 mpz_t *
@@ -395,21 +395,21 @@ print_test_output(size_t num, const long *inp, size_t ninputs, const long *expec
     else
         printf("\033[1;41m");
     printf("Test #%lu: input=", num);
-    array_printstring_rev(inp, ninputs);
+    array_printstring(inp, ninputs);
     if (ok)
         printf(" ✓ ");
     else
-        printf(" ̣✗ ");
+        printf(" ✗ ");
     printf("expected=");
-    array_printstring_rev(expected, noutputs);
+    array_printstring(expected, noutputs);
     printf(" got=");
-    array_printstring_rev(got, noutputs);
+    array_printstring(got, noutputs);
     printf("\033[0m\n");
     return ok;
 }
 
-int
-char_to_int(char c)
+long
+char_to_long(char c)
 {
     if (toupper(c) >= 'A' && toupper(c) <= 'Z')
         return toupper(c) - 'A' + 10;
@@ -422,7 +422,7 @@ char_to_int(char c)
 }
 
 char
-int_to_char(int i)
+long_to_char(long i)
 {
     if (i > 36)
         return '-';

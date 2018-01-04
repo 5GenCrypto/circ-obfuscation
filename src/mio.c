@@ -590,7 +590,7 @@ handle_options(int *argc, char ***argv, int left, args_t *args, void *others,
 /*     handle_options(&argc, &argv, 2, args, &args_, mife_encrypt_handle_options, mife_encrypt_usage); */
 /*     int input[strlen(argv[0])]; */
 /*     for (size_t i = 0; i < strlen(argv[0]); ++i) { */
-/*         if ((input[i] = char_to_int(argv[0][i])) < 0) */
+/*         if ((input[i] = char_to_long(argv[0][i])) < 0) */
 /*             goto cleanup; */
 /*     } */
 /*     int slot = atoi(argv[1]); */
@@ -898,7 +898,7 @@ cmd_obf_evaluate(int argc, char **argv, args_t *args)
     snprintf(fname, length, "%s.obf", args->circuit);
 
     for (size_t i = 0; i < strlen(argv[0]); ++i) {
-        if ((input[i] = char_to_int(argv[0][i])) < 0)
+        if ((input[i] = char_to_long(argv[0][i])) < 0)
             goto cleanup;
     }
     if (obf_run_evaluate(args->vt, vt, fname, op, input, strlen(argv[0]), output,
@@ -907,7 +907,7 @@ cmd_obf_evaluate(int argc, char **argv, args_t *args)
 
     printf("result: ");
     for (size_t i = 0; i < op->cp.m; ++i)
-        printf("%c", int_to_char(output[i]));
+        printf("%c", long_to_char(output[i]));
     printf("\n");
 
     ret = OK;
@@ -959,8 +959,6 @@ cmd_obf_test(int argc, char **argv, args_t *args)
 
     for (size_t t = 0; t < acirc_ntests(args->circ); ++t) {
         long outp[op->cp.m];
-        array_printstring_rev(acirc_test_input(args->circ, t), acirc_ninputs(args->circ));
-        printf("\n");
         if (obf_run_evaluate(args->vt, vt, fname, op, acirc_test_input(args->circ, t),
                              acirc_ninputs(args->circ), outp, acirc_noutputs(args->circ),
                              args->nthreads, &kappa, NULL) == ERR)

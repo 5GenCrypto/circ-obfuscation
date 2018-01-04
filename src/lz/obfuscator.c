@@ -714,7 +714,7 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
         encoding_free(obf->enc_vt, lhs);
         encoding_free(obf->enc_vt, rhs);
         encoding_free(obf->enc_vt, tmp);
-        encoding_free(obf->enc_vt, encs[0]);
+        encoding_free(obf->enc_vt, encs[o]);
     }
     free(encs);
     ret = OK;
