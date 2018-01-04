@@ -581,12 +581,12 @@ const_f(size_t i, long val, void *args_)
 }
 
 static void *
-eval_f(acirc_op op, void *x_, void *y_, void *args_)
+eval_f(acirc_op op, const void *x_, const void *y_, void *args_)
 {
-    obf_args_t *args = args_;
+    const obf_args_t *const args = args_;
     const obfuscation *const obf = args->obf;
-    encoding *x = x_;
-    encoding *y = y_;
+    const encoding *x = x_;
+    const encoding *y = y_;
     encoding *res;
 
     res = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
@@ -623,8 +623,8 @@ free_f(void *x, void *args_)
 {
     obf_args_t *args = args_;
     const obfuscation *const obf = args->obf;
-
-    encoding_free(obf->enc_vt, x);
+    if (x)
+        encoding_free(obf->enc_vt, x);
 }
 
 static int
@@ -632,7 +632,6 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
           const long *inputs, size_t ninputs, size_t nthreads,
           size_t *kappa, size_t *npowers)
 {
-    (void) nthreads;
     const circ_params_t *cp = &obf->op->cp;
     acirc_t *c = cp->circ;
     const size_t has_consts = acirc_nconsts(c) ? 1 : 0;
@@ -662,7 +661,7 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
         obf_args_t args;
         args.obf = obf;
         args.inputs = input_syms;
-        encs = (encoding **) acirc_traverse(c, input_f, const_f, eval_f, copy_f, free_f, &args);
+        encs = (encoding **) acirc_traverse(c, input_f, const_f, eval_f, copy_f, free_f, &args, nthreads);
     }
 
     for (size_t o = 0; o < acirc_noutputs(c); ++o) {
