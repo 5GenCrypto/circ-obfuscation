@@ -392,12 +392,12 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     index_set_free(ix);
     mpz_vect_clear(inps, 2);
 
-    /* for (size_t k = 0; k < ninputs; k++) { */
-    /*     for (size_t j = 0; j < cp->ds[k]; j++) { */
-    /*         mpz_clear(*alpha[k * cp->ds[k] + j]); */
-    /*         free(alpha[k * cp->ds[k] + j]); */
-    /*     } */
-    /* } */
+    for (size_t k = 0; k < ninputs; k++) {
+        for (size_t j = 0; j < cp->ds[k]; j++) {
+            mpz_clear(*alpha[k * cp->ds[k] + j]);
+            free(alpha[k * cp->ds[k] + j]);
+        }
+    }
     free(alpha);
 
     for (size_t k = 0; k < ninputs; k++) {
@@ -407,10 +407,10 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
             }
         }
     }
-    /* for (size_t i = 0; i < nconsts; i++) { */
-    /*     mpz_clear(*beta[i]); */
-    /*     free(beta[i]); */
-    /* } */
+    for (size_t i = 0; i < nconsts; i++) {
+        mpz_clear(*beta[i]);
+        free(beta[i]);
+    }
     free(beta);
     for (size_t i = 0; i < noutputs; i++)
         mpz_clear(Cstar[i]);

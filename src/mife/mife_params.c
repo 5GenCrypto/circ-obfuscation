@@ -42,19 +42,19 @@ mife_num_encodings_encrypt(const circ_params_t *cp, size_t slot)
 }
 
 static obf_params_t *
-_new(acirc *circ, void *vparams)
+_new(acirc_t *circ, void *vparams)
 {
     const mife_params_t *const params = vparams;
     obf_params_t *const op = calloc(1, sizeof op[0]);
 
-    size_t has_consts = circ->consts.n ? 1 : 0;
-    circ_params_init(&op->cp, circ->ninputs / params->symlen + has_consts, circ);
+    size_t has_consts = acirc_nconsts(circ) ? 1 : 0;
+    circ_params_init(&op->cp, acirc_ninputs(circ) / params->symlen + has_consts, circ);
     for (size_t i = 0; i < op->cp.n - has_consts; ++i) {
         op->cp.ds[i] = params->symlen;
         op->cp.qs[i] = params->sigma ? params->symlen : params->base;
     }
     if (has_consts) {
-        op->cp.ds[op->cp.n - 1] = circ->consts.n;
+        op->cp.ds[op->cp.n - 1] = acirc_nconsts(circ);
         op->cp.qs[op->cp.n - 1] = 1;
     }
 

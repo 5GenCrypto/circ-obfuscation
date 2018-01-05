@@ -67,7 +67,7 @@ cleanup:
 
 int
 mife_run_encrypt(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
-                 const int *input, size_t slot, size_t nthreads,
+                 const long *input, size_t slot, size_t nthreads,
                  mife_sk_t *cached_sk, aes_randstate_t rng)
 {
     const circ_params_t *cp = &op->cp;
@@ -89,7 +89,7 @@ mife_run_encrypt(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
         fprintf(stderr, "* slot: .......... %lu\n", slot);
         fprintf(stderr, "* input: ......... ");
         for (size_t i = 0; i < ninputs; ++i)
-            fprintf(stderr, "%d", input[i]);
+            fprintf(stderr, "%ld", input[i]);
         fprintf(stderr, "\n");
         fprintf(stderr, "* # threads: ..... %lu\n", nthreads);
         fprintf(stderr, "* # encodings: ... %lu\n",
@@ -144,12 +144,12 @@ mife_run_encrypt(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
 }
 
 int
-mife_run_decrypt(const char *ek_s, char **cts_s, int *rop,
+mife_run_decrypt(const char *ek_s, char **cts_s, long *rop,
                  const mmap_vtable *mmap, obf_params_t *op, size_t *kappa,
                  size_t nthreads)
 {
     const circ_params_t *cp = &op->cp;
-    const size_t has_consts = cp->circ->consts.n ? 1 : 0;
+    const size_t has_consts = acirc_nconsts(cp->circ) ? 1 : 0;
     mife_ciphertext_t *cts[cp->n];
     mife_ek_t *ek = NULL;
     FILE *fp;
@@ -206,13 +206,13 @@ cleanup:
 
 static int
 mife_run_all(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
-             int **inp, int *outp, size_t *kappa, size_t nthreads, aes_randstate_t rng)
+             long **inp, long *outp, size_t *kappa, size_t nthreads, aes_randstate_t rng)
 {
     const circ_params_t *cp = &op->cp;
-    const acirc *const circ = cp->circ;
+    const acirc_t *const circ = cp->circ;
     double start, end;
     mife_sk_t *sk;
-    size_t consts = circ->consts.n ? 1 : 0;
+    size_t consts = acirc_nconsts(circ) ? 1 : 0;
     int ret = ERR;
 
     {
@@ -239,7 +239,7 @@ mife_run_all(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
         if (ret == ERR) {
             fprintf(stderr, "error: mife encryption of '");
             for (size_t j = 0; j < cp->ds[i]; ++j) {
-                fprintf(stderr, "%d", inp[i][j]);
+                fprintf(stderr, "%ld", inp[i][j]);
             }
             fprintf(stderr, "' in slot %lu failed\n", i);
             return ERR;
@@ -276,8 +276,8 @@ mife_run_test(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
               aes_randstate_t rng)
 {
     const circ_params_t *cp = &op->cp;
-    const acirc *const circ = cp->circ;
-    const size_t has_consts = circ->consts.n ? 1 : 0;
+    const acirc_t *const circ = cp->circ;
+    const size_t has_consts = acirc_nconsts(circ) ? 1 : 0;
     int ret;
 
     ret = mife_run_setup(mmap, circuit, op, secparam, kappa, npowers, nthreads, rng);
@@ -286,18 +286,18 @@ mife_run_test(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
         return ERR;
     }
 
-    for (size_t t = 0; t < circ->tests.n; ++t) {
-        int *inps[cp->n - has_consts];
-        int outp[cp->m];
+    for (size_t t = 0; t < acirc_ntests(circ); ++t) {
+        long *inps[cp->n - has_consts];
+        long outp[cp->m];
         size_t idx = 0;
         for (size_t i = 0; i < cp->n - has_consts; ++i) {
             inps[i] = my_calloc(cp->ds[i], sizeof inps[i][0]);
-            memcpy(inps[i], &circ->tests.inps[t][idx], cp->ds[i] * sizeof inps[i][0]);
+            memcpy(inps[i], &acirc_test_input(circ, t)[idx], cp->ds[i] * sizeof inps[i][0]);
             idx += cp->ds[i];
         }
         mife_run_all(mmap, circuit, op, inps, outp, kappa, nthreads, rng);
-        if (!print_test_output(t + 1, circ->tests.inps[t], circ->ninputs,
-                               circ->tests.outs[t], outp, circ->outputs.n, false))
+        if (!print_test_output(t + 1, acirc_test_input(circ, t), acirc_ninputs(circ),
+                               acirc_test_output(circ, t), outp, acirc_noutputs(circ), false))
             ret = ERR;
         for (size_t i = 0; i < cp->n - has_consts; ++i) {
             free(inps[i]);
@@ -311,8 +311,8 @@ mife_run_smart_kappa(const char *circuit, obf_params_t *op, size_t npowers,
                      size_t nthreads, aes_randstate_t rng)
 {
     const circ_params_t *cp = &op->cp;
-    const size_t has_consts = cp->circ->consts.n ? 1 : 0;
-    int *inps[cp->n - has_consts];
+    const size_t has_consts = acirc_nconsts(cp->circ) ? 1 : 0;
+    long *inps[cp->n - has_consts];
     size_t kappa = 1;
     bool verbosity = g_verbose;
 

@@ -107,189 +107,189 @@ args_get_size_t(size_t *result, int *argc, char ***argv)
     return OK;
 }
 
-/* typedef struct mife_setup_args_t { */
-/*     size_t secparam; */
-/*     size_t npowers; */
-/* } mife_setup_args_t; */
+typedef struct mife_setup_args_t {
+    size_t secparam;
+    size_t npowers;
+} mife_setup_args_t;
 
-/* static void */
-/* mife_setup_args_init(mife_setup_args_t *args) */
-/* { */
-/*     args->secparam = SECPARAM_DEFAULT; */
-/*     args->npowers = NPOWERS_DEFAULT; */
-/* } */
+static void
+mife_setup_args_init(mife_setup_args_t *args)
+{
+    args->secparam = SECPARAM_DEFAULT;
+    args->npowers = NPOWERS_DEFAULT;
+}
 
-/* static void */
-/* mife_setup_usage(bool longform, int ret) */
-/* { */
-/*     printf("usage: %s mife setup [<args>] circuit\n", progname); */
-/*     if (longform) { */
-/*         printf("\nAvailable arguments:\n\n"); */
-/*         printf("    --secparam λ       set security parameter to λ (default: %d)\n" */
-/*                "    --npowers N        set the number of powers to N (default: %d)\n", */
-/*                SECPARAM_DEFAULT, NPOWERS_DEFAULT); */
-/*         args_usage(); */
-/*         printf("\n"); */
-/*     } */
-/*     exit(ret); */
-/* } */
+static void
+mife_setup_usage(bool longform, int ret)
+{
+    printf("usage: %s mife setup [<args>] circuit\n", progname);
+    if (longform) {
+        printf("\nAvailable arguments:\n\n");
+        printf("    --secparam λ       set security parameter to λ (default: %d)\n"
+               "    --npowers N        set the number of powers to N (default: %d)\n",
+               SECPARAM_DEFAULT, NPOWERS_DEFAULT);
+        args_usage();
+        printf("\n");
+    }
+    exit(ret);
+}
 
-/* static int */
-/* mife_setup_handle_options(int *argc, char ***argv, void *vargs) */
-/* { */
-/*     mife_setup_args_t *args = vargs; */
-/*     const char *cmd = (*argv)[0]; */
-/*     if (!strcmp(cmd, "--secparam")) { */
-/*         if (args_get_size_t(&args->secparam, argc, argv) == ERR) */
-/*             return ERR; */
-/*     } else if (!strcmp(cmd, "--npowers")) { */
-/*         if (args_get_size_t(&args->npowers, argc, argv) == ERR) */
-/*             return ERR; */
-/*     } else { */
-/*         return ERR; */
-/*     } */
-/*     return OK; */
-/* } */
+static int
+mife_setup_handle_options(int *argc, char ***argv, void *vargs)
+{
+    mife_setup_args_t *args = vargs;
+    const char *cmd = (*argv)[0];
+    if (!strcmp(cmd, "--secparam")) {
+        if (args_get_size_t(&args->secparam, argc, argv) == ERR)
+            return ERR;
+    } else if (!strcmp(cmd, "--npowers")) {
+        if (args_get_size_t(&args->npowers, argc, argv) == ERR)
+            return ERR;
+    } else {
+        return ERR;
+    }
+    return OK;
+}
 
-/* typedef struct { */
-/* } mife_encrypt_args_t; */
+typedef struct {
+} mife_encrypt_args_t;
 
-/* static void */
-/* mife_encrypt_args_init(mife_encrypt_args_t *args) */
-/* { */
-/*     (void) args; */
-/* } */
+static void
+mife_encrypt_args_init(mife_encrypt_args_t *args)
+{
+    (void) args;
+}
 
-/* static void */
-/* mife_encrypt_usage(bool longform, int ret) */
-/* { */
-/*     printf("usage: %s mife encrypt [<args>] circuit input slot\n", progname); */
-/*     if (longform) { */
-/*         printf("\nAvailable arguments:\n\n"); */
-/*         args_usage(); */
-/*         printf("\n"); */
-/*     } */
-/*     exit(ret); */
-/* } */
+static void
+mife_encrypt_usage(bool longform, int ret)
+{
+    printf("usage: %s mife encrypt [<args>] circuit input slot\n", progname);
+    if (longform) {
+        printf("\nAvailable arguments:\n\n");
+        args_usage();
+        printf("\n");
+    }
+    exit(ret);
+}
 
-/* static int */
-/* mife_encrypt_handle_options(int *argc, char ***argv, void *vargs) */
-/* { */
-/*     (void) argc; (void) argv; (void) vargs; */
-/*     return ERR; */
-/* } */
+static int
+mife_encrypt_handle_options(int *argc, char ***argv, void *vargs)
+{
+    (void) argc; (void) argv; (void) vargs;
+    return ERR;
+}
 
-/* typedef struct { */
-/* } mife_decrypt_args_t; */
+typedef struct {
+} mife_decrypt_args_t;
 
-/* static void */
-/* mife_decrypt_args_init(mife_decrypt_args_t *args) */
-/* { */
-/*     (void) args; */
-/* } */
+static void
+mife_decrypt_args_init(mife_decrypt_args_t *args)
+{
+    (void) args;
+}
 
-/* static void */
-/* mife_decrypt_usage(bool longform, int ret) */
-/* { */
-/*     printf("usage: %s mife decrypt [<args>] circuit\n", progname); */
-/*     if (longform) { */
-/*         printf("\nAvailable arguments:\n\n"); */
-/*         args_usage(); */
-/*         printf("\n"); */
-/*     } */
-/*     exit(ret); */
-/* } */
+static void
+mife_decrypt_usage(bool longform, int ret)
+{
+    printf("usage: %s mife decrypt [<args>] circuit\n", progname);
+    if (longform) {
+        printf("\nAvailable arguments:\n\n");
+        args_usage();
+        printf("\n");
+    }
+    exit(ret);
+}
 
-/* static int */
-/* mife_decrypt_handle_options(int *argc, char ***argv, void *vargs) */
-/* { */
-/*     (void) argc; (void) argv; (void) vargs; */
-/*     return ERR; */
-/* } */
+static int
+mife_decrypt_handle_options(int *argc, char ***argv, void *vargs)
+{
+    (void) argc; (void) argv; (void) vargs;
+    return ERR;
+}
 
-/* typedef struct { */
-/*     size_t secparam; */
-/*     size_t npowers; */
-/* } mife_test_args_t; */
+typedef struct {
+    size_t secparam;
+    size_t npowers;
+} mife_test_args_t;
 
-/* static void */
-/* mife_test_args_init(mife_test_args_t *args) */
-/* { */
-/*     args->npowers = NPOWERS_DEFAULT; */
-/*     args->secparam = SECPARAM_DEFAULT; */
-/* } */
+static void
+mife_test_args_init(mife_test_args_t *args)
+{
+    args->npowers = NPOWERS_DEFAULT;
+    args->secparam = SECPARAM_DEFAULT;
+}
 
-/* static void */
-/* mife_test_usage(bool longform, int ret) */
-/* { */
-/*     printf("usage: %s mife test [<args>] circuit\n", progname); */
-/*     if (longform) { */
-/*         printf("\nAvailable arguments:\n\n"); */
-/*         printf("    --secparam λ       set security parameter to λ (default: %d)\n" */
-/*                "    --npowers N        set the number of powers to N (default: %d)\n", */
-/*                SECPARAM_DEFAULT, NPOWERS_DEFAULT); */
-/*         args_usage(); */
-/*         printf("\n"); */
-/*     } */
-/*     exit(ret); */
-/* } */
+static void
+mife_test_usage(bool longform, int ret)
+{
+    printf("usage: %s mife test [<args>] circuit\n", progname);
+    if (longform) {
+        printf("\nAvailable arguments:\n\n");
+        printf("    --secparam λ       set security parameter to λ (default: %d)\n"
+               "    --npowers N        set the number of powers to N (default: %d)\n",
+               SECPARAM_DEFAULT, NPOWERS_DEFAULT);
+        args_usage();
+        printf("\n");
+    }
+    exit(ret);
+}
 
-/* static int */
-/* mife_test_handle_options(int *argc, char ***argv, void *vargs) */
-/* { */
-/*     assert(*argc > 0); */
-/*     mife_test_args_t *args = vargs; */
-/*     const char *cmd = (*argv)[0]; */
-/*     if (!strcmp(cmd, "--npowers")) { */
-/*         if (args_get_size_t(&args->npowers, argc, argv) == ERR) */
-/*             return ERR; */
-/*     } else if (!strcmp(cmd, "--secparam")) { */
-/*         if (args_get_size_t(&args->secparam, argc, argv) == ERR) */
-/*             return ERR; */
-/*     } else { */
-/*         return ERR; */
-/*     } */
-/*     return OK; */
-/* } */
+static int
+mife_test_handle_options(int *argc, char ***argv, void *vargs)
+{
+    assert(*argc > 0);
+    mife_test_args_t *args = vargs;
+    const char *cmd = (*argv)[0];
+    if (!strcmp(cmd, "--npowers")) {
+        if (args_get_size_t(&args->npowers, argc, argv) == ERR)
+            return ERR;
+    } else if (!strcmp(cmd, "--secparam")) {
+        if (args_get_size_t(&args->secparam, argc, argv) == ERR)
+            return ERR;
+    } else {
+        return ERR;
+    }
+    return OK;
+}
 
-/* typedef struct { */
-/*     size_t npowers; */
-/* } mife_get_kappa_args_t; */
+typedef struct {
+    size_t npowers;
+} mife_get_kappa_args_t;
 
-/* static void */
-/* mife_get_kappa_args_init(mife_get_kappa_args_t *args) */
-/* { */
-/*     args->npowers = NPOWERS_DEFAULT; */
-/* } */
+static void
+mife_get_kappa_args_init(mife_get_kappa_args_t *args)
+{
+    args->npowers = NPOWERS_DEFAULT;
+}
 
-/* static void */
-/* mife_get_kappa_usage(bool longform, int ret) */
-/* { */
-/*     printf("usage: %s mife get-kappa [<args>] circuit\n", progname); */
-/*     if (longform) { */
-/*         printf("\nAvailable arguments:\n\n"); */
-/*         printf("    --npowers N        set the number of powers to N (default: %d)\n", */
-/*                NPOWERS_DEFAULT); */
-/*         args_usage(); */
-/*         printf("\n"); */
-/*     } */
-/*     exit(ret); */
-/* } */
+static void
+mife_get_kappa_usage(bool longform, int ret)
+{
+    printf("usage: %s mife get-kappa [<args>] circuit\n", progname);
+    if (longform) {
+        printf("\nAvailable arguments:\n\n");
+        printf("    --npowers N        set the number of powers to N (default: %d)\n",
+               NPOWERS_DEFAULT);
+        args_usage();
+        printf("\n");
+    }
+    exit(ret);
+}
 
-/* static int */
-/* mife_get_kappa_handle_options(int *argc, char ***argv, void *vargs) */
-/* { */
-/*     assert(*argc > 0); */
-/*     mife_get_kappa_args_t *args = vargs; */
-/*     const char *cmd = (*argv)[0]; */
-/*     if (!strcmp(cmd, "--npowers")) { */
-/*         if (args_get_size_t(&args->npowers, argc, argv) == ERR) */
-/*             return ERR; */
-/*     } else { */
-/*         return ERR; */
-/*     } */
-/*     return OK; */
-/* } */
+static int
+mife_get_kappa_handle_options(int *argc, char ***argv, void *vargs)
+{
+    assert(*argc > 0);
+    mife_get_kappa_args_t *args = vargs;
+    const char *cmd = (*argv)[0];
+    if (!strcmp(cmd, "--npowers")) {
+        if (args_get_size_t(&args->npowers, argc, argv) == ERR)
+            return ERR;
+    } else {
+        return ERR;
+    }
+    return OK;
+}
 
 typedef struct {
     size_t secparam;
@@ -533,248 +533,248 @@ handle_options(int *argc, char ***argv, int left, args_t *args, void *others,
 
 /*******************************************************************************/
 
-/* static int */
-/* mife_select_scheme(acirc_t *circ, bool sigma, size_t symlen, size_t base, */
-/*                    op_vtable **op_vt, obf_params_t **op) */
-/* { */
-/*     mife_params_t params; */
-/*     void *vparams; */
+static int
+mife_select_scheme(acirc_t *circ, bool sigma, size_t symlen, size_t base,
+                   op_vtable **op_vt, obf_params_t **op)
+{
+    mife_params_t params;
+    void *vparams;
 
-/*     params.symlen = symlen; */
-/*     params.sigma = sigma; */
-/*     params.base = base; */
-/*     vparams = &params; */
+    params.symlen = symlen;
+    params.sigma = sigma;
+    params.base = base;
+    vparams = &params;
 
-/*     *op_vt = &mife_op_vtable; */
-/*     *op = (*op_vt)->new(circ, vparams); */
-/*     if (*op == NULL) { */
-/*         fprintf(stderr, "error: initializing mife parameters failed\n"); */
-/*         return ERR; */
-/*     } */
-/*     return OK; */
-/* } */
+    *op_vt = &mife_op_vtable;
+    *op = (*op_vt)->new(circ, vparams);
+    if (*op == NULL) {
+        fprintf(stderr, "error: initializing mife parameters failed\n");
+        return ERR;
+    }
+    return OK;
+}
 
-/* static int */
-/* cmd_mife_setup(int argc, char **argv, args_t *args) */
-/* { */
-/*     mife_setup_args_t args_; */
-/*     op_vtable *op_vt = NULL; */
-/*     obf_params_t *op = NULL; */
-/*     int ret = ERR; */
+static int
+cmd_mife_setup(int argc, char **argv, args_t *args)
+{
+    mife_setup_args_t args_;
+    op_vtable *op_vt = NULL;
+    obf_params_t *op = NULL;
+    int ret = ERR;
 
-/*     argv++; argc--; */
-/*     mife_setup_args_init(&args_); */
-/*     handle_options(&argc, &argv, 0, args, &args_, mife_setup_handle_options, mife_setup_usage); */
-/*     if (mife_select_scheme(args->circ, args->sigma, args->symlen, args->base, &op_vt, &op) == ERR) */
-/*         goto cleanup; */
-/*     if (mife_run_setup(args->vt, args->circuit, op, args_.secparam, NULL, args_.npowers, */
-/*                        args->nthreads, args->rng) == ERR) */
-/*         goto cleanup; */
-/*     ret = OK; */
-/* cleanup: */
-/*     if (op) */
-/*         op_vt->free(op); */
-/*     return ret; */
-/* } */
+    argv++; argc--;
+    mife_setup_args_init(&args_);
+    handle_options(&argc, &argv, 0, args, &args_, mife_setup_handle_options, mife_setup_usage);
+    if (mife_select_scheme(args->circ, args->sigma, args->symlen, args->base, &op_vt, &op) == ERR)
+        goto cleanup;
+    if (mife_run_setup(args->vt, args->circuit, op, args_.secparam, NULL, args_.npowers,
+                       args->nthreads, args->rng) == ERR)
+        goto cleanup;
+    ret = OK;
+cleanup:
+    if (op)
+        op_vt->free(op);
+    return ret;
+}
 
-/* static int */
-/* cmd_mife_encrypt(int argc, char **argv, args_t *args) */
-/* { */
-/*     mife_encrypt_args_t args_; */
-/*     op_vtable *op_vt = NULL; */
-/*     obf_params_t *op = NULL; */
-/*     int ret = ERR; */
+static int
+cmd_mife_encrypt(int argc, char **argv, args_t *args)
+{
+    mife_encrypt_args_t args_;
+    op_vtable *op_vt = NULL;
+    obf_params_t *op = NULL;
+    int ret = ERR;
 
-/*     argv++; argc--; */
-/*     mife_encrypt_args_init(&args_); */
-/*     handle_options(&argc, &argv, 2, args, &args_, mife_encrypt_handle_options, mife_encrypt_usage); */
-/*     int input[strlen(argv[0])]; */
-/*     for (size_t i = 0; i < strlen(argv[0]); ++i) { */
-/*         if ((input[i] = char_to_long(argv[0][i])) < 0) */
-/*             goto cleanup; */
-/*     } */
-/*     int slot = atoi(argv[1]); */
-/*     if (mife_select_scheme(args->circ, args->sigma, args->symlen, args->base, &op_vt, &op) == ERR) */
-/*         goto cleanup; */
-/*     if (mife_run_encrypt(args->vt, args->circuit, op, input, slot, */
-/*                          args->nthreads, NULL, args->rng) == ERR) */
-/*         goto cleanup; */
-/*     ret = OK; */
-/* cleanup: */
-/*     if (op) */
-/*         op_vt->free(op); */
-/*     return ret; */
-/* } */
+    argv++; argc--;
+    mife_encrypt_args_init(&args_);
+    handle_options(&argc, &argv, 2, args, &args_, mife_encrypt_handle_options, mife_encrypt_usage);
+    long input[strlen(argv[0])];
+    for (size_t i = 0; i < strlen(argv[0]); ++i) {
+        if ((input[i] = char_to_long(argv[0][i])) < 0)
+            goto cleanup;
+    }
+    int slot = atoi(argv[1]);
+    if (mife_select_scheme(args->circ, args->sigma, args->symlen, args->base, &op_vt, &op) == ERR)
+        goto cleanup;
+    if (mife_run_encrypt(args->vt, args->circuit, op, input, slot,
+                         args->nthreads, NULL, args->rng) == ERR)
+        goto cleanup;
+    ret = OK;
+cleanup:
+    if (op)
+        op_vt->free(op);
+    return ret;
+}
 
-/* static int */
-/* cmd_mife_decrypt(int argc, char **argv, args_t *args) */
-/* { */
-/*     mife_decrypt_args_t args_; */
-/*     op_vtable *op_vt = NULL; */
-/*     obf_params_t *op = NULL; */
-/*     char *ek = NULL; */
-/*     char **cts = NULL; */
-/*     int *rop = NULL; */
-/*     size_t length, nslots = 0; */
-/*     int ret = ERR; */
+static int
+cmd_mife_decrypt(int argc, char **argv, args_t *args)
+{
+    mife_decrypt_args_t args_;
+    op_vtable *op_vt = NULL;
+    obf_params_t *op = NULL;
+    char *ek = NULL;
+    char **cts = NULL;
+    long *rop = NULL;
+    size_t length, nslots = 0;
+    int ret = ERR;
 
-/*     argv++; argc--; */
-/*     mife_decrypt_args_init(&args_); */
-/*     handle_options(&argc, &argv, 0, args, &args_, mife_decrypt_handle_options, mife_decrypt_usage); */
-/*     if (mife_select_scheme(args->circ, args->sigma, args->symlen, args->base, &op_vt, &op) == ERR) */
-/*         goto cleanup; */
-/*     nslots = op->cp.n; */
+    argv++; argc--;
+    mife_decrypt_args_init(&args_);
+    handle_options(&argc, &argv, 0, args, &args_, mife_decrypt_handle_options, mife_decrypt_usage);
+    if (mife_select_scheme(args->circ, args->sigma, args->symlen, args->base, &op_vt, &op) == ERR)
+        goto cleanup;
+    nslots = op->cp.n;
 
-/*     length = snprintf(NULL, 0, "%s.ek\n", args->circuit); */
-/*     ek = my_calloc(length, sizeof ek[0]); */
-/*     snprintf(ek, length, "%s.ek\n", args->circuit); */
-/*     cts = my_calloc(nslots, sizeof cts[0]); */
-/*     for (size_t i = 0; i < nslots; ++i) { */
-/*         length = snprintf(NULL, 0, "%s.%lu.ct\n", args->circuit, i); */
-/*         cts[i] = my_calloc(length, sizeof cts[i][0]); */
-/*         (void) snprintf(cts[i], length, "%s.%lu.ct\n", args->circuit, i); */
-/*     } */
-/*     rop = my_calloc(op->cp.m, sizeof rop[0]); */
-/*     if (mife_run_decrypt(ek, cts, rop, args->vt, op, NULL, args->nthreads) == ERR) { */
-/*         fprintf(stderr, "error: mife decrypt failed\n"); */
-/*         goto cleanup; */
-/*     } */
-/*     printf("result: "); */
-/*     for (size_t o = 0; o < op->cp.m; ++o) { */
-/*         printf("%d", rop[o]); */
-/*     } */
-/*     printf("\n"); */
-/*     ret = OK; */
-/* cleanup: */
-/*     if (ek) */
-/*         free(ek); */
-/*     if (cts) { */
-/*         for (size_t i = 0; i < nslots; ++i) */
-/*             free(cts[i]); */
-/*         free(cts); */
-/*     } */
-/*     if (op) */
-/*         op_vt->free(op); */
-/*     if (rop) */
-/*         free(rop); */
-/*     return ret; */
-/* } */
+    length = snprintf(NULL, 0, "%s.ek\n", args->circuit);
+    ek = my_calloc(length, sizeof ek[0]);
+    snprintf(ek, length, "%s.ek\n", args->circuit);
+    cts = my_calloc(nslots, sizeof cts[0]);
+    for (size_t i = 0; i < nslots; ++i) {
+        length = snprintf(NULL, 0, "%s.%lu.ct\n", args->circuit, i);
+        cts[i] = my_calloc(length, sizeof cts[i][0]);
+        (void) snprintf(cts[i], length, "%s.%lu.ct\n", args->circuit, i);
+    }
+    rop = my_calloc(op->cp.m, sizeof rop[0]);
+    if (mife_run_decrypt(ek, cts, rop, args->vt, op, NULL, args->nthreads) == ERR) {
+        fprintf(stderr, "error: mife decrypt failed\n");
+        goto cleanup;
+    }
+    printf("result: ");
+    for (size_t o = 0; o < op->cp.m; ++o) {
+        printf("%ld", rop[o]);
+    }
+    printf("\n");
+    ret = OK;
+cleanup:
+    if (ek)
+        free(ek);
+    if (cts) {
+        for (size_t i = 0; i < nslots; ++i)
+            free(cts[i]);
+        free(cts);
+    }
+    if (op)
+        op_vt->free(op);
+    if (rop)
+        free(rop);
+    return ret;
+}
 
-/* static int */
-/* cmd_mife_test(int argc, char **argv, args_t *args) */
-/* { */
-/*     mife_test_args_t args_; */
-/*     op_vtable *op_vt = NULL; */
-/*     obf_params_t *op = NULL; */
-/*     size_t kappa = 0; */
-/*     int ret = ERR; */
+static int
+cmd_mife_test(int argc, char **argv, args_t *args)
+{
+    mife_test_args_t args_;
+    op_vtable *op_vt = NULL;
+    obf_params_t *op = NULL;
+    size_t kappa = 0;
+    int ret = ERR;
 
-/*     argv++; argc--; */
-/*     mife_test_args_init(&args_); */
-/*     handle_options(&argc, &argv, 0, args, &args_, mife_test_handle_options, mife_test_usage); */
-/*     if (mife_select_scheme(args->circ, args->sigma, args->symlen, args->base, &op_vt, &op) == ERR) */
-/*         goto cleanup; */
-/*     if (args->smart) { */
-/*         kappa = mife_run_smart_kappa(args->circuit, op, args_.npowers, args->nthreads, args->rng); */
-/*         if (kappa == 0) */
-/*             goto cleanup; */
-/*     } */
-/*     if (mife_run_test(args->vt, args->circuit, op, args_.secparam, */
-/*                       &kappa, args_.npowers, args->nthreads, args->rng) == ERR) { */
-/*         fprintf(stderr, "error: mife test failed\n"); */
-/*         goto cleanup; */
-/*     } */
-/*     ret = OK; */
-/* cleanup: */
-/*     if (op) */
-/*         op_vt->free(op); */
-/*     return ret; */
-/* } */
+    argv++; argc--;
+    mife_test_args_init(&args_);
+    handle_options(&argc, &argv, 0, args, &args_, mife_test_handle_options, mife_test_usage);
+    if (mife_select_scheme(args->circ, args->sigma, args->symlen, args->base, &op_vt, &op) == ERR)
+        goto cleanup;
+    if (args->smart) {
+        kappa = mife_run_smart_kappa(args->circuit, op, args_.npowers, args->nthreads, args->rng);
+        if (kappa == 0)
+            goto cleanup;
+    }
+    if (mife_run_test(args->vt, args->circuit, op, args_.secparam,
+                      &kappa, args_.npowers, args->nthreads, args->rng) == ERR) {
+        fprintf(stderr, "error: mife test failed\n");
+        goto cleanup;
+    }
+    ret = OK;
+cleanup:
+    if (op)
+        op_vt->free(op);
+    return ret;
+}
 
-/* static int */
-/* cmd_mife_get_kappa(int argc, char **argv, args_t *args) */
-/* { */
-/*     mife_get_kappa_args_t args_; */
-/*     const mmap_vtable *vt = &dummy_vtable; */
-/*     op_vtable *op_vt = NULL; */
-/*     obf_params_t *op = NULL; */
-/*     size_t kappa = 0; */
-/*     int ret = ERR; */
+static int
+cmd_mife_get_kappa(int argc, char **argv, args_t *args)
+{
+    mife_get_kappa_args_t args_;
+    const mmap_vtable *vt = &dummy_vtable;
+    op_vtable *op_vt = NULL;
+    obf_params_t *op = NULL;
+    size_t kappa = 0;
+    int ret = ERR;
 
-/*     argv++, argc--; */
-/*     mife_get_kappa_args_init(&args_); */
-/*     handle_options(&argc, &argv, 0, args, &args_, mife_get_kappa_handle_options, mife_get_kappa_usage); */
-/*     if (mife_select_scheme(args->circ, args->sigma, args->symlen, args->base, &op_vt, &op) == ERR) */
-/*         goto cleanup; */
-/*     if (args->smart) { */
-/*         kappa = mife_run_smart_kappa(args->circuit, op, args_.npowers, args->nthreads, args->rng); */
-/*         if (kappa == 0) */
-/*             goto cleanup; */
-/*     } else { */
-/*         if (mife_run_setup(vt, args->circuit, op, args->secparam, &kappa, args_.npowers, */
-/*                            args->nthreads, args->rng) == ERR) { */
-/*             fprintf(stderr, "error: mife setup failed\n"); */
-/*             goto cleanup; */
-/*         } */
-/*     } */
-/*     printf("κ = %lu\n", kappa); */
-/*     ret = OK; */
-/* cleanup: */
-/*     if (op) */
-/*         op_vt->free(op); */
-/*     return ret; */
-/* } */
+    argv++, argc--;
+    mife_get_kappa_args_init(&args_);
+    handle_options(&argc, &argv, 0, args, &args_, mife_get_kappa_handle_options, mife_get_kappa_usage);
+    if (mife_select_scheme(args->circ, args->sigma, args->symlen, args->base, &op_vt, &op) == ERR)
+        goto cleanup;
+    if (args->smart) {
+        kappa = mife_run_smart_kappa(args->circuit, op, args_.npowers, args->nthreads, args->rng);
+        if (kappa == 0)
+            goto cleanup;
+    } else {
+        if (mife_run_setup(vt, args->circuit, op, args->secparam, &kappa, args_.npowers,
+                           args->nthreads, args->rng) == ERR) {
+            fprintf(stderr, "error: mife setup failed\n");
+            goto cleanup;
+        }
+    }
+    printf("κ = %lu\n", kappa);
+    ret = OK;
+cleanup:
+    if (op)
+        op_vt->free(op);
+    return ret;
+}
 
-/* static void */
-/* mife_usage(bool longform, int ret) */
-/* { */
-/*     printf("usage: %s mife <command> [<args>]\n", progname); */
-/*     if (longform) { */
-/*         printf("\nAvailable commands:\n\n" */
-/*                "   setup         run MIFE setup routine\n" */
-/*                "   encrypt       run MIFE encryption routine\n" */
-/*                "   decrypt       run MIFE decryption routine\n" */
-/*                "   test          run test suite\n" */
-/*                "   get-kappa     get κ value\n" */
-/*                "   help          print this message and exit\n\n"); */
-/*     } */
-/*     exit(ret); */
-/* } */
+static void
+mife_usage(bool longform, int ret)
+{
+    printf("usage: %s mife <command> [<args>]\n", progname);
+    if (longform) {
+        printf("\nAvailable commands:\n\n"
+               "   setup         run MIFE setup routine\n"
+               "   encrypt       run MIFE encryption routine\n"
+               "   decrypt       run MIFE decryption routine\n"
+               "   test          run test suite\n"
+               "   get-kappa     get κ value\n"
+               "   help          print this message and exit\n\n");
+    }
+    exit(ret);
+}
 
-/* static int */
-/* cmd_mife(int argc, char **argv) */
-/* { */
-/*     args_t args; */
-/*     int ret = ERR; */
+static int
+cmd_mife(int argc, char **argv)
+{
+    args_t args;
+    int ret = ERR;
 
-/*     if (argc == 1) */
-/*         mife_usage(true, EXIT_FAILURE); */
+    if (argc == 1)
+        mife_usage(true, EXIT_FAILURE);
 
-/*     const char *const cmd = argv[1]; */
-/*     args_init(&args); */
+    const char *const cmd = argv[1];
+    args_init(&args);
 
-/*     argv++; argc--; */
-/*     if (!strcmp(cmd, "setup")) { */
-/*         ret = cmd_mife_setup(argc, argv, &args); */
-/*     } else if (!strcmp(cmd, "encrypt")) { */
-/*         ret = cmd_mife_encrypt(argc, argv, &args); */
-/*     } else if (!strcmp(cmd, "decrypt")) { */
-/*         ret = cmd_mife_decrypt(argc, argv, &args); */
-/*     } else if (!strcmp(cmd, "test")) { */
-/*         ret = cmd_mife_test(argc, argv, &args); */
-/*     } else if (!strcmp(cmd, "get-kappa")) { */
-/*         ret = cmd_mife_get_kappa(argc, argv, &args); */
-/*     } else if (!strcmp(cmd, "help") */
-/*                || !strcmp(cmd, "--help") */
-/*                || !strcmp(cmd, "-h")) { */
-/*         mife_usage(true, EXIT_SUCCESS); */
-/*     } else { */
-/*         fprintf(stderr, "error: unknown command '%s'\n", cmd); */
-/*         mife_usage(true, EXIT_FAILURE); */
-/*     } */
-/*     args_clear(&args); */
-/*     return ret; */
-/* } */
+    argv++; argc--;
+    if (!strcmp(cmd, "setup")) {
+        ret = cmd_mife_setup(argc, argv, &args);
+    } else if (!strcmp(cmd, "encrypt")) {
+        ret = cmd_mife_encrypt(argc, argv, &args);
+    } else if (!strcmp(cmd, "decrypt")) {
+        ret = cmd_mife_decrypt(argc, argv, &args);
+    } else if (!strcmp(cmd, "test")) {
+        ret = cmd_mife_test(argc, argv, &args);
+    } else if (!strcmp(cmd, "get-kappa")) {
+        ret = cmd_mife_get_kappa(argc, argv, &args);
+    } else if (!strcmp(cmd, "help")
+               || !strcmp(cmd, "--help")
+               || !strcmp(cmd, "-h")) {
+        mife_usage(true, EXIT_SUCCESS);
+    } else {
+        fprintf(stderr, "error: unknown command '%s'\n", cmd);
+        mife_usage(true, EXIT_FAILURE);
+    }
+    args_clear(&args);
+    return ret;
+}
 
 /*******************************************************************************/
 
@@ -794,7 +794,9 @@ obf_select_scheme(enum scheme_e scheme, acirc_t *circ, size_t npowers, bool sigm
     }
 
     switch (scheme) {
-    /* case SCHEME_LIN: */
+    case SCHEME_LIN:
+        fprintf(stderr, "error: LIN no longer supported\n");
+        return ERR;
     /*     *vt = &lin_obfuscator_vtable; */
     /*     *op_vt = &lin_op_vtable; */
     /*     lin_params.symlen = symlen; */
@@ -1087,7 +1089,7 @@ main(int argc, char **argv)
     argv++; argc--;
 
     if (!strcmp(command, "mife")) {
-        /* ret = cmd_mife(argc, argv); */
+        ret = cmd_mife(argc, argv);
     } else if (!strcmp(command, "obf")) {
         ret = cmd_obf(argc, argv);
     } else if (!strcmp(command, "help")

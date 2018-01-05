@@ -50,11 +50,11 @@ set(mobf_SOURCES
 
 add_library(lz SHARED ${lz_SOURCES})
 # add_library(lin SHARED ${lin_SOURCES})
-# add_library(mife SHARED ${mife_SOURCES})
+add_library(mife SHARED ${mife_SOURCES})
 # add_library(mobf SHARED ${mobf_SOURCES})
 add_executable(mio src/mio.c)
 # target_link_libraries(mio lz lin mife mobf)
-target_link_libraries(mio lz)
+target_link_libraries(mio lz mife)
 find_library(libacirc acirc)
 find_library(libmmap mmap)
 find_library(libclt13 clt13)
