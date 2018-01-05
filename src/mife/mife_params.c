@@ -32,7 +32,7 @@ size_t
 mife_num_encodings_setup(const circ_params_t *cp, size_t npowers)
 {
     size_t nconsts = cp->c ? cp->ds[cp->n - 1] : 1;
-    return cp->m + cp->n * npowers + nconsts;
+    return 1 + cp->n * npowers + nconsts;
 }
 
 size_t
