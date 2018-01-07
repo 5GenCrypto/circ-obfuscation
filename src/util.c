@@ -37,22 +37,6 @@ int array_sum(const int *xs, size_t n)
     return res;
 }
 
-void array_add(int *rop, const int *xs, const int *ys, size_t n)
-{
-    for (size_t i = 0; i < n; ++i) {
-        rop[i] = xs[i] + ys[i];
-    }
-}
-
-bool array_eq(const int *xs, const int *ys, size_t n)
-{
-    for (size_t i = 0; i < n; ++i) {
-        if (xs[i] != ys[i])
-            return false;
-    }
-    return true;
-}
-
 size_t array_max(const size_t *xs, size_t n)
 {
     size_t max = 0;

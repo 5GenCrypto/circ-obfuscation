@@ -73,8 +73,6 @@ int size_t_fwrite(size_t x, FILE *fp);
 int bool_fread(bool *x, FILE *fp);
 int bool_fwrite(bool x, FILE *fp);
 
-void array_add(int *rop, const int *xs, const int *ys, size_t n);
-bool array_eq(const int *xs, const int *ys, size_t n);
 int array_sum(const int *xs, size_t n);
 size_t array_max(const size_t *xs, size_t n);
 

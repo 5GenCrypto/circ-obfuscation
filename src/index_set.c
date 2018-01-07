@@ -42,7 +42,9 @@ index_set_print(const index_set *ix)
 void
 index_set_add(index_set *rop, const index_set *x, const index_set *y)
 {
-    array_add(rop->pows, x->pows, y->pows, rop->nzs);
+    for (size_t i = 0; i < rop->nzs; ++i) {
+        rop->pows[i] = x->pows[i] + y->pows[i];
+    }
 }
 
 void
@@ -65,7 +67,11 @@ index_set_copy(const index_set *x)
 bool
 index_set_eq(const index_set *x, const index_set *y)
 {
-    return array_eq(x->pows, y->pows, x->nzs);
+    for (size_t i = 0; i < x->nzs; ++i) {
+        if (x->pows[i] != y->pows[i])
+            return false;
+    }
+    return true;
 }
 
 index_set *
@@ -121,7 +127,7 @@ error:
 int
 index_set_fwrite(const index_set *ix, FILE *fp)
 {
-    if (ulong_fwrite(ix->nzs, fp) == ERR)
+    if (size_t_fwrite(ix->nzs, fp) == ERR)
         return ERR;
     for (size_t i = 0; i < ix->nzs; i++) {
         if (int_fwrite(ix->pows[i], fp) == ERR)
