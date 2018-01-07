@@ -100,9 +100,14 @@ mmap, defaults.sigma ? "yes" : "no", defaults.symlen, defaults.base, defaults.nt
 static int
 args_get_size_t(size_t *result, int *argc, char ***argv)
 {
+    char *endptr;
     if (*argc <= 1)
         return ERR;
-    *result = atoi((*argv)[1]);
+    *result = strtol((*argv)[1], &endptr, 10);
+    if (*endptr != '\0') {
+        fprintf(stderr, "error: invalid argument '%s'\n", (*argv)[1]);
+        return ERR;
+    }
     (*argv)++; (*argc)--;
     return OK;
 }
