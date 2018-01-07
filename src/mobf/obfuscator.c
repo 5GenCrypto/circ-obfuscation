@@ -53,7 +53,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
 
     const circ_params_t *const cp = &op->cp;
     const size_t ninputs = cp->n;
-    const size_t nrefs = acirc_nrefs(cp->circ);
+    /* const size_t nrefs = acirc_nrefs(cp->circ); */
 
     /* MIFE setup */
     start = _start = current_time();
@@ -79,14 +79,15 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     cache.lock = &lock;
     cache.count = &count;
     cache.total = mobf_num_encodings(op);
-    cache.refs = my_calloc(nrefs, sizeof cache.refs[0]);
-    for (size_t ref = 0; ref < nrefs; ++ref)
-        mpz_init(cache.refs[ref]);
-    
+    cache.refs = NULL;
+    /* cache.refs = my_calloc(nrefs, sizeof cache.refs[0]); */
+    /* for (size_t ref = 0; ref < nrefs; ++ref) */
+    /*     mpz_init(cache.refs[ref]); */
+
     for (size_t i = 0; i < ninputs; ++i) {
         obf->cts[i] = my_calloc(cp->qs[i], sizeof obf->cts[i][0]);
         for (size_t j = 0; j < cp->qs[i]; ++j) {
-            int inputs[cp->ds[i]];
+            long inputs[cp->ds[i]];
             for (size_t k = 0; k < cp->ds[i]; ++k) {
                 if (op->sigma)
                     inputs[k] = j == k;
@@ -107,9 +108,9 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     res = OK;
 cleanup:
     threadpool_destroy(cache.pool);
-    for (size_t ref = 0; ref < nrefs; ++ref)
-        mpz_clear(cache.refs[ref]);
-    free(cache.refs);
+    /* for (size_t ref = 0; ref < nrefs; ++ref) */
+    /*     mpz_clear(cache.refs[ref]); */
+    /* free(cache.refs); */
     pthread_mutex_destroy(&lock);
     mife_sk_free(sk);
     if (res == OK) {
@@ -126,21 +127,21 @@ cleanup:
 }
 
 static int
-_evaluate(const obfuscation *obf, int *outputs, size_t noutputs,
-          const int *inputs, size_t ninputs, size_t nthreads, size_t *kappa,
+_evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
+          const long *inputs, size_t ninputs, size_t nthreads, size_t *kappa,
           size_t *npowers)
 {
     (void) npowers;
     const circ_params_t *cp = &obf->op->cp;
-    const acirc *const circ = cp->circ;
+    const acirc_t *const circ = cp->circ;
     const size_t has_consts = cp->c ? 1 : 0;
     const size_t ell = array_max(cp->ds, cp->n - has_consts);
     const size_t q = array_max(cp->qs, cp->n - has_consts);
     mife_ciphertext_t **cts = NULL;
-    int *input_syms = NULL;
+    long *input_syms = NULL;
     int ret = ERR;
 
-    if (ninputs != circ->ninputs) {
+    if (ninputs != acirc_ninputs(circ)) {
         fprintf(stderr, "error: obf evaluate: invalid number of inputs\n");
         goto cleanup;
     } else if (noutputs != cp->m) {
@@ -148,7 +149,7 @@ _evaluate(const obfuscation *obf, int *outputs, size_t noutputs,
         goto cleanup;
     }
 
-    input_syms = get_input_syms(inputs, circ->ninputs, obf->op->rchunker,
+    input_syms = get_input_syms(inputs, ninputs, obf->op->rchunker,
                                 cp->n - has_consts, ell, q, obf->op->sigma);
     if (input_syms == NULL)
         goto cleanup;

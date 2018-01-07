@@ -7,7 +7,7 @@
 #include "mife/mife_params.h"
 /* #include "lin/obfuscator.h" */
 #include "lz/obfuscator.h"
-/* #include "mobf/obfuscator.h" */
+#include "mobf/obfuscator.h"
 #include "obf_run.h"
 
 #include <aesrand/aesrand.h>
@@ -26,7 +26,7 @@
 #include <unistd.h>
 
 static char *progname = "mio";
-static char *progversion = "v1.0.0 (in progress)";
+static char *progversion = "v2.0";
 
 #define NPOWERS_DEFAULT 1
 #define SECPARAM_DEFAULT 8
@@ -785,7 +785,7 @@ obf_select_scheme(enum scheme_e scheme, acirc_t *circ, size_t npowers, bool sigm
 {
     /* lin_obf_params_t lin_params; */
     lz_obf_params_t lz_params;
-    /* mobf_obf_params_t mobf_params; */
+    mobf_obf_params_t mobf_params;
     void *vparams;
 
     if (base != 2 && scheme != SCHEME_MIFE) {
@@ -811,15 +811,15 @@ obf_select_scheme(enum scheme_e scheme, acirc_t *circ, size_t npowers, bool sigm
         lz_params.sigma = sigma;
         vparams = &lz_params;
         break;
-    /* case SCHEME_MIFE: */
-    /*     *vt = &mobf_obfuscator_vtable; */
-    /*     *op_vt = &mobf_op_vtable; */
-    /*     mobf_params.npowers = npowers; */
-    /*     mobf_params.symlen = symlen; */
-    /*     mobf_params.sigma = sigma; */
-    /*     mobf_params.base = base; */
-    /*     vparams = &mobf_params; */
-    /*     break; */
+    case SCHEME_MIFE:
+        *vt = &mobf_obfuscator_vtable;
+        *op_vt = &mobf_op_vtable;
+        mobf_params.npowers = npowers;
+        mobf_params.symlen = symlen;
+        mobf_params.sigma = sigma;
+        mobf_params.base = base;
+        vparams = &mobf_params;
+        break;
     default:
         return ERR;
     }

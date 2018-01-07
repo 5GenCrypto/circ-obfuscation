@@ -23,25 +23,27 @@ _free(obf_params_t *op)
 }
 
 static obf_params_t *
-_new(acirc *circ, void *vparams)
+_new(acirc_t *circ, void *vparams)
 {
     const mobf_obf_params_t *const params = vparams;
     obf_params_t *const op = my_calloc(1, sizeof op[0]);
+    const size_t ninputs = acirc_ninputs(circ);
+    const size_t nconsts = acirc_nconsts(circ);
 
-    if (circ->ninputs % params->symlen != 0) {
+    if (ninputs % params->symlen != 0) {
         fprintf(stderr, "error: ninputs (%lu) %% symlen (%lu) != 0\n",
-                circ->ninputs, params->symlen);
+                ninputs, params->symlen);
         _free(op);
         return NULL;
     }
-    const size_t consts = circ->consts.n ? 1 : 0;
-    circ_params_init(&op->cp, circ->ninputs / params->symlen + consts, circ);
-    for (size_t i = 0; i < op->cp.n - consts; ++i) {
+    const size_t has_consts = nconsts ? 1 : 0;
+    circ_params_init(&op->cp, ninputs / params->symlen + has_consts, circ);
+    for (size_t i = 0; i < op->cp.n - has_consts; ++i) {
         op->cp.ds[i] = params->symlen;
         op->cp.qs[i] = params->sigma ? params->symlen : params->base;
     }
-    if (consts) {
-        op->cp.ds[op->cp.n - 1] = circ->consts.n;
+    if (has_consts) {
+        op->cp.ds[op->cp.n - 1] = nconsts;
         op->cp.qs[op->cp.n - 1] = 1;
     }
     op->sigma = params->sigma;
@@ -72,7 +74,7 @@ _fwrite(const obf_params_t *op, FILE *fp)
 }
 
 static obf_params_t *
-_fread(acirc *circ, FILE *fp)
+_fread(acirc_t *circ, FILE *fp)
 {
     obf_params_t *op;
 
