@@ -1,9 +1,10 @@
 :ninputs 1
+:nrefs 3
 :consts 0
 :outputs 2
 :test 0 0
 :test 1 1
 :start
 0 input 0
-1 const 0
+1 const
 2 ADD 0 1
