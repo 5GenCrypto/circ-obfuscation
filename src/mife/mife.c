@@ -851,6 +851,7 @@ typedef struct {
     circ_params_t *cp;
     mife_ciphertext_t **cts;
     mife_ek_t *ek;
+    size_t *kappas;
 } decrypt_args_t;
 
 static void *
@@ -921,6 +922,57 @@ eval_f(acirc_op op, const void *x_, const void *y_, void *args_)
     return res;
 }
 
+static void *
+output_f(size_t o, void *x, void *args_)
+{
+    long output = 1;
+    decrypt_args_t *args = args_;
+    mife_ek_t *ek = args->ek;
+    const circ_params_t *const cp = ek->cp;
+    encoding *out, *lhs, *rhs;
+    const index_set *const toplevel = ek->pp_vt->toplevel(ek->pp);
+
+    out = encoding_new(ek->enc_vt, ek->pp_vt, ek->pp);
+    lhs = encoding_new(ek->enc_vt, ek->pp_vt, ek->pp);
+    rhs = encoding_new(ek->enc_vt, ek->pp_vt, ek->pp);
+
+    /* Compute LHS */
+    encoding_mul(ek->enc_vt, ek->pp_vt, lhs, x, ek->zhat, ek->pp);
+    raise_encoding(ek, lhs, toplevel);
+    if (!index_set_eq(ek->enc_vt->mmap_set(lhs), toplevel)) {
+        fprintf(stderr, "error: lhs != toplevel\n");
+        index_set_print(ek->enc_vt->mmap_set(lhs));
+        index_set_print(toplevel);
+        goto cleanup;
+    }
+    /* Compute RHS */
+    if (ek->Chatstar) {
+        encoding_set(ek->enc_vt, rhs, ek->Chatstar);
+        for (size_t i = 0; i < cp->n; ++i)
+            encoding_mul(ek->enc_vt, ek->pp_vt, rhs, rhs, args->cts[i]->what[o], ek->pp);
+    } else {
+        encoding_set(ek->enc_vt, rhs, args->cts[0]->what[o]);
+        for (size_t i = 1; i < cp->n - 1; ++i)
+            encoding_mul(ek->enc_vt, ek->pp_vt, rhs, rhs, args->cts[i]->what[o], ek->pp);
+    }
+    if (!index_set_eq(ek->enc_vt->mmap_set(rhs), toplevel)) {
+        fprintf(stderr, "error: rhs != toplevel\n");
+        index_set_print(ek->enc_vt->mmap_set(rhs));
+        index_set_print(toplevel);
+        goto cleanup;
+    }
+    encoding_sub(ek->enc_vt, ek->pp_vt, out, lhs, rhs, ek->pp);
+    output = !encoding_is_zero(ek->enc_vt, ek->pp_vt, out, ek->pp);
+    if (args->kappas)
+        args->kappas[o] = encoding_get_degree(ek->enc_vt, out);
+
+cleanup:
+    encoding_free(ek->enc_vt, out);
+    encoding_free(ek->enc_vt, lhs);
+    encoding_free(ek->enc_vt, rhs);
+    return (void *) output;
+}
+
 static void
 free_f(void *x, void *args_)
 {
@@ -933,7 +985,6 @@ int
 mife_decrypt(const mife_ek_t *ek, long *rop, mife_ciphertext_t **cts,
              size_t nthreads, size_t *kappa)
 {
-    encoding **encs = NULL;
     const circ_params_t *cp = ek->cp;
     acirc_t *circ = cp->circ;
     int ret = OK;
@@ -947,71 +998,18 @@ mife_decrypt(const mife_ek_t *ek, long *rop, mife_ciphertext_t **cts,
         kappas = my_calloc(cp->m, sizeof kappas[0]);
 
     {
+        long *tmp;
         decrypt_args_t args = {
             .cp = cp,
             .cts = cts,
             .ek = ek,
+            .kappas = kappas,
         };
-        encs = (encoding **) acirc_traverse(circ, input_f, const_f, eval_f, copy_f, free_f, &args, nthreads);
-    }
-
-    for (size_t o = 0; o < acirc_noutputs(circ); ++o) {
-        encoding *out, *lhs, *rhs;
-        const index_set *const toplevel = ek->pp_vt->toplevel(ek->pp);
-        int result;
-
-        out = encoding_new(ek->enc_vt, ek->pp_vt, ek->pp);
-        lhs = encoding_new(ek->enc_vt, ek->pp_vt, ek->pp);
-        rhs = encoding_new(ek->enc_vt, ek->pp_vt, ek->pp);
-
-        /* Compute LHS */
-        encoding_mul(ek->enc_vt, ek->pp_vt, lhs, encs[o], ek->zhat, ek->pp);
-        raise_encoding(ek, lhs, toplevel);
-        if (!index_set_eq(ek->enc_vt->mmap_set(lhs), toplevel)) {
-            fprintf(stderr, "error: lhs != toplevel\n");
-            index_set_print(ek->enc_vt->mmap_set(lhs));
-            index_set_print(toplevel);
-            ret = ERR;
-            goto cleanup;
+        tmp = (long *) acirc_traverse(circ, input_f, const_f, eval_f, output_f, free_f, &args, nthreads);
+        for (size_t i = 0; i < acirc_noutputs(circ); ++i) {
+            rop[i] = tmp[i];
         }
-        /* Compute RHS */
-        if (ek->Chatstar) {
-            encoding_set(ek->enc_vt, rhs, ek->Chatstar);
-            for (size_t i = 0; i < cp->n; ++i)
-                encoding_mul(ek->enc_vt, ek->pp_vt, rhs, rhs, cts[i]->what[o], ek->pp);
-        } else {
-            encoding_set(ek->enc_vt, rhs, cts[0]->what[o]);
-            for (size_t i = 1; i < cp->n - 1; ++i)
-                encoding_mul(ek->enc_vt, ek->pp_vt, rhs, rhs, cts[i]->what[o], ek->pp);
-        }
-        if (!index_set_eq(ek->enc_vt->mmap_set(rhs), toplevel)) {
-            fprintf(stderr, "error: rhs != toplevel\n");
-            index_set_print(ek->enc_vt->mmap_set(rhs));
-            index_set_print(toplevel);
-            ret = ERR;
-            goto cleanup;
-        }
-        encoding_sub(ek->enc_vt, ek->pp_vt, out, lhs, rhs, ek->pp);
-        result = !encoding_is_zero(ek->enc_vt, ek->pp_vt, out, ek->pp);
-        if (rop)
-            rop[o] = result;
-        if (kappas)
-            kappas[o] = encoding_get_degree(ek->enc_vt, out);
-
-    cleanup:
-        encoding_free(ek->enc_vt, out);
-        encoding_free(ek->enc_vt, lhs);
-        encoding_free(ek->enc_vt, rhs);
-        if (ret == ERR)
-            if (rop)
-                rop[o] = 1;
-    }
-
-    if (encs) {
-        for (size_t o = 0; o < acirc_noutputs(circ); ++o) {
-            encoding_free(ek->enc_vt, encs[o]);
-        }
-        free(encs);
+        free(tmp);
     }
 
     if (kappa) {

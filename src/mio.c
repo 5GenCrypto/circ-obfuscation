@@ -588,6 +588,7 @@ cmd_mife_encrypt(int argc, char **argv, args_t *args)
     mife_encrypt_args_t args_;
     op_vtable *op_vt = NULL;
     obf_params_t *op = NULL;
+    size_t slot;
     int ret = ERR;
 
     argv++; argc--;
@@ -598,7 +599,8 @@ cmd_mife_encrypt(int argc, char **argv, args_t *args)
         if ((input[i] = char_to_long(argv[0][i])) < 0)
             goto cleanup;
     }
-    int slot = atoi(argv[1]);
+    if (args_get_size_t(&slot, &argc, &argv) == ERR)
+        goto cleanup;
     if (mife_select_scheme(args->circ, args->sigma, args->symlen, args->base, &op_vt, &op) == ERR)
         goto cleanup;
     if (mife_run_encrypt(args->vt, args->circuit, op, input, slot,

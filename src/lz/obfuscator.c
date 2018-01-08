@@ -386,7 +386,8 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
                  index_set_copy(ix), obf->sp, &count_lock, &count, total);
     }
 
-    threadpool_destroy(pool);
+    if (nthreads)
+        threadpool_destroy(pool);
     pthread_mutex_destroy(&count_lock);
 
     index_set_free(ix);
@@ -496,7 +497,8 @@ _fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
 
 static size_t g_max_npowers = 0;
 
-static void _raise_encoding(const obfuscation *obf, encoding *x, encoding **ys, size_t diff)
+static void
+_raise_encoding(const obfuscation *obf, encoding *x, encoding **ys, size_t diff)
 {
     while (diff > 0) {
         // want to find the largest power we obfuscated to multiply by
@@ -510,14 +512,16 @@ static void _raise_encoding(const obfuscation *obf, encoding *x, encoding **ys, 
     }
 }
 
-static void raise_encoding(const obfuscation *obf, encoding *x, const index_set *target)
+static int
+raise_encoding(const obfuscation *obf, encoding *x, const index_set *target)
 {
+    size_t diff;
+    index_set *ix;
     const circ_params_t *cp = &obf->op->cp;
     const size_t ninputs = cp->n - (acirc_nconsts(cp->circ) ? 1 : 0);
 
-    index_set *const ix =
-        index_set_difference(target, obf->enc_vt->mmap_set(x));
-    size_t diff;
+    if ((ix = index_set_difference(target, obf->enc_vt->mmap_set(x))) == NULL)
+        return ERR;
     for (size_t k = 0; k < ninputs; k++) {
         for (size_t s = 0; s < cp->qs[k]; s++) {
             diff = ix_s_get(ix, cp, k, s);
@@ -527,21 +531,32 @@ static void raise_encoding(const obfuscation *obf, encoding *x, const index_set 
     diff = ix_y_get(ix, cp);
     _raise_encoding(obf, x, obf->vhat, diff);
     index_set_free(ix);
+    return OK;
 }
 
-static void
+static int
 raise_encodings(const obfuscation *obf, encoding *x, encoding *y)
 {
-    index_set *const ix = index_set_union(obf->enc_vt->mmap_set(x),
-                                          obf->enc_vt->mmap_set(y));
-    raise_encoding(obf, x, ix);
-    raise_encoding(obf, y, ix);
+    int ret = ERR;
+    index_set *ix;
+
+    ix = index_set_union(obf->enc_vt->mmap_set(x),
+                         obf->enc_vt->mmap_set(y));
+    if (raise_encoding(obf, x, ix) == ERR)
+        goto cleanup;
+    if (raise_encoding(obf, y, ix) == ERR)
+        goto cleanup;
+    ret = OK;
+cleanup:
     index_set_free(ix);
+    return ret;
 }
 
 typedef struct {
     const obfuscation *obf;
+    long *input_syms;
     long *inputs;
+    size_t *kappas;
 } obf_args_t;
 
 static void *
@@ -566,7 +581,7 @@ input_f(size_t i, void *args_)
     const size_t ninputs = cp->n - has_consts;
     const sym_id sym = obf->op->chunker(i, acirc_ninputs(cp->circ), ninputs);
     const size_t k = sym.sym_number;
-    const size_t s = args->inputs[k];
+    const size_t s = args->input_syms[k];
     const size_t j = sym.bit_number;
     return copy_f(obf->shat[k][s][j], args_);
 }
@@ -618,6 +633,64 @@ eval_f(acirc_op op, const void *x_, const void *y_, void *args_)
     return res;
 }
 
+static void *
+output_f(size_t o, void *x, void *args_)
+{
+    long output = 1;
+    obf_args_t *args = args_;
+    const long *inputs = args->inputs;
+    const obfuscation *const obf = args->obf;
+    const acirc_t *const circ = obf->op->cp.circ;
+    encoding *out, *lhs, *rhs, *tmp;
+    const index_set *const toplevel = obf->pp_vt->toplevel(obf->pp);
+
+    out = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
+    lhs = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
+    rhs = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
+    tmp = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
+
+    /* Compute LHS */
+    encoding_set(obf->enc_vt, lhs, x);
+    for (size_t k = 0; k < acirc_ninputs(circ); k++) {
+        encoding_set(obf->enc_vt, tmp, lhs);
+        encoding_mul(obf->enc_vt, obf->pp_vt, lhs, tmp,
+                     obf->zhat[k][inputs[k]][o], obf->pp);
+    }
+    if (raise_encoding(obf, lhs, toplevel) == ERR)
+        goto cleanup;
+    if (!index_set_eq(obf->enc_vt->mmap_set(lhs), toplevel)) {
+        fprintf(stderr, "lhs != toplevel\n");
+        index_set_print(obf->enc_vt->mmap_set(lhs));
+        index_set_print(toplevel);
+        goto cleanup;
+    }
+
+    /* Compute RHS */
+    encoding_set(obf->enc_vt, rhs, obf->Chatstar[o]);
+    for (size_t k = 0; k < acirc_ninputs(circ); k++) {
+        encoding_set(obf->enc_vt, tmp, rhs);
+        encoding_mul(obf->enc_vt, obf->pp_vt, rhs, tmp,
+                     obf->what[k][inputs[k]][o], obf->pp);
+    }
+    if (!index_set_eq(obf->enc_vt->mmap_set(rhs), toplevel)) {
+        fprintf(stderr, "rhs != toplevel\n");
+        index_set_print(obf->enc_vt->mmap_set(rhs));
+        index_set_print(toplevel);
+        goto cleanup;
+    }
+    encoding_sub(obf->enc_vt, obf->pp_vt, out, lhs, rhs, obf->pp);
+    output = !encoding_is_zero(obf->enc_vt, obf->pp_vt, out, obf->pp);
+    if (args->kappas)
+        args->kappas[o] = encoding_get_degree(obf->enc_vt, out);
+
+cleanup:
+    encoding_free(obf->enc_vt, out);
+    encoding_free(obf->enc_vt, lhs);
+    encoding_free(obf->enc_vt, rhs);
+    encoding_free(obf->enc_vt, tmp);
+    return (void *) output;
+}
+
 static void
 free_f(void *x, void *args_)
 {
@@ -648,7 +721,7 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
         return ERR;
     }
 
-    unsigned int *kappas = my_calloc(acirc_noutputs(c), sizeof kappas[0]);
+    size_t *kappas = my_calloc(acirc_noutputs(c), sizeof kappas[0]);
     long *input_syms = get_input_syms(inputs, acirc_ninputs(c), obf->op->rchunker,
                                       cp->n - has_consts, ell, q, obf->op->sigma);
     g_max_npowers = 0;
@@ -656,66 +729,19 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
     if (input_syms == NULL)
         goto finish;
 
-    encoding **encs;
     {
+        long *tmp;
         obf_args_t args;
         args.obf = obf;
-        args.inputs = input_syms;
-        encs = (encoding **) acirc_traverse(c, input_f, const_f, eval_f, copy_f, free_f, &args, nthreads);
+        args.input_syms = input_syms;
+        args.inputs = inputs;
+        args.kappas = kappas;
+        tmp = (long *) acirc_traverse(c, input_f, const_f, eval_f, output_f, free_f, &args, nthreads);
+        for (size_t i = 0; i < acirc_noutputs(c); ++i) {
+            outputs[i] = tmp[i];
+        }
+        free(tmp);
     }
-
-    for (size_t o = 0; o < acirc_noutputs(c); ++o) {
-        encoding *out, *lhs, *rhs, *tmp;
-        const index_set *const toplevel = obf->pp_vt->toplevel(obf->pp);
-
-        out = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
-        lhs = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
-        rhs = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
-        tmp = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
-
-        /* Compute LHS */
-        encoding_set(obf->enc_vt, lhs, encs[o]);
-        for (size_t k = 0; k < ninputs; k++) {
-            encoding_set(obf->enc_vt, tmp, lhs);
-            encoding_mul(obf->enc_vt, obf->pp_vt, lhs, tmp,
-                         obf->zhat[k][inputs[k]][o], obf->pp);
-        }
-        raise_encoding(obf, lhs, toplevel);
-        if (!index_set_eq(obf->enc_vt->mmap_set(lhs), toplevel)) {
-            fprintf(stderr, "lhs != toplevel\n");
-            index_set_print(obf->enc_vt->mmap_set(lhs));
-            index_set_print(toplevel);
-            outputs[o] = 1;
-            goto cleanup;
-        }
-
-        /* Compute RHS */
-        encoding_set(obf->enc_vt, rhs, obf->Chatstar[o]);
-        for (size_t k = 0; k < ninputs; k++) {
-            encoding_set(obf->enc_vt, tmp, rhs);
-            encoding_mul(obf->enc_vt, obf->pp_vt, rhs, tmp,
-                         obf->what[k][inputs[k]][o], obf->pp);
-        }
-        if (!index_set_eq(obf->enc_vt->mmap_set(rhs), toplevel)) {
-            fprintf(stderr, "rhs != toplevel\n");
-            index_set_print(obf->enc_vt->mmap_set(rhs));
-            index_set_print(toplevel);
-            outputs[o] = 1;
-            goto cleanup;
-        }
-        encoding_sub(obf->enc_vt, obf->pp_vt, out, lhs, rhs, obf->pp);
-        outputs[o] = !encoding_is_zero(obf->enc_vt, obf->pp_vt, out, obf->pp);
-        if (kappas)
-            kappas[o] = encoding_get_degree(obf->enc_vt, out);
-
-    cleanup:
-        encoding_free(obf->enc_vt, out);
-        encoding_free(obf->enc_vt, lhs);
-        encoding_free(obf->enc_vt, rhs);
-        encoding_free(obf->enc_vt, tmp);
-        encoding_free(obf->enc_vt, encs[o]);
-    }
-    free(encs);
     ret = OK;
 finish:
     if (kappa) {
