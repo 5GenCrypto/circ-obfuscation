@@ -28,7 +28,7 @@ obf_test_sigma () {
     echo "***"
     echo "***"
     echo ""
-    $prog obf test --smart --sigma --symlen 16 --mmap $2 --scheme $3 $1
+    $prog obf test --smart --sigma --mmap $2 --scheme $3 $1
 }
 
 mife_test () {
@@ -50,7 +50,7 @@ mife_test_sigma () {
     echo "***"
     echo "***"
     echo ""
-    $prog mife test --smart --sigma --symlen 16 --mmap $2 $1
+    $prog mife test --smart --sigma --mmap $2 $1
 }
 
 for circuit in $circuits/*.acirc; do

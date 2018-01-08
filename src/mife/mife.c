@@ -1006,9 +1006,9 @@ mife_decrypt(const mife_ek_t *ek, long *rop, mife_ciphertext_t **cts,
             .kappas = kappas,
         };
         tmp = (long *) acirc_traverse(circ, input_f, const_f, eval_f, output_f, free_f, &args, nthreads);
-        for (size_t i = 0; i < acirc_noutputs(circ); ++i) {
-            rop[i] = tmp[i];
-        }
+        if (rop)
+            for (size_t i = 0; i < acirc_noutputs(circ); ++i)
+                rop[i] = tmp[i];
         free(tmp);
     }
 

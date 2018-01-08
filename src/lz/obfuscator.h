@@ -4,7 +4,6 @@
 
 typedef struct lz_obf_params_t {
     size_t npowers;
-    size_t symlen;
     bool sigma;
 } lz_obf_params_t;
 

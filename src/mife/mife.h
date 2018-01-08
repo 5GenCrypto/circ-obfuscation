@@ -10,7 +10,6 @@ typedef struct mife_ciphertext_t mife_ciphertext_t;
 
 typedef struct {
     bool sigma;
-    size_t symlen;
     size_t base;
 } mife_params_t;
 

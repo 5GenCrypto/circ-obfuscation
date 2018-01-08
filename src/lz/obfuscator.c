@@ -737,9 +737,9 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
         args.inputs = inputs;
         args.kappas = kappas;
         tmp = (long *) acirc_traverse(c, input_f, const_f, eval_f, output_f, free_f, &args, nthreads);
-        for (size_t i = 0; i < acirc_noutputs(c); ++i) {
-            outputs[i] = tmp[i];
-        }
+        if (outputs)
+            for (size_t i = 0; i < acirc_noutputs(c); ++i)
+                outputs[i] = tmp[i];
         free(tmp);
     }
     ret = OK;

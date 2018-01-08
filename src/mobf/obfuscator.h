@@ -4,7 +4,6 @@
 
 typedef struct {
     size_t npowers;
-    size_t symlen;
     size_t base;
     bool sigma;
 } mobf_obf_params_t;

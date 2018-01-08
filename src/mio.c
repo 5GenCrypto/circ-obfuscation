@@ -45,7 +45,6 @@ typedef struct args_t {
     const mmap_vtable *vt;
     bool smart;
     bool sigma;
-    size_t symlen;
     size_t base;
     size_t nthreads;
     bool verbose;
@@ -61,7 +60,6 @@ args_init(args_t *args)
     args->vt = &dummy_vtable;
     args->smart = false;
     args->sigma = false;
-    args->symlen = 1;
     args->base = 2;
     args->nthreads = sysconf(_SC_NPROCESSORS_ONLN);
     args->verbose = false;
@@ -88,12 +86,11 @@ args_usage(void)
 "    --mmap STR         set mmap to STR (options: CLT, DUMMY | default: %s)\n"
 "    --smart            be smart when choosing parameters\n"
 "    --sigma            use Σ-vectors (default: %s)\n"
-"    --symlen N         set Σ-vector length to N bits (default: %lu)\n"
 "    --base B           set base to B (default: %lu)\n"
 "    --nthreads N       set the number of threads to N (default: %lu)\n"
 "    --verbose          be verbose\n"
 "    --help             print this message and exit\n",
-mmap, defaults.sigma ? "yes" : "no", defaults.symlen, defaults.base, defaults.nthreads);
+mmap, defaults.sigma ? "yes" : "no", defaults.base, defaults.nthreads);
     args_clear(&defaults);
 }
 
@@ -498,9 +495,6 @@ handle_options(int *argc, char ***argv, int left, args_t *args, void *others,
                 f(false, EXIT_FAILURE);
         } else if (!strcmp(cmd, "--sigma")) {
             args->sigma = true;
-        } else if (!strcmp(cmd, "--symlen")) {
-            if (args_get_size_t(&args->symlen, argc, argv) == ERR)
-                f(false, EXIT_FAILURE);
         } else if (!strcmp(cmd, "--base")) {
             if (args_get_size_t(&args->base, argc, argv) == ERR)
                 f(false, EXIT_FAILURE);
@@ -539,13 +533,12 @@ handle_options(int *argc, char ***argv, int left, args_t *args, void *others,
 /*******************************************************************************/
 
 static int
-mife_select_scheme(acirc_t *circ, bool sigma, size_t symlen, size_t base,
+mife_select_scheme(acirc_t *circ, bool sigma, size_t base,
                    op_vtable **op_vt, obf_params_t **op)
 {
     mife_params_t params;
     void *vparams;
 
-    params.symlen = symlen;
     params.sigma = sigma;
     params.base = base;
     vparams = &params;
@@ -570,7 +563,7 @@ cmd_mife_setup(int argc, char **argv, args_t *args)
     argv++; argc--;
     mife_setup_args_init(&args_);
     handle_options(&argc, &argv, 0, args, &args_, mife_setup_handle_options, mife_setup_usage);
-    if (mife_select_scheme(args->circ, args->sigma, args->symlen, args->base, &op_vt, &op) == ERR)
+    if (mife_select_scheme(args->circ, args->sigma, args->base, &op_vt, &op) == ERR)
         goto cleanup;
     if (mife_run_setup(args->vt, args->circuit, op, args_.secparam, NULL, args_.npowers,
                        args->nthreads, args->rng) == ERR)
@@ -601,7 +594,7 @@ cmd_mife_encrypt(int argc, char **argv, args_t *args)
     }
     if (args_get_size_t(&slot, &argc, &argv) == ERR)
         goto cleanup;
-    if (mife_select_scheme(args->circ, args->sigma, args->symlen, args->base, &op_vt, &op) == ERR)
+    if (mife_select_scheme(args->circ, args->sigma, args->base, &op_vt, &op) == ERR)
         goto cleanup;
     if (mife_run_encrypt(args->vt, args->circuit, op, input, slot,
                          args->nthreads, NULL, args->rng) == ERR)
@@ -628,7 +621,7 @@ cmd_mife_decrypt(int argc, char **argv, args_t *args)
     argv++; argc--;
     mife_decrypt_args_init(&args_);
     handle_options(&argc, &argv, 0, args, &args_, mife_decrypt_handle_options, mife_decrypt_usage);
-    if (mife_select_scheme(args->circ, args->sigma, args->symlen, args->base, &op_vt, &op) == ERR)
+    if (mife_select_scheme(args->circ, args->sigma, args->base, &op_vt, &op) == ERR)
         goto cleanup;
     nslots = op->cp.n;
 
@@ -679,7 +672,7 @@ cmd_mife_test(int argc, char **argv, args_t *args)
     argv++; argc--;
     mife_test_args_init(&args_);
     handle_options(&argc, &argv, 0, args, &args_, mife_test_handle_options, mife_test_usage);
-    if (mife_select_scheme(args->circ, args->sigma, args->symlen, args->base, &op_vt, &op) == ERR)
+    if (mife_select_scheme(args->circ, args->sigma, args->base, &op_vt, &op) == ERR)
         goto cleanup;
     if (args->smart) {
         kappa = mife_run_smart_kappa(args->circuit, op, args_.npowers, args->nthreads, args->rng);
@@ -711,7 +704,7 @@ cmd_mife_get_kappa(int argc, char **argv, args_t *args)
     argv++, argc--;
     mife_get_kappa_args_init(&args_);
     handle_options(&argc, &argv, 0, args, &args_, mife_get_kappa_handle_options, mife_get_kappa_usage);
-    if (mife_select_scheme(args->circ, args->sigma, args->symlen, args->base, &op_vt, &op) == ERR)
+    if (mife_select_scheme(args->circ, args->sigma, args->base, &op_vt, &op) == ERR)
         goto cleanup;
     if (args->smart) {
         kappa = mife_run_smart_kappa(args->circuit, op, args_.npowers, args->nthreads, args->rng);
@@ -787,8 +780,7 @@ cmd_mife(int argc, char **argv)
 
 static int
 obf_select_scheme(enum scheme_e scheme, acirc_t *circ, size_t npowers, bool sigma,
-                  size_t symlen, size_t base, obfuscator_vtable **vt,
-                  op_vtable **op_vt, obf_params_t **op)
+                  size_t base, obfuscator_vtable **vt, op_vtable **op_vt, obf_params_t **op)
 {
     /* lin_obf_params_t lin_params; */
     lz_obf_params_t lz_params;
@@ -806,7 +798,6 @@ obf_select_scheme(enum scheme_e scheme, acirc_t *circ, size_t npowers, bool sigm
         return ERR;
     /*     *vt = &lin_obfuscator_vtable; */
     /*     *op_vt = &lin_op_vtable; */
-    /*     lin_params.symlen = symlen; */
     /*     lin_params.sigma = sigma; */
     /*     vparams = &lin_params; */
     /*     break; */
@@ -814,7 +805,6 @@ obf_select_scheme(enum scheme_e scheme, acirc_t *circ, size_t npowers, bool sigm
         *vt = &lz_obfuscator_vtable;
         *op_vt = &lz_op_vtable;
         lz_params.npowers = npowers;
-        lz_params.symlen = symlen;
         lz_params.sigma = sigma;
         vparams = &lz_params;
         break;
@@ -822,7 +812,6 @@ obf_select_scheme(enum scheme_e scheme, acirc_t *circ, size_t npowers, bool sigm
         *vt = &mobf_obfuscator_vtable;
         *op_vt = &mobf_op_vtable;
         mobf_params.npowers = npowers;
-        mobf_params.symlen = symlen;
         mobf_params.sigma = sigma;
         mobf_params.base = base;
         vparams = &mobf_params;
@@ -855,7 +844,7 @@ cmd_obf_obfuscate(int argc, char **argv, args_t *args)
     handle_options(&argc, &argv, 0, args, &args_, obf_obfuscate_handle_options,
                    obf_obfuscate_usage);
     if (obf_select_scheme(args_.scheme, args->circ, args_.npowers, args->sigma,
-                          args->symlen, args->base, &vt, &op_vt, &op) == ERR)
+                          args->base, &vt, &op_vt, &op) == ERR)
         goto cleanup;
     if (args->smart) {
         kappa = obf_run_smart_kappa(vt, args->circ, op, args->nthreads, args->rng);
@@ -897,7 +886,7 @@ cmd_obf_evaluate(int argc, char **argv, args_t *args)
     obf_evaluate_args_init(&args_);
     handle_options(&argc, &argv, 1, args, &args_, obf_evaluate_handle_options, obf_evaluate_usage);
     if (obf_select_scheme(args_.scheme, args->circ, args_.npowers, args->sigma,
-                          args->symlen, args->base, &vt, &op_vt, &op) == ERR)
+                          args->base, &vt, &op_vt, &op) == ERR)
         goto cleanup;
 
     input = my_calloc(strlen(argv[0]), sizeof input[0]);
@@ -948,7 +937,7 @@ cmd_obf_test(int argc, char **argv, args_t *args)
     obf_test_args_init(&args_);
     handle_options(&argc, &argv, 0, args, &args_, obf_test_handle_options, obf_test_usage);
     if (obf_select_scheme(args_.scheme, args->circ, args_.npowers, args->sigma,
-                          args->symlen, args->base, &vt, &op_vt, &op) == ERR)
+                          args->base, &vt, &op_vt, &op) == ERR)
         goto cleanup;
     if (args->smart) {
         kappa = obf_run_smart_kappa(vt, args->circ, op, args->nthreads, args->rng);
@@ -1001,7 +990,7 @@ cmd_obf_get_kappa(int argc, char **argv, args_t *args)
     obf_get_kappa_args_init(&args_);
     handle_options(&argc, &argv, 0, args, &args_, obf_get_kappa_handle_options, obf_get_kappa_usage);
     if (obf_select_scheme(args_.scheme, args->circ, args_.npowers, args->sigma,
-                          args->symlen, args->base, &vt, &op_vt, &op) == ERR)
+                          args->base, &vt, &op_vt, &op) == ERR)
         goto cleanup;
 
     if (args->smart) {
