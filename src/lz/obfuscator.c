@@ -176,6 +176,8 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     const size_t has_consts = nconsts ? 1 : 0;
     const size_t ninputs = cp->n - has_consts;
     const size_t noutputs = cp->m;
+    acirc_t *const circ = cp->circ;
+    index_set *ix;
 
     if (op->npowers == 0 || secparam == 0)
         return NULL;
@@ -216,11 +218,9 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         obf->Chatstar[i] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
     }
 
-    acirc_t *const circ = cp->circ;
     mpz_t *const moduli =
         mpz_vect_create_of_fmpz(obf->mmap->sk->plaintext_fields(obf->sp->sk),
                                 obf->mmap->sk->nslots(obf->sp->sk));
-    index_set *const ix = index_set_new(obf_params_nzs(cp));
 
     const size_t ell = array_max(cp->ds, ninputs);
     const size_t q = array_max(cp->qs, ninputs);
@@ -299,25 +299,23 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     for (size_t k = 0; k < ninputs; k++) {
         for (size_t s = 0; s < cp->qs[k]; s++) {
             for (size_t j = 0; j < cp->ds[k]; j++) {
+                ix = index_set_new(obf_params_nzs(cp));
                 mpz_set_ui(inps[0], op->sigma ? s == j : bit(s, j));
                 mpz_set   (inps[1], *alpha[k * cp->ds[k] + j]);
-                index_set_clear(ix);
                 ix_s_set(ix, cp, k, s, 1);
                 __encode(pool, obf->enc_vt, obf->shat[k][s][j], inps,
-                         index_set_copy(ix), obf->sp, &count_lock, &count,
-                         total);
+                         ix, obf->sp, &count_lock, &count, total);
             }
+            ix = index_set_new(obf_params_nzs(cp));
             mpz_set_ui(inps[0], 1);
             mpz_set_ui(inps[1], 1);
-            index_set_clear(ix);
             for (size_t p = 0; p < op->npowers; p++) {
                 ix_s_set(ix, cp, k, s, 1 << p);
                 __encode(pool, obf->enc_vt, obf->uhat[k][s][p], inps,
-                         index_set_copy(ix), obf->sp, &count_lock, &count,
-                         total);
+                         ix, obf->sp, &count_lock, &count, total);
             }
             for (size_t o = 0; o < noutputs; o++) {
-                index_set_clear(ix);
+                ix = index_set_new(obf_params_nzs(cp));
                 if (k == 0)
                     ix_y_set(ix, cp, const_deg_max - const_deg[o]);
                 for (size_t r = 0; r < cp->qs[k]; r++)
@@ -327,34 +325,31 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
                 mpz_set(inps[0], delta[k][s][o]);
                 mpz_set(inps[1], gamma[k][s][o]);
                 __encode(pool, obf->enc_vt, obf->zhat[k][s][o], inps,
-                         index_set_copy(ix), obf->sp, &count_lock, &count,
-                         total);
-
-                index_set_clear(ix);
+                         ix, obf->sp, &count_lock, &count, total);
+                ix = index_set_new(obf_params_nzs(cp));
                 ix_w_set(ix, cp, k, 1);
                 mpz_set_ui(inps[0], 0);
                 mpz_set   (inps[1], gamma[k][s][o]);
                 __encode(pool, obf->enc_vt, obf->what[k][s][o], inps,
-                         index_set_copy(ix), obf->sp, &count_lock, &count,
-                         total);
+                         ix, obf->sp, &count_lock, &count, total);
             }
         }
     }
 
     for (size_t i = 0; i < nconsts; i++) {
-        index_set_clear(ix);
+        ix = index_set_new(obf_params_nzs(cp));
         ix_y_set(ix, cp, 1);
         mpz_set_si(inps[0], acirc_const(circ, i));
         mpz_set   (inps[1], *beta[i]);
-        __encode(pool, obf->enc_vt, obf->yhat[i], inps, index_set_copy(ix),
+        __encode(pool, obf->enc_vt, obf->yhat[i], inps, ix,
                  obf->sp, &count_lock, &count, total);
     }
     for (size_t p = 0; p < op->npowers; p++) {
-        index_set_clear(ix);
+        ix = index_set_new(obf_params_nzs(cp));
         ix_y_set(ix, cp, 1 << p);
         mpz_set_ui(inps[0], 1);
         mpz_set_ui(inps[1], 1);
-        __encode(pool, obf->enc_vt, obf->vhat[p], inps, index_set_copy(ix),
+        __encode(pool, obf->enc_vt, obf->vhat[p], inps, ix,
                  obf->sp, &count_lock, &count, total);
     }
 
@@ -370,7 +365,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     }
 
     for (size_t i = 0; i < noutputs; i++) {
-        index_set_clear(ix);
+        ix = index_set_new(obf_params_nzs(cp));
         ix_y_set(ix, cp, const_deg_max);
         for (size_t k = 0; k < ninputs; k++) {
             for (size_t s = 0; s < cp->qs[k]; s++) {
@@ -383,14 +378,13 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         mpz_set   (inps[1], Cstar[i]);
 
         __encode(pool, obf->enc_vt, obf->Chatstar[i], inps,
-                 index_set_copy(ix), obf->sp, &count_lock, &count, total);
+                 ix, obf->sp, &count_lock, &count, total);
     }
 
     if (nthreads)
         threadpool_destroy(pool);
     pthread_mutex_destroy(&count_lock);
 
-    index_set_free(ix);
     mpz_vect_clear(inps, 2);
 
     for (size_t k = 0; k < ninputs; k++) {
