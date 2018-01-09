@@ -116,15 +116,16 @@ circ_params_print(const circ_params_t *cp)
 {
     fprintf(stderr, "Circuit parameters:\n");
     fprintf(stderr, "* ninputs:...... %lu\n", acirc_ninputs(cp->circ));
+    fprintf(stderr, "* nconsts:...... %lu\n", acirc_nconsts(cp->circ));
+    fprintf(stderr, "* noutputs: .... %lu\n", acirc_noutputs(cp->circ));
     fprintf(stderr, "* nslots: ...... %lu\n", cp->n);
     for (size_t i = 0; i < cp->n; ++i) {
         fprintf(stderr, "*   slot #%lu: ..... %lu (%lu)\n", i + 1,
                 cp->ds[i], cp->qs[i]);
     }
-    fprintf(stderr, "* nconsts:...... %lu\n", cp->c);
-    fprintf(stderr, "* noutputs: .... %lu\n", cp->m);
     fprintf(stderr, "* ngates: ...... %lu\n", acirc_ngates(cp->circ));
     fprintf(stderr, "* nmuls: ....... %lu\n", acirc_nmuls(cp->circ));
     fprintf(stderr, "* depth: ....... %lu\n", acirc_max_depth(cp->circ));
     fprintf(stderr, "* degree: ...... %lu\n", acirc_max_degree(cp->circ));
+    fprintf(stderr, "* binary: ...... %s\n", acirc_is_binary(cp->circ) ? "✓" : "✗");
 }
