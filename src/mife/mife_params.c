@@ -28,19 +28,6 @@ mife_params_new_toplevel(const circ_params_t *const cp, size_t nzs)
     return ix;
 }
 
-size_t
-mife_num_encodings_setup(const circ_params_t *cp, size_t npowers)
-{
-    size_t nconsts = cp->c ? cp->ds[cp->n - 1] : 1;
-    return 1 + cp->n * npowers + nconsts;
-}
-
-size_t
-mife_num_encodings_encrypt(const circ_params_t *cp, size_t slot)
-{
-    return cp->ds[slot] + cp->m;
-}
-
 static obf_params_t *
 _new(acirc_t *circ, void *vparams)
 {

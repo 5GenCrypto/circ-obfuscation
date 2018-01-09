@@ -7,7 +7,12 @@
 
 #include "circ_params.h"
 
-typedef struct obf_params_t obf_params_t;
+typedef struct {
+    circ_params_t cp;
+    int sigma;
+    size_t npowers;
+} obf_params_t;
+/* typedef struct obf_params_t obf_params_t; */
 typedef struct {
     obf_params_t * (*new)(acirc_t *, void *);
     void (*free)(obf_params_t *);

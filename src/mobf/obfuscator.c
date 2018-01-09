@@ -1,5 +1,4 @@
 #include "obfuscator.h"
-#include "obf_params.h"
 #include "../input_chunker.h"
 #include "../mife/mife.h"
 #include "../util.h"
@@ -149,7 +148,7 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
         goto cleanup;
     }
 
-    input_syms = get_input_syms(inputs, ninputs, obf->op->rchunker,
+    input_syms = get_input_syms(inputs, ninputs, rchunker_in_order,
                                 cp->n - has_consts, ell, q, obf->op->sigma);
     if (input_syms == NULL)
         goto cleanup;

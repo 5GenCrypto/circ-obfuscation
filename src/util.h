@@ -59,8 +59,6 @@ void mpz_vect_repeat_ui(mpz_t *vec, size_t x, size_t n);
 size_t bit(size_t x, size_t i);
 
 void * my_calloc(size_t nmemb, size_t size);
-void * my_malloc(size_t size);
-void * my_realloc(void *ptr, size_t size);
 
 int mpz_fread(mpz_t *x, FILE *fp);
 int mpz_fwrite(mpz_t x, FILE *fp);

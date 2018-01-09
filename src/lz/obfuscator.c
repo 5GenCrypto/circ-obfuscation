@@ -573,7 +573,7 @@ input_f(size_t i, void *args_)
     const circ_params_t *cp = &obf->op->cp;
     const size_t has_consts = acirc_nconsts(cp->circ) ? 1 : 0;
     const size_t ninputs = cp->n - has_consts;
-    const sym_id sym = obf->op->chunker(i, acirc_ninputs(cp->circ), ninputs);
+    const sym_id sym = chunker_in_order(i, acirc_ninputs(cp->circ), ninputs);
     const size_t k = sym.sym_number;
     const size_t s = args->input_syms[k];
     const size_t j = sym.bit_number;
@@ -616,8 +616,6 @@ eval_f(acirc_op op, const void *x_, const void *y_, void *args_)
             encoding_add(obf->enc_vt, obf->pp_vt, res, tmp_x, tmp_y, obf->pp);
         } else if (op == ACIRC_OP_SUB) {
             encoding_sub(obf->enc_vt, obf->pp_vt, res, tmp_x, tmp_y, obf->pp);
-        } else {
-            abort();
         }
         encoding_free(obf->enc_vt, tmp_x);
         encoding_free(obf->enc_vt, tmp_y);
@@ -716,7 +714,7 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
     }
 
     size_t *kappas = my_calloc(acirc_noutputs(c), sizeof kappas[0]);
-    long *input_syms = get_input_syms(inputs, acirc_ninputs(c), obf->op->rchunker,
+    long *input_syms = get_input_syms(inputs, acirc_ninputs(c), rchunker_in_order,
                                       cp->n - has_consts, ell, q, obf->op->sigma);
     g_max_npowers = 0;
 

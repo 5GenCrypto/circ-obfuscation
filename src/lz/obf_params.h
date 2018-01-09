@@ -8,13 +8,11 @@
 #include <acirc.h>
 #include <stddef.h>
 
-struct obf_params_t {
-    circ_params_t cp;
-    int sigma;
-    size_t npowers;
-    input_chunker chunker;
-    reverse_chunker rchunker;
-};
+/* struct obf_params_t { */
+/*     circ_params_t cp; */
+/*     int sigma; */
+/*     size_t npowers; */
+/* }; */
 
 static inline void
 ix_y_set(index_set *ix, const circ_params_t *cp, int pow)

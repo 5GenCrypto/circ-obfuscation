@@ -72,6 +72,19 @@ typedef struct {
     size_t total;
 } encode_args_t;
 
+size_t
+mife_num_encodings_setup(const circ_params_t *cp, size_t npowers)
+{
+    size_t nconsts = cp->c ? cp->ds[cp->n - 1] : 1;
+    return 1 + cp->n * npowers + nconsts;
+}
+
+size_t
+mife_num_encodings_encrypt(const circ_params_t *cp, size_t slot)
+{
+    return cp->ds[slot] + cp->m;
+}
+
 static mife_ciphertext_t *
 _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
               size_t nthreads, aes_randstate_t rng, mife_encrypt_cache_t *cache,
@@ -125,30 +138,30 @@ populate_circ_input(const circ_params_t *cp, size_t slot, mpz_t **inputs,
     return OK;
 }
 
-static mpz_t **
-eval_circ(const circ_params_t *cp, size_t slot, mpz_t **inputs,
-          mpz_t **consts, const mpz_t *moduli, mpz_t *_refs, size_t nthreads)
-{
-    (void) _refs; (void) nthreads;
-    return acirc_eval_mpz(cp->circ, inputs, consts, moduli[1 + slot]);
-    /* const size_t nrefs = acirc_nrefs(cp->circ); */
-    /* mpz_t *refs; */
+/* static mpz_t ** */
+/* eval_circ(const circ_params_t *cp, size_t slot, mpz_t **inputs, */
+/*           mpz_t **consts, const mpz_t *moduli, mpz_t *_refs, size_t nthreads) */
+/* { */
+/*     (void) _refs; (void) nthreads; */
+/*     return acirc_eval_mpz(cp->circ, inputs, consts, moduli[1 + slot]); */
+/*     /\* const size_t nrefs = acirc_nrefs(cp->circ); *\/ */
+/*     /\* mpz_t *refs; *\/ */
 
-    /* if (_refs) { */
-    /*     refs = _refs; */
-    /* } else */
-    /*     refs = my_calloc(nrefs, sizeof refs[0]); */
-    /* circ_eval(cp->circ, inputs, consts, moduli[1 + slot], refs, nthreads); */
-    /* for (size_t o = 0; o < cp->m; ++o) { */
-    /*     mpz_set(outputs[o], refs[cp->circ->outputs.buf[o]]); */
-    /* } */
-    /* if (!_refs) { */
-    /*     for (size_t i = 0; i < nrefs; ++i) */
-    /*         mpz_clear(refs[i]); */
-    /*     free(refs); */
-    /* } */
-    /* return OK; */
-}
+/*     /\* if (_refs) { *\/ */
+/*     /\*     refs = _refs; *\/ */
+/*     /\* } else *\/ */
+/*     /\*     refs = my_calloc(nrefs, sizeof refs[0]); *\/ */
+/*     /\* circ_eval(cp->circ, inputs, consts, moduli[1 + slot], refs, nthreads); *\/ */
+/*     /\* for (size_t o = 0; o < cp->m; ++o) { *\/ */
+/*     /\*     mpz_set(outputs[o], refs[cp->circ->outputs.buf[o]]); *\/ */
+/*     /\* } *\/ */
+/*     /\* if (!_refs) { *\/ */
+/*     /\*     for (size_t i = 0; i < nrefs; ++i) *\/ */
+/*     /\*         mpz_clear(refs[i]); *\/ */
+/*     /\*     free(refs); *\/ */
+/*     /\* } *\/ */
+/*     /\* return OK; *\/ */
+/* } */
 
 static void
 encode_worker(void *wargs)
@@ -275,7 +288,6 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         for (size_t i = 0; i < cp->n; ++i) {
             mpz_set_ui(inps[1 + i], 1);
             IX_W(ix, cp, i) = 1;
-            /* IX_X(ix, cp, i) = mife->deg_max[i] - deg[i][o]; */
         }
         IX_Z(ix) = 1;
         /* Encode \hat z_o = [δ, 1, ..., 1] */
@@ -619,6 +631,7 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
               size_t nthreads, aes_randstate_t rng, mife_encrypt_cache_t *cache,
               mpz_t *_alphas, bool parallelize_circ_eval)
 {
+    (void) parallelize_circ_eval;
     mife_ciphertext_t *ct;
     double start, end, _start, _end;
     const circ_params_t *cp = sk->cp;
@@ -700,7 +713,6 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
          * be multiplied into the wₒ's of the first MIFE slot */
         mpz_t **cs, **const_cs = NULL;
         mpz_t **circ_inputs, **consts;
-        size_t _nthreads = parallelize_circ_eval ? nthreads : 0;
 
         circ_inputs = calloc(circ_params_ninputs(cp), sizeof circ_inputs[0]);
         for (size_t i = 0; i < circ_params_ninputs(cp); ++i) {
@@ -713,10 +725,12 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
 
         populate_circ_input(cp, slot, circ_inputs, consts, alphas);
         assert(refs == NULL);
-        cs = eval_circ(cp, slot, circ_inputs, consts, moduli, refs, _nthreads);
+        cs = acirc_eval_mpz(cp->circ, circ_inputs, consts, moduli[1 + slot]);
+        /* cs = eval_circ(cp, slot, circ_inputs, consts, moduli, refs, _nthreads); */
         if (slot == 0 && has_consts) {
             populate_circ_input(cp, cp->n - 1, circ_inputs, consts, sk->const_alphas);
-            const_cs = eval_circ(cp, cp->n - 1, circ_inputs, consts, moduli, refs, _nthreads);
+            const_cs = acirc_eval_mpz(cp->circ, circ_inputs, consts, moduli[cp->n]);
+            /* const_cs = eval_circ(cp, cp->n - 1, circ_inputs, consts, moduli, refs, _nthreads); */
         }
 
         index_set_clear(ix);

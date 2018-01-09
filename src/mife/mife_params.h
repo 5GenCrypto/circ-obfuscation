@@ -4,10 +4,6 @@
 #include "../index_set.h"
 #include "../mmap.h"
 
-struct obf_params_t {
-    circ_params_t cp;
-};
-
 #define IX_Z(ix) (ix)->pows[0]
 #define IX_W(ix, cp, i) (ix)->pows[1 + (i)]
 #define IX_X(ix, cp, i) (ix)->pows[1 + (cp)->n + (i)]

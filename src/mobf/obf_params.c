@@ -1,4 +1,3 @@
-#include "obf_params.h"
 #include "../mife/mife.h"
 #include "obfuscator.h"
 #include "../util.h"
@@ -49,8 +48,6 @@ _new(acirc_t *circ, void *vparams)
     }
     op->sigma = params->sigma;
     op->npowers = params->npowers;
-    op->chunker  = chunker_in_order;
-    op->rchunker = rchunker_in_order;
 
     if (g_verbose) {
         circ_params_print(&op->cp);
@@ -83,8 +80,6 @@ _fread(acirc_t *circ, FILE *fp)
     circ_params_fread(&op->cp, circ, fp);
     int_fread(&op->sigma, fp);
     size_t_fread(&op->npowers, fp);
-    op->chunker = chunker_in_order;
-    op->rchunker = rchunker_in_order;
     return op;
 }
 

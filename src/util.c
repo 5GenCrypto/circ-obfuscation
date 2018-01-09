@@ -21,6 +21,7 @@ double current_time(void) {
     (void) gettimeofday(&t, NULL);
     return (double) (t.tv_sec + (double) (t.tv_usec / 1000000.0));
 }
+
 int max(int x, int y) {
     if (x >= y)
         return x;
@@ -181,34 +182,9 @@ my_calloc(size_t nmemb, size_t size)
     if (ptr == NULL) {
         fprintf(stderr, "[%s] couldn't allocate %lu bytes!\n", __func__,
                 nmemb * size);
-        assert(false);
         return NULL;
     }
     return ptr;
-}
-
-void *
-my_malloc(size_t size)
-{
-    void *ptr = malloc(size);
-    if (ptr == NULL) {
-        fprintf(stderr, "[%s] couldn't allocate %lu bytes!\n", __func__, size);
-        assert(false);
-        return NULL;
-    }
-    return ptr;
-}
-
-void *
-my_realloc(void *ptr, size_t size)
-{
-    void *ptr_ = realloc(ptr, size);
-    if (ptr_ == NULL) {
-        fprintf(stderr, "[%s] couldn't reallocate %lu bytes!\n", __func__, size);
-        assert(false);
-        return NULL;
-    }
-    return ptr_;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
