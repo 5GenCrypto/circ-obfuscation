@@ -13,7 +13,8 @@ static int
 _encoding_new(const pp_vtable *vt, encoding *enc, const public_params *pp)
 {
     const obf_params_t *const mp = vt->params(pp);
-    enc->info = calloc(1, sizeof enc->info[0]);
+    if ((enc->info = calloc(1, sizeof enc->info[0])) == NULL)
+        return ERR;
     enc->info->index = index_set_new(mife_params_nzs(&mp->cp));
     return OK;
 }
@@ -42,8 +43,9 @@ _encode(encoding *rop, const void *set)
     const index_set *const ix = set;
 
     index_set_set(rop->info->index, ix);
-    pows = my_calloc(ix->nzs, sizeof pows[0]);
-    memcpy(pows, ix->pows, ix->nzs * sizeof pows[0]);
+    pows = calloc(ix->nzs, sizeof pows[0]);
+    if (pows)
+        memcpy(pows, ix->pows, ix->nzs * sizeof pows[0]);
     return pows;
 }
 

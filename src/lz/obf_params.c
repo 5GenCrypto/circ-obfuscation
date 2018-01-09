@@ -120,8 +120,6 @@ _fread(acirc_t *circ, FILE *fp)
     circ_params_fread(&op->cp, circ, fp);
     int_fread(&op->sigma, fp);
     size_t_fread(&op->npowers, fp);
-    /* op->chunker = chunker_in_order; */
-    /* op->rchunker = rchunker_in_order; */
     return op;
 }
 

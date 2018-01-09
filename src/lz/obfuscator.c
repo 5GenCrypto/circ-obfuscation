@@ -702,6 +702,8 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
     const size_t has_consts = acirc_nconsts(c) ? 1 : 0;
     const size_t ell = array_max(cp->ds, cp->n - has_consts);
     const size_t q = array_max(cp->qs, cp->n - has_consts);
+    size_t *kappas = NULL;
+    long *input_syms;
     int ret = ERR;
 
     if (ninputs != acirc_ninputs(c)) {
@@ -713,21 +715,23 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
         return ERR;
     }
 
-    size_t *kappas = my_calloc(acirc_noutputs(c), sizeof kappas[0]);
-    long *input_syms = get_input_syms(inputs, acirc_ninputs(c), rchunker_in_order,
-                                      cp->n - has_consts, ell, q, obf->op->sigma);
     g_max_npowers = 0;
 
+    if (kappa)
+        kappas = calloc(acirc_noutputs(c), sizeof kappas[0]);
+    input_syms = get_input_syms(inputs, acirc_ninputs(c), rchunker_in_order,
+                                cp->n - has_consts, ell, q, obf->op->sigma);
     if (input_syms == NULL)
         goto finish;
 
     {
         long *tmp;
-        obf_args_t args;
-        args.obf = obf;
-        args.input_syms = input_syms;
-        args.inputs = inputs;
-        args.kappas = kappas;
+        obf_args_t args = {
+            .obf = obf,
+            .input_syms = input_syms,
+            .inputs = inputs,
+            .kappas = kappas,
+        };
         tmp = (long *) acirc_traverse(c, input_f, const_f, eval_f, output_f, free_f, &args, nthreads);
         if (outputs)
             for (size_t i = 0; i < acirc_noutputs(c); ++i)
@@ -735,8 +739,8 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
         free(tmp);
     }
     ret = OK;
-finish:
-    if (kappa) {
+
+    if (kappas) {
         unsigned int maxkappa = 0;
         for (size_t i = 0; i < noutputs; i++) {
             if (kappas[i] > maxkappa)
@@ -746,8 +750,11 @@ finish:
     }
     if (npowers)
         *npowers = g_max_npowers;
-    free(kappas);
-    free(input_syms);
+finish:
+    if (kappas)
+        free(kappas);
+    if (input_syms)
+        free(input_syms);
 
     return ret;
 }

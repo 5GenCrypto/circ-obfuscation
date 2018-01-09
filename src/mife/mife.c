@@ -106,9 +106,10 @@ populate_circ_degrees(const circ_params_t *cp, long **deg, long *deg_max)
         free(tmp);
     }
     if (has_consts) {
+        size_t max = acirc_max_const_degree(circ);
         for (size_t o = 0; o < noutputs; ++o)
-            deg[cp->n - 1][o] = acirc_max_const_degree(circ);
-        deg_max[cp->n - 1] = acirc_max_const_degree(circ);
+            deg[cp->n - 1][o] = max;
+        deg_max[cp->n - 1] = max;
     }
     return OK;
 }
@@ -137,31 +138,6 @@ populate_circ_input(const circ_params_t *cp, size_t slot, mpz_t **inputs,
     }
     return OK;
 }
-
-/* static mpz_t ** */
-/* eval_circ(const circ_params_t *cp, size_t slot, mpz_t **inputs, */
-/*           mpz_t **consts, const mpz_t *moduli, mpz_t *_refs, size_t nthreads) */
-/* { */
-/*     (void) _refs; (void) nthreads; */
-/*     return acirc_eval_mpz(cp->circ, inputs, consts, moduli[1 + slot]); */
-/*     /\* const size_t nrefs = acirc_nrefs(cp->circ); *\/ */
-/*     /\* mpz_t *refs; *\/ */
-
-/*     /\* if (_refs) { *\/ */
-/*     /\*     refs = _refs; *\/ */
-/*     /\* } else *\/ */
-/*     /\*     refs = my_calloc(nrefs, sizeof refs[0]); *\/ */
-/*     /\* circ_eval(cp->circ, inputs, consts, moduli[1 + slot], refs, nthreads); *\/ */
-/*     /\* for (size_t o = 0; o < cp->m; ++o) { *\/ */
-/*     /\*     mpz_set(outputs[o], refs[cp->circ->outputs.buf[o]]); *\/ */
-/*     /\* } *\/ */
-/*     /\* if (!_refs) { *\/ */
-/*     /\*     for (size_t i = 0; i < nrefs; ++i) *\/ */
-/*     /\*         mpz_clear(refs[i]); *\/ */
-/*     /\*     free(refs); *\/ */
-/*     /\* } *\/ */
-/*     /\* return OK; *\/ */
-/* } */
 
 static void
 encode_worker(void *wargs)
@@ -207,9 +183,8 @@ mife_free(mife_t *mife)
         return;
     if (mife->Chatstar)
         encoding_free(mife->enc_vt, mife->Chatstar);
-    if (mife->zhat) {
+    if (mife->zhat)
         encoding_free(mife->enc_vt, mife->zhat);
-    }
     if (mife->uhat) {
         for (size_t i = 0; i < mife->cp->n; ++i) {
             for (size_t p = 0; p < mife->npowers; ++p) {

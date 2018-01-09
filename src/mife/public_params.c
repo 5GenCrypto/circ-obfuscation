@@ -9,7 +9,6 @@ struct pp_info {
     index_set *toplevel;
     bool local;
 };
-#define ppinfo(x) x->info
 
 static int
 _pp_init(const sp_vtable *vt, public_params *pp, const secret_params *sp)

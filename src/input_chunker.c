@@ -16,9 +16,7 @@ sym_id chunker_in_order(size_t id, size_t ninputs, size_t nsyms)
 size_t rchunker_in_order(sym_id sym, size_t ninputs, size_t nsyms)
 {
     size_t chunksize = ceil((double) ninputs / (double) nsyms);
-    size_t id = sym.sym_number * chunksize + sym.bit_number;
-    assert(id < ninputs);
-    return id;
+    return sym.sym_number * chunksize + sym.bit_number;
 }
 
 /* static void */
