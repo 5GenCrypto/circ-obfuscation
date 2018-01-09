@@ -114,14 +114,20 @@ circ_params_bit(const circ_params_t *cp, size_t pos)
 void
 circ_params_print(const circ_params_t *cp)
 {
+    const size_t has_consts = acirc_nconsts(cp->circ) ? 1 : 0;
     fprintf(stderr, "Circuit parameters:\n");
     fprintf(stderr, "* ninputs:...... %lu\n", acirc_ninputs(cp->circ));
     fprintf(stderr, "* nconsts:...... %lu\n", acirc_nconsts(cp->circ));
     fprintf(stderr, "* noutputs: .... %lu\n", acirc_noutputs(cp->circ));
     fprintf(stderr, "* nslots: ...... %lu\n", cp->n);
     for (size_t i = 0; i < cp->n; ++i) {
-        fprintf(stderr, "*   slot #%lu: ..... %lu (%lu)\n", i + 1,
-                cp->ds[i], cp->qs[i]);
+        size_t degree;
+        if (i == cp->n - has_consts)
+            degree = acirc_max_const_degree(cp->circ);
+        else
+            degree = acirc_max_var_degree(cp->circ, i);
+        fprintf(stderr, "*   slot #%lu: ..... %lu (%lu) [%lu]\n", i + 1,
+                cp->ds[i], cp->qs[i], degree);
     }
     fprintf(stderr, "* ngates: ...... %lu\n", acirc_ngates(cp->circ));
     fprintf(stderr, "* nmuls: ....... %lu\n", acirc_nmuls(cp->circ));

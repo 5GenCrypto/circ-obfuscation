@@ -91,26 +91,14 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
               mpz_t *alphas, bool parallelize_circ_eval);
 
 static int
-populate_circ_degrees(const circ_params_t *cp, long **deg, long *deg_max)
+populate_circ_degrees(const circ_params_t *cp, long *maxdegs)
 {
     const size_t has_consts = acirc_nconsts(cp->circ) ? 1 : 0;
-    const size_t noutputs = cp->m;
     const acirc_t *circ = cp->circ;
-    for (size_t i = 0; i < cp->n - has_consts; ++i) {
-        long *tmp = acirc_var_degrees(circ, i);
-        memcpy(deg[i], tmp, noutputs * sizeof deg[i][0]);
-        for (size_t o = 0; o < noutputs; ++o) {
-            if (deg[i][o] > deg_max[i])
-                deg_max[i] = deg[i][o];
-        }
-        free(tmp);
-    }
-    if (has_consts) {
-        size_t max = acirc_max_const_degree(circ);
-        for (size_t o = 0; o < noutputs; ++o)
-            deg[cp->n - 1][o] = max;
-        deg_max[cp->n - 1] = max;
-    }
+    for (size_t i = 0; i < cp->n - has_consts; ++i)
+        maxdegs[i] = acirc_max_var_degree(circ, i);
+    if (has_consts)
+        maxdegs[cp->n - 1] = acirc_max_const_degree(circ);
     return OK;
 }
 
@@ -215,14 +203,12 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     mife_t *mife;
     const circ_params_t *cp = &op->cp;
     const size_t has_consts = cp->c ? 1 : 0;
-    const size_t noutputs = cp->m;
-    long **degs;
     mpz_t *moduli = NULL;
     threadpool *pool = threadpool_create(nthreads);
     pthread_mutex_t lock;
     size_t count = 0;
     size_t total = mife_num_encodings_setup(cp, npowers);
-    index_set *const ix = index_set_new(mife_params_nzs(cp));
+    index_set *ix;
     mpz_t inps[1 + cp->n];
     mpz_vect_init(inps, 1 + cp->n);
 
@@ -246,11 +232,8 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
                                      mmap->sk->nslots(mife->sp->sk));
 
     /* Compute input degrees */
-    degs = my_calloc(cp->n, sizeof degs[0]);
-    for (size_t i = 0; i < cp->n; ++i)
-        degs[i] = my_calloc(noutputs, sizeof degs[i][0]);
     mife->deg_max = my_calloc(cp->n, sizeof mife->deg_max[0]);
-    populate_circ_degrees(cp, degs, mife->deg_max);
+    populate_circ_degrees(cp, mife->deg_max);
 
     pthread_mutex_init(&lock, NULL);
 
@@ -258,16 +241,16 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         print_progress(count, total);
 
     {
+        ix = index_set_new(mife_params_nzs(cp));
         mpz_randomm_inv(inps[0], rng, moduli[0]);
-        index_set_clear(ix);
         for (size_t i = 0; i < cp->n; ++i) {
             mpz_set_ui(inps[1 + i], 1);
             IX_W(ix, cp, i) = 1;
         }
         IX_Z(ix) = 1;
-        /* Encode \hat z_o = [δ, 1, ..., 1] */
+        /* Encode \hat z = [δ, 1, ..., 1] */
         __encode(pool, mife->enc_vt, mife->zhat, inps, 1 + cp->n,
-                 index_set_copy(ix), mife->sp, &lock, &count, total);
+                 ix, mife->sp, &lock, &count, total);
     }
     for (size_t i = 0; i < 1 + cp->n; ++i) {
         mpz_set_ui(inps[i], 1);
@@ -275,17 +258,16 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     for (size_t i = 0; i < cp->n; ++i) {
         mife->uhat[i] = my_calloc(mife->npowers, sizeof mife->uhat[i][0]);
         /* Encode \hat u_i,p */
-        index_set_clear(ix);
         for (size_t p = 0; p < mife->npowers; ++p) {
+            ix = index_set_new(mife_params_nzs(cp));
             mife->uhat[i][p] = encoding_new(mife->enc_vt, mife->pp_vt, mife->pp);
             IX_X(ix, cp, i) = 1 << p;
             /* Encode \hat u_i,p = [1, ..., 1] */
             __encode(pool, mife->enc_vt, mife->uhat[i][p], inps, 1 + cp->n,
-                     index_set_copy(ix), mife->sp, &lock, &count, total);
+                     ix, mife->sp, &lock, &count, total);
         }
     }
     if (has_consts) {
-        mife->const_alphas = my_calloc(cp->c, sizeof mife->const_alphas[0]);
         /* Encrypt constants as part of setup */
         mife_encrypt_cache_t cache = {
             .pool = pool,
@@ -299,6 +281,7 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         for (size_t i = 0; i < acirc_nconsts(cp->circ); ++i) {
             consts[i] = acirc_const(cp->circ, i);
         }
+        mife->const_alphas = calloc(cp->c, sizeof mife->const_alphas[0]);
         mife->constants = _mife_encrypt(sk, cp->n - 1, consts, nthreads, rng,
                                         &cache, mife->const_alphas, false);
         if (mife->constants == NULL) {
@@ -309,10 +292,10 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         mife->Chatstar = NULL;
     } else {
         /* No constants, so encode \hat C* as normal */
+        ix = index_set_new(mife_params_nzs(cp));
         mife->const_alphas = NULL;
         mife->constants = NULL;
         mife->Chatstar = encoding_new(mife->enc_vt, mife->pp_vt, mife->pp);
-        index_set_clear(ix);
         mpz_set_ui(inps[0], 0);
         for (size_t i = 0; i < cp->n; ++i) {
             mpz_set_ui(inps[1 + i], 1);
@@ -321,16 +304,12 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         IX_Z(ix) = 1;
         /* Encode \hat C* = [0, 1, ..., 1] */
         __encode(pool, mife->enc_vt, mife->Chatstar, inps, 1 + cp->n,
-                 index_set_copy(ix), mife->sp, &lock, &count, total);
+                 ix, mife->sp, &lock, &count, total);
     }
 
     result = OK;
 cleanup:
-    index_set_free(ix);
     mpz_vect_clear(inps, 1 + cp->n);
-    for (size_t i = 0; i < cp->n; ++i)
-        free(degs[i]);
-    free(degs);
     mpz_vect_free(moduli, mmap->sk->nslots(mife->sp->sk));
     threadpool_destroy(pool);
     pthread_mutex_destroy(&lock);
@@ -610,7 +589,6 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
     mife_ciphertext_t *ct;
     double start, end, _start, _end;
     const circ_params_t *cp = sk->cp;
-    mpz_t *refs = cache ? cache->refs : NULL;
 
     if (g_verbose && !cache)
         fprintf(stderr, "  Encrypting...\n");
@@ -699,13 +677,10 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
         }
 
         populate_circ_input(cp, slot, circ_inputs, consts, alphas);
-        assert(refs == NULL);
         cs = acirc_eval_mpz(cp->circ, circ_inputs, consts, moduli[1 + slot]);
-        /* cs = eval_circ(cp, slot, circ_inputs, consts, moduli, refs, _nthreads); */
         if (slot == 0 && has_consts) {
             populate_circ_input(cp, cp->n - 1, circ_inputs, consts, sk->const_alphas);
             const_cs = acirc_eval_mpz(cp->circ, circ_inputs, consts, moduli[cp->n]);
-            /* const_cs = eval_circ(cp, cp->n - 1, circ_inputs, consts, moduli, refs, _nthreads); */
         }
 
         index_set_clear(ix);

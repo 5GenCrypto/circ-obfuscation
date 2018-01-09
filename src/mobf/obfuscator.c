@@ -46,13 +46,12 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     mife_encrypt_cache_t cache;
     pthread_mutex_t lock;
     size_t count = 0;
-    bool parallelize_circ_eval = false; /* XXX: should this be nthreads > ?? */
+    bool parallelize_circ_eval = false; /* XXX: currently not used */
     double start, end, _start, _end;
     int res = ERR;
 
     const circ_params_t *const cp = &op->cp;
     const size_t ninputs = cp->n;
-    /* const size_t nrefs = acirc_nrefs(cp->circ); */
 
     /* MIFE setup */
     start = _start = current_time();
@@ -79,9 +78,6 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     cache.count = &count;
     cache.total = mobf_num_encodings(op);
     cache.refs = NULL;
-    /* cache.refs = my_calloc(nrefs, sizeof cache.refs[0]); */
-    /* for (size_t ref = 0; ref < nrefs; ++ref) */
-    /*     mpz_init(cache.refs[ref]); */
 
     for (size_t i = 0; i < ninputs; ++i) {
         obf->cts[i] = my_calloc(cp->qs[i], sizeof obf->cts[i][0]);
@@ -107,9 +103,6 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     res = OK;
 cleanup:
     threadpool_destroy(cache.pool);
-    /* for (size_t ref = 0; ref < nrefs; ++ref) */
-    /*     mpz_clear(cache.refs[ref]); */
-    /* free(cache.refs); */
     pthread_mutex_destroy(&lock);
     mife_sk_free(sk);
     if (res == OK) {
