@@ -1,5 +1,6 @@
-#include "../mife/mife.h"
+#include "obf_params.h"
 #include "obfuscator.h"
+#include "../mife/mife.h"
 #include "../util.h"
 
 size_t

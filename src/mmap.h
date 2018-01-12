@@ -7,12 +7,16 @@
 
 #include "circ_params.h"
 
-typedef struct {
-    circ_params_t cp;
-    int sigma;
-    size_t npowers;
-} obf_params_t;
-/* typedef struct obf_params_t obf_params_t; */
+typedef struct obf_params_t obf_params_t;
+
+/* Epic hack alert! We expect all obf_params_t structs to contain circ_params_t
+ * as their first argument. */
+static inline circ_params_t *
+obf_params_cp(obf_params_t *op)
+{
+    return (circ_params_t *) op;
+}
+
 typedef struct {
     obf_params_t * (*new)(acirc_t *, void *);
     void (*free)(obf_params_t *);
@@ -114,7 +118,7 @@ int
 encoding_print(const encoding_vtable *vt, const encoding *enc);
 int
 encode(const encoding_vtable *vt, encoding *rop, mpz_t *inps, size_t nins,
-       const void *set, const secret_params *sp);
+       const void *set, const secret_params *sp, size_t level);
 int
 encoding_set(const encoding_vtable *vt, encoding *rop, const encoding *x);
 int

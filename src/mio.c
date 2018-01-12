@@ -5,14 +5,15 @@
 #include "mife/mife.h"
 #include "mife/mife_run.h"
 #include "mife/mife_params.h"
-/* #include "lin/obfuscator.h" */
 #include "lz/obfuscator.h"
 #include "mobf/obfuscator.h"
+#include "polylog/obfuscator.h"
 #include "obf_run.h"
 
 #include <aesrand/aesrand.h>
 #include <acirc.h>
 #include <mmap/mmap_clt.h>
+#include <mmap/mmap_clt_pl.h>
 #include <mmap/mmap_dummy.h>
 
 #include <assert.h>
@@ -25,8 +26,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-static char *progname = "mio";
-static char *progversion = "v2.0";
+static const char *progname = "mio";
+static const char *progversion = "v2.0";
 
 #define NPOWERS_DEFAULT 1
 #define SECPARAM_DEFAULT 8
@@ -36,6 +37,7 @@ enum scheme_e {
     SCHEME_LIN,
     SCHEME_LZ,
     SCHEME_MIFE,
+    SCHEME_POLYLOG,
 };
 
 typedef struct args_t {
@@ -153,8 +155,7 @@ mife_setup_handle_options(int *argc, char ***argv, void *vargs)
     return OK;
 }
 
-typedef struct {
-} mife_encrypt_args_t;
+typedef struct {} mife_encrypt_args_t;
 
 static void
 mife_encrypt_args_init(mife_encrypt_args_t *args)
@@ -181,8 +182,7 @@ mife_encrypt_handle_options(int *argc, char ***argv, void *vargs)
     return ERR;
 }
 
-typedef struct {
-} mife_decrypt_args_t;
+typedef struct {} mife_decrypt_args_t;
 
 static void
 mife_decrypt_args_init(mife_decrypt_args_t *args)
@@ -317,7 +317,7 @@ obf_obfuscate_or_test_usage(bool longform, int ret, const char *cmd)
         printf("\nAvailable arguments:\n\n");
         printf(
             "    --kappa Κ          set kappa to Κ\n"
-            "    --scheme S         set obfuscation scheme to S (options: LIN, LZ, MIFE | default: MIFE)\n"
+            "    --scheme S         set obfuscation scheme to S (options: LIN, LZ, MIFE, POLYLOG | default: MIFE)\n"
             "    --secparam λ       set security parameter to λ (default: %d)\n"
             "    --npowers N        set the number of powers to N (default: %d)\n",
             SECPARAM_DEFAULT, NPOWERS_DEFAULT);
@@ -354,16 +354,18 @@ obf_obfuscate_handle_options(int *argc, char ***argv, void *vargs)
             args->scheme = SCHEME_LZ;
         } else if (!strcmp(scheme, "MIFE")) {
             args->scheme = SCHEME_MIFE;
+        } else if (!strcmp(scheme, "POLYLOG")) {
+            args->scheme = SCHEME_POLYLOG;
         } else {
             fprintf(stderr, "error: unknown scheme '%s'\n", scheme);
             return ERR;
         }
         (*argv)++; (*argc)--;
     } else if (!strcmp(cmd, "--kappa")) {
-        if (*argc <= 1)
-            return ERR;
         const char *str = (*argv)[1];
         char *endptr;
+        if (*argc <= 1)
+            return ERR;
         args->kappa = strtol(str, &endptr, 10);
         if (*endptr != '\0') {
             fprintf(stderr, "error: invalid κ value given\n");
@@ -398,7 +400,7 @@ obf_evaluate_usage(bool longform, int ret)
     printf("usage: %s obf evaluate [<args>] circuit input\n", progname);
     if (longform) {
         printf("\nAvailable arguments:\n\n");
-        printf("    --scheme S         set obfuscation scheme to S (options: LZ, MIFE | default: MIFE)\n"
+        printf("    --scheme S         set obfuscation scheme to S (options: LZ, MIFE, POLYLOG | default: MIFE)\n"
                "    --npowers N        set the number of powers to N (default: %d)\n",
                NPOWERS_DEFAULT);
         args_usage();
@@ -425,6 +427,8 @@ obf_evaluate_handle_options(int *argc, char ***argv, void *vargs)
             args->scheme = SCHEME_LZ;
         } else if (!strcmp(scheme, "MIFE")) {
             args->scheme = SCHEME_MIFE;
+        } else if (!strcmp(scheme, "POLYLOG")) {
+            args->scheme = SCHEME_POLYLOG;
         } else {
             fprintf(stderr, "error: unknown scheme '%s'\n", scheme);
             return ERR;
@@ -437,15 +441,21 @@ obf_evaluate_handle_options(int *argc, char ***argv, void *vargs)
 }
 
 typedef obf_obfuscate_args_t obf_test_args_t;
+
 #define obf_test_args_init obf_obfuscate_args_init
+
 static void
 obf_test_usage(bool longform, int ret)
 {
     obf_obfuscate_or_test_usage(longform, ret, "test");
 }
+
 #define obf_test_handle_options obf_obfuscate_handle_options
+
 typedef obf_evaluate_args_t obf_get_kappa_args_t;
+
 #define obf_get_kappa_args_init obf_evaluate_args_init
+
 static void
 obf_get_kappa_usage(bool longform, int ret)
 {
@@ -460,6 +470,7 @@ obf_get_kappa_usage(bool longform, int ret)
     }
     exit(ret);
 }
+
 #define obf_get_kappa_handle_options obf_evaluate_handle_options
 
 static void
@@ -782,7 +793,6 @@ static int
 obf_select_scheme(enum scheme_e scheme, acirc_t *circ, size_t npowers, bool sigma,
                   size_t base, obfuscator_vtable **vt, op_vtable **op_vt, obf_params_t **op)
 {
-    /* lin_obf_params_t lin_params; */
     lz_obf_params_t lz_params;
     mobf_obf_params_t mobf_params;
     void *vparams;
@@ -794,13 +804,8 @@ obf_select_scheme(enum scheme_e scheme, acirc_t *circ, size_t npowers, bool sigm
 
     switch (scheme) {
     case SCHEME_LIN:
-        fprintf(stderr, "error: LIN no longer supported\n");
+        fprintf(stderr, "error: LIN scheme no longer supported\n");
         return ERR;
-    /*     *vt = &lin_obfuscator_vtable; */
-    /*     *op_vt = &lin_op_vtable; */
-    /*     lin_params.sigma = sigma; */
-    /*     vparams = &lin_params; */
-    /*     break; */
     case SCHEME_LZ:
         *vt = &lz_obfuscator_vtable;
         *op_vt = &lz_op_vtable;
@@ -816,8 +821,11 @@ obf_select_scheme(enum scheme_e scheme, acirc_t *circ, size_t npowers, bool sigm
         mobf_params.base = base;
         vparams = &mobf_params;
         break;
-    default:
-        return ERR;
+    case SCHEME_POLYLOG:
+        *vt = &polylog_obfuscator_vtable;
+        *op_vt = &polylog_op_vtable;
+        vparams = NULL;
+        break;
     }
 
     *op = (*op_vt)->new(circ, vparams);
@@ -846,6 +854,14 @@ cmd_obf_obfuscate(int argc, char **argv, args_t *args)
     if (obf_select_scheme(args_.scheme, args->circ, args_.npowers, args->sigma,
                           args->base, &vt, &op_vt, &op) == ERR)
         goto cleanup;
+
+    length = snprintf(NULL, 0, "%s.obf\n", args->circuit);
+    if ((fname = calloc(length, sizeof fname[0])) == NULL)
+        goto cleanup;
+    snprintf(fname, length, "%s.obf", args->circuit);
+
+    if (args_.scheme == SCHEME_POLYLOG && args->vt == &clt_vtable)
+        args->vt = &clt_pl_vtable;
     if (args->smart) {
         kappa = obf_run_smart_kappa(vt, args->circ, op, args->nthreads, args->rng);
         if (kappa == 0)
@@ -854,9 +870,6 @@ cmd_obf_obfuscate(int argc, char **argv, args_t *args)
     if (args_.kappa)
         kappa = args_.kappa;
 
-    length = snprintf(NULL, 0, "%s.obf\n", args->circuit);
-    fname = my_calloc(length, sizeof fname[0]);
-    snprintf(fname, length, "%s.obf", args->circuit);
     if (obf_run_obfuscate(args->vt, vt, fname, op, args->secparam, &kappa,
                           args->nthreads, args->rng) == ERR)
         goto cleanup;
@@ -884,16 +897,23 @@ cmd_obf_evaluate(int argc, char **argv, args_t *args)
 
     argv++; argc--;
     obf_evaluate_args_init(&args_);
-    handle_options(&argc, &argv, 1, args, &args_, obf_evaluate_handle_options, obf_evaluate_usage);
+    handle_options(&argc, &argv, 1, args, &args_, obf_evaluate_handle_options,
+                   obf_evaluate_usage);
     if (obf_select_scheme(args_.scheme, args->circ, args_.npowers, args->sigma,
                           args->base, &vt, &op_vt, &op) == ERR)
         goto cleanup;
 
-    input = my_calloc(strlen(argv[0]), sizeof input[0]);
-    output = my_calloc(op->cp.m, sizeof output[0]);
     length = snprintf(NULL, 0, "%s.obf\n", args->circuit);
-    fname = my_calloc(length, sizeof fname[0]);
+    if ((fname = my_calloc(length, sizeof fname[0])) == NULL)
+        goto cleanup;
     snprintf(fname, length, "%s.obf", args->circuit);
+
+    if (args_.scheme == SCHEME_POLYLOG && args->vt == &clt_vtable)
+        args->vt = &clt_pl_vtable;
+    if ((input = my_calloc(strlen(argv[0]), sizeof input[0])) == NULL)
+        goto cleanup;
+    if ((output = my_calloc(op->cp.m, sizeof output[0])) == NULL)
+        goto cleanup;
 
     for (size_t i = 0; i < strlen(argv[0]); ++i) {
         if ((input[i] = char_to_long(argv[0][i])) < 0)
@@ -939,6 +959,8 @@ cmd_obf_test(int argc, char **argv, args_t *args)
     if (obf_select_scheme(args_.scheme, args->circ, args_.npowers, args->sigma,
                           args->base, &vt, &op_vt, &op) == ERR)
         goto cleanup;
+    if (args_.scheme == SCHEME_POLYLOG && args->vt == &clt_vtable)
+        args->vt = &clt_pl_vtable;
     if (args->smart) {
         kappa = obf_run_smart_kappa(vt, args->circ, op, args->nthreads, args->rng);
         if (kappa == 0)
@@ -947,9 +969,9 @@ cmd_obf_test(int argc, char **argv, args_t *args)
     if (args_.kappa)
         kappa = args_.kappa;
 
-
     length = snprintf(NULL, 0, "%s.obf\n", args->circuit);
-    fname = my_calloc(length, sizeof fname[0]);
+    if ((fname = my_calloc(length, sizeof fname[0])) == NULL)
+        goto cleanup;
     snprintf(fname, length, "%s.obf", args->circuit);
     if (obf_run_obfuscate(args->vt, vt, fname, op, args->secparam, &kappa,
                           args->nthreads, args->rng) == ERR)

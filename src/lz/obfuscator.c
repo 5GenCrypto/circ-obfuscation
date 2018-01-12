@@ -1,14 +1,13 @@
 #include "obfuscator.h"
 #include "obf_params.h"
 #include "../vtables.h"
-/* #include "../reflist.h" */
 #include "../util.h"
 
 #include <assert.h>
 #include <string.h>
 #include <threadpool.h>
 
-typedef struct obfuscation {
+struct obfuscation {
     const mmap_vtable *mmap;
     const pp_vtable *pp_vt;
     const sp_vtable *sp_vt;
@@ -23,9 +22,9 @@ typedef struct obfuscation {
     encoding **yhat;            // [m]
     encoding **vhat;            // [npowers]
     encoding **Chatstar;        // [γ]
-} obfuscation;
+};
 
-typedef struct obf_args {
+typedef struct {
     const encoding_vtable *vt;
     encoding *enc;
     mpz_t inps[2];
@@ -40,7 +39,7 @@ static void obf_worker(void *wargs)
 {
     obf_args *const args = wargs;
 
-    encode(args->vt, args->enc, args->inps, 2, args->ix, args->sp);
+    encode(args->vt, args->enc, args->inps, 2, args->ix, args->sp, 0);
     if (g_verbose) {
         pthread_mutex_lock(args->count_lock);
         print_progress(++*args->count, args->total);

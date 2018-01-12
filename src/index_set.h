@@ -10,14 +10,10 @@ typedef struct {
     size_t nzs;
 } index_set;
 
-index_set *
-index_set_new(size_t nzs);
-void
-index_set_free(index_set *ix);
-void
-index_set_clear(index_set *ix);
-void
-index_set_print(const index_set *ix);
+index_set * index_set_new(size_t nzs);
+void        index_set_free(index_set *ix);
+void        index_set_clear(index_set *ix);
+void        index_set_print(const index_set *ix);
 void
 index_set_add(index_set *rop, const index_set *x, const index_set *y);
 void

@@ -1,4 +1,5 @@
 #include "obfuscator.h"
+#include "obf_params.h"
 #include "../input_chunker.h"
 #include "../mife/mife.h"
 #include "../util.h"

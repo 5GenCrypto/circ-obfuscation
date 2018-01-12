@@ -1,9 +1,10 @@
 #include "mmap.h"
 #include "util.h"
+#include "polylog/extra.h"
 
 #include <assert.h>
 #include <stdio.h>
-#include <clt13.h>
+#include <mmap/mmap_clt_pl.h>
 
 static void
 mmap_params_fprint(FILE *fp, const mmap_params_t *params)
@@ -19,15 +20,13 @@ mmap_params_fprint(FILE *fp, const mmap_params_t *params)
     fprintf(fp, "\n");
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// secret params
-
 secret_params *
 secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
                   size_t *kappa, size_t ncores, aes_randstate_t rng)
 {
     mpz_t modulus;
     mmap_params_t params;
+    const circ_params_t *cp = obf_params_cp(op);
     size_t _kappa = kappa ? *kappa : 0;
     secret_params *sp = my_calloc(1, sizeof sp[0]);
     if (vt->init(sp, &params, op, _kappa) == ERR) {
@@ -48,16 +47,23 @@ secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
     mmap_sk_opt_params o = {
         .nslots = params.nslots,
         .modulus = NULL,
+        .is_polylog = false,
     };
-    if (acirc_is_binary(op->cp.circ)) {
+    if (acirc_is_binary(cp->circ)) {
         mpz_init_set_ui(modulus, 2);
         o.modulus = &modulus;
     }
-    if (vt->mmap->sk->init(sp->sk, &p, &o, ncores, rng, g_verbose)) {
+    if (vt->mmap == &clt_pl_vtable) {
+        o.is_polylog = true;
+        o.polylog.nswitches = polylog_nmuls(op);
+        o.polylog.nlevels = polylog_nlevels(op);
+        o.polylog.sparams = polylog_switch_params(op, params.nzs);
+    }
+    if (vt->mmap->sk->init(sp->sk, &p, &o, ncores, rng, g_verbose) == MMAP_ERR) {
         free(sp);
         sp = NULL;
     }
-    if (acirc_is_binary(op->cp.circ))
+    if (acirc_is_binary(cp->circ))
         mpz_clear(modulus);
     if (params.my_pows)
         free(params.pows);
@@ -92,9 +98,6 @@ secret_params_free(const sp_vtable *vt, secret_params *sp)
     }
     free(sp);
 }
-
-////////////////////////////////////////////////////////////////////////////////
-// public params
 
 public_params *
 public_params_new(const pp_vtable *vt, const sp_vtable *sp_vt,
@@ -133,9 +136,6 @@ public_params_free(const pp_vtable *vt, public_params *pp)
     free(pp);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// encodings
-
 encoding *
 encoding_new(const encoding_vtable *vt, const pp_vtable *pp_vt,
              const public_params *pp)
@@ -168,7 +168,7 @@ encoding_print(const encoding_vtable *vt, const encoding *enc)
 
 int
 encode(const encoding_vtable *vt, encoding *rop, mpz_t *inps, size_t nins,
-       const void *set, const secret_params *sp)
+       const void *set, const secret_params *sp, size_t level)
 {
     fmpz_t finps[nins];
     int *pows;
@@ -178,7 +178,8 @@ encode(const encoding_vtable *vt, encoding *rop, mpz_t *inps, size_t nins,
         fmpz_init(finps[i]);
         fmpz_set_mpz(finps[i], inps[i]);
     }
-    vt->mmap->enc->encode(rop->enc, sp->sk, nins, (const fmpz_t *) finps, pows);
+    vt->mmap->enc->encode(rop->enc, sp->sk, nins, (const fmpz_t *) finps,
+                          pows, level);
     for (size_t i = 0; i < nins; ++i) {
         fmpz_clear(finps[i]);
     }
