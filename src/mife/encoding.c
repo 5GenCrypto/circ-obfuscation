@@ -13,35 +13,34 @@ static int
 _encoding_new(const pp_vtable *vt, encoding *enc, const public_params *pp)
 {
     const obf_params_t *const mp = vt->params(pp);
-    if ((enc->info = calloc(1, sizeof enc->info[0])) == NULL)
+    if ((my(enc) = calloc(1, sizeof my(enc)[0])) == NULL)
         return ERR;
-    enc->info->index = index_set_new(mife_params_nzs(&mp->cp));
+    my(enc)->index = index_set_new(mife_params_nzs(&mp->cp));
     return OK;
 }
 
 static void
 _encoding_free(encoding *enc)
 {
-    if (enc->info) {
-        if (enc->info->index)
-            index_set_free(enc->info->index);
-        free(enc->info);
+    if (my(enc)) {
+        if (my(enc)->index)
+            index_set_free(my(enc)->index);
+        free(my(enc));
     }
 }
 
 static int
 _encoding_print(const encoding *enc)
 {
-    index_set_print(enc->info->index);
+    index_set_print(my(enc)->index);
     return OK;
 }
 
 static int *
-_encode(encoding *rop, const void *set)
+_encode(encoding *rop, const void *ix_)
 {
     int *pows;
-    const index_set *const ix = set;
-
+    const index_set *const ix = ix_;
     index_set_set(rop->info->index, ix);
     pows = calloc(ix->nzs, sizeof pows[0]);
     if (pows)
