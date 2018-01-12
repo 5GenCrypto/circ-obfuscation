@@ -10,7 +10,7 @@ struct sp_info {
     index_set *toplevel;
     const circ_params_t *cp;
 };
-#define spinfo(x) (x)->info
+#define my(x) (x)->info
 
 static int
 _sp_init(secret_params *sp, mmap_params_t *params, const obf_params_t *op,
@@ -18,46 +18,50 @@ _sp_init(secret_params *sp, mmap_params_t *params, const obf_params_t *op,
 {
     const circ_params_t *cp = &op->cp;
 
-    spinfo(sp) = my_calloc(1, sizeof spinfo(sp)[0]);
-    spinfo(sp)->toplevel = obf_params_new_toplevel(cp, obf_params_nzs(cp));
-    spinfo(sp)->cp = cp;
+    if ((my(sp) = calloc(1, sizeof my(sp)[0])) == NULL)
+        return ERR;
+    my(sp)->toplevel = obf_params_new_toplevel(cp, obf_params_nzs(cp));
+    my(sp)->cp = cp;
 
     params->kappa = kappa ? kappa : acirc_delta(cp->circ) + acirc_ninputs(cp->circ);
-    params->nzs = spinfo(sp)->toplevel->nzs;
-    params->pows = my_calloc(params->nzs, sizeof params->pows[0]);
+    params->nzs = my(sp)->toplevel->nzs;
+    if ((params->pows = calloc(params->nzs, sizeof params->pows[0])) == NULL)
+        goto error;
     for (size_t i = 0; i < params->nzs; ++i) {
-        if (spinfo(sp)->toplevel->pows[i] < 0) {
+        if (my(sp)->toplevel->pows[i] < 0) {
             fprintf(stderr, "error: toplevel overflow\n");
-            free(params->pows);
-            index_set_free(spinfo(sp)->toplevel);
-            free(spinfo(sp));
-            return ERR;
+            goto error;
         }
-        params->pows[i] = spinfo(sp)->toplevel->pows[i];
+        params->pows[i] = my(sp)->toplevel->pows[i];
     }
     params->my_pows = true;
     params->nslots = 2;
-
     return OK;
+error:
+    if (params->pows)
+        free(params->pows);
+    index_set_free(my(sp)->toplevel);
+    free(my(sp));
+    return ERR;
 }
 
 static void
 _sp_clear(secret_params *sp)
 {
-    index_set_free(spinfo(sp)->toplevel);
+    index_set_free(my(sp)->toplevel);
     free(sp->info);
 }
 
 static const void *
 _sp_toplevel(const secret_params *sp)
 {
-    return spinfo(sp)->toplevel;
+    return my(sp)->toplevel;
 }
 
 static const void *
 _sp_params(const secret_params *sp)
 {
-    return spinfo(sp)->cp;
+    return my(sp)->cp;
 }
 
 static sp_vtable _sp_vtable = {

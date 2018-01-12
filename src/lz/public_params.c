@@ -9,24 +9,25 @@ struct pp_info {
     index_set *toplevel;
     bool local;
 };
-#define ppinfo(x) x->info
+#define my(x) x->info
 
 static int
 _pp_init(const sp_vtable *vt, public_params *pp, const secret_params *sp)
 {
-    pp->info = calloc(1, sizeof pp->info[0]);
-    pp->info->toplevel = vt->toplevel(sp);
-    pp->info->cp = vt->params(sp);
-    pp->info->local = false;
+    if ((my(pp) = calloc(1, sizeof my(pp)[0])) == NULL)
+        return ERR;
+    my(pp)->toplevel = vt->toplevel(sp);
+    my(pp)->cp = vt->params(sp);
+    my(pp)->local = false;
     return OK;
 }
 
 static void
 _pp_clear(public_params *pp)
 {
-    if (pp->info->local)
-        index_set_free(pp->info->toplevel);
-    free(pp->info);
+    if (my(pp)->local)
+        index_set_free(my(pp)->toplevel);
+    free(my(pp));
 }
 
 static int
@@ -41,23 +42,24 @@ _pp_fread(public_params *pp, const obf_params_t *op, FILE *fp)
 {
     (void) fp;
     const circ_params_t *cp = &op->cp;
-    pp->info = my_calloc(1, sizeof pp->info[0]);
-    pp->info->toplevel = obf_params_new_toplevel(cp, obf_params_nzs(cp));
-    pp->info->cp = cp;
-    pp->info->local = true;
+    if ((my(pp) = calloc(1, sizeof my(pp)[0])) == NULL)
+        return ERR;
+    my(pp)->toplevel = obf_params_new_toplevel(cp, obf_params_nzs(cp));
+    my(pp)->cp = cp;
+    my(pp)->local = true;
     return OK;
 }
 
 static const void *
 _pp_params(const public_params *pp)
 {
-    return pp->info->cp;
+    return my(pp)->cp;
 }
 
 static const void *
 _pp_toplevel(const public_params *pp)
 {
-    return pp->info->toplevel;
+    return my(pp)->toplevel;
 }
 
 static pp_vtable _pp_vtable = {
