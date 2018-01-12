@@ -201,7 +201,7 @@ encoding_mul(const encoding_vtable *vt, const pp_vtable *pp_vt, encoding *rop,
 
     if (vt->mul(pp_vt, rop, x, y, p) == ERR)
         return ERR;
-    vt->mmap->enc->mul(rop->enc, p->pp, x->enc, y->enc);
+    vt->mmap->enc->mul(rop->enc, p->pp, x->enc, y->enc, 0);
     return OK;
 }
 
