@@ -15,7 +15,7 @@ _encoding_new(const pp_vtable *vt, encoding *enc, const public_params *pp)
     const obf_params_t *const op = vt->params(pp);
     enc->info = calloc(1, sizeof enc->info[0]);
     enc->info->index = index_set_new(obf_params_nzs(&op->cp));
-    return 0;
+    return OK;
 }
 
 static void
@@ -32,7 +32,7 @@ static int
 _encoding_print(const encoding *enc)
 {
     index_set_print(enc->info->index);
-    return 0;
+    return OK;
 }
 
 static int *
@@ -51,7 +51,7 @@ static int
 _encoding_set(encoding *rop, const encoding *x)
 {
     index_set_set(my(rop)->index, my(x)->index);
-    return 0;
+    return OK;
 }
 
 static int
@@ -60,7 +60,7 @@ _encoding_mul(const pp_vtable *vt, encoding *rop, const encoding *x,
 {
     (void) vt; (void) pp;
     index_set_add(my(rop)->index, my(x)->index, my(y)->index);
-    return 0;
+    return OK;
 }
 
 static int
@@ -69,7 +69,7 @@ _encoding_add(const pp_vtable *vt, encoding *rop, const encoding *x,
 {
     (void) vt; (void) pp; (void) y;
     index_set_set(my(rop)->index, my(x)->index);
-    return 0;
+    return OK;
 }
 
 static int
@@ -78,7 +78,7 @@ _encoding_sub(const pp_vtable *vt, encoding *rop, const encoding *x,
 {
     (void) vt; (void) pp; (void) y;
     index_set_set(my(rop)->index, my(x)->index);
-    return 0;
+    return OK;
 }
 
 static int
