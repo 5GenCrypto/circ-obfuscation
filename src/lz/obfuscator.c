@@ -500,7 +500,7 @@ _raise_encoding(const obfuscation *obf, encoding *x, encoding **ys, size_t diff)
             p++;
         if (g_max_npowers < p + 1)
             g_max_npowers = p + 1;
-        encoding_mul(obf->enc_vt, obf->pp_vt, x, x, ys[p], obf->pp);
+        encoding_mul(obf->enc_vt, obf->pp_vt, x, x, ys[p], obf->pp, 0);
         diff -= (1 << p);
     }
 }
@@ -600,7 +600,7 @@ eval_f(acirc_op op, const void *x_, const void *y_, void *args_)
     res = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
     switch (op) {
     case ACIRC_OP_MUL:
-        encoding_mul(obf->enc_vt, obf->pp_vt, res, x, y, obf->pp);
+        encoding_mul(obf->enc_vt, obf->pp_vt, res, x, y, obf->pp, 0);
         break;
     case ACIRC_OP_ADD:
     case ACIRC_OP_SUB: {
@@ -645,7 +645,7 @@ output_f(size_t o, void *x, void *args_)
     for (size_t k = 0; k < acirc_ninputs(circ); k++) {
         encoding_set(obf->enc_vt, tmp, lhs);
         encoding_mul(obf->enc_vt, obf->pp_vt, lhs, tmp,
-                     obf->zhat[k][inputs[k]][o], obf->pp);
+                     obf->zhat[k][inputs[k]][o], obf->pp, 0);
     }
     if (raise_encoding(obf, lhs, toplevel) == ERR)
         goto cleanup;
@@ -661,7 +661,7 @@ output_f(size_t o, void *x, void *args_)
     for (size_t k = 0; k < acirc_ninputs(circ); k++) {
         encoding_set(obf->enc_vt, tmp, rhs);
         encoding_mul(obf->enc_vt, obf->pp_vt, rhs, tmp,
-                     obf->what[k][inputs[k]][o], obf->pp);
+                     obf->what[k][inputs[k]][o], obf->pp, 0);
     }
     if (!index_set_eq(obf->enc_vt->mmap_set(rhs), toplevel)) {
         fprintf(stderr, "rhs != toplevel\n");

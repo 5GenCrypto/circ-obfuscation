@@ -123,7 +123,8 @@ int
 encoding_set(const encoding_vtable *vt, encoding *rop, const encoding *x);
 int
 encoding_mul(const encoding_vtable *vt, const pp_vtable *pp_vt, encoding *rop,
-             const encoding *x, const encoding *y, const public_params *p);
+             const encoding *x, const encoding *y, const public_params *p,
+             size_t nswitch);
 int
 encoding_add(const encoding_vtable *vt, const pp_vtable *pp_vt, encoding *rop,
              const encoding *x, const encoding *y, const public_params *p);

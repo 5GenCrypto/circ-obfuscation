@@ -23,6 +23,7 @@ _sp_init(secret_params *sp, mmap_params_t *mp, const obf_params_t *op, size_t ka
     my(sp)->toplevel = obf_params_new_toplevel(cp, obf_params_nzs(cp));
     my(sp)->cp = cp;
 
+    mp->kappa = 0;
     mp->nzs = my(sp)->toplevel->nzs;
     mp->pows = my_calloc(mp->nzs, sizeof mp->pows[0]);
     for (size_t i = 0; i < mp->nzs; ++i) {

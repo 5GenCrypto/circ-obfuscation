@@ -762,7 +762,7 @@ _raise_encoding(const mife_ek_t *ek, encoding *x, encoding **us, size_t diff)
         size_t p = 0;
         while (((size_t) 1 << (p+1)) <= diff && (p+1) < ek->npowers)
             p++;
-        encoding_mul(ek->enc_vt, ek->pp_vt, x, x, us[p], ek->pp);
+        encoding_mul(ek->enc_vt, ek->pp_vt, x, x, us[p], ek->pp, 0);
         diff -= (1 << p);
     }
 }
@@ -862,7 +862,7 @@ eval_f(acirc_op op, const void *x_, const void *y_, void *args_)
     res = encoding_new(ek->enc_vt, ek->pp_vt, ek->pp);
     switch (op) {
     case ACIRC_OP_MUL:
-        encoding_mul(ek->enc_vt, ek->pp_vt, res, x, y, ek->pp);
+        encoding_mul(ek->enc_vt, ek->pp_vt, res, x, y, ek->pp, 0);
         break;
     case ACIRC_OP_ADD:
     case ACIRC_OP_SUB: {
@@ -901,7 +901,7 @@ output_f(size_t o, void *x, void *args_)
     rhs = encoding_new(ek->enc_vt, ek->pp_vt, ek->pp);
 
     /* Compute LHS */
-    encoding_mul(ek->enc_vt, ek->pp_vt, lhs, x, ek->zhat, ek->pp);
+    encoding_mul(ek->enc_vt, ek->pp_vt, lhs, x, ek->zhat, ek->pp, 0);
     raise_encoding(ek, lhs, toplevel);
     if (!index_set_eq(ek->enc_vt->mmap_set(lhs), toplevel)) {
         fprintf(stderr, "error: lhs != toplevel\n");
@@ -913,11 +913,11 @@ output_f(size_t o, void *x, void *args_)
     if (ek->Chatstar) {
         encoding_set(ek->enc_vt, rhs, ek->Chatstar);
         for (size_t i = 0; i < cp->n; ++i)
-            encoding_mul(ek->enc_vt, ek->pp_vt, rhs, rhs, args->cts[i]->what[o], ek->pp);
+            encoding_mul(ek->enc_vt, ek->pp_vt, rhs, rhs, args->cts[i]->what[o], ek->pp, 0);
     } else {
         encoding_set(ek->enc_vt, rhs, args->cts[0]->what[o]);
         for (size_t i = 1; i < cp->n - 1; ++i)
-            encoding_mul(ek->enc_vt, ek->pp_vt, rhs, rhs, args->cts[i]->what[o], ek->pp);
+            encoding_mul(ek->enc_vt, ek->pp_vt, rhs, rhs, args->cts[i]->what[o], ek->pp, 0);
     }
     if (!index_set_eq(ek->enc_vt->mmap_set(rhs), toplevel)) {
         fprintf(stderr, "error: rhs != toplevel\n");

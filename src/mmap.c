@@ -55,8 +55,8 @@ secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
     }
     if (vt->mmap == &clt_pl_vtable) {
         o.is_polylog = true;
-        o.polylog.nswitches = polylog_nmuls(op);
         o.polylog.nlevels = polylog_nlevels(op);
+        o.polylog.nswitches = polylog_nswitches(op);
         o.polylog.sparams = polylog_switch_params(op, params.nzs);
     }
     if (vt->mmap->sk->init(sp->sk, &p, &o, ncores, rng, g_verbose) == MMAP_ERR) {
@@ -197,12 +197,13 @@ encoding_set(const encoding_vtable *vt, encoding *rop, const encoding *x)
 
 int
 encoding_mul(const encoding_vtable *vt, const pp_vtable *pp_vt, encoding *rop,
-             const encoding *x, const encoding *y, const public_params *p)
+             const encoding *x, const encoding *y, const public_params *p,
+             size_t nswitch)
 {
 
     if (vt->mul(pp_vt, rop, x, y, p) == ERR)
         return ERR;
-    vt->mmap->enc->mul(rop->enc, p->pp, x->enc, y->enc, 0);
+    vt->mmap->enc->mul(rop->enc, p->pp, x->enc, y->enc, nswitch);
     return OK;
 }
 

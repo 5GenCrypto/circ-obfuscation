@@ -7,8 +7,8 @@
 struct obf_params_t {
     circ_params_t cp;
     size_t npowers;
-    size_t nmuls;
     size_t nlevels;
+    size_t nswitches;
 };
 
 #define IX_Z(ix) (ix)->pows[0]
