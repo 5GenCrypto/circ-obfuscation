@@ -211,9 +211,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     for (size_t i = 0; i < noutputs; i++)
         obf->Chatstar[i] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
 
-    mpz_t *const moduli =
-        mpz_vect_create_of_fmpz(obf->mmap->sk->plaintext_fields(obf->sp->sk),
-                                obf->mmap->sk->nslots(obf->sp->sk));
+    const mpz_t *moduli = obf->mmap->sk->plaintext_fields(obf->sp->sk);
 
     const size_t ell = array_max(cp->ds, nsymbols);
     const size_t q = array_max(cp->qs, nsymbols);
@@ -401,7 +399,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     for (size_t i = 0; i < nsymbols; ++i)
         free(var_deg[i]);
 
-    mpz_vect_free(moduli, obf->mmap->sk->nslots(obf->sp->sk));
+    /* mpz_vect_free(moduli, obf->mmap->sk->nslots(obf->sp->sk)); */
 
     return obf;
 }

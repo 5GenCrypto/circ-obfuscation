@@ -37,7 +37,6 @@ secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
         mmap_params_fprint(stderr, &params);
     if (kappa)
         *kappa = params.kappa;
-    sp->sk = calloc(1, vt->mmap->sk->size);
     mmap_sk_params p = {
         .lambda = lambda,
         .kappa = params.kappa,
@@ -59,7 +58,7 @@ secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
         o.polylog.nswitches = polylog_nswitches(op);
         o.polylog.sparams = polylog_switch_params(op, params.nzs);
     }
-    if (vt->mmap->sk->init(sp->sk, &p, &o, ncores, rng, g_verbose) == MMAP_ERR) {
+    if ((sp->sk = vt->mmap->sk->new(&p, &o, ncores, rng, g_verbose)) == NULL) {
         free(sp);
         sp = NULL;
     }
@@ -83,8 +82,7 @@ secret_params_fread(const sp_vtable *vt, const circ_params_t *cp, FILE *fp)
 {
     secret_params *sp = my_calloc(1, sizeof sp[0]);
     vt->fread(sp, cp, fp);
-    sp->sk = my_calloc(1, vt->mmap->sk->size);
-    vt->mmap->sk->fread(sp->sk, fp);
+    sp->sk = vt->mmap->sk->fread(fp);
     return sp;
 }
 
@@ -93,8 +91,7 @@ secret_params_free(const sp_vtable *vt, secret_params *sp)
 {
     vt->clear(sp);
     if (sp->sk) {
-        vt->mmap->sk->clear(sp->sk);
-        free(sp->sk);
+        vt->mmap->sk->free(sp->sk);
     }
     free(sp);
 }
@@ -122,8 +119,7 @@ public_params_fread(const pp_vtable *vt, const obf_params_t *op, FILE *fp)
 {
     public_params *pp = my_calloc(1, sizeof pp[0]);
     vt->fread(pp, op, fp);
-    pp->pp = my_calloc(1, vt->mmap->pp->size);
-    vt->mmap->pp->fread(pp->pp, fp);
+    pp->pp = vt->mmap->pp->fread(fp);
     return pp;
 }
 
@@ -131,8 +127,7 @@ void
 public_params_free(const pp_vtable *vt, public_params *pp)
 {
     vt->clear(pp);
-    vt->mmap->pp->clear(pp->pp);
-    free(pp->pp);
+    vt->mmap->pp->free(pp->pp);
     free(pp);
 }
 
@@ -142,8 +137,7 @@ encoding_new(const encoding_vtable *vt, const pp_vtable *pp_vt,
 {
     encoding *enc = calloc(1, sizeof enc[0]);
     (void) vt->new(pp_vt, enc, pp);
-    enc->enc = calloc(1, vt->mmap->enc->size);
-    vt->mmap->enc->init(enc->enc, pp->pp);
+    enc->enc = vt->mmap->enc->new(pp->pp);
     return enc;
 }
 
@@ -151,8 +145,7 @@ void
 encoding_free(const encoding_vtable *vt, encoding *enc)
 {
     if (enc) {
-        vt->mmap->enc->clear(enc->enc);
-        free(enc->enc);
+        vt->mmap->enc->free(enc->enc);
         vt->free(enc);
         free(enc);
     }
@@ -170,19 +163,10 @@ int
 encode(const encoding_vtable *vt, encoding *rop, mpz_t *inps, size_t nins,
        const void *set, const secret_params *sp, size_t level)
 {
-    fmpz_t finps[nins];
     int *pows;
 
     pows = vt->encode(rop, set);
-    for (size_t i = 0; i < nins; ++i) {
-        fmpz_init(finps[i]);
-        fmpz_set_mpz(finps[i], inps[i]);
-    }
-    vt->mmap->enc->encode(rop->enc, sp->sk, nins, (const fmpz_t *) finps,
-                          pows, level);
-    for (size_t i = 0; i < nins; ++i) {
-        fmpz_clear(finps[i]);
-    }
+    vt->mmap->enc->encode(rop->enc, sp->sk, nins, inps, pows, level);
     free(pows);
     return OK;
 }
@@ -248,8 +232,7 @@ encoding_fread(const encoding_vtable *vt, FILE *fp)
 {
     encoding *const x = my_calloc(1, sizeof x[0]);
     vt->fread(x, fp);
-    x->enc = calloc(1, vt->mmap->enc->size);
-    vt->mmap->enc->fread(x->enc, fp);
+    x->enc = vt->mmap->enc->fread(fp);
     return x;
 }
 

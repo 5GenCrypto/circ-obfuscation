@@ -228,8 +228,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
             obf->what[i][o] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
     obf->zhat = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
 
-    moduli = mpz_vect_create_of_fmpz(mmap->sk->plaintext_fields(obf->sp->sk),
-                                     mmap->sk->nslots(obf->sp->sk));
+    moduli = mmap->sk->plaintext_fields(obf->sp->sk);
     slots = mpz_vect_new(nslots);
     alphas = mpz_vect_new(ninputs);
     for (size_t i = 0; i < ninputs; ++i)
@@ -338,7 +337,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
 cleanup:
     mpz_vect_free(slots, nslots);
     mpz_vect_free(alphas, ninputs);
-    mpz_vect_free(moduli, mmap->sk->nslots(obf->sp->sk));
+    /* mpz_vect_free(moduli, mmap->sk->nslots(obf->sp->sk)); */
     threadpool_destroy(pool);
     pthread_mutex_destroy(&lock);
     if (result == OK)

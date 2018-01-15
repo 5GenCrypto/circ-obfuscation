@@ -203,7 +203,6 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     mife_t *mife;
     const circ_params_t *cp = &op->cp;
     const size_t has_consts = acirc_nconsts(cp->circ) ? 1 : 0;
-    mpz_t *moduli = NULL;
     threadpool *pool = threadpool_create(nthreads);
     pthread_mutex_t lock;
     size_t count = 0;
@@ -228,8 +227,7 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     mife->zhat = encoding_new(mife->enc_vt, mife->pp_vt, mife->pp);
     mife->uhat = my_calloc(cp->nslots, sizeof mife->uhat[0]);
 
-    moduli = mpz_vect_create_of_fmpz(mmap->sk->plaintext_fields(mife->sp->sk),
-                                     mmap->sk->nslots(mife->sp->sk));
+    const mpz_t *moduli = mmap->sk->plaintext_fields(mife->sp->sk);
 
     /* Compute input degrees */
     mife->deg_max = my_calloc(cp->nslots, sizeof mife->deg_max[0]);
@@ -310,7 +308,7 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     result = OK;
 cleanup:
     mpz_vect_clear(inps, 1 + cp->nslots);
-    mpz_vect_free(moduli, mmap->sk->nslots(mife->sp->sk));
+    /* mpz_vect_free(moduli, mmap->sk->nslots(mife->sp->sk)); */
     threadpool_destroy(pool);
     pthread_mutex_destroy(&lock);
     if (result == OK)
@@ -600,9 +598,7 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
     const size_t nconsts = acirc_nconsts(cp->circ);
     const size_t has_consts = nconsts ? 1 : 0;
     const size_t noutputs = acirc_noutputs(cp->circ);
-    mpz_t *const moduli =
-        mpz_vect_create_of_fmpz(sk->mmap->sk->plaintext_fields(sk->sp->sk),
-                                sk->mmap->sk->nslots(sk->sp->sk));
+    const mpz_t *moduli = sk->mmap->sk->plaintext_fields(sk->sp->sk);
     index_set *const ix = index_set_new(mife_params_nzs(cp));
     mpz_t *slots;
     mpz_t *alphas;
@@ -733,7 +729,7 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
 
     index_set_free(ix);
     mpz_vect_free(slots, 1 + cp->nslots);
-    mpz_vect_free(moduli, sk->mmap->sk->nslots(sk->sp->sk));
+    /* mpz_vect_free(moduli, sk->mmap->sk->nslots(sk->sp->sk)); */
 
     end = current_time();
     if (g_verbose && !cache)

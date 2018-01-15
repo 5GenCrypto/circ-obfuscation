@@ -23,7 +23,7 @@ _sp_init(secret_params *sp, mmap_params_t *params, const obf_params_t *op,
     my(sp)->toplevel = obf_params_new_toplevel(cp, obf_params_nzs(cp));
     my(sp)->cp = cp;
 
-    params->kappa = kappa ? kappa : acirc_delta(cp->circ) + acirc_ninputs(cp->circ);
+    params->kappa = kappa ? kappa : acirc_delta(cp->circ) + acirc_nsymbols(cp->circ);
     params->nzs = my(sp)->toplevel->nzs;
     if ((params->pows = calloc(params->nzs, sizeof params->pows[0])) == NULL)
         goto error;
