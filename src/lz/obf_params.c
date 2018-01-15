@@ -67,21 +67,15 @@ _new(acirc_t *circ, void *vparams)
     const size_t has_consts = nconsts ? 1 : 0;
     obf_params_t *op;
 
-    if (acirc_ninputs(circ) % acirc_symlen(circ) != 0) {
-        fprintf(stderr, "error: ninputs (%lu) %% symlen (%lu) != 0\n",
-                acirc_ninputs(circ), acirc_symlen(circ));
-        return NULL;
-    }
-
     if ((op = calloc(1, sizeof op[0])) == NULL)
         return op;
-    circ_params_init(&op->cp, acirc_ninputs(circ) / acirc_symlen(circ) + has_consts, circ);
+    circ_params_init(&op->cp, acirc_nsymbols(circ) + has_consts, circ);
     for (size_t i = 0; i < op->cp.n - has_consts; ++i) {
-        op->cp.ds[i] = acirc_symlen(circ);
+        op->cp.ds[i] = acirc_symlen(circ, i);
         if (params->sigma)
-            op->cp.qs[i] = acirc_symlen(circ);
+            op->cp.qs[i] = acirc_symlen(circ, i);
         else
-            op->cp.qs[i] = 1 << acirc_symlen(circ);
+            op->cp.qs[i] = 1 << acirc_symlen(circ, i);
     }
     if (has_consts) {
         op->cp.ds[op->cp.n - 1] = nconsts;

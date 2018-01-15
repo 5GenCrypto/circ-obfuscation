@@ -193,20 +193,20 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
            size_t *kappa, size_t nthreads, aes_randstate_t rng)
 {
     (void) kappa;
-    int result = ERR;
-    obfuscation *obf;
     const circ_params_t *cp = &op->cp;
-    mpz_t *moduli = NULL;
-    threadpool *pool;
-    pthread_mutex_t lock;
     const size_t ninputs = acirc_ninputs(cp->circ);
     const size_t nconsts = acirc_nconsts(cp->circ);
     const size_t noutputs = acirc_noutputs(cp->circ);
     const size_t nslots = 1 + ninputs;
     const size_t total = obf_num_encodings(cp, op->npowers);
+
+    obfuscation *obf;
+    mpz_t *moduli = NULL, *slots, *alphas;
+    threadpool *pool = NULL;
+    index_set *ix = NULL;
+    pthread_mutex_t lock;
     size_t count = 0;
-    index_set *ix;
-    mpz_t *slots, *alphas;
+    int result = ERR;
 
     if ((obf = _alloc(mmap, op)) == NULL)
         return NULL;
@@ -423,8 +423,7 @@ raise_encoding(const obfuscation *obf, encoding *x, const index_set *target)
     index_set *ix;
     size_t diff;
 
-    ix = index_set_difference(target, obf->enc_vt->mmap_set(x));
-    if (ix == NULL)
+    if ((ix = index_set_difference(target, obf->enc_vt->mmap_set(x))) == NULL)
         return ERR;
     for (size_t i = 0; i < ninputs; ++i) {
         diff = IX_X(ix, cp, i);

@@ -27,21 +27,13 @@ _new(acirc_t *circ, void *vparams)
 {
     const mobf_obf_params_t *const params = vparams;
     obf_params_t *const op = my_calloc(1, sizeof op[0]);
-    const size_t ninputs = acirc_ninputs(circ);
-    const size_t symlen = acirc_symlen(circ);
     const size_t nconsts = acirc_nconsts(circ);
 
-    if (ninputs % symlen != 0) {
-        fprintf(stderr, "error: ninputs (%lu) %% symlen (%lu) != 0\n",
-                ninputs, symlen);
-        _free(op);
-        return NULL;
-    }
     const size_t has_consts = nconsts ? 1 : 0;
-    circ_params_init(&op->cp, ninputs / symlen + has_consts, circ);
+    circ_params_init(&op->cp, acirc_nsymbols(circ) + has_consts, circ);
     for (size_t i = 0; i < op->cp.n - has_consts; ++i) {
-        op->cp.ds[i] = symlen;
-        op->cp.qs[i] = params->sigma ? symlen : params->base;
+        op->cp.ds[i] = acirc_symlen(circ, i);
+        op->cp.qs[i] = params->sigma ? acirc_symlen(circ, i) : params->base;
     }
     if (has_consts) {
         op->cp.ds[op->cp.n - 1] = nconsts;

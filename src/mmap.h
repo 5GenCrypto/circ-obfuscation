@@ -89,25 +89,24 @@ typedef struct {
     const void * (*mmap_set)(const encoding *);
 } encoding_vtable;
 
-secret_params *
-secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
-                  size_t *kappa, size_t ncores, aes_randstate_t rng);
-int
-secret_params_fwrite(const sp_vtable *vt, const secret_params *sp, FILE *fp);
-secret_params *
-secret_params_fread(const sp_vtable *vt, const circ_params_t *cp, FILE *fp);
-void
-secret_params_free(const sp_vtable *vt, secret_params *p);
 
-public_params *
-public_params_new(const pp_vtable *vt, const sp_vtable *sp_vt,
-                  const secret_params *sp);
-int
-public_params_fwrite(const pp_vtable *vt, const public_params *pp, FILE *fp);
-public_params *
-public_params_fread(const pp_vtable *vt, const obf_params_t *op, FILE *fp);
-void
-public_params_free(const pp_vtable *vt, public_params *p);
+secret_params * secret_params_new(const sp_vtable *vt, const obf_params_t *op,
+                                  size_t lambda, size_t *kappa, size_t ncores,
+                                  aes_randstate_t rng);
+int             secret_params_fwrite(const sp_vtable *vt,
+                                     const secret_params *sp, FILE *fp);
+secret_params * secret_params_fread(const sp_vtable *vt,
+                                    const circ_params_t *cp, FILE *fp);
+void            secret_params_free(const sp_vtable *vt, secret_params *p);
+
+
+public_params * public_params_new(const pp_vtable *vt, const sp_vtable *sp_vt,
+                                  const secret_params *sp);
+int             public_params_fwrite(const pp_vtable *vt,
+                                     const public_params *pp, FILE *fp);
+public_params * public_params_fread(const pp_vtable *vt, const obf_params_t *op,
+                                    FILE *fp);
+void            public_params_free(const pp_vtable *vt, public_params *p);
 
 encoding *
 encoding_new(const encoding_vtable *enc_vt, const pp_vtable *pp_vt,

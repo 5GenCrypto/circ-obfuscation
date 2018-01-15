@@ -119,6 +119,11 @@ circ_params_print(const circ_params_t *cp)
     fprintf(stderr, "* ninputs:...... %lu\n", acirc_ninputs(cp->circ));
     fprintf(stderr, "* nconsts:...... %lu\n", acirc_nconsts(cp->circ));
     fprintf(stderr, "* noutputs: .... %lu\n", acirc_noutputs(cp->circ));
+    fprintf(stderr, "* nsymbols: .... %lu  [", acirc_nsymbols(cp->circ));
+    for (size_t i = 0; i < acirc_nsymbols(cp->circ); ++i) {
+        fprintf(stderr, " %lu ", acirc_symlen(cp->circ, i));
+    }
+    fprintf(stderr, "]\n");
     fprintf(stderr, "* nslots: ...... %lu\n", cp->n);
     for (size_t i = 0; i < cp->n; ++i) {
         size_t degree;

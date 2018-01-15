@@ -35,10 +35,10 @@ _new(acirc_t *circ, void *vparams)
     obf_params_t *const op = calloc(1, sizeof op[0]);
 
     size_t has_consts = acirc_nconsts(circ) ? 1 : 0;
-    circ_params_init(&op->cp, acirc_ninputs(circ) / acirc_symlen(circ) + has_consts, circ);
+    circ_params_init(&op->cp, acirc_nsymbols(circ) + has_consts, circ);
     for (size_t i = 0; i < op->cp.n - has_consts; ++i) {
-        op->cp.ds[i] = acirc_symlen(circ);
-        op->cp.qs[i] = params->sigma ? acirc_symlen(circ) : params->base;
+        op->cp.ds[i] = acirc_symlen(circ, i);
+        op->cp.qs[i] = params->sigma ? acirc_symlen(circ, i) : params->base;
     }
     if (has_consts) {
         op->cp.ds[op->cp.n - 1] = acirc_nconsts(circ);
