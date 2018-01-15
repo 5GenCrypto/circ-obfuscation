@@ -20,7 +20,7 @@ _free(obfuscation *obf)
         return;
 
     const circ_params_t *const cp = &obf->op->cp;
-    const size_t ninputs = cp->n;
+    const size_t ninputs = cp->nslots;
 
     if (obf->ek)
         mife_ek_free(obf->ek);
@@ -52,7 +52,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     int res = ERR;
 
     const circ_params_t *const cp = &op->cp;
-    const size_t ninputs = cp->n;
+    const size_t ninputs = cp->nslots;
 
     /* MIFE setup */
     start = _start = current_time();
@@ -127,9 +127,9 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
     (void) npowers;
     const circ_params_t *cp = &obf->op->cp;
     const acirc_t *const circ = cp->circ;
-    const size_t has_consts = cp->c ? 1 : 0;
-    const size_t ell = array_max(cp->ds, cp->n - has_consts);
-    const size_t q = array_max(cp->qs, cp->n - has_consts);
+    const size_t has_consts = acirc_nconsts(circ) ? 1 : 0;
+    const size_t ell = array_max(cp->ds, cp->nslots - has_consts);
+    const size_t q = array_max(cp->qs, cp->nslots - has_consts);
     mife_ciphertext_t **cts = NULL;
     long *input_syms = NULL;
     int ret = ERR;
@@ -137,21 +137,21 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
     if (ninputs != acirc_ninputs(circ)) {
         fprintf(stderr, "error: obf evaluate: invalid number of inputs\n");
         goto cleanup;
-    } else if (noutputs != cp->m) {
+    } else if (noutputs != acirc_noutputs(circ)) {
         fprintf(stderr, "error: obf evaluate: invalid number of outputs\n");
         goto cleanup;
     }
 
     input_syms = get_input_syms(inputs, ninputs, rchunker_in_order,
-                                cp->n - has_consts, ell, q, obf->op->sigma);
+                                cp->nslots - has_consts, ell, q, obf->op->sigma);
     if (input_syms == NULL)
         goto cleanup;
-    cts = my_calloc(cp->n, sizeof cts[0]);
-    for (size_t i = 0; i < cp->n - has_consts; ++i) {
+    cts = my_calloc(cp->nslots, sizeof cts[0]);
+    for (size_t i = 0; i < cp->nslots - has_consts; ++i) {
         cts[i] = obf->cts[i][input_syms[i]];
     }
     if (has_consts)
-        cts[cp->n - 1] = obf->cts[cp->n - 1][0];
+        cts[cp->nslots - 1] = obf->cts[cp->nslots - 1][0];
     if (mife_decrypt(obf->ek, outputs, cts, nthreads, kappa) == ERR)
         goto cleanup;
 
@@ -168,7 +168,7 @@ static int
 _fwrite(const obfuscation *const obf, FILE *const fp)
 {
     const circ_params_t *cp = &obf->op->cp;
-    const size_t ninputs = cp->n;
+    const size_t ninputs = cp->nslots;
     mife_ek_fwrite(obf->ek, fp);
     for (size_t i = 0; i < ninputs; ++i) {
         for (size_t j = 0; j < cp->qs[i]; ++j) {
@@ -183,7 +183,7 @@ _fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
 {
     obfuscation *obf;
     const circ_params_t *cp = &op->cp;
-    const size_t ninputs = cp->n;
+    const size_t ninputs = cp->nslots;
     obf = my_calloc(1, sizeof obf[0]);
     obf->op = op;
     if ((obf->ek = mife_ek_fread(mmap, op, fp)) == NULL)

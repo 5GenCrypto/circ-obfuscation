@@ -44,13 +44,13 @@ static inline void
 ix_z_set(index_set *ix, const circ_params_t *cp, size_t k, int pow)
 {
     const size_t has_consts = acirc_nconsts(cp->circ) ? 1 : 0;
-    ix->pows[has_consts + cp->qs[k] * (cp->n - has_consts) + k] = pow;
+    ix->pows[has_consts + cp->qs[k] * (cp->nslots - has_consts) + k] = pow;
 }
 static inline void
 ix_w_set(index_set *ix, const circ_params_t *cp, size_t k, int pow)
 {
     const size_t has_consts = acirc_nconsts(cp->circ) ? 1 : 0;
-    ix->pows[has_consts + (1 + cp->qs[k]) * (cp->n - has_consts) + k] = pow;
+    ix->pows[has_consts + (1 + cp->qs[k]) * (cp->nslots - has_consts) + k] = pow;
 }
 
 size_t obf_params_nzs(const circ_params_t *cp);

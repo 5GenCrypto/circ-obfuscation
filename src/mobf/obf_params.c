@@ -8,7 +8,7 @@ mobf_num_encodings(const obf_params_t *op)
 {
     const circ_params_t *cp = &op->cp;
     size_t count = 0;
-    for (size_t i = 0; i < cp->n; ++i)
+    for (size_t i = 0; i < cp->nslots; ++i)
         count += cp->qs[i] * mife_num_encodings_encrypt(cp, i);
     return count;
 }
@@ -28,16 +28,17 @@ _new(acirc_t *circ, void *vparams)
     const mobf_obf_params_t *const params = vparams;
     obf_params_t *const op = my_calloc(1, sizeof op[0]);
     const size_t nconsts = acirc_nconsts(circ);
-
+    const size_t noutputs = acirc_noutputs(circ);
     const size_t has_consts = nconsts ? 1 : 0;
+
     circ_params_init(&op->cp, acirc_nsymbols(circ) + has_consts, circ);
-    for (size_t i = 0; i < op->cp.n - has_consts; ++i) {
+    for (size_t i = 0; i < op->cp.nslots - has_consts; ++i) {
         op->cp.ds[i] = acirc_symlen(circ, i);
         op->cp.qs[i] = params->sigma ? acirc_symlen(circ, i) : params->base;
     }
     if (has_consts) {
-        op->cp.ds[op->cp.n - 1] = nconsts;
-        op->cp.qs[op->cp.n - 1] = 1;
+        op->cp.ds[op->cp.nslots - 1] = nconsts;
+        op->cp.qs[op->cp.nslots - 1] = 1;
     }
     op->sigma = params->sigma;
     op->npowers = params->npowers;
@@ -45,7 +46,7 @@ _new(acirc_t *circ, void *vparams)
     if (g_verbose) {
         circ_params_print(&op->cp);
         size_t nencodings = mobf_num_encodings(op);
-        nencodings += op->cp.m + op->cp.n * op->npowers + (op->cp.c ? op->cp.ds[op->cp.n - 1] : 1);
+        nencodings += noutputs + op->cp.nslots * op->npowers + (nconsts ? op->cp.ds[op->cp.nslots - 1] : 1);
         fprintf(stderr, "Obfuscation parameters:\n");
         fprintf(stderr, "* Σ: ......... %s\n", op->sigma ? "Yes" : "No");
         fprintf(stderr, "* # powers: .. %lu\n", op->npowers);

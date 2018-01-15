@@ -533,7 +533,7 @@ handle_options(int *argc, char ***argv, int left, args_t *args, void *others,
         f(false, EXIT_FAILURE);
     }
     args->circuit = (*argv)[0];
-    args->circ = acirc_new(args->circuit, true);
+    args->circ = acirc_new(args->circuit, false);
     if (args->circ == NULL) {
         fprintf(stderr, "error: parsing circuit '%s' failed\n", args->circuit);
         exit(EXIT_FAILURE);
@@ -634,7 +634,7 @@ cmd_mife_decrypt(int argc, char **argv, args_t *args)
     handle_options(&argc, &argv, 0, args, &args_, mife_decrypt_handle_options, mife_decrypt_usage);
     if (mife_select_scheme(args->circ, args->sigma, args->base, &op_vt, &op) == ERR)
         goto cleanup;
-    nslots = op->cp.n;
+    nslots = op->cp.nslots;
 
     length = snprintf(NULL, 0, "%s.ek\n", args->circuit);
     ek = my_calloc(length, sizeof ek[0]);
@@ -645,13 +645,13 @@ cmd_mife_decrypt(int argc, char **argv, args_t *args)
         cts[i] = my_calloc(length, sizeof cts[i][0]);
         (void) snprintf(cts[i], length, "%s.%lu.ct\n", args->circuit, i);
     }
-    rop = my_calloc(op->cp.m, sizeof rop[0]);
+    rop = my_calloc(acirc_noutputs(op->cp.circ), sizeof rop[0]);
     if (mife_run_decrypt(ek, cts, rop, args->vt, op, NULL, args->nthreads) == ERR) {
         fprintf(stderr, "error: mife decrypt failed\n");
         goto cleanup;
     }
     printf("result: ");
-    for (size_t o = 0; o < op->cp.m; ++o) {
+    for (size_t o = 0; o < acirc_noutputs(op->cp.circ); ++o) {
         printf("%ld", rop[o]);
     }
     printf("\n");
@@ -912,7 +912,7 @@ cmd_obf_evaluate(int argc, char **argv, args_t *args)
         args->vt = &clt_pl_vtable;
     if ((input = my_calloc(strlen(argv[0]), sizeof input[0])) == NULL)
         goto cleanup;
-    if ((output = my_calloc(op->cp.m, sizeof output[0])) == NULL)
+    if ((output = my_calloc(acirc_noutputs(op->cp.circ), sizeof output[0])) == NULL)
         goto cleanup;
 
     for (size_t i = 0; i < strlen(argv[0]); ++i) {
@@ -920,11 +920,11 @@ cmd_obf_evaluate(int argc, char **argv, args_t *args)
             goto cleanup;
     }
     if (obf_run_evaluate(args->vt, vt, fname, op, input, strlen(argv[0]), output,
-                         op->cp.m, args->nthreads, NULL, NULL) == ERR)
+                         acirc_noutputs(op->cp.circ), args->nthreads, NULL, NULL) == ERR)
         goto cleanup;
 
     printf("result: ");
-    for (size_t i = 0; i < op->cp.m; ++i)
+    for (size_t i = 0; i < acirc_noutputs(op->cp.circ); ++i)
         printf("%c", long_to_char(output[i]));
     printf("\n");
 
@@ -978,7 +978,7 @@ cmd_obf_test(int argc, char **argv, args_t *args)
         goto cleanup;
 
     for (size_t t = 0; t < acirc_ntests(args->circ); ++t) {
-        long outp[op->cp.m];
+        long outp[acirc_noutputs(op->cp.circ)];
         if (obf_run_evaluate(args->vt, vt, fname, op, acirc_test_input(args->circ, t),
                              acirc_ninputs(args->circ), outp, acirc_noutputs(args->circ),
                              args->nthreads, &kappa, NULL) == ERR)

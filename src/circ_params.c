@@ -6,9 +6,7 @@
 int
 circ_params_init(circ_params_t *cp, size_t n, acirc_t *circ)
 {
-    cp->n = n;
-    cp->c = acirc_nconsts(circ);
-    cp->m = acirc_noutputs(circ);
+    cp->nslots = n;
     cp->circ = circ;
     cp->ds = my_calloc(n, sizeof cp->ds[0]);
     cp->qs = my_calloc(n, sizeof cp->ds[0]);
@@ -27,17 +25,13 @@ circ_params_clear(circ_params_t *cp)
 int
 circ_params_fwrite(const circ_params_t *const cp, FILE *fp)
 {
-    if (size_t_fwrite(cp->n, fp) == ERR)
+    if (size_t_fwrite(cp->nslots, fp) == ERR)
         goto error;
-    if (size_t_fwrite(cp->c, fp) == ERR)
-        goto error;
-    if (size_t_fwrite(cp->m, fp) == ERR)
-        goto error;
-    for (size_t i = 0; i < cp->n; ++i) {
+    for (size_t i = 0; i < acirc_nsymbols(cp->circ); ++i) {
         if (size_t_fwrite(cp->ds[i], fp) == ERR)
             goto error;
     }
-    for (size_t i = 0; i < cp->n; ++i) {
+    for (size_t i = 0; i < acirc_nsymbols(cp->circ); ++i) {
         if (size_t_fwrite(cp->qs[i], fp) == ERR)
             goto error;
     }
@@ -50,19 +44,15 @@ error:
 int
 circ_params_fread(circ_params_t *const cp, acirc_t *circ, FILE *fp)
 {
-    if (size_t_fread(&cp->n, fp) == ERR)
+    if (size_t_fread(&cp->nslots, fp) == ERR)
         goto error;
-    if (size_t_fread(&cp->c, fp) == ERR)
-        goto error;
-    if (size_t_fread(&cp->m, fp) == ERR)
-        goto error;
-    cp->ds = my_calloc(cp->n, sizeof cp->ds[0]);
-    cp->qs = my_calloc(cp->n, sizeof cp->qs[0]);
-    for (size_t i = 0; i < cp->n; ++i) {
+    cp->ds = my_calloc(acirc_nsymbols(circ), sizeof cp->ds[0]);
+    cp->qs = my_calloc(acirc_nsymbols(circ), sizeof cp->qs[0]);
+    for (size_t i = 0; i < acirc_nsymbols(circ); ++i) {
         if (size_t_fread(&cp->ds[i], fp) == ERR)
             goto error;
     }
-    for (size_t i = 0; i < cp->n; ++i) {
+    for (size_t i = 0; i < acirc_nsymbols(circ); ++i) {
         if (size_t_fread(&cp->qs[i], fp) == ERR)
             goto error;
     }
@@ -81,7 +71,7 @@ size_t
 circ_params_ninputs(const circ_params_t *cp)
 {
     size_t ninputs = 0;
-    for (size_t i = 0; i < cp->n; ++i) {
+    for (size_t i = 0; i < cp->nslots; ++i) {
         ninputs += cp->ds[i];
     }
     return ninputs;
@@ -91,7 +81,7 @@ size_t
 circ_params_slot(const circ_params_t *cp, size_t pos)
 {
     size_t total = 0;
-    for (size_t i = 0; i < cp->n; ++i) {
+    for (size_t i = 0; i < cp->nslots; ++i) {
         if (pos >= total && pos < total + cp->ds[i])
             return i;
         total += cp->ds[i];
@@ -103,7 +93,7 @@ size_t
 circ_params_bit(const circ_params_t *cp, size_t pos)
 {
     size_t total = 0;
-    for (size_t i = 0; i < cp->n; ++i) {
+    for (size_t i = 0; i < cp->nslots; ++i) {
         if (pos >= total && pos < total + cp->ds[i])
             return pos - total;
         total += cp->ds[i];
@@ -124,10 +114,10 @@ circ_params_print(const circ_params_t *cp)
         fprintf(stderr, " %lu ", acirc_symlen(cp->circ, i));
     }
     fprintf(stderr, "]\n");
-    fprintf(stderr, "* nslots: ...... %lu\n", cp->n);
-    for (size_t i = 0; i < cp->n; ++i) {
+    fprintf(stderr, "* nslots: ...... %lu\n", cp->nslots);
+    for (size_t i = 0; i < cp->nslots; ++i) {
         size_t degree;
-        if (i == cp->n - has_consts)
+        if (i == cp->nslots - has_consts)
             degree = acirc_max_const_degree(cp->circ);
         else
             degree = acirc_max_var_degree(cp->circ, i);

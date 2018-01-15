@@ -21,7 +21,7 @@ _sp_init(secret_params *sp, mmap_params_t *mp, const obf_params_t *op, size_t ka
     my(sp)->toplevel = mife_params_new_toplevel(cp, mife_params_nzs(cp));
     my(sp)->cp = cp;
 
-    mp->kappa = kappa ? kappa : (size_t) max(acirc_delta(cp->circ) + 1, cp->n + (cp->c ? 0 : 1));
+    mp->kappa = kappa ? kappa : (size_t) max(acirc_delta(cp->circ) + 1, cp->nslots);
     mp->nzs = my(sp)->toplevel->nzs;
     mp->pows = my_calloc(mp->nzs, sizeof mp->pows[0]);
     for (size_t i = 0; i < mp->nzs; ++i) {
@@ -35,7 +35,7 @@ _sp_init(secret_params *sp, mmap_params_t *mp, const obf_params_t *op, size_t ka
         mp->pows[i] = my(sp)->toplevel->pows[i];
     }
     mp->my_pows = true;
-    mp->nslots = 1 + cp->n;
+    mp->nslots = 1 + cp->nslots;
     return OK;
 }
 

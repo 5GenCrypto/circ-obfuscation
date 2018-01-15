@@ -2,6 +2,7 @@
 :nrefs 3
 :consts 0
 :outputs 2
+:symlen 1
 :test 0 0
 :test 1 1
 :start
