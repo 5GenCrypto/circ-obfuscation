@@ -124,6 +124,7 @@ circ_params_print(const circ_params_t *cp)
         fprintf(stderr, "*   slot #%lu: ..... %lu (%lu) [%lu]\n", i + 1,
                 cp->ds[i], cp->qs[i], degree);
     }
+    fprintf(stderr, "* nrefs: ....... %lu\n", acirc_nrefs(cp->circ));
     fprintf(stderr, "* ngates: ...... %lu\n", acirc_ngates(cp->circ));
     fprintf(stderr, "* nmuls: ....... %lu\n", acirc_nmuls(cp->circ));
     fprintf(stderr, "* depth: ....... %lu\n", acirc_max_depth(cp->circ));

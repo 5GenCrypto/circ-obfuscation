@@ -44,9 +44,8 @@ index_set_print(const index_set *ix)
 void
 index_set_add(index_set *rop, const index_set *x, const index_set *y)
 {
-    for (size_t i = 0; i < rop->nzs; ++i) {
+    for (size_t i = 0; i < rop->nzs; ++i)
         rop->pows[i] = x->pows[i] + y->pows[i];
-    }
 }
 
 void

@@ -7,8 +7,9 @@
 #include "../util.h"
 
 struct sp_info {
-    index_set *toplevel;
     const circ_params_t *cp;
+    index_set *toplevel;
+    mmap_polylog_switch_params *sparams;
 };
 #define my(x) (x)->info
 
@@ -37,7 +38,9 @@ _sp_init(secret_params *sp, mmap_params_t *mp, const obf_params_t *op, size_t ka
         mp->pows[i] = my(sp)->toplevel->pows[i];
     }
     mp->my_pows = true;
-    mp->nslots = 1 + acirc_ninputs(cp->circ);
+    mp->nslots = 1 + acirc_ninputs(cp->circ) + 1;
+
+    /* my(sp)->sparams = polylog_switch_params(op, mp->nzs); */
     return OK;
 }
 

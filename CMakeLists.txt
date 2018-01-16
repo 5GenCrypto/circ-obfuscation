@@ -56,6 +56,7 @@ set(polylog_SOURCES
   src/polylog/obfuscator.c
   src/polylog/public_params.c
   src/polylog/secret_params.c
+  src/polylog/wire.c
   )
 
 add_library(lz SHARED ${lz_SOURCES})

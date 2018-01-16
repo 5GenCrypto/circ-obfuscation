@@ -181,13 +181,12 @@ encoding_set(const encoding_vtable *vt, encoding *rop, const encoding *x)
 
 int
 encoding_mul(const encoding_vtable *vt, const pp_vtable *pp_vt, encoding *rop,
-             const encoding *x, const encoding *y, const public_params *p,
-             size_t nswitch)
+             const encoding *x, const encoding *y, const public_params *p)
 {
 
     if (vt->mul(pp_vt, rop, x, y, p) == ERR)
         return ERR;
-    vt->mmap->enc->mul(rop->enc, p->pp, x->enc, y->enc, nswitch);
+    vt->mmap->enc->mul(rop->enc, p->pp, x->enc, y->enc);
     return OK;
 }
 

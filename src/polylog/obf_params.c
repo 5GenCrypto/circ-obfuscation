@@ -36,7 +36,7 @@ _new(acirc_t *circ, void *vparams)
     if (g_verbose)
         circ_params_print(&op->cp);
     op->nlevels = acirc_max_depth(op->cp.circ) + 1;
-    op->nswitches = acirc_nmuls(op->cp.circ) + acirc_ninputs(op->cp.circ) + 1;
+    op->nswitches = acirc_nrefs(circ) + 1 + acirc_ninputs(circ);
 
     return op;
 }
