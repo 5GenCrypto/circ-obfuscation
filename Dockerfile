@@ -4,7 +4,7 @@
 #   docker run -it mio /bin/bash
 #
 
-FROM ubuntu:14.04
+FROM ubuntu:16.10
 
 RUN apt-get -y update
 RUN apt-get -y install software-properties-common
@@ -13,7 +13,7 @@ RUN apt-get -y update
 RUN apt-get -y install git
 RUN apt-get -y install gcc-6 g++-6
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-6 60 --slave /usr/bin/g++ g++ /usr/bin/g++-6
-RUN apt-get -y install autoconf libtool make
+RUN apt-get -y install make cmake
 RUN apt-get -y install libgmp3-dev libmpfr-dev libmpfr4 libssl-dev
 RUN apt-get -y install wget zip
 RUN apt-get -y install flex bison
@@ -29,8 +29,8 @@ RUN make install
 RUN ldconfig
 
 WORKDIR /inst
-RUN git clone https://github.com/5GenCrypto/circ-obfuscation.git
+RUN git clone https://github.com/5GenCrypto/circ-obfuscation.git -b dev
 
 WORKDIR /inst/circ-obfuscation
-RUN git pull origin master
+RUN git pull origin dev
 # RUN ./build.sh
