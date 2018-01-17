@@ -3,7 +3,7 @@
 #   docker build -t mio .
 #   docker run -it mio /bin/bash
 # To mount a host directory when running:
-#   docker run -v /host/path:/container/path -it mio /bin/bash
+#   docker run -v /host/path:/container/path:z -it mio /bin/bash
 #
 
 FROM ubuntu:14.04
