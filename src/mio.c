@@ -27,7 +27,7 @@
 #include <unistd.h>
 
 static const char *progname = "mio";
-static const char *progversion = "v2.0";
+static const char *progversion = "v2.0.0 (in progress)";
 
 #define NPOWERS_DEFAULT 1
 #define SECPARAM_DEFAULT 8
@@ -751,8 +751,6 @@ cmd_mife(int argc, char **argv)
     return ret;
 }
 
-/*******************************************************************************/
-
 static int
 obf_select_scheme(enum scheme_e scheme, acirc_t *circ, size_t npowers, bool sigma,
                   size_t base, obfuscator_vtable **vt, op_vtable **op_vt, obf_params_t **op)
@@ -1047,12 +1045,19 @@ cmd_obf(int argc, char **argv)
 static void
 usage(bool longform, int ret)
 {
+    printf("%s %s — Circuit-based MIFE + Obfuscation\n\n", progname, progversion);
     printf("usage: %s <command> [<args>]\n", progname);
     if (longform) {
+        printf("\nSupported MIFE schemes:\n");
+        printf("· 5Gen-C scheme [http://ia.cr/2017/826, Section 5.1]\n");
+        printf("\n");
+        printf("Supported obfuscation schemes:\n");
+        printf("· MIFE:    MIFE→ Obfuscation scheme [http://ia.cr/2017/826, Section 5.4]\n");
+        printf("· LZ:      Linnerman scheme         [http://ia.cr/2017/826, Appendix B]\n");
+        printf("· POLYLOG: Obfuscation using polylog CLT\n");
         printf("\nAvailable commands:\n"
                "   mife       run multi-input functional encryption\n"
                "   obf        run program obfuscation\n"
-               "   version    print version information and exit\n"
                "   help       print this message and exit\n\n");
     }
     exit(ret);
@@ -1078,9 +1083,6 @@ main(int argc, char **argv)
                || !strcmp(command, "--help")
                || !strcmp(command, "-h")) {
         usage(true, EXIT_SUCCESS);
-    } else if (!strcmp(command, "version")) {
-        printf("%s %s\n", progname, progversion);
-        exit(EXIT_SUCCESS);
     } else {
         fprintf(stderr, "error: unknown command '%s'\n", command);
         usage(true, EXIT_FAILURE);
