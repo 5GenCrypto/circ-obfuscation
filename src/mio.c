@@ -576,7 +576,7 @@ cmd_mife_setup(int argc, char **argv, args_t *args)
     handle_options(&argc, &argv, 0, args, &args_, mife_setup_handle_options, mife_setup_usage);
     if (mife_select_scheme(args->circ, args->sigma, args->base, &op_vt, &op) == ERR)
         goto cleanup;
-    if (mife_run_setup(args->vt, args->circuit, op, args_.secparam, NULL, args_.npowers,
+    if (mife_run_setup(args->vt, args->circuit, op, args->secparam, NULL, args_.npowers,
                        args->nthreads, args->rng) == ERR)
         goto cleanup;
     ret = OK;
@@ -690,7 +690,7 @@ cmd_mife_test(int argc, char **argv, args_t *args)
         if (kappa == 0)
             goto cleanup;
     }
-    if (mife_run_test(args->vt, args->circuit, op, args_.secparam,
+    if (mife_run_test(args->vt, args->circuit, op, args->secparam,
                       &kappa, args_.npowers, args->nthreads, args->rng) == ERR) {
         fprintf(stderr, "error: mife test failed\n");
         goto cleanup;
