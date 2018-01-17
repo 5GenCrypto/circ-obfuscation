@@ -267,34 +267,34 @@ mife_run_all(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
 {
     const circ_params_t *cp = &op->cp;
     const acirc_t *const circ = cp->circ;
-    double start, end;
-    mife_sk_t *sk;
+    mife_sk_t *sk = NULL;
     size_t consts = acirc_nconsts(circ) ? 1 : 0;
     int ret = ERR;
 
     {
+        const double _start = current_time();
         char skname[strlen(circuit) + sizeof ".sk\0"];
         FILE *fp;
 
-        start = current_time();
         snprintf(skname, sizeof skname, "%s.sk", circuit);
         if ((fp = fopen(skname, "r")) == NULL) {
-            fprintf(stderr, "error: unable to open '%s' for reading\n", skname);
-            exit(EXIT_FAILURE);
+            fprintf(stderr, "error: %s: unable to open '%s' for reading\n",
+                    __func__, skname);
+            return ERR;
         }
         sk = mife_sk_fread(mmap, op, fp);
         fclose(fp);
-
-        end = current_time();
+        if (sk == NULL)
+            return ERR;
         if (g_verbose)
-            fprintf(stderr, "  Reading sk from disk: %.2fs\n", end - start);
+            fprintf(stderr, "  Reading secret key from disk: %.2fs\n",
+                    current_time() - _start);
     }
 
     /* Encrypt each input in the right slot */
     for (size_t i = 0; i < cp->nslots - consts; ++i) {
-        ret = mife_run_encrypt(mmap, circuit, op, inp[i], i, nthreads, sk, rng);
-        if (ret == ERR) {
-            fprintf(stderr, "error: mife encryption of '");
+        if (mife_run_encrypt(mmap, circuit, op, inp[i], i, nthreads, sk, rng) == ERR) {
+            fprintf(stderr, "error: %s: mife encryption of '", __func__);
             for (size_t j = 0; j < cp->ds[i]; ++j) {
                 fprintf(stderr, "%ld", inp[i][j]);
             }
@@ -302,6 +302,7 @@ mife_run_all(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
             return ERR;
         }
     }
+
     mife_sk_free(sk);
 
     {
@@ -332,11 +333,8 @@ mife_run_test(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
     const size_t has_consts = acirc_nconsts(circ) ? 1 : 0;
     int ret;
 
-    ret = mife_run_setup(mmap, circuit, op, secparam, kappa, npowers, nthreads, rng);
-    if (ret == ERR) {
-        fprintf(stderr, "error: mife setup failed\n");
+    if (mife_run_setup(mmap, circuit, op, secparam, kappa, npowers, nthreads, rng) == ERR)
         return ERR;
-    }
 
     for (size_t t = 0; t < acirc_ntests(circ); ++t) {
         long *inps[acirc_nsymbols(circ)];
@@ -347,7 +345,8 @@ mife_run_test(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
             memcpy(inps[i], &acirc_test_input(circ, t)[idx], cp->ds[i] * sizeof inps[i][0]);
             idx += cp->ds[i];
         }
-        mife_run_all(mmap, circuit, op, inps, outp, kappa, nthreads, rng);
+        if (mife_run_all(mmap, circuit, op, inps, outp, kappa, nthreads, rng) == ERR)
+            return ERR;
         if (!print_test_output(t + 1, acirc_test_input(circ, t), acirc_ninputs(circ),
                                acirc_test_output(circ, t), outp, acirc_noutputs(circ), false))
             ret = ERR;
@@ -377,21 +376,17 @@ mife_run_smart_kappa(const char *circuit, obf_params_t *op, size_t npowers,
         fprintf(stderr, "Choosing κ smartly...\n");
 
     g_verbose = false;
-    if (mife_run_setup(&dummy_vtable, circuit, op, 8, &kappa, npowers, nthreads, rng) == ERR) {
-        fprintf(stderr, "error: mife setup failed\n");
+    if (mife_run_setup(&dummy_vtable, circuit, op, 8, &kappa, npowers, nthreads, rng) == ERR)
         goto cleanup;
-    }
 
-    for (size_t i = 0; i < cp->nslots - has_consts; ++i) {
+    for (size_t i = 0; i < cp->nslots - has_consts; ++i)
         inps[i] = my_calloc(cp->ds[i], sizeof inps[i][0]);
-    }
     if (mife_run_all(&dummy_vtable, circuit, op, inps, NULL, &kappa, nthreads, rng) == ERR) {
-        fprintf(stderr, "error: unable to determine κ smartly\n");
+        fprintf(stderr, "error: %s: unable to determine κ smartly\n", __func__);
         kappa = 0;
     }
-    for (size_t i = 0; i < cp->nslots - has_consts; ++i) {
+    for (size_t i = 0; i < cp->nslots - has_consts; ++i)
         free(inps[i]);
-    }
 cleanup:
     g_verbose = verbosity;
     return kappa;

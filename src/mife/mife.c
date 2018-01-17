@@ -375,7 +375,6 @@ mife_sk_t *
 mife_sk_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
 {
     const circ_params_t *cp = &op->cp;
-    double start, end;
     mife_sk_t *sk;
 
     sk = my_calloc(1, sizeof sk[0]);
@@ -385,18 +384,22 @@ mife_sk_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     sk->enc_vt = get_encoding_vtable(mmap);
     sk->pp_vt = get_pp_vtable(mmap);
     sk->sp_vt = get_sp_vtable(mmap);
-    start = current_time();
-    if ((sk->pp = public_params_fread(sk->pp_vt, op, fp)) == NULL)
-        goto error;
-    end = current_time();
-    if (g_verbose)
-        fprintf(stderr, "  Reading pp from disk: %.2fs\n", end - start);
-    start = current_time();
-    if ((sk->sp = secret_params_fread(sk->sp_vt, cp, fp)) == NULL)
-        goto error;
-    end = current_time();
-    if (g_verbose)
-        fprintf(stderr, "  Reading sp from disk: %.2fs\n", end - start);
+    {
+        const double start = current_time();
+        if ((sk->pp = public_params_fread(sk->pp_vt, op, fp)) == NULL)
+            goto error;
+        if (g_verbose)
+            fprintf(stderr, "    Reading public parameters from disk: %.2fs\n",
+                    current_time() - start);
+    }
+    {
+        const double start = current_time();
+        if ((sk->sp = secret_params_fread(sk->sp_vt, cp, fp)) == NULL)
+            goto error;
+        if (g_verbose)
+            fprintf(stderr, "    Reading secret parameters from disk: %.2fs\n",
+                    current_time() - start);
+    }
     if (acirc_nconsts(sk->cp->circ)) {
         sk->const_alphas = my_calloc(acirc_nconsts(sk->cp->circ), sizeof sk->const_alphas[0]);
         for (size_t o = 0; o < acirc_nconsts(sk->cp->circ); ++o)
@@ -409,7 +412,7 @@ mife_sk_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
             goto error;
     return sk;
 error:
-    fprintf(stderr, "error: reading mife secret key failed\n");
+    fprintf(stderr, "error: %s: reading mife secret key failed\n", __func__);
     mife_sk_free(sk);
     return NULL;
 }
@@ -418,7 +421,8 @@ mife_ek_t *
 mife_ek(const mife_t *mife)
 {
     mife_ek_t *ek;
-    ek = my_calloc(1, sizeof ek[0]);
+    if ((ek = my_calloc(1, sizeof ek[0])) == NULL)
+        return NULL;
     ek->mmap = mife->mmap;
     ek->cp = mife->cp;
     ek->enc_vt = mife->enc_vt;
@@ -485,7 +489,8 @@ mife_ek_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     mife_ek_t *ek;
     bool has_consts;
 
-    ek = my_calloc(1, sizeof ek[0]);
+    if ((ek = my_calloc(1, sizeof ek[0])) == NULL)
+        return NULL;
     ek->local = true;
     ek->mmap = mmap;
     ek->cp = cp;
@@ -548,7 +553,8 @@ mife_ciphertext_fread(const mmap_vtable *mmap, const circ_params_t *cp, FILE *fp
     mife_ciphertext_t *ct;
     size_t ninputs;
 
-    ct = my_calloc(1, sizeof ct[0]);
+    if ((ct = my_calloc(1, sizeof ct[0])) == NULL)
+        return NULL;
     ct->enc_vt = get_encoding_vtable(mmap);
     if (size_t_fread(&ct->slot, fp) == ERR)
         goto error;
