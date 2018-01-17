@@ -41,10 +41,9 @@ enum scheme_e {
 };
 
 typedef struct args_t {
+    const mmap_vtable *vt;
     char *circuit;
     acirc_t *circ;
-    size_t secparam;
-    const mmap_vtable *vt;
     bool smart;
     bool sigma;
     size_t base;
@@ -56,10 +55,9 @@ typedef struct args_t {
 static void
 args_init(args_t *args)
 {
+    args->vt = &dummy_vtable;
     args->circuit = NULL;
     args->circ = NULL;
-    args->secparam = 16;
-    args->vt = &dummy_vtable;
     args->smart = false;
     args->sigma = false;
     args->base = 2;
@@ -111,7 +109,7 @@ args_get_size_t(size_t *result, int *argc, char ***argv)
     return OK;
 }
 
-typedef struct mife_setup_args_t {
+typedef struct {
     size_t secparam;
     size_t npowers;
 } mife_setup_args_t;
@@ -155,14 +153,6 @@ mife_setup_handle_options(int *argc, char ***argv, void *vargs)
     return OK;
 }
 
-typedef struct {} mife_encrypt_args_t;
-
-static void
-mife_encrypt_args_init(mife_encrypt_args_t *args)
-{
-    (void) args;
-}
-
 static void
 mife_encrypt_usage(bool longform, int ret)
 {
@@ -175,21 +165,6 @@ mife_encrypt_usage(bool longform, int ret)
     exit(ret);
 }
 
-static int
-mife_encrypt_handle_options(int *argc, char ***argv, void *vargs)
-{
-    (void) argc; (void) argv; (void) vargs;
-    return ERR;
-}
-
-typedef struct {} mife_decrypt_args_t;
-
-static void
-mife_decrypt_args_init(mife_decrypt_args_t *args)
-{
-    (void) args;
-}
-
 static void
 mife_decrypt_usage(bool longform, int ret)
 {
@@ -200,13 +175,6 @@ mife_decrypt_usage(bool longform, int ret)
         printf("\n");
     }
     exit(ret);
-}
-
-static int
-mife_decrypt_handle_options(int *argc, char ***argv, void *vargs)
-{
-    (void) argc; (void) argv; (void) vargs;
-    return ERR;
 }
 
 typedef struct {
@@ -483,10 +451,10 @@ handle_options(int *argc, char ***argv, int left, args_t *args, void *others,
         if (cmd[0] != '-')
             break;
 
-        if (!strcmp(cmd, "--secparam")) {
-            if (args_get_size_t(&args->secparam, argc, argv) == ERR)
-                f(false, EXIT_FAILURE);
-        } else if (!strcmp(cmd, "--mmap")) {
+        /* if (!strcmp(cmd, "--secparam")) { */
+        /*     if (args_get_size_t(&args->secparam, argc, argv) == ERR) */
+                /* f(false, EXIT_FAILURE); */
+        if (!strcmp(cmd, "--mmap")) {
             if (*argc <= 1)
                 f(false, EXIT_FAILURE);
             const char *mmap = (*argv)[1];
@@ -533,7 +501,7 @@ handle_options(int *argc, char ***argv, int left, args_t *args, void *others,
         f(false, EXIT_FAILURE);
     }
     args->circuit = (*argv)[0];
-    args->circ = acirc_new(args->circuit, false);
+    args->circ = acirc_new(args->circuit, true);
     if (args->circ == NULL) {
         fprintf(stderr, "error: parsing circuit '%s' failed\n", args->circuit);
         exit(EXIT_FAILURE);
@@ -576,7 +544,7 @@ cmd_mife_setup(int argc, char **argv, args_t *args)
     handle_options(&argc, &argv, 0, args, &args_, mife_setup_handle_options, mife_setup_usage);
     if (mife_select_scheme(args->circ, args->sigma, args->base, &op_vt, &op) == ERR)
         goto cleanup;
-    if (mife_run_setup(args->vt, args->circuit, op, args->secparam, NULL, args_.npowers,
+    if (mife_run_setup(args->vt, args->circuit, op, args_.secparam, NULL, args_.npowers,
                        args->nthreads, args->rng) == ERR)
         goto cleanup;
     ret = OK;
@@ -589,15 +557,13 @@ cleanup:
 static int
 cmd_mife_encrypt(int argc, char **argv, args_t *args)
 {
-    mife_encrypt_args_t args_;
     op_vtable *op_vt = NULL;
     obf_params_t *op = NULL;
     size_t slot;
     int ret = ERR;
 
     argv++; argc--;
-    mife_encrypt_args_init(&args_);
-    handle_options(&argc, &argv, 2, args, &args_, mife_encrypt_handle_options, mife_encrypt_usage);
+    handle_options(&argc, &argv, 2, args, NULL, NULL, mife_encrypt_usage);
     long input[strlen(argv[0])];
     for (size_t i = 0; i < strlen(argv[0]); ++i) {
         if ((input[i] = char_to_long(argv[0][i])) < 0)
@@ -620,7 +586,6 @@ cleanup:
 static int
 cmd_mife_decrypt(int argc, char **argv, args_t *args)
 {
-    mife_decrypt_args_t args_;
     op_vtable *op_vt = NULL;
     obf_params_t *op = NULL;
     char *ek = NULL;
@@ -630,8 +595,7 @@ cmd_mife_decrypt(int argc, char **argv, args_t *args)
     int ret = ERR;
 
     argv++; argc--;
-    mife_decrypt_args_init(&args_);
-    handle_options(&argc, &argv, 0, args, &args_, mife_decrypt_handle_options, mife_decrypt_usage);
+    handle_options(&argc, &argv, 0, args, NULL, NULL, mife_decrypt_usage);
     if (mife_select_scheme(args->circ, args->sigma, args->base, &op_vt, &op) == ERR)
         goto cleanup;
     nslots = op->cp.nslots;
@@ -690,7 +654,7 @@ cmd_mife_test(int argc, char **argv, args_t *args)
         if (kappa == 0)
             goto cleanup;
     }
-    if (mife_run_test(args->vt, args->circuit, op, args->secparam,
+    if (mife_run_test(args->vt, args->circuit, op, args_.secparam,
                       &kappa, args_.npowers, args->nthreads, args->rng) == ERR) {
         fprintf(stderr, "error: mife test failed\n");
         goto cleanup;
@@ -722,7 +686,7 @@ cmd_mife_get_kappa(int argc, char **argv, args_t *args)
         if (kappa == 0)
             goto cleanup;
     } else {
-        if (mife_run_setup(vt, args->circuit, op, args->secparam, &kappa, args_.npowers,
+        if (mife_run_setup(vt, args->circuit, op, 8, &kappa, args_.npowers,
                            args->nthreads, args->rng) == ERR) {
             fprintf(stderr, "error: mife setup failed\n");
             goto cleanup;
@@ -870,7 +834,7 @@ cmd_obf_obfuscate(int argc, char **argv, args_t *args)
     if (args_.kappa)
         kappa = args_.kappa;
 
-    if (obf_run_obfuscate(args->vt, vt, fname, op, args->secparam, &kappa,
+    if (obf_run_obfuscate(args->vt, vt, fname, op, args_.secparam, &kappa,
                           args->nthreads, args->rng) == ERR)
         goto cleanup;
 
@@ -973,7 +937,7 @@ cmd_obf_test(int argc, char **argv, args_t *args)
     if ((fname = my_calloc(length, sizeof fname[0])) == NULL)
         goto cleanup;
     snprintf(fname, length, "%s.obf", args->circuit);
-    if (obf_run_obfuscate(args->vt, vt, fname, op, args->secparam, &kappa,
+    if (obf_run_obfuscate(args->vt, vt, fname, op, args_.secparam, &kappa,
                           args->nthreads, args->rng) == ERR)
         goto cleanup;
 
@@ -1020,7 +984,7 @@ cmd_obf_get_kappa(int argc, char **argv, args_t *args)
         if (kappa == 0)
             goto cleanup;
     } else {
-        if (obf_run_obfuscate(args->vt, vt, NULL, op, args->secparam, &kappa,
+        if (obf_run_obfuscate(args->vt, vt, NULL, op, 8, &kappa,
                               args->nthreads, args->rng) == ERR)
             goto cleanup;
     }
