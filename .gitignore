@@ -44,3 +44,5 @@ CMakeFiles/
 GPATH
 GRTAGS
 GTAGS
+gmon.out
+vgcore.*
