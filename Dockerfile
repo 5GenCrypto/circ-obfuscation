@@ -29,6 +29,11 @@ RUN make install
 RUN ldconfig
 
 WORKDIR /inst
+RUN wget https://cmake.org/files/v3.10/cmake-3.10.1-Linux-x86_64.tar.gz
+RUN tar xvf cmake-3.10.1-Linux-x86_64.tar.gz
+ENV PATH="/inst/cmake-3.10.1-Linux-x86_64/bin:${PATH}"
+
+WORKDIR /inst
 RUN git clone https://github.com/5GenCrypto/circ-obfuscation.git -b dev
 
 WORKDIR /inst/circ-obfuscation
