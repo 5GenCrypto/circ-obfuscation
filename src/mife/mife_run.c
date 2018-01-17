@@ -373,7 +373,7 @@ mife_run_smart_kappa(const char *circuit, obf_params_t *op, size_t npowers,
     bool verbosity = g_verbose;
 
     if (g_verbose)
-        fprintf(stderr, "Choosing κ smartly...\n");
+        fprintf(stderr, "Choosing κ smartly... ");
 
     g_verbose = false;
     if (mife_run_setup(&dummy_vtable, circuit, op, 8, &kappa, npowers, nthreads, rng) == ERR)
@@ -389,5 +389,7 @@ mife_run_smart_kappa(const char *circuit, obf_params_t *op, size_t npowers,
         free(inps[i]);
 cleanup:
     g_verbose = verbosity;
+    if (g_verbose)
+        fprintf(stderr, "%lu\n", kappa);
     return kappa;
 }

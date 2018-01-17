@@ -180,6 +180,7 @@ mife_decrypt_usage(bool longform, int ret)
 typedef struct {
     size_t secparam;
     size_t npowers;
+    size_t kappa;
 } mife_test_args_t;
 
 static void
@@ -187,6 +188,7 @@ mife_test_args_init(mife_test_args_t *args)
 {
     args->npowers = NPOWERS_DEFAULT;
     args->secparam = SECPARAM_DEFAULT;
+    args->kappa = 0;
 }
 
 static void
@@ -196,7 +198,8 @@ mife_test_usage(bool longform, int ret)
     if (longform) {
         printf("\nAvailable arguments:\n\n");
         printf("    --secparam λ       set security parameter to λ (default: %d)\n"
-               "    --npowers N        set the number of powers to N (default: %d)\n",
+               "    --npowers N        set the number of powers to N (default: %d)\n"
+               "    --kappa κ          set multilinearity to κ\n",
                SECPARAM_DEFAULT, NPOWERS_DEFAULT);
         args_usage();
         printf("\n");
@@ -215,6 +218,9 @@ mife_test_handle_options(int *argc, char ***argv, void *vargs)
             return ERR;
     } else if (!strcmp(cmd, "--secparam")) {
         if (args_get_size_t(&args->secparam, argc, argv) == ERR)
+            return ERR;
+    } else if (!strcmp(cmd, "--kappa")) {
+        if (args_get_size_t(&args->kappa, argc, argv) == ERR)
             return ERR;
     } else {
         return ERR;
@@ -649,6 +655,8 @@ cmd_mife_test(int argc, char **argv, args_t *args)
     handle_options(&argc, &argv, 0, args, &args_, mife_test_handle_options, mife_test_usage);
     if (mife_select_scheme(args->circ, args->sigma, args->base, &op_vt, &op) == ERR)
         goto cleanup;
+    if (args_.kappa)
+        kappa = args_.kappa;
     if (args->smart) {
         kappa = mife_run_smart_kappa(args->circuit, op, args_.npowers, args->nthreads, args->rng);
         if (kappa == 0)
