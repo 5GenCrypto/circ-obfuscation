@@ -2,12 +2,14 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <err.h>
 #include <fcntl.h>
-#include <sys/time.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <err.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <unistd.h>
+
 
 #include <gmp.h>
 #include <mmap/mmap_clt.h>
@@ -407,4 +409,12 @@ memory(unsigned long *size, unsigned long *resident)
     *size = *size * 4 / 1024;
     *resident = *resident * 4 / 1024;
     return OK;
+}
+
+size_t
+filesize(const char *fname)
+{
+    struct stat st;
+    stat(fname, &st);
+    return st.st_size;
 }
