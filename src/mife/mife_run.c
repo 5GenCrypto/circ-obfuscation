@@ -148,6 +148,7 @@ mife_run_decrypt(const char *ek_s, char **cts_s, long *rop,
                  const mmap_vtable *mmap, obf_params_t *op, size_t *kappa,
                  size_t nthreads)
 {
+    const double start = current_time();
     const circ_params_t *cp = &op->cp;
     const size_t has_consts = acirc_nconsts(cp->circ) ? 1 : 0;
     mife_ciphertext_t *cts[cp->nslots];
@@ -193,6 +194,8 @@ mife_run_decrypt(const char *ek_s, char **cts_s, long *rop,
         fprintf(stderr, "error: decryption failed\n");
         goto cleanup;
     }
+    if (g_verbose)
+        fprintf(stderr, "Total: %.2fs\n", current_time() - start);
     ret = OK;
 cleanup:
     if (ek)
@@ -302,6 +305,7 @@ mife_run_test(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
         for (size_t i = 0; i < cp->nslots - has_consts; ++i) {
             free(inps[i]);
         }
+
     }
     return ret;
 }
