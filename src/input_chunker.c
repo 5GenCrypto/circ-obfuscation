@@ -2,6 +2,7 @@
 #include "util.h"
 
 #include <assert.h>
+#include <math.h>
 #include <string.h>
 
 sym_id chunker_in_order(size_t id, size_t ninputs, size_t nsyms)
