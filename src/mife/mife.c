@@ -534,14 +534,11 @@ mife_ciphertext_fwrite(const mife_ciphertext_t *ct, const circ_params_t *cp,
                        FILE *fp)
 {
     const size_t ninputs = cp->ds[ct->slot];
-    if (size_t_fwrite(ct->slot, fp) == ERR)
-        return ERR;
+    if (size_t_fwrite(ct->slot, fp) == ERR) return ERR;
     for (size_t j = 0; j < ninputs; ++j)
-        if (encoding_fwrite(ct->enc_vt, ct->xhat[j], fp) == ERR)
-            return ERR;
+        if (encoding_fwrite(ct->enc_vt, ct->xhat[j], fp) == ERR) return ERR;
     for (size_t o = 0; o < acirc_noutputs(cp->circ); ++o)
-        if (encoding_fwrite(ct->enc_vt, ct->what[o], fp) == ERR)
-            return ERR;
+        if (encoding_fwrite(ct->enc_vt, ct->what[o], fp) == ERR) return ERR;
     return OK;
 }
 

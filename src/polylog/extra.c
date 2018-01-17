@@ -43,7 +43,6 @@ static void *
 const_f(size_t ref, size_t i, long val, void *args_)
 {
     (void) ref; (void) i; (void) val; (void) args_;
-    /* const circ_params_t *cp = &args->op->cp; */
     encoding_t *enc;
 
     enc = calloc(1, sizeof enc[0]);
@@ -94,22 +93,29 @@ eval_f(size_t ref, acirc_op op, size_t xref, const void *x_, size_t yref, const 
 static void *
 output_f(size_t ref, size_t o, void *x_, void *args_)
 {
-    (void) o;
     args_t *args = args_;
     mmap_polylog_switch_params *sparams;
     acirc_t *circ = args->op->cp.circ;
     const size_t ninputs = acirc_ninputs(circ);
     const encoding_t *x = x_;
+    const size_t top = args->op->nlevels;
 
     /* Compute LHS */
-    ref = acirc_nrefs(circ);
+    ref = acirc_nrefs(circ) + o * (ninputs + 2);
+    if (x->level < top - 1) {
+        sparams = &args->sparams[ref][0];
+        sparams->source = x->level;
+        sparams->target = top - 1;
+        printf("Creating LHS boosting switch params [%lu: %lu -> %lu]\n",
+               ref, sparams->source, sparams->target);
+    }
     sparams = &args->sparams[ref][1];
-    sparams->source = x->level;
-    sparams->target = x->level + 1;
+    sparams->source = top - 1;
+    sparams->target = top;
     printf("Creating LHS switch params [%lu: %lu -> %lu]\n",
            ref, sparams->source, sparams->target);
 
-    ref = ref + 1;
+    ref++;
 
     /* Compute RHS */
     for (size_t i = 0; i < ninputs; ++i) {
@@ -120,7 +126,26 @@ output_f(size_t ref, size_t o, void *x_, void *args_)
                ref + i, sparams->source, sparams->target);
     }
 
+    sparams = &args->sparams[ref + ninputs][1];
+    sparams->source = MIN(top, ninputs);
+    sparams->target = MAX(top, ninputs);
+    if (sparams->source == sparams->target) {
+        sparams->source = 0;
+        sparams->target = 0;
+    } else {
+        printf("Creating sub switch param [%lu: %lu -> %lu]\n",
+               ref + ninputs, sparams->source, sparams->target);
+    }
+
     return NULL;
+}
+
+static void
+free_f(void *x, void *args_)
+{
+    (void) args_;
+    if (x)
+        free(x);
 }
 
 mmap_polylog_switch_params **
@@ -136,7 +161,7 @@ polylog_switch_params(obf_params_t *op, size_t nzs)
     }
     args_t args = { .op = op, .sparams = sparams };
     outputs = (encoding_t **) acirc_traverse(op->cp.circ, input_f, const_f,
-                                             eval_f, output_f, NULL, &args, 0);
+                                             eval_f, output_f, free_f, &args, 0);
     free(outputs);
     return sparams;
 }

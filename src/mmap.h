@@ -111,6 +111,8 @@ void            public_params_free(const pp_vtable *vt, public_params *p);
 encoding * encoding_new(const encoding_vtable *enc_vt, const pp_vtable *pp_vt,
                         const public_params *pp);
 void       encoding_free(const encoding_vtable *vt, encoding *x);
+encoding * encoding_copy(const encoding_vtable *vt, const pp_vtable *pp_vt,
+                         const public_params *pp, const encoding *enc);
 int        encoding_print(const encoding_vtable *vt, const encoding *enc);
 int        encode(const encoding_vtable *vt, encoding *rop, mpz_t *inps, size_t nins,
                   const void *set, const secret_params *sp, size_t level);

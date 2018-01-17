@@ -30,13 +30,14 @@ _new(acirc_t *circ, void *vparams)
     (void) vparams;
     obf_params_t *op;
     const size_t ninputs = acirc_ninputs(circ);
+    const size_t noutputs = acirc_noutputs(circ);
 
     op = calloc(1, sizeof op[0]);
     circ_params_init(&op->cp, ninputs, circ);
     if (g_verbose)
         circ_params_print(&op->cp);
     op->nlevels = acirc_max_depth(op->cp.circ) + 1;
-    op->nswitches = acirc_nrefs(circ) + 1 + acirc_ninputs(circ);
+    op->nswitches = acirc_nrefs(circ) + (ninputs + 2) * noutputs;
 
     return op;
 }

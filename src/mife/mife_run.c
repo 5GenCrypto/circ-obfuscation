@@ -319,12 +319,7 @@ mife_run_all(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
             free(cts[j]);
         }
     }
-    if (ret == ERR) {
-        fprintf(stderr, "error: mife decryption failed\n");
-        return ERR;
-    }
-
-    return OK;
+    return ret;
 }
 
 int
@@ -359,7 +354,11 @@ mife_run_test(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
         for (size_t i = 0; i < cp->nslots - has_consts; ++i) {
             free(inps[i]);
         }
-
+    }
+    if (g_verbose) {
+        unsigned long size, resident;
+        if (memory(&size, &resident) == OK)
+            fprintf(stderr, "memory: %lu MB\n", resident);
     }
     return ret;
 }

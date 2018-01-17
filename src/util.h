@@ -81,7 +81,8 @@ bool print_test_output(size_t num, const long *inp, size_t ninputs, const long *
 
 long char_to_long(char c);
 char long_to_char(long i);
+/* return memory usage (in megabytes) */
 int memory(unsigned long *size, unsigned long *resident);
-/* file size, in bytes */
+/* file size (in bytes) */
 size_t filesize(const char *fname);
 

@@ -62,6 +62,11 @@ secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
         free(sp);
         sp = NULL;
     }
+    if (vt->mmap == &clt_pl_vtable) {
+        for (size_t i = 0; i < polylog_nswitches(op); ++i)
+            free(o.polylog.sparams[i]);
+        free(o.polylog.sparams);
+    }
     if (acirc_is_binary(cp->circ))
         mpz_clear(modulus);
     if (params.my_pows)
@@ -149,6 +154,17 @@ encoding_free(const encoding_vtable *vt, encoding *enc)
         vt->free(enc);
         free(enc);
     }
+}
+
+encoding *
+encoding_copy(const encoding_vtable *vt, const pp_vtable *pp_vt,
+              const public_params *pp, const encoding *enc)
+{
+    encoding *rop;
+
+    rop = encoding_new(vt, pp_vt, pp);
+    encoding_set(vt, rop, enc);
+    return rop;
 }
 
 int

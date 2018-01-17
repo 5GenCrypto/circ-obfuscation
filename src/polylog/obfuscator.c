@@ -346,7 +346,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
             ix = index_set_new(obf_params_nzs(cp));
             mpz_randomm_inv(slots[0], rng, moduli[0]);
             __encode(pool, obf->enc_vt, obf->zhat[i], nslots, slots,
-                     ix, obf->sp, acirc_max_depth(cp->circ), &lock, &count, total);
+                     ix, obf->sp, obf->op->nlevels - 1, &lock, &count, total);
         }
     }
 
@@ -539,7 +539,9 @@ output_f(size_t ref, size_t o, void *x_, void *args_)
     rhs = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
 
     /* Compute LHS */
-    ref = acirc_nrefs(cp->circ);
+    ref = acirc_nrefs(cp->circ) + o * (ninputs + 2);
+    if (obf->mmap == &clt_pl_vtable)
+        clt_pl_elem_switch(wire_x(x)->enc, obf->pp->pp, wire_x(x)->enc, args->switches[ref][0]);
     encoding_mul(obf->enc_vt, obf->pp_vt, lhs, wire_x(x), obf->zhat[o], obf->pp);
     if (obf->mmap == &clt_pl_vtable)
         clt_pl_elem_switch(lhs->enc, obf->pp->pp, lhs->enc, args->switches[ref][1]);
@@ -550,13 +552,13 @@ output_f(size_t ref, size_t o, void *x_, void *args_)
         goto cleanup;
     }
     /* Compute RHS */
-    ref = ref + 1;
+    ref++;
     encoding_set(obf->enc_vt, rhs, obf->Chatstar[o]);
     for (size_t i = 0; i < ninputs; ++i) {
         /* XXX wrong */
         encoding_mul(obf->enc_vt, obf->pp_vt, rhs, rhs, args->obf->what[i][0][o], obf->pp);
         if (obf->mmap == &clt_pl_vtable)
-            clt_pl_elem_switch(rhs->enc, obf->pp->pp, rhs->enc, args->switches[ref + i][1]);
+            clt_pl_elem_switch(rhs->enc, obf->pp->pp, rhs->enc, args->switches[ref++][1]);
     }
     if (!index_set_eq(obf->enc_vt->mmap_set(rhs), toplevel)) {
         fprintf(stderr, "error: rhs != toplevel\n");
@@ -564,6 +566,8 @@ output_f(size_t ref, size_t o, void *x_, void *args_)
         index_set_print(toplevel);
         goto cleanup;
     }
+    if (obf->mmap == &clt_pl_vtable)
+        clt_pl_elem_switch(rhs->enc, obf->pp->pp, rhs->enc, args->switches[ref++][1]);
     encoding_sub(obf->enc_vt, obf->pp_vt, out, lhs, rhs, obf->pp);
     output = !encoding_is_zero(obf->enc_vt, obf->pp_vt, out, obf->pp);
 cleanup:

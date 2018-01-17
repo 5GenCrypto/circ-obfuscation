@@ -2,9 +2,11 @@
 # To use, run:
 #   docker build -t mio .
 #   docker run -it mio /bin/bash
+# To mount a host directory when running:
+#   docker run -v /host/path:/container/path -it mio /bin/bash
 #
 
-FROM ubuntu:16.10
+FROM ubuntu:14.04
 
 RUN apt-get -y update
 RUN apt-get -y install software-properties-common

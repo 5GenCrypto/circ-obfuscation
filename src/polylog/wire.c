@@ -54,30 +54,94 @@ wire_mul(const encoding_vtable *vt, const pp_vtable *pp_vt,
          const public_params *pp, wire_t *rop, const wire_t *x, const wire_t *y,
          switch_state_t **switches)
 {
+    encoding *xx = x->x;
+    encoding *yx = y->x;
+    encoding *xu = x->u;
+    encoding *yu = y->u;
     if (switches) {
-        clt_elem_t *xx = x->x->enc;
-        clt_elem_t *yx = y->x->enc;
-        clt_elem_t *xu = x->u->enc;
-        clt_elem_t *yu = y->u->enc;
-        if (clt_pl_elem_level(xx) != clt_pl_elem_level(yx)) {
-            if (clt_pl_elem_level(xx) < clt_pl_elem_level(yx))
-                clt_pl_elem_switch(xx, pp->pp, xx, switches[0]);
+        xx = encoding_copy(vt, pp_vt, pp, xx);
+        yx = encoding_copy(vt, pp_vt, pp, yx);
+        xu = encoding_copy(vt, pp_vt, pp, xu);
+        yu = encoding_copy(vt, pp_vt, pp, yu);
+        if (clt_pl_elem_level(xx->enc) != clt_pl_elem_level(yx->enc)) {
+            if (clt_pl_elem_level(xx->enc) < clt_pl_elem_level(yx->enc))
+                clt_pl_elem_switch(xx->enc, pp->pp, xx->enc, switches[0]);
             else
-                clt_pl_elem_switch(yx, pp->pp, yx, switches[0]);
+                clt_pl_elem_switch(yx->enc, pp->pp, yx->enc, switches[0]);
         }
-        if (clt_pl_elem_level(xu) != clt_pl_elem_level(yu)) {
-            if (clt_pl_elem_level(xu) < clt_pl_elem_level(yu))
-                clt_pl_elem_switch(xu, pp->pp, xu, switches[0]);
+        if (clt_pl_elem_level(xu->enc) != clt_pl_elem_level(yu->enc)) {
+            if (clt_pl_elem_level(xu->enc) < clt_pl_elem_level(yu->enc))
+                clt_pl_elem_switch(xu->enc, pp->pp, xu->enc, switches[0]);
             else
-                clt_pl_elem_switch(yu, pp->pp, yu, switches[0]);
+                clt_pl_elem_switch(yu->enc, pp->pp, yu->enc, switches[0]);
         }
     }
-    encoding_mul(vt, pp_vt, rop->x, x->x, y->x, pp);
-    encoding_mul(vt, pp_vt, rop->u, x->u, y->u, pp);
+    encoding_mul(vt, pp_vt, rop->x, xx, yx, pp);
+    encoding_mul(vt, pp_vt, rop->u, xu, yu, pp);
     if (switches) {
         clt_pl_elem_switch(rop->x->enc, pp->pp, rop->x->enc, switches[1]);
         clt_pl_elem_switch(rop->u->enc, pp->pp, rop->u->enc, switches[1]);
+        encoding_free(vt, xx);
+        encoding_free(vt, yx);
+        encoding_free(vt, xu);
+        encoding_free(vt, yu);
     }
+    return OK;
+}
+
+
+static int
+wire_op(const encoding_vtable *vt, const pp_vtable *pp_vt,
+        const public_params *pp, wire_t *rop, const wire_t *x, const wire_t *y,
+        switch_state_t **switches,
+        int (*op)(const encoding_vtable *, const pp_vtable *, encoding *,
+                  const encoding *, const encoding *, const public_params *))
+{
+    encoding *tmp;
+    encoding *xx = x->x;
+    encoding *yx = y->x;
+    encoding *xu = x->u;
+    encoding *yu = y->u;
+
+    tmp = encoding_new(vt, pp_vt, pp);
+    if (switches) {
+        xx = encoding_copy(vt, pp_vt, pp, xx);
+        yx = encoding_copy(vt, pp_vt, pp, yx);
+        xu = encoding_copy(vt, pp_vt, pp, xu);
+        yu = encoding_copy(vt, pp_vt, pp, yu);
+        if (clt_pl_elem_level(xu->enc) != clt_pl_elem_level(yu->enc)) {
+            if (clt_pl_elem_level(xu->enc) < clt_pl_elem_level(yu->enc))
+                clt_pl_elem_switch(xu->enc, pp->pp, xu->enc, switches[0]);
+            else
+                clt_pl_elem_switch(yu->enc, pp->pp, yu->enc, switches[0]);
+        }
+        if (clt_pl_elem_level(xx->enc) != clt_pl_elem_level(yu->enc)) {
+            if (clt_pl_elem_level(xx->enc) < clt_pl_elem_level(yu->enc))
+                clt_pl_elem_switch(xx->enc, pp->pp, xx->enc, switches[0]);
+            else
+                clt_pl_elem_switch(yu->enc, pp->pp, yu->enc, switches[0]);
+        }
+        if (clt_pl_elem_level(xu->enc) != clt_pl_elem_level(yx->enc)) {
+            if (clt_pl_elem_level(xu->enc) < clt_pl_elem_level(yx->enc))
+                clt_pl_elem_switch(xu->enc, pp->pp, xu->enc, switches[0]);
+            else
+                clt_pl_elem_switch(yx->enc, pp->pp, yx->enc, switches[0]);
+        }
+    }
+    encoding_mul(vt, pp_vt, rop->u, xu, yu, pp);
+    encoding_mul(vt, pp_vt, tmp,    xx, yu, pp);
+    encoding_mul(vt, pp_vt, rop->x, yx, xu, pp);
+    if (switches) {
+        clt_pl_elem_switch(rop->u->enc, pp->pp, rop->u->enc, switches[1]);
+        clt_pl_elem_switch(tmp->enc,    pp->pp, tmp->enc,    switches[1]);
+        clt_pl_elem_switch(rop->x->enc, pp->pp, rop->x->enc, switches[1]);
+        encoding_free(vt, xx);
+        encoding_free(vt, yx);
+        encoding_free(vt, xu);
+        encoding_free(vt, yu);
+    }
+    op(vt, pp_vt, rop->x, tmp, rop->x, pp);
+    encoding_free(vt, tmp);
     return OK;
 }
 
@@ -86,44 +150,7 @@ wire_add(const encoding_vtable *vt, const pp_vtable *pp_vt,
          const public_params *pp, wire_t *rop, const wire_t *x, const wire_t *y,
          switch_state_t **switches)
 {
-    encoding *tmp;
-
-    tmp = encoding_new(vt, pp_vt, pp);
-    if (switches) {
-        clt_elem_t *xx = x->x->enc;
-        clt_elem_t *yx = y->x->enc;
-        clt_elem_t *xu = x->u->enc;
-        clt_elem_t *yu = y->u->enc;
-        if (clt_pl_elem_level(xu) != clt_pl_elem_level(yu)) {
-            if (clt_pl_elem_level(xu) < clt_pl_elem_level(yu))
-                clt_pl_elem_switch(xu, pp->pp, xu, switches[0]);
-            else
-                clt_pl_elem_switch(yu, pp->pp, yu, switches[0]);
-        }
-        if (clt_pl_elem_level(xx) != clt_pl_elem_level(yu)) {
-            if (clt_pl_elem_level(xx) < clt_pl_elem_level(yu))
-                clt_pl_elem_switch(xx, pp->pp, xx, switches[0]);
-            else
-                clt_pl_elem_switch(yu, pp->pp, yu, switches[0]);
-        }
-        if (clt_pl_elem_level(xu) != clt_pl_elem_level(yx)) {
-            if (clt_pl_elem_level(xu) < clt_pl_elem_level(yx))
-                clt_pl_elem_switch(xu, pp->pp, xu, switches[0]);
-            else
-                clt_pl_elem_switch(yx, pp->pp, yx, switches[0]);
-        }
-    }
-    encoding_mul(vt, pp_vt, rop->u, x->u, y->u, pp);
-    encoding_mul(vt, pp_vt, tmp,    x->x, y->u, pp);
-    encoding_mul(vt, pp_vt, rop->x, y->x, x->u, pp);
-    if (switches) {
-        clt_pl_elem_switch(rop->u->enc, pp->pp, rop->u->enc, switches[1]);
-        clt_pl_elem_switch(tmp->enc,    pp->pp, tmp->enc,    switches[1]);
-        clt_pl_elem_switch(rop->x->enc, pp->pp, rop->x->enc, switches[1]);
-    }
-    encoding_add(vt, pp_vt, rop->x, tmp, rop->x, pp);
-    encoding_free(vt, tmp);
-    return OK;
+    return wire_op(vt, pp_vt, pp, rop, x, y, switches, encoding_add);
 }
 
 int
@@ -131,44 +158,7 @@ wire_sub(const encoding_vtable *vt, const pp_vtable *pp_vt,
          const public_params *pp, wire_t *rop, const wire_t *x, const wire_t *y,
          switch_state_t **switches)
 {
-    encoding *tmp;
-
-    tmp = encoding_new(vt, pp_vt, pp);
-    if (switches) {
-        clt_elem_t *xx = x->x->enc;
-        clt_elem_t *yx = y->x->enc;
-        clt_elem_t *xu = x->u->enc;
-        clt_elem_t *yu = y->u->enc;
-        if (clt_pl_elem_level(xu) != clt_pl_elem_level(yu)) {
-            if (clt_pl_elem_level(xu) < clt_pl_elem_level(yu))
-                clt_pl_elem_switch(xu, pp->pp, xu, switches[0]);
-            else
-                clt_pl_elem_switch(yu, pp->pp, yu, switches[0]);
-        }
-        if (clt_pl_elem_level(xx) != clt_pl_elem_level(yu)) {
-            if (clt_pl_elem_level(xx) < clt_pl_elem_level(yu))
-                clt_pl_elem_switch(xx, pp->pp, xx, switches[0]);
-            else
-                clt_pl_elem_switch(yu, pp->pp, yu, switches[0]);
-        }
-        if (clt_pl_elem_level(xu) != clt_pl_elem_level(yx)) {
-            if (clt_pl_elem_level(xu) < clt_pl_elem_level(yx))
-                clt_pl_elem_switch(xu, pp->pp, xu, switches[0]);
-            else
-                clt_pl_elem_switch(yx, pp->pp, yx, switches[0]);
-        }
-    }
-    encoding_mul(vt, pp_vt, rop->u, x->u, y->u, pp);
-    encoding_mul(vt, pp_vt, tmp,    x->x, y->u, pp);
-    encoding_mul(vt, pp_vt, rop->x, y->x, x->u, pp);
-    if (switches) {
-        clt_pl_elem_switch(rop->u->enc, pp->pp, rop->u->enc, switches[1]);
-        clt_pl_elem_switch(tmp->enc,    pp->pp, tmp->enc,    switches[1]);
-        clt_pl_elem_switch(rop->x->enc, pp->pp, rop->x->enc, switches[1]);
-    }
-    encoding_sub(vt, pp_vt, rop->x, tmp, rop->x, pp);
-    encoding_free(vt, tmp);
-    return OK;
+    return wire_op(vt, pp_vt, pp, rop, x, y, switches, encoding_sub);
 }
 
 wire_t *
