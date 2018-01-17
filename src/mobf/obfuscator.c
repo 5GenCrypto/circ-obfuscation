@@ -78,7 +78,6 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     cache.lock = &lock;
     cache.count = &count;
     cache.total = mobf_num_encodings(op);
-    cache.refs = NULL;
 
     for (size_t i = 0; i < ninputs; ++i) {
         obf->cts[i] = my_calloc(cp->qs[i], sizeof obf->cts[i][0]);

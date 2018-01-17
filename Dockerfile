@@ -15,7 +15,7 @@ RUN apt-get -y update
 RUN apt-get -y install git
 RUN apt-get -y install gcc-6 g++-6
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-6 60 --slave /usr/bin/g++ g++ /usr/bin/g++-6
-RUN apt-get -y install make cmake
+RUN apt-get -y install make cmake gdb
 RUN apt-get -y install libgmp3-dev libmpfr-dev libmpfr4 libssl-dev
 RUN apt-get -y install wget zip
 RUN apt-get -y install flex bison

@@ -415,6 +415,8 @@ size_t
 filesize(const char *fname)
 {
     struct stat st;
-    stat(fname, &st);
-    return st.st_size;
+    if (stat(fname, &st) == 0)
+        return st.st_size;
+    else
+        return 0;
 }

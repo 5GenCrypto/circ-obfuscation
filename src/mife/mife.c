@@ -249,12 +249,10 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         __encode(pool, mife->enc_vt, mife->zhat, inps, 1 + cp->nslots,
                  ix, mife->sp, &lock, &count, total);
     }
-    for (size_t i = 0; i < 1 + cp->nslots; ++i) {
+    for (size_t i = 0; i < 1 + cp->nslots; ++i)
         mpz_set_ui(inps[i], 1);
-    }
     for (size_t i = 0; i < cp->nslots; ++i) {
         mife->uhat[i] = my_calloc(mife->npowers, sizeof mife->uhat[i][0]);
-        /* Encode \hat u_i,p */
         for (size_t p = 0; p < mife->npowers; ++p) {
             ix = index_set_new(mife_params_nzs(cp));
             mife->uhat[i][p] = encoding_new(mife->enc_vt, mife->pp_vt, mife->pp);
@@ -271,7 +269,6 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
             .lock = &lock,
             .count = &count,
             .total = total,
-            .refs = NULL,
         };
         long consts[acirc_nconsts(cp->circ)];
         mife_sk_t *sk = mife_sk(mife);
@@ -691,12 +688,10 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
         mpz_set_ui(slots[0], 0);
         for (size_t o = 0; o < noutputs; ++o) {
             mpz_set(slots[1 + slot], *cs[o]);
-            mpz_clear(*cs[o]);
-            free(cs[o]);
+            mpz_vect_free(cs[o], 1);
             if (slot == 0 && has_consts) {
                 mpz_set(slots[cp->nslots], *const_cs[o]);
-                mpz_clear(*const_cs[o]);
-                free(const_cs[o]);
+                mpz_vect_free(const_cs[o], 1);
             }
             /* Encode \hat wₒ = [0, 1, ..., 1, C†ₒ, 1, ..., 1] */
             __encode(pool, sk->enc_vt, ct->what[o], slots, 1 + cp->nslots,
@@ -706,13 +701,11 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
         if (const_cs)
             free(const_cs);
 
-        for (size_t i = 0; i < circ_params_ninputs(cp); ++i) {
+        for (size_t i = 0; i < circ_params_ninputs(cp); ++i)
             mpz_vect_free(circ_inputs[i], 1);
-        }
         free(circ_inputs);
-        for (size_t i = 0; i < nconsts; ++i) {
+        for (size_t i = 0; i < nconsts; ++i)
             mpz_vect_free(consts[i], 1);
-        }
         free(consts);
         mpz_vect_free(alphas, ninputs);
     }
