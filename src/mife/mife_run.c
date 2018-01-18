@@ -331,7 +331,7 @@ mife_run_test(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
     const circ_params_t *cp = &op->cp;
     const acirc_t *const circ = cp->circ;
     const size_t has_consts = acirc_nconsts(circ) ? 1 : 0;
-    int ret;
+    int ret = OK;
 
     if (mife_run_setup(mmap, circuit, op, secparam, kappa, npowers, nthreads, rng) == ERR)
         return ERR;
