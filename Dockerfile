@@ -21,16 +21,6 @@ RUN apt-get -y install wget zip
 RUN apt-get -y install flex bison
 
 WORKDIR /inst
-RUN wget http://flintlib.org/flint-2.5.2.tar.gz
-RUN tar xvf flint-2.5.2.tar.gz
-
-WORKDIR /inst/flint-2.5.2
-RUN ./configure
-RUN make -j
-RUN make install
-RUN ldconfig
-
-WORKDIR /inst
 RUN wget https://cmake.org/files/v3.10/cmake-3.10.1-Linux-x86_64.tar.gz
 RUN tar xvf cmake-3.10.1-Linux-x86_64.tar.gz
 ENV PATH="/inst/cmake-3.10.1-Linux-x86_64/bin:${PATH}"
@@ -40,4 +30,3 @@ RUN git clone https://github.com/5GenCrypto/circ-obfuscation.git -b dev
 
 WORKDIR /inst/circ-obfuscation
 RUN git pull origin dev
-# RUN ./build.sh

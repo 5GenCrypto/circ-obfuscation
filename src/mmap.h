@@ -1,7 +1,7 @@
 #pragma once
 
 #include <acirc.h>
-#include <aesrand/aesrand.h>
+#include <aesrand.h>
 #include <mmap/mmap.h>
 #include <stdlib.h>
 

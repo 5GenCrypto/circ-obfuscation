@@ -1,6 +1,6 @@
 #pragma once
 
-#include <aesrand/aesrand.h>
+#include <aesrand.h>
 #include "../mmap.h"
 #include "../circ_params.h"
 #include "mife.h"

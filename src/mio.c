@@ -10,7 +10,7 @@
 #include "polylog/obfuscator.h"
 #include "obf_run.h"
 
-#include <aesrand/aesrand.h>
+#include <aesrand.h>
 #include <acirc.h>
 #include <mmap/mmap_clt.h>
 #include <mmap/mmap_clt_pl.h>
