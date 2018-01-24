@@ -22,27 +22,36 @@ size_t rchunker_in_order(sym_id sym, size_t ninputs, size_t nsyms)
 
 long *
 get_input_syms(const long *inputs, size_t ninputs, reverse_chunker rchunker,
-               size_t c, size_t ell, size_t q, bool sigma)
+               size_t nsymbols, const size_t *ds, const size_t *qs,
+               const bool *sigmas)
 {
+    (void) ninputs; (void) rchunker;
     long *input_syms;
+    size_t k = 0;
 
-    if ((input_syms = calloc(c, sizeof input_syms[0])) == NULL)
+    if ((input_syms = my_calloc(nsymbols, sizeof input_syms[0])) == NULL)
         return NULL;
-    for (size_t i = 0; i < c; i++) {
+    for (size_t i = 0; i < nsymbols; i++) {
         input_syms[i] = 0;
-        for (size_t j = 0; j < ell; j++) {
-            const sym_id sym = { i, j };
-            const size_t k = rchunker(sym, ninputs, c);
-            if (sigma)
+        for (size_t j = 0; j < ds[i]; j++) {
+            /* const sym_id sym = { i, j }; */
+            /* const size_t k = rchunker(sym, ninputs, nsymbols); */
+            if (sigmas[i])
                 input_syms[i] += inputs[k] * j;
             else
                 input_syms[i] += inputs[k] << j;
+            k++;
         }
-        if ((size_t) input_syms[i] >= q) {
-            fprintf(stderr, "error: invalid input (%ld > |Σ|)\n", input_syms[i]);
-            free(input_syms);
-            return NULL;
+        printf("%d\n", sigmas[i]);
+        if ((size_t) input_syms[i] >= qs[i]) {
+            fprintf(stderr, "error: invalid input for symbol %lu (%ld > %lu)\n",
+                    i, input_syms[i], qs[i]);
+            goto error;
         }
     }
     return input_syms;
+error:
+    if (input_syms)
+        free(input_syms);
+    return NULL;
 }

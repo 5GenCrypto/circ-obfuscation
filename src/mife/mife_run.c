@@ -189,7 +189,7 @@ mife_run_decrypt(const char *ek_s, char **cts_s, long *rop,
 {
     const double start = current_time();
     const circ_params_t *cp = &op->cp;
-    const size_t has_consts = acirc_nconsts(cp->circ) ? 1 : 0;
+    const size_t has_consts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ) ? 1 : 0;
     mife_ciphertext_t *cts[cp->nslots];
     mife_ek_t *ek = NULL;
     FILE *fp;
@@ -268,7 +268,7 @@ mife_run_all(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
     const circ_params_t *cp = &op->cp;
     const acirc_t *const circ = cp->circ;
     mife_sk_t *sk = NULL;
-    size_t consts = acirc_nconsts(circ) ? 1 : 0;
+    size_t consts = acirc_nconsts(circ) + acirc_nsecrets(cp->circ) ? 1 : 0;
     int ret = ERR;
 
     {
@@ -330,7 +330,7 @@ mife_run_test(const mmap_vtable *mmap, const char *circuit, obf_params_t *op,
 {
     const circ_params_t *cp = &op->cp;
     const acirc_t *const circ = cp->circ;
-    const size_t has_consts = acirc_nconsts(circ) ? 1 : 0;
+    const size_t has_consts = acirc_nconsts(circ) + acirc_nsecrets(cp->circ) ? 1 : 0;
     int ret = OK;
 
     if (mife_run_setup(mmap, circuit, op, secparam, kappa, npowers, nthreads, rng) == ERR)
@@ -367,7 +367,7 @@ mife_run_smart_kappa(const char *circuit, obf_params_t *op, size_t npowers,
                      size_t nthreads, aes_randstate_t rng)
 {
     const circ_params_t *cp = &op->cp;
-    const size_t has_consts = acirc_nconsts(cp->circ) ? 1 : 0;
+    const size_t has_consts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ) ? 1 : 0;
     long *inps[cp->nslots - has_consts];
     size_t kappa = 1;
     bool verbosity = g_verbose;

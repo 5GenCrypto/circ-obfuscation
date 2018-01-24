@@ -25,16 +25,11 @@ circ_params_clear(circ_params_t *cp)
 int
 circ_params_fwrite(const circ_params_t *const cp, FILE *fp)
 {
-    if (size_t_fwrite(cp->nslots, fp) == ERR)
-        goto error;
-    for (size_t i = 0; i < acirc_nsymbols(cp->circ); ++i) {
-        if (size_t_fwrite(cp->ds[i], fp) == ERR)
-            goto error;
-    }
-    for (size_t i = 0; i < acirc_nsymbols(cp->circ); ++i) {
-        if (size_t_fwrite(cp->qs[i], fp) == ERR)
-            goto error;
-    }
+    if (size_t_fwrite(cp->nslots, fp) == ERR) goto error;
+    for (size_t i = 0; i < acirc_nsymbols(cp->circ); ++i)
+        if (size_t_fwrite(cp->ds[i], fp) == ERR) goto error;
+    for (size_t i = 0; i < acirc_nsymbols(cp->circ); ++i)
+        if (size_t_fwrite(cp->qs[i], fp) == ERR) goto error;
     return OK;
 error:
     fprintf(stderr, "error: writing circuit parameters failed\n");
@@ -44,18 +39,13 @@ error:
 int
 circ_params_fread(circ_params_t *const cp, acirc_t *circ, FILE *fp)
 {
-    if (size_t_fread(&cp->nslots, fp) == ERR)
-        goto error;
+    if (size_t_fread(&cp->nslots, fp) == ERR) goto error;
     cp->ds = my_calloc(acirc_nsymbols(circ), sizeof cp->ds[0]);
     cp->qs = my_calloc(acirc_nsymbols(circ), sizeof cp->qs[0]);
-    for (size_t i = 0; i < acirc_nsymbols(circ); ++i) {
-        if (size_t_fread(&cp->ds[i], fp) == ERR)
-            goto error;
-    }
-    for (size_t i = 0; i < acirc_nsymbols(circ); ++i) {
-        if (size_t_fread(&cp->qs[i], fp) == ERR)
-            goto error;
-    }
+    for (size_t i = 0; i < acirc_nsymbols(circ); ++i)
+        if (size_t_fread(&cp->ds[i], fp) == ERR) goto error;
+    for (size_t i = 0; i < acirc_nsymbols(circ); ++i)
+        if (size_t_fread(&cp->qs[i], fp) == ERR) goto error;
     cp->circ = circ;
     return OK;
 error:
@@ -104,10 +94,11 @@ circ_params_bit(const circ_params_t *cp, size_t pos)
 void
 circ_params_print(const circ_params_t *cp)
 {
-    const size_t has_consts = acirc_nconsts(cp->circ) ? 1 : 0;
+    const size_t has_consts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ) ? 1 : 0;
     fprintf(stderr, "Circuit parameters:\n");
     fprintf(stderr, "* ninputs:...... %lu\n", acirc_ninputs(cp->circ));
     fprintf(stderr, "* nconsts:...... %lu\n", acirc_nconsts(cp->circ));
+    fprintf(stderr, "* nsecrets:..... %lu\n", acirc_nsecrets(cp->circ));
     fprintf(stderr, "* noutputs: .... %lu\n", acirc_noutputs(cp->circ));
     fprintf(stderr, "* nsymbols: .... %lu  [", acirc_nsymbols(cp->circ));
     for (size_t i = 0; i < acirc_nsymbols(cp->circ); ++i) {

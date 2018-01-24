@@ -678,19 +678,17 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
           size_t *kappa, size_t *npowers)
 {
     const circ_params_t *cp = &obf->op->cp;
-    acirc_t *c = cp->circ;
-    const size_t has_consts = acirc_nconsts(c) ? 1 : 0;
-    const size_t ell = array_max(cp->ds, cp->nslots - has_consts);
-    const size_t q = array_max(cp->qs, cp->nslots - has_consts);
+    acirc_t *circ = cp->circ;
+    const size_t has_consts = acirc_nconsts(circ) + acirc_nsecrets(circ) ? 1 : 0;
     size_t *kappas = NULL;
     long *input_syms;
     int ret = ERR;
 
-    if (ninputs != acirc_ninputs(c)) {
+    if (ninputs != acirc_ninputs(circ)) {
         fprintf(stderr, "error: obf evaluate: invalid number of inputs\n");
         return ERR;
     }
-    if (noutputs != acirc_noutputs(c)) {
+    if (noutputs != acirc_noutputs(circ)) {
         fprintf(stderr, "error: obf evaluate: invalid number of outputs\n");
         return ERR;
     }
@@ -698,11 +696,18 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
     g_max_npowers = 0;
 
     if (kappa)
-        kappas = calloc(acirc_noutputs(c), sizeof kappas[0]);
-    input_syms = get_input_syms(inputs, acirc_ninputs(c), rchunker_in_order,
-                                cp->nslots - has_consts, ell, q, obf->op->sigma);
-    if (input_syms == NULL)
-        goto finish;
+        kappas = calloc(acirc_noutputs(circ), sizeof kappas[0]);
+    {
+        bool *sigmas;
+        sigmas = my_calloc(cp->nslots - has_consts, sizeof sigmas[0]);
+        for (size_t i = 0; i < cp->nslots - has_consts; ++i)
+            sigmas[i] = acirc_is_sigma(circ, i);
+        input_syms = get_input_syms(inputs, acirc_ninputs(circ), rchunker_in_order,
+                                    cp->nslots - has_consts, cp->ds, cp->qs, sigmas);
+        free(sigmas);
+        if (input_syms == NULL)
+            goto finish;
+    }
 
     {
         long *tmp;
@@ -712,9 +717,9 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
             .inputs = inputs,
             .kappas = kappas,
         };
-        tmp = (long *) acirc_traverse(c, input_f, const_f, eval_f, output_f, free_f, &args, nthreads);
+        tmp = (long *) acirc_traverse(circ, input_f, const_f, eval_f, output_f, free_f, &args, nthreads);
         if (outputs)
-            for (size_t i = 0; i < acirc_noutputs(c); ++i)
+            for (size_t i = 0; i < acirc_noutputs(circ); ++i)
                 outputs[i] = tmp[i];
         free(tmp);
     }

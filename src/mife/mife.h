@@ -9,11 +9,6 @@ typedef struct mife_ek_t mife_ek_t;
 typedef struct mife_ciphertext_t mife_ciphertext_t;
 
 typedef struct {
-    bool sigma;
-    size_t base;
-} mife_params_t;
-
-typedef struct {
     threadpool *pool;
     pthread_mutex_t *lock;
     size_t *count;

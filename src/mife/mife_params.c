@@ -9,10 +9,10 @@ mife_params_nzs(const circ_params_t *cp)
 }
 
 PRIVATE index_set *
-mife_params_new_toplevel(const circ_params_t *const cp, size_t nzs)
+mife_params_new_toplevel(const circ_params_t *cp, size_t nzs)
 {
     index_set *ix;
-    size_t has_consts = acirc_nconsts(cp->circ) ? 1 : 0;
+    size_t has_consts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ) ? 1 : 0;
 
     if ((ix = index_set_new(nzs)) == NULL)
         return NULL;
@@ -31,17 +31,19 @@ mife_params_new_toplevel(const circ_params_t *const cp, size_t nzs)
 static obf_params_t *
 _new(acirc_t *circ, void *vparams)
 {
-    const mife_params_t *const params = vparams;
-    obf_params_t *const op = calloc(1, sizeof op[0]);
+    (void) vparams;
+    const size_t has_consts = acirc_nconsts(circ) + acirc_nsecrets(circ) ? 1 : 0;
+    obf_params_t *op;
 
-    size_t has_consts = acirc_nconsts(circ) ? 1 : 0;
+    if ((op = my_calloc(1, sizeof op[0])) == NULL)
+        return NULL;
     circ_params_init(&op->cp, acirc_nsymbols(circ) + has_consts, circ);
     for (size_t i = 0; i < op->cp.nslots - has_consts; ++i) {
         op->cp.ds[i] = acirc_symlen(circ, i);
-        op->cp.qs[i] = params->sigma ? acirc_symlen(circ, i) : params->base;
+        op->cp.qs[i] = acirc_is_sigma(circ, i) ? acirc_symlen(circ, i) : 2;
     }
     if (has_consts) {
-        op->cp.ds[op->cp.nslots - 1] = acirc_nconsts(circ);
+        op->cp.ds[op->cp.nslots - 1] = acirc_nconsts(circ) + acirc_nsecrets(circ);
         op->cp.qs[op->cp.nslots - 1] = 1;
     }
 

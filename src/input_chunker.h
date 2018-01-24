@@ -1,7 +1,5 @@
-#ifndef __INPUT_CHUNKER_H__
-#define __INPUT_CHUNKER_H__
+#pragma once
 
-#include <acirc.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -16,10 +14,5 @@ typedef size_t (*reverse_chunker) (sym_id sym, size_t ninputs, size_t nsyms);
 sym_id chunker_in_order(size_t id, size_t ninputs, size_t nsyms);
 size_t rchunker_in_order(sym_id sym, size_t ninputs, size_t nsyms);
 
-/* void */
-/* type_degree(int *rop, acircref ref, const acirc *c, size_t nsyms, input_chunker chunker); */
-
-long *
-get_input_syms(const long *inputs, size_t ninputs, reverse_chunker rchunker,
-               size_t c, size_t ell, size_t q, bool sigma);
-#endif
+long * get_input_syms(const long *inputs, size_t ninputs, reverse_chunker rchunker,
+                      size_t c, const size_t *ds, const size_t *qs, const bool *sigmas);
