@@ -3,7 +3,7 @@
 #abort if any command fails
 set -e
 
-mkdir -p build
+mkdir -p build/bin build/include build/lib
 builddir=$(readlink -f build)
 
 usage () {
@@ -16,14 +16,14 @@ usage () {
     echo "  help        Print this info and exit"
 }
 
-if [ x"$1" == x"" ]; then
+if [[ "$1" == "" ]]; then
     debug=''
-elif [ x"$1" == x"debug" ]; then
+elif [[ "$1" == "debug" ]]; then
     debug='-DCMAKE_BUILD_TYPE=Debug'
-elif [ x"$1" == x"clean" ]; then
+elif [[ "$1" == "clean" ]]; then
     rm -rf build libaesrand clt13 libmmap libacirc libthreadpool
     exit 0
-elif [ x"$1" == x"help" ]; then
+elif [[ "$1" == "help" ]]; then
     usage
     exit 0
 else
@@ -53,20 +53,28 @@ build () {
     else
         pushd $path; git pull origin $branch; popd
     fi
-    pushd $path
-    cmake -DCMAKE_INSTALL_PREFIX="${builddir}" $flags .
-    make
-    make install
-    popd
+    if [[ $path == "circuit-synthesis" ]]; then
+        pushd $path
+        ./build-app.sh
+        cp cxs boots "${builddir}/bin"
+        popd
+    else
+        pushd $path
+        cmake -DCMAKE_INSTALL_PREFIX="${builddir}" $flags .
+        make
+        make install
+        popd
+    fi
 }
 
 echo builddir = $builddir
 
-build libaesrand    https://github.com/5GenCrypto/libaesrand cmake
-build clt13         https://github.com/5GenCrypto/clt13 dev
-build libmmap       https://github.com/5GenCrypto/libmmap dev
-build libthreadpool https://github.com/5GenCrypto/libthreadpool cmake
-build libacirc      https://github.com/amaloz/libacirc master
+build libaesrand        https://github.com/5GenCrypto/libaesrand cmake
+build clt13             https://github.com/5GenCrypto/clt13 dev
+build libmmap           https://github.com/5GenCrypto/libmmap dev
+build libthreadpool     https://github.com/5GenCrypto/libthreadpool cmake
+build libacirc          https://github.com/amaloz/libacirc master
+build circuit-synthesis https://github.com/spaceships/circuit-synthesis dev
 
 echo
 echo Building mio
