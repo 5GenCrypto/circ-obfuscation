@@ -39,10 +39,56 @@ typedef enum {
     OBF_SCHEME_POLYLOG,
 } obf_scheme_e;
 
+static int
+str_to_obf_scheme(const char *str, obf_scheme_e *scheme)
+{
+    if (!strcmp(str, "LZ")) {
+        *scheme = OBF_SCHEME_LZ;
+    } else if (!strcmp(str, "CMR")) {
+        *scheme = OBF_SCHEME_CMR;
+    } else if (!strcmp(str, "POLYLOG")) {
+        *scheme = OBF_SCHEME_POLYLOG;
+    } else {
+        fprintf(stderr, "error: unknown obfuscation scheme '%s'\n", str);
+        return ERR;
+    }
+    return OK;
+}
+
 typedef enum {
     MIFE_SCHEME_CMR,
     MIFE_SCHEME_GC,
 } mife_scheme_e;
+
+static int
+str_to_mife_scheme(const char *str, mife_scheme_e *scheme)
+{
+    if (!strcmp(str, "CMR")) {
+        *scheme = MIFE_SCHEME_CMR;
+    } else if (!strcmp(str, "GC")) {
+        *scheme = MIFE_SCHEME_GC;
+    } else {
+        fprintf(stderr, "error: unknown scheme '%s'\n", str);
+        return ERR;
+    }
+    return OK;
+}
+
+static int
+str_to_kappa(const char *str, size_t *kappa)
+{
+    char *endptr;
+    *kappa = strtol(str, &endptr, 10);
+    if (*endptr != '\0') {
+        fprintf(stderr, "error: invalid κ value given\n");
+        return ERR;
+    }
+    if (*kappa == 0) {
+        fprintf(stderr, "error: κ value cannot be zero\n");
+        return ERR;
+    }
+    return OK;
+}
 
 typedef struct args_t {
     const mmap_vtable *vt;
@@ -85,7 +131,7 @@ args_usage(void)
     args_init(&defaults);
     mmap = defaults.vt == &clt_vtable ? "CLT" : "DUMMY";
     printf(
-"    --mmap STR         set mmap to STR (options: CLT, DUMMY | default: %s)\n"
+"    --mmap M           set mmap to M (options: CLT, DUMMY | default: %s)\n"
 "    --smart            be smart when choosing parameters\n"
 "    --base B           set base to B (default: %lu)\n"
 "    --nthreads N       set the number of threads to N (default: %lu)\n"
@@ -113,6 +159,7 @@ args_get_size_t(size_t *result, int *argc, char ***argv)
 typedef struct {
     size_t secparam;
     size_t npowers;
+    mife_scheme_e scheme;
 } mife_setup_args_t;
 
 static void
@@ -128,9 +175,11 @@ mife_setup_usage(bool longform, int ret)
     printf("usage: %s mife setup [<args>] circuit\n", progname);
     if (longform) {
         printf("\nAvailable arguments:\n\n");
-        printf("    --secparam λ       set security parameter to λ (default: %d)\n"
-               "    --npowers N        set the number of powers to N (default: %d)\n",
-               SECPARAM_DEFAULT, NPOWERS_DEFAULT);
+        printf(
+"    --secparam λ       set security parameter to λ (default: %d)\n"
+"    --npowers N        set the number of powers to N (default: %d)\n"
+"    --scheme S         set MIFE scheme to S (options: CMR, GC | default: CMR)\n",
+SECPARAM_DEFAULT, NPOWERS_DEFAULT);
         args_usage();
         printf("\n");
     }
@@ -143,11 +192,13 @@ mife_setup_handle_options(int *argc, char ***argv, void *vargs)
     mife_setup_args_t *args = vargs;
     const char *cmd = (*argv)[0];
     if (!strcmp(cmd, "--secparam")) {
-        if (args_get_size_t(&args->secparam, argc, argv) == ERR)
-            return ERR;
+        if (args_get_size_t(&args->secparam, argc, argv) == ERR) return ERR;
     } else if (!strcmp(cmd, "--npowers")) {
-        if (args_get_size_t(&args->npowers, argc, argv) == ERR)
-            return ERR;
+        if (args_get_size_t(&args->npowers, argc, argv) == ERR) return ERR;
+    } else if (!strcmp(cmd, "--scheme")) {
+        if (*argc <= 1) return ERR;
+        if (str_to_mife_scheme((*argv)[1], &args->scheme) == ERR) return ERR;
+        (*argv)++; (*argc)++;
     } else {
         return ERR;
     }
@@ -182,6 +233,7 @@ typedef struct {
     size_t secparam;
     size_t npowers;
     size_t kappa;
+    mife_scheme_e scheme;
 } mife_test_args_t;
 
 static void
@@ -198,10 +250,12 @@ mife_test_usage(bool longform, int ret)
     printf("usage: %s mife test [<args>] circuit\n", progname);
     if (longform) {
         printf("\nAvailable arguments:\n\n");
-        printf("    --secparam λ       set security parameter to λ (default: %d)\n"
-               "    --npowers N        set the number of powers to N (default: %d)\n"
-               "    --kappa κ          set multilinearity to κ\n",
-               SECPARAM_DEFAULT, NPOWERS_DEFAULT);
+        printf(
+"    --secparam λ       set security parameter to λ (default: %d)\n"
+"    --npowers N        set the number of powers to N (default: %d)\n"
+"    --scheme S         set MIFE scheme to S (options: CMR, GC | default: CMR)\n"
+"    --kappa Κ          set multilinearity to Κ\n",
+SECPARAM_DEFAULT, NPOWERS_DEFAULT);
         args_usage();
         printf("\n");
     }
@@ -215,14 +269,15 @@ mife_test_handle_options(int *argc, char ***argv, void *vargs)
     mife_test_args_t *args = vargs;
     const char *cmd = (*argv)[0];
     if (!strcmp(cmd, "--npowers")) {
-        if (args_get_size_t(&args->npowers, argc, argv) == ERR)
-            return ERR;
+        if (args_get_size_t(&args->npowers, argc, argv) == ERR) return ERR;
     } else if (!strcmp(cmd, "--secparam")) {
-        if (args_get_size_t(&args->secparam, argc, argv) == ERR)
-            return ERR;
+        if (args_get_size_t(&args->secparam, argc, argv) == ERR) return ERR;
     } else if (!strcmp(cmd, "--kappa")) {
-        if (args_get_size_t(&args->kappa, argc, argv) == ERR)
-            return ERR;
+        if (args_get_size_t(&args->kappa, argc, argv) == ERR) return ERR;
+    } else if (!strcmp(cmd, "--scheme")) {
+        if (*argc <= 1) return ERR;
+        if (str_to_mife_scheme((*argv)[1], &args->scheme) == ERR) return ERR;
+        (*argv)++; (*argc)--;
     } else {
         return ERR;
     }
@@ -260,8 +315,7 @@ mife_get_kappa_handle_options(int *argc, char ***argv, void *vargs)
     mife_get_kappa_args_t *args = vargs;
     const char *cmd = (*argv)[0];
     if (!strcmp(cmd, "--npowers")) {
-        if (args_get_size_t(&args->npowers, argc, argv) == ERR)
-            return ERR;
+        if (args_get_size_t(&args->npowers, argc, argv) == ERR) return ERR;
     } else {
         return ERR;
     }
@@ -291,11 +345,11 @@ obf_obfuscate_or_test_usage(bool longform, int ret, const char *cmd)
     if (longform) {
         printf("\nAvailable arguments:\n\n");
         printf(
-            "    --kappa Κ          set kappa to Κ\n"
-            "    --scheme S         set obfuscation scheme to S (options: CMR, LZ, POLYLOG | default: CMR)\n"
-            "    --secparam λ       set security parameter to λ (default: %d)\n"
-            "    --npowers N        set the number of powers to N (default: %d)\n",
-            SECPARAM_DEFAULT, NPOWERS_DEFAULT);
+"    --secparam λ       set security parameter to λ (default: %d)\n"
+"    --npowers N        set the number of powers to N (default: %d)\n"
+"    --scheme S         set obfuscation scheme to S (options: CMR, LZ, POLYLOG | default: CMR)\n"
+"    --kappa Κ          set multilinearity to Κ\n",
+SECPARAM_DEFAULT, NPOWERS_DEFAULT);
         args_usage();
         printf("\n");
     }
@@ -314,40 +368,15 @@ obf_obfuscate_handle_options(int *argc, char ***argv, void *vargs)
     obf_obfuscate_args_t *args = vargs;
     const char *cmd = (*argv)[0];
     if (!strcmp(cmd, "--secparam")) {
-        if (args_get_size_t(&args->secparam, argc, argv) == ERR)
-            return ERR;
+        if (args_get_size_t(&args->secparam, argc, argv) == ERR) return ERR;
     } else if (!strcmp(cmd, "--npowers")) {
-        if (args_get_size_t(&args->npowers, argc, argv) == ERR)
-            return ERR;
+        if (args_get_size_t(&args->npowers, argc, argv) == ERR) return ERR;
     } else if (!strcmp(cmd, "--scheme")) {
-        if (*argc <= 1)
-            return ERR;
-        const char *scheme = (*argv)[1];
-        if (!strcmp(scheme, "LZ")) {
-            args->scheme = OBF_SCHEME_LZ;
-        } else if (!strcmp(scheme, "CMR")) {
-            args->scheme = OBF_SCHEME_CMR;
-        } else if (!strcmp(scheme, "POLYLOG")) {
-            args->scheme = OBF_SCHEME_POLYLOG;
-        } else {
-            fprintf(stderr, "error: unknown scheme '%s'\n", scheme);
-            return ERR;
-        }
+        if (*argc <= 1) return ERR;
+        if (str_to_obf_scheme((*argv)[1], &args->scheme) == ERR) return ERR;
         (*argv)++; (*argc)--;
     } else if (!strcmp(cmd, "--kappa")) {
-        const char *str = (*argv)[1];
-        char *endptr;
-        if (*argc <= 1)
-            return ERR;
-        args->kappa = strtol(str, &endptr, 10);
-        if (*endptr != '\0') {
-            fprintf(stderr, "error: invalid κ value given\n");
-            return ERR;
-        }
-        if (args->kappa == 0) {
-            fprintf(stderr, "error: κ value cannot be zero\n");
-            return ERR;
-        }
+        if (str_to_kappa((*argv)[1], &args->kappa) == ERR) return ERR;
         (*argv)++; (*argc)--;
     } else {
         return ERR;
@@ -388,22 +417,10 @@ obf_evaluate_handle_options(int *argc, char ***argv, void *vargs)
     obf_evaluate_args_t *args = vargs;
     const char *cmd = (*argv)[0];
     if (!strcmp(cmd, "--npowers")) {
-        if (args_get_size_t(&args->npowers, argc, argv) == ERR)
-            return ERR;
+        if (args_get_size_t(&args->npowers, argc, argv) == ERR) return ERR;
     } else if (!strcmp(cmd, "--scheme")) {
-        if (*argc <= 1)
-            return ERR;
-        const char *scheme = (*argv)[1];
-        if (!strcmp(scheme, "LZ")) {
-            args->scheme = OBF_SCHEME_LZ;
-        } else if (!strcmp(scheme, "CMR")) {
-            args->scheme = OBF_SCHEME_CMR;
-        } else if (!strcmp(scheme, "POLYLOG")) {
-            args->scheme = OBF_SCHEME_POLYLOG;
-        } else {
-            fprintf(stderr, "error: unknown scheme '%s'\n", scheme);
-            return ERR;
-        }
+        if (*argc <= 1) return ERR;
+        if (str_to_obf_scheme((*argv)[1], &args->scheme) == ERR) return ERR;
         (*argv)++; (*argc)--;
     } else {
         return ERR;
@@ -454,9 +471,6 @@ handle_options(int *argc, char ***argv, int left, args_t *args, void *others,
         if (cmd[0] != '-')
             break;
 
-        /* if (!strcmp(cmd, "--secparam")) { */
-        /*     if (args_get_size_t(&args->secparam, argc, argv) == ERR) */
-                /* f(false, EXIT_FAILURE); */
         if (!strcmp(cmd, "--mmap")) {
             if (*argc <= 1)
                 f(false, EXIT_FAILURE);
@@ -509,8 +523,6 @@ handle_options(int *argc, char ***argv, int left, args_t *args, void *others,
     }
     (*argv)++; (*argc)--;
 }
-
-/*******************************************************************************/
 
 static int
 mife_select_scheme(acirc_t *circ, size_t base, op_vtable **op_vt, obf_params_t **op)
