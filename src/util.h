@@ -11,6 +11,8 @@
 
 #define PRIVATE __attribute__ ((visibility ("hidden")))
 
+extern const char *errorstr;
+
 typedef enum debug_e {
     ERROR = 0,
     WARN = 1,
@@ -85,4 +87,3 @@ char long_to_char(long i);
 int memory(unsigned long *size, unsigned long *resident);
 /* file size (in bytes) */
 size_t filesize(const char *fname);
-
