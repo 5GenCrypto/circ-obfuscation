@@ -224,7 +224,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     const size_t total = obf_num_encodings(cp, op->npowers);
 
     obfuscation *obf;
-    mpz_t *moduli = NULL, *slots, *alphas, *betas;
+    mpz_t *moduli = NULL, *slots = NULL, *alphas = NULL, *betas = NULL;
     threadpool *pool = NULL;
     index_set *ix = NULL;
     pthread_mutex_t lock;
@@ -629,4 +629,3 @@ obfuscator_vtable polylog_obfuscator_vtable = {
     .fwrite = _fwrite,
     .fread = _fread,
 };
-

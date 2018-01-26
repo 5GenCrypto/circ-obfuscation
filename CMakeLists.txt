@@ -13,19 +13,10 @@ set(mio_SOURCES
   src/index_set.c
   src/input_chunker.c
   src/mmap.c
+  src/mife_run.c
   src/obf_run.c
   src/util.c
   )
-# LIN scheme is deprecated
-# set(lin_SOURCES
-#   ${mio_SOURCES}
-#   src/lin/encoding.c
-#   src/lin/level.c
-#   src/lin/obf_params.c
-#   src/lin/obfuscator.c
-#   src/lin/public_params.c
-#   src/lin/secret_params.c
-#   )
 set(lz_SOURCES
   ${mio_SOURCES}
   src/lz/encoding.c
@@ -34,19 +25,18 @@ set(lz_SOURCES
   src/lz/public_params.c
   src/lz/secret_params.c
   )
-set(mife_SOURCES
+set(mife_cmr_SOURCES
   ${mio_SOURCES}
-  src/mife/encoding.c
-  src/mife/mife.c
-  src/mife/mife_params.c
-  src/mife/mife_run.c
-  src/mife/public_params.c
-  src/mife/secret_params.c
+  src/mife-cmr/encoding.c
+  src/mife-cmr/mife.c
+  src/mife-cmr/mife_params.c
+  src/mife-cmr/public_params.c
+  src/mife-cmr/secret_params.c
   )
-set(mobf_SOURCES
+set(obf_cmr_SOURCES
   ${mio_SOURCES}
-  src/mobf/obf_params.c
-  src/mobf/obfuscator.c
+  src/obf-cmr/obf_params.c
+  src/obf-cmr/obfuscator.c
   )
 set(polylog_SOURCES
   ${mio_SOURCES}
@@ -60,14 +50,12 @@ set(polylog_SOURCES
   )
 
 add_library(lz SHARED ${lz_SOURCES})
-# add_library(lin SHARED ${lin_SOURCES})
-add_library(mife SHARED ${mife_SOURCES})
-add_library(mobf SHARED ${mobf_SOURCES})
+add_library(mife_cmr SHARED ${mife_cmr_SOURCES})
+add_library(obf_cmr SHARED ${obf_cmr_SOURCES})
 add_library(polylog SHARED ${polylog_SOURCES})
 add_executable(mio src/mio.c)
-# target_link_libraries(mio lin)
 target_link_libraries(mio lz)
-target_link_libraries(mio mife mobf)
+target_link_libraries(mio mife_cmr obf_cmr)
 target_link_libraries(mio polylog)
 find_library(libacirc acirc)
 find_library(libmmap mmap)

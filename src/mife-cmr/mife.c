@@ -8,7 +8,7 @@
 #include <assert.h>
 #include <string.h>
 
-typedef struct mife_t {
+struct mife_t {
     const mmap_vtable *mmap;
     const circ_params_t *cp;
     const encoding_vtable *enc_vt;
@@ -20,45 +20,306 @@ typedef struct mife_t {
     encoding *Chatstar;
     encoding *zhat;
     encoding ***uhat;           /* [n][npowers] */
-    mife_ciphertext_t *constants;
+    mife_ct_t *constants;
     mpz_t *const_alphas;
     long *deg_max;              /* [n] */
-} mife_t;
+};
 
-typedef struct mife_sk_t {
-    const mmap_vtable *mmap;
-    const circ_params_t *cp;
-    const encoding_vtable *enc_vt;
-    const pp_vtable *pp_vt;
-    const sp_vtable *sp_vt;
-    secret_params *sp;
-    public_params *pp;
-    mpz_t *const_alphas;
-    long *deg_max;              /* [n] */
-    bool local;
-} mife_sk_t;
-
-typedef struct mife_ek_t {
-    const mmap_vtable *mmap;
-    const circ_params_t *cp;
-    const encoding_vtable *enc_vt;
-    const pp_vtable *pp_vt;
-    public_params *pp;
-    size_t npowers;
-    encoding *Chatstar;
-    encoding *zhat;
-    encoding ***uhat;           /* [n][npowers] */
-    mife_ciphertext_t *constants;
-    long *deg_max;              /* [n] */
-    bool local;
-} mife_ek_t;
-
-typedef struct mife_ciphertext_t {
+struct mife_ct_t {
     const encoding_vtable *enc_vt;
     size_t slot;
     encoding **xhat;             /* [d_i] */
     encoding **what;             /* [m] */
-} mife_ciphertext_t;
+};
+
+struct mife_sk_t {
+    const mmap_vtable *mmap;
+    const circ_params_t *cp;
+    const encoding_vtable *enc_vt;
+    const pp_vtable *pp_vt;
+    const sp_vtable *sp_vt;
+    secret_params *sp;
+    public_params *pp;
+    mpz_t *const_alphas;
+    long *deg_max;              /* [n] */
+    bool local;
+};
+
+struct mife_ek_t {
+    const mmap_vtable *mmap;
+    const circ_params_t *cp;
+    const encoding_vtable *enc_vt;
+    const pp_vtable *pp_vt;
+    public_params *pp;
+    size_t npowers;
+    encoding *Chatstar;
+    encoding *zhat;
+    encoding ***uhat;           /* [n][npowers] */
+    mife_ct_t *constants;
+    long *deg_max;              /* [n] */
+    bool local;
+};
+
+static void
+mife_ct_free(mife_ct_t *ct, const circ_params_t *cp)
+{
+    if (ct == NULL)
+        return;
+    const size_t ninputs = cp->ds[ct->slot];
+    for (size_t j = 0; j < ninputs; ++j)
+        encoding_free(ct->enc_vt, ct->xhat[j]);
+    free(ct->xhat);
+    for (size_t o = 0; o < acirc_noutputs(cp->circ); ++o)
+        encoding_free(ct->enc_vt, ct->what[o]);
+    free(ct->what);
+    free(ct);
+}
+
+static int
+mife_ct_fwrite(const mife_ct_t *ct, const circ_params_t *cp, FILE *fp)
+{
+    const size_t ninputs = cp->ds[ct->slot];
+    if (size_t_fwrite(ct->slot, fp) == ERR) return ERR;
+    for (size_t j = 0; j < ninputs; ++j)
+        if (encoding_fwrite(ct->enc_vt, ct->xhat[j], fp) == ERR) return ERR;
+    for (size_t o = 0; o < acirc_noutputs(cp->circ); ++o)
+        if (encoding_fwrite(ct->enc_vt, ct->what[o], fp) == ERR) return ERR;
+    return OK;
+}
+
+static mife_ct_t *
+mife_ct_fread(const mmap_vtable *mmap, const circ_params_t *cp, FILE *fp)
+{
+    mife_ct_t *ct;
+    size_t ninputs;
+
+    if ((ct = my_calloc(1, sizeof ct[0])) == NULL)
+        return NULL;
+    ct->enc_vt = get_encoding_vtable(mmap);
+    if (size_t_fread(&ct->slot, fp) == ERR)
+        goto error;
+    if (ct->slot >= cp->nslots) {
+        fprintf(stderr, "error: slot number > number of slots\n");
+        goto error;
+    }
+    ninputs = cp->ds[ct->slot];
+    ct->xhat = my_calloc(ninputs, sizeof ct->xhat[0]);
+    for (size_t j = 0; j < ninputs; ++j) {
+        if ((ct->xhat[j] = encoding_fread(ct->enc_vt, fp)) == NULL)
+            goto error;
+    }
+    ct->what = my_calloc(acirc_noutputs(cp->circ), sizeof ct->what[0]);
+    for (size_t o = 0; o < acirc_noutputs(cp->circ); ++o)
+        if ((ct->what[o] = encoding_fread(ct->enc_vt, fp)) == NULL)
+            goto error;
+    return ct;
+error:
+    fprintf(stderr, "error: reading ciphertext failed\n");
+    free(ct);
+    return NULL;
+}
+
+static mife_sk_t *
+mife_sk(const mife_t *mife)
+{
+    mife_sk_t *sk;
+    sk = my_calloc(1, sizeof sk[0]);
+    sk->mmap = mife->mmap;
+    sk->cp = mife->cp;
+    sk->enc_vt = mife->enc_vt;
+    sk->pp_vt = mife->pp_vt;
+    sk->sp_vt = mife->sp_vt;
+    sk->sp = mife->sp;
+    sk->pp = mife->pp;
+    sk->const_alphas = mife->const_alphas;
+    sk->deg_max = mife->deg_max;
+    sk->local = false;
+    return sk;
+}
+
+static void
+mife_sk_free(mife_sk_t *sk)
+{
+    if (sk == NULL)
+        return;
+    if (sk->local) {
+        if (sk->pp)
+            public_params_free(sk->pp_vt, sk->pp);
+        if (sk->sp)
+            secret_params_free(sk->sp_vt, sk->sp);
+        if (sk->const_alphas)
+            mpz_vect_free(sk->const_alphas, acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ));
+        if (sk->deg_max)
+            free(sk->deg_max);
+    }
+    free(sk);
+}
+
+static int
+mife_sk_fwrite(const mife_sk_t *sk, FILE *fp)
+{
+    public_params_fwrite(sk->pp_vt, sk->pp, fp);
+    secret_params_fwrite(sk->sp_vt, sk->sp, fp);
+    if (acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ))
+        for (size_t o = 0; o < acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ); ++o)
+            if (mpz_fwrite(sk->const_alphas[o], fp) == ERR)
+                goto error;
+    for (size_t i = 0; i < sk->cp->nslots; ++i)
+        if (size_t_fwrite(sk->deg_max[i], fp) == ERR)
+            goto error;
+    return OK;
+error:
+    fprintf(stderr, "error: writing mife secret key failed\n");
+    return ERR;
+}
+
+static mife_sk_t *
+mife_sk_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
+{
+    const circ_params_t *cp = &op->cp;
+    mife_sk_t *sk;
+
+    sk = my_calloc(1, sizeof sk[0]);
+    sk->local = true;
+    sk->mmap = mmap;
+    sk->cp = cp;
+    sk->enc_vt = get_encoding_vtable(mmap);
+    sk->pp_vt = get_pp_vtable(mmap);
+    sk->sp_vt = get_sp_vtable(mmap);
+    {
+        const double start = current_time();
+        if ((sk->pp = public_params_fread(sk->pp_vt, op, fp)) == NULL)
+            goto error;
+        if (g_verbose)
+            fprintf(stderr, "    Reading public parameters from disk: %.2fs\n",
+                    current_time() - start);
+    }
+    {
+        const double start = current_time();
+        if ((sk->sp = secret_params_fread(sk->sp_vt, cp, fp)) == NULL)
+            goto error;
+        if (g_verbose)
+            fprintf(stderr, "    Reading secret parameters from disk: %.2fs\n",
+                    current_time() - start);
+    }
+    if (acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ)) {
+        sk->const_alphas = my_calloc(acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ), sizeof sk->const_alphas[0]);
+        for (size_t o = 0; o < acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ); ++o)
+            if (mpz_fread(&sk->const_alphas[o], fp) == ERR)
+                goto error;
+    }
+    sk->deg_max = my_calloc(sk->cp->nslots, sizeof sk->deg_max[0]);
+    for (size_t i = 0; i < sk->cp->nslots; ++i)
+        if (size_t_fread((size_t *) &sk->deg_max[i], fp) == ERR)
+            goto error;
+    return sk;
+error:
+    fprintf(stderr, "error: %s: reading mife secret key failed\n", __func__);
+    mife_sk_free(sk);
+    return NULL;
+}
+
+mife_ek_t *
+mife_ek(const mife_t *mife)
+{
+    mife_ek_t *ek;
+    if ((ek = my_calloc(1, sizeof ek[0])) == NULL)
+        return NULL;
+    ek->mmap = mife->mmap;
+    ek->cp = mife->cp;
+    ek->enc_vt = mife->enc_vt;
+    ek->pp_vt = mife->pp_vt;
+    ek->pp = mife->pp;
+    ek->Chatstar = mife->Chatstar;
+    ek->zhat = mife->zhat;
+    ek->npowers = mife->npowers;
+    ek->uhat = mife->uhat;
+    ek->constants = mife->constants;
+    ek->local = false;
+    return ek;
+}
+
+static void
+mife_ek_free(mife_ek_t *ek)
+{
+    if (ek == NULL)
+        return;
+    if (ek->local) {
+        if (ek->pp)
+            public_params_free(ek->pp_vt, ek->pp);
+        if (ek->Chatstar)
+            encoding_free(ek->enc_vt, ek->Chatstar);
+        if (ek->constants)
+            mife_ct_free(ek->constants, ek->cp);
+        if (ek->zhat)
+            encoding_free(ek->enc_vt, ek->zhat);
+        if (ek->uhat) {
+            for (size_t i = 0; i < ek->cp->nslots; ++i) {
+                for (size_t p = 0; p < ek->npowers; ++p)
+                    encoding_free(ek->enc_vt, ek->uhat[i][p]);
+                free(ek->uhat[i]);
+            }
+            free(ek->uhat);
+        }
+    }
+    free(ek);
+}
+
+static int
+mife_ek_fwrite(const mife_ek_t *ek, FILE *fp)
+{
+    public_params_fwrite(ek->pp_vt, ek->pp, fp);
+    if (ek->constants) {
+        bool_fwrite(true, fp);
+        mife_ct_fwrite(ek->constants, ek->cp, fp);
+    } else {
+        bool_fwrite(false, fp);
+        encoding_fwrite(ek->enc_vt, ek->Chatstar, fp);
+    }
+    encoding_fwrite(ek->enc_vt, ek->zhat, fp);
+    size_t_fwrite(ek->npowers, fp);
+    for (size_t i = 0; i < ek->cp->nslots; ++i)
+        for (size_t p = 0; p < ek->npowers; ++p)
+            encoding_fwrite(ek->enc_vt, ek->uhat[i][p], fp);
+    return OK;
+}
+
+static mife_ek_t *
+mife_ek_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
+{
+    const circ_params_t *cp = &op->cp;
+    mife_ek_t *ek;
+    bool has_consts;
+
+    if ((ek = my_calloc(1, sizeof ek[0])) == NULL)
+        return NULL;
+    ek->local = true;
+    ek->mmap = mmap;
+    ek->cp = cp;
+    ek->enc_vt = get_encoding_vtable(mmap);
+    ek->pp_vt = get_pp_vtable(mmap);
+    ek->pp = public_params_fread(ek->pp_vt, op, fp);
+    bool_fread(&has_consts, fp);
+    if (has_consts) {
+        if ((ek->constants = mife_ct_fread(ek->mmap, ek->cp, fp)) == NULL)
+            goto error;
+    } else {
+        if ((ek->Chatstar = encoding_fread(ek->enc_vt, fp)) == NULL)
+            goto error;
+    }
+    ek->zhat = encoding_fread(ek->enc_vt, fp);
+    size_t_fread(&ek->npowers, fp);
+    ek->uhat = my_calloc(ek->cp->nslots, sizeof ek->uhat[0]);
+    for (size_t i = 0; i < ek->cp->nslots; ++i) {
+        ek->uhat[i] = my_calloc(ek->npowers, sizeof ek->uhat[i][0]);
+        for (size_t p = 0; p < ek->npowers; ++p)
+            ek->uhat[i][p] = encoding_fread(ek->enc_vt, fp);
+    }
+    return ek;
+error:
+    mife_ek_free(ek);
+    return NULL;
+}
 
 typedef struct {
     const encoding_vtable *vt;
@@ -84,11 +345,6 @@ mife_num_encodings_encrypt(const circ_params_t *cp, size_t slot)
 {
     return cp->ds[slot] + acirc_noutputs(cp->circ);
 }
-
-static mife_ciphertext_t *
-_mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
-              size_t nthreads, aes_randstate_t rng, mife_encrypt_cache_t *cache,
-              mpz_t *alphas, bool parallelize_circ_eval);
 
 static int
 populate_circ_degrees(const circ_params_t *cp, long *maxdegs)
@@ -185,7 +441,7 @@ mife_free(mife_t *mife)
     if (mife->const_alphas)
         mpz_vect_free(mife->const_alphas, acirc_nconsts(mife->cp->circ) + acirc_nsecrets(mife->cp->circ));
     if (mife->constants)
-        mife_ciphertext_free(mife->constants, mife->cp);
+        mife_ct_free(mife->constants, mife->cp);
     if (mife->pp)
         public_params_free(mife->pp_vt, mife->pp);
     if (mife->sp)
@@ -316,275 +572,13 @@ cleanup:
     }
 }
 
-mife_sk_t *
-mife_sk(const mife_t *mife)
-{
-    mife_sk_t *sk;
-    sk = my_calloc(1, sizeof sk[0]);
-    sk->mmap = mife->mmap;
-    sk->cp = mife->cp;
-    sk->enc_vt = mife->enc_vt;
-    sk->pp_vt = mife->pp_vt;
-    sk->sp_vt = mife->sp_vt;
-    sk->sp = mife->sp;
-    sk->pp = mife->pp;
-    sk->const_alphas = mife->const_alphas;
-    sk->deg_max = mife->deg_max;
-    sk->local = false;
-    return sk;
-}
-
-void
-mife_sk_free(mife_sk_t *sk)
-{
-    if (sk == NULL)
-        return;
-    if (sk->local) {
-        if (sk->pp)
-            public_params_free(sk->pp_vt, sk->pp);
-        if (sk->sp)
-            secret_params_free(sk->sp_vt, sk->sp);
-        if (sk->const_alphas)
-            mpz_vect_free(sk->const_alphas, acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ));
-        if (sk->deg_max)
-            free(sk->deg_max);
-    }
-    free(sk);
-}
-
-int
-mife_sk_fwrite(const mife_sk_t *sk, FILE *fp)
-{
-    public_params_fwrite(sk->pp_vt, sk->pp, fp);
-    secret_params_fwrite(sk->sp_vt, sk->sp, fp);
-    if (acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ))
-        for (size_t o = 0; o < acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ); ++o)
-            if (mpz_fwrite(sk->const_alphas[o], fp) == ERR)
-                goto error;
-    for (size_t i = 0; i < sk->cp->nslots; ++i)
-        if (size_t_fwrite(sk->deg_max[i], fp) == ERR)
-            goto error;
-    return OK;
-error:
-    fprintf(stderr, "error: writing mife secret key failed\n");
-    return ERR;
-}
-
-mife_sk_t *
-mife_sk_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
-{
-    const circ_params_t *cp = &op->cp;
-    mife_sk_t *sk;
-
-    sk = my_calloc(1, sizeof sk[0]);
-    sk->local = true;
-    sk->mmap = mmap;
-    sk->cp = cp;
-    sk->enc_vt = get_encoding_vtable(mmap);
-    sk->pp_vt = get_pp_vtable(mmap);
-    sk->sp_vt = get_sp_vtable(mmap);
-    {
-        const double start = current_time();
-        if ((sk->pp = public_params_fread(sk->pp_vt, op, fp)) == NULL)
-            goto error;
-        if (g_verbose)
-            fprintf(stderr, "    Reading public parameters from disk: %.2fs\n",
-                    current_time() - start);
-    }
-    {
-        const double start = current_time();
-        if ((sk->sp = secret_params_fread(sk->sp_vt, cp, fp)) == NULL)
-            goto error;
-        if (g_verbose)
-            fprintf(stderr, "    Reading secret parameters from disk: %.2fs\n",
-                    current_time() - start);
-    }
-    if (acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ)) {
-        sk->const_alphas = my_calloc(acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ), sizeof sk->const_alphas[0]);
-        for (size_t o = 0; o < acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ); ++o)
-            if (mpz_fread(&sk->const_alphas[o], fp) == ERR)
-                goto error;
-    }
-    sk->deg_max = my_calloc(sk->cp->nslots, sizeof sk->deg_max[0]);
-    for (size_t i = 0; i < sk->cp->nslots; ++i)
-        if (size_t_fread((size_t *) &sk->deg_max[i], fp) == ERR)
-            goto error;
-    return sk;
-error:
-    fprintf(stderr, "error: %s: reading mife secret key failed\n", __func__);
-    mife_sk_free(sk);
-    return NULL;
-}
-
-mife_ek_t *
-mife_ek(const mife_t *mife)
-{
-    mife_ek_t *ek;
-    if ((ek = my_calloc(1, sizeof ek[0])) == NULL)
-        return NULL;
-    ek->mmap = mife->mmap;
-    ek->cp = mife->cp;
-    ek->enc_vt = mife->enc_vt;
-    ek->pp_vt = mife->pp_vt;
-    ek->pp = mife->pp;
-    ek->Chatstar = mife->Chatstar;
-    ek->zhat = mife->zhat;
-    ek->npowers = mife->npowers;
-    ek->uhat = mife->uhat;
-    ek->constants = mife->constants;
-    ek->local = false;
-    return ek;
-}
-
-void
-mife_ek_free(mife_ek_t *ek)
-{
-    if (ek == NULL)
-        return;
-    if (ek->local) {
-        if (ek->pp)
-            public_params_free(ek->pp_vt, ek->pp);
-        if (ek->Chatstar)
-            encoding_free(ek->enc_vt, ek->Chatstar);
-        if (ek->constants)
-            mife_ciphertext_free(ek->constants, ek->cp);
-        if (ek->zhat)
-            encoding_free(ek->enc_vt, ek->zhat);
-        if (ek->uhat) {
-            for (size_t i = 0; i < ek->cp->nslots; ++i) {
-                for (size_t p = 0; p < ek->npowers; ++p)
-                    encoding_free(ek->enc_vt, ek->uhat[i][p]);
-                free(ek->uhat[i]);
-            }
-            free(ek->uhat);
-        }
-    }
-    free(ek);
-}
-
-int
-mife_ek_fwrite(const mife_ek_t *ek, FILE *fp)
-{
-    public_params_fwrite(ek->pp_vt, ek->pp, fp);
-    if (ek->constants) {
-        bool_fwrite(true, fp);
-        mife_ciphertext_fwrite(ek->constants, ek->cp, fp);
-    } else {
-        bool_fwrite(false, fp);
-        encoding_fwrite(ek->enc_vt, ek->Chatstar, fp);
-    }
-    encoding_fwrite(ek->enc_vt, ek->zhat, fp);
-    size_t_fwrite(ek->npowers, fp);
-    for (size_t i = 0; i < ek->cp->nslots; ++i)
-        for (size_t p = 0; p < ek->npowers; ++p)
-            encoding_fwrite(ek->enc_vt, ek->uhat[i][p], fp);
-    return OK;
-}
-
-mife_ek_t *
-mife_ek_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
-{
-    const circ_params_t *cp = &op->cp;
-    mife_ek_t *ek;
-    bool has_consts;
-
-    if ((ek = my_calloc(1, sizeof ek[0])) == NULL)
-        return NULL;
-    ek->local = true;
-    ek->mmap = mmap;
-    ek->cp = cp;
-    ek->enc_vt = get_encoding_vtable(mmap);
-    ek->pp_vt = get_pp_vtable(mmap);
-    ek->pp = public_params_fread(ek->pp_vt, op, fp);
-    bool_fread(&has_consts, fp);
-    if (has_consts) {
-        if ((ek->constants = mife_ciphertext_fread(ek->mmap, ek->cp, fp)) == NULL)
-            goto error;
-    } else {
-        if ((ek->Chatstar = encoding_fread(ek->enc_vt, fp)) == NULL)
-            goto error;
-    }
-    ek->zhat = encoding_fread(ek->enc_vt, fp);
-    size_t_fread(&ek->npowers, fp);
-    ek->uhat = my_calloc(ek->cp->nslots, sizeof ek->uhat[0]);
-    for (size_t i = 0; i < ek->cp->nslots; ++i) {
-        ek->uhat[i] = my_calloc(ek->npowers, sizeof ek->uhat[i][0]);
-        for (size_t p = 0; p < ek->npowers; ++p)
-            ek->uhat[i][p] = encoding_fread(ek->enc_vt, fp);
-    }
-    return ek;
-error:
-    mife_ek_free(ek);
-    return NULL;
-}
-
-void
-mife_ciphertext_free(mife_ciphertext_t *ct, const circ_params_t *cp)
-{
-    if (ct == NULL)
-        return;
-    const size_t ninputs = cp->ds[ct->slot];
-    for (size_t j = 0; j < ninputs; ++j)
-        encoding_free(ct->enc_vt, ct->xhat[j]);
-    free(ct->xhat);
-    for (size_t o = 0; o < acirc_noutputs(cp->circ); ++o)
-        encoding_free(ct->enc_vt, ct->what[o]);
-    free(ct->what);
-    free(ct);
-}
-
-int
-mife_ciphertext_fwrite(const mife_ciphertext_t *ct, const circ_params_t *cp,
-                       FILE *fp)
-{
-    const size_t ninputs = cp->ds[ct->slot];
-    if (size_t_fwrite(ct->slot, fp) == ERR) return ERR;
-    for (size_t j = 0; j < ninputs; ++j)
-        if (encoding_fwrite(ct->enc_vt, ct->xhat[j], fp) == ERR) return ERR;
-    for (size_t o = 0; o < acirc_noutputs(cp->circ); ++o)
-        if (encoding_fwrite(ct->enc_vt, ct->what[o], fp) == ERR) return ERR;
-    return OK;
-}
-
-mife_ciphertext_t *
-mife_ciphertext_fread(const mmap_vtable *mmap, const circ_params_t *cp, FILE *fp)
-{
-    mife_ciphertext_t *ct;
-    size_t ninputs;
-
-    if ((ct = my_calloc(1, sizeof ct[0])) == NULL)
-        return NULL;
-    ct->enc_vt = get_encoding_vtable(mmap);
-    if (size_t_fread(&ct->slot, fp) == ERR)
-        goto error;
-    if (ct->slot >= cp->nslots) {
-        fprintf(stderr, "error: slot number > number of slots\n");
-        goto error;
-    }
-    ninputs = cp->ds[ct->slot];
-    ct->xhat = my_calloc(ninputs, sizeof ct->xhat[0]);
-    for (size_t j = 0; j < ninputs; ++j) {
-        if ((ct->xhat[j] = encoding_fread(ct->enc_vt, fp)) == NULL)
-            goto error;
-    }
-    ct->what = my_calloc(acirc_noutputs(cp->circ), sizeof ct->what[0]);
-    for (size_t o = 0; o < acirc_noutputs(cp->circ); ++o)
-        if ((ct->what[o] = encoding_fread(ct->enc_vt, fp)) == NULL)
-            goto error;
-    return ct;
-error:
-    fprintf(stderr, "error: reading ciphertext failed\n");
-    free(ct);
-    return NULL;
-}
-
-static mife_ciphertext_t *
+mife_ct_t *
 _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
               size_t nthreads, aes_randstate_t rng, mife_encrypt_cache_t *cache,
               mpz_t *_alphas, bool parallelize_circ_eval)
 {
     (void) parallelize_circ_eval;
-    mife_ciphertext_t *ct;
+    mife_ct_t *ct;
     double start, end, _start, _end;
     const circ_params_t *cp = sk->cp;
     const size_t ninputs = cp->ds[slot];
@@ -730,17 +724,15 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
     return ct;
 }
 
-mife_ciphertext_t *
+static mife_ct_t *
 mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
-             size_t nthreads, mife_encrypt_cache_t *cache, aes_randstate_t rng,
-             bool parallelize_circ_eval)
+             size_t nthreads, aes_randstate_t rng)
 {
     if (sk == NULL || slot >= sk->cp->nslots || inputs == NULL) {
         fprintf(stderr, "error: mife encrypt: invalid input\n");
         return NULL;
     }
-    return _mife_encrypt(sk, slot, inputs, nthreads, rng, cache, NULL,
-                         parallelize_circ_eval);
+    return _mife_encrypt(sk, slot, inputs, nthreads, rng, NULL, NULL, false);
 }
 
 static void
@@ -801,7 +793,7 @@ cleanup:
 
 typedef struct {
     circ_params_t *cp;
-    mife_ciphertext_t **cts;
+    const mife_ct_t **cts;
     mife_ek_t *ek;
     size_t *kappas;
 } decrypt_args_t;
@@ -936,9 +928,8 @@ free_f(void *x, void *args_)
         encoding_free(args->ek->enc_vt, x);
 }
 
-int
-mife_decrypt(const mife_ek_t *ek, long *rop, mife_ciphertext_t **cts,
-             size_t nthreads, size_t *kappa)
+static int
+mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts, size_t nthreads, size_t *kappa)
 {
     const circ_params_t *cp = ek->cp;
     acirc_t *circ = cp->circ;
@@ -979,3 +970,21 @@ mife_decrypt(const mife_ek_t *ek, long *rop, mife_ciphertext_t **cts,
 
     return ret;
 }
+
+mife_vtable mife_cmr_vtable = {
+    .mife_setup = mife_setup,
+    .mife_free = mife_free,
+    .mife_sk = mife_sk,
+    .mife_sk_free = mife_sk_free,
+    .mife_sk_fwrite = mife_sk_fwrite,
+    .mife_sk_fread = mife_sk_fread,
+    .mife_ek = mife_ek,
+    .mife_ek_free = mife_ek_free,
+    .mife_ek_fwrite = mife_ek_fwrite,
+    .mife_ek_fread = mife_ek_fread,
+    .mife_ct_free = mife_ct_free,
+    .mife_ct_fwrite = mife_ct_fwrite,
+    .mife_ct_fread = mife_ct_fread,
+    .mife_encrypt = mife_encrypt,
+    .mife_decrypt = mife_decrypt,
+};

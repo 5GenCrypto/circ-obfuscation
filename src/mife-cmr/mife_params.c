@@ -40,7 +40,8 @@ _new(acirc_t *circ, void *vparams)
     circ_params_init(&op->cp, acirc_nsymbols(circ) + has_consts, circ);
     for (size_t i = 0; i < op->cp.nslots - has_consts; ++i) {
         op->cp.ds[i] = acirc_symlen(circ, i);
-        op->cp.qs[i] = acirc_is_sigma(circ, i) ? acirc_symlen(circ, i) : 2;
+        op->cp.qs[i] = acirc_is_sigma(circ, i) ? acirc_symlen(circ, i)
+            : (size_t) 1 << acirc_symlen(circ, i);
     }
     if (has_consts) {
         op->cp.ds[op->cp.nslots - 1] = acirc_nconsts(circ) + acirc_nsecrets(circ);
@@ -60,7 +61,7 @@ _free(obf_params_t *op)
     free(op);
 }
 
-op_vtable mife_op_vtable =
+op_vtable mife_cmr_op_vtable =
 {
     .new = _new,
     .free = _free,

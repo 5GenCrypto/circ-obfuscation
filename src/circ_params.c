@@ -112,7 +112,7 @@ circ_params_print(const circ_params_t *cp)
             degree = acirc_max_const_degree(cp->circ);
         else
             degree = acirc_max_var_degree(cp->circ, i);
-        fprintf(stderr, "*   slot #%lu: ..... %lu (%lu) [%lu]\n", i + 1,
+        fprintf(stderr, "*   slot #%lu: ..... %lu (%lu) [%lu]\n", i,
                 cp->ds[i], cp->qs[i], degree);
     }
     fprintf(stderr, "* nrefs: ....... %lu\n", acirc_nrefs(cp->circ));

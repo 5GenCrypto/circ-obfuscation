@@ -1,7 +1,7 @@
 #include "obfuscator.h"
 #include "obf_params.h"
+#include "../mife-cmr/mife.h"
 #include "../input_chunker.h"
-#include "../mife/mife.h"
 #include "../util.h"
 
 #include <string.h>
@@ -10,7 +10,7 @@ typedef struct obfuscation {
     const obf_params_t *op;
     mife_t *mife;
     mife_ek_t *ek;
-    mife_ciphertext_t ***cts;   /* [n][Σ] */
+    mife_ct_t ***cts;   /* [n][Σ] */
 } obfuscation;
 
 static void
@@ -19,17 +19,18 @@ _free(obfuscation *obf)
     if (obf == NULL)
         return;
 
-    const circ_params_t *const cp = &obf->op->cp;
+    const circ_params_t *cp = obf_params_cp(obf->op);
     const size_t ninputs = cp->nslots;
+    const mife_vtable *vt = &mife_cmr_vtable;
 
     if (obf->ek)
-        mife_ek_free(obf->ek);
+        vt->mife_ek_free(obf->ek);
     if (obf->cts) {
         for (size_t i = 0; i < ninputs; ++i) {
             if (obf->cts[i]) {
                 for (size_t j = 0; j < cp->qs[i]; ++j) {
                     if (obf->cts[i][j])
-                        mife_ciphertext_free(obf->cts[i][j], cp);
+                        vt->mife_ct_free(obf->cts[i][j], cp);
                 }
                 free(obf->cts[i]);
             }
@@ -37,7 +38,7 @@ _free(obfuscation *obf)
         free(obf->cts);
     }
     if (obf->mife)
-        mife_free(obf->mife);
+        vt->mife_free(obf->mife);
     free(obf);
 }
 
@@ -53,17 +54,18 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     double start, end, _start, _end;
     int res = ERR;
 
-    const circ_params_t *const cp = &op->cp;
+    const circ_params_t *cp = obf_params_cp(op);
     const size_t ninputs = cp->nslots;
+    const mife_vtable *vt = &mife_cmr_vtable;
 
     /* MIFE setup */
     start = _start = current_time();
 
     obf = my_calloc(1, sizeof obf[0]);
     obf->op = op;
-    obf->mife = mife_setup(mmap, op, secparam, kappa, op->npowers, nthreads, rng);
-    obf->ek = mife_ek(obf->mife);
-    sk = mife_sk(obf->mife);
+    obf->mife = vt->mife_setup(mmap, op, secparam, kappa, op->npowers, nthreads, rng);
+    obf->ek = vt->mife_ek(obf->mife);
+    sk = vt->mife_sk(obf->mife);
     obf->cts = my_calloc(ninputs, sizeof obf->cts[0]);
 
     _end = current_time();
@@ -96,14 +98,14 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
                     inputs[k] = j;
                 }
             }
-            obf->cts[i][j] = mife_encrypt(sk, i, inputs, nthreads, &cache, rng, false);
+            obf->cts[i][j] = _mife_encrypt(sk, i, inputs, nthreads, rng, &cache, NULL, false);
         }
     }
     res = OK;
 cleanup:
     threadpool_destroy(cache.pool);
     pthread_mutex_destroy(&lock);
-    mife_sk_free(sk);
+    vt->mife_sk_free(sk);
     if (res == OK) {
         end = _end = current_time();
         if (g_verbose) {
@@ -123,10 +125,11 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
           size_t *npowers)
 {
     (void) npowers;
-    const circ_params_t *cp = &obf->op->cp;
-    const acirc_t *const circ = cp->circ;
+    const circ_params_t *cp = obf_params_cp(obf->op);
+    const acirc_t *circ = cp->circ;
     const size_t has_consts = acirc_nconsts(circ) + acirc_nsecrets(circ) ? 1 : 0;
-    mife_ciphertext_t **cts = NULL;
+    const mife_vtable *vt = &mife_cmr_vtable;
+    mife_ct_t **cts = NULL;
     long *input_syms = NULL;
     int ret = ERR;
 
@@ -155,7 +158,7 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
     }
     if (has_consts)
         cts[cp->nslots - 1] = obf->cts[cp->nslots - 1][0];
-    if (mife_decrypt(obf->ek, outputs, cts, nthreads, kappa) == ERR)
+    if (vt->mife_decrypt(obf->ek, outputs, (const mife_ct_t **) cts, nthreads, kappa) == ERR)
         goto cleanup;
 
     ret = OK;
@@ -172,10 +175,11 @@ _fwrite(const obfuscation *const obf, FILE *const fp)
 {
     const circ_params_t *cp = &obf->op->cp;
     const size_t ninputs = cp->nslots;
-    mife_ek_fwrite(obf->ek, fp);
+    const mife_vtable *vt = &mife_cmr_vtable;
+    vt->mife_ek_fwrite(obf->ek, fp);
     for (size_t i = 0; i < ninputs; ++i) {
         for (size_t j = 0; j < cp->qs[i]; ++j) {
-            mife_ciphertext_fwrite(obf->cts[i][j], cp, fp);
+            vt->mife_ct_fwrite(obf->cts[i][j], cp, fp);
         }
     }
     return OK;
@@ -185,18 +189,19 @@ static obfuscation *
 _fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
 {
     obfuscation *obf;
-    const circ_params_t *cp = &op->cp;
+    const circ_params_t *cp = obf_params_cp(op);
     const size_t ninputs = cp->nslots;
+    const mife_vtable *vt = &mife_cmr_vtable;
     obf = my_calloc(1, sizeof obf[0]);
     obf->op = op;
-    if ((obf->ek = mife_ek_fread(mmap, op, fp)) == NULL)
+    if ((obf->ek = vt->mife_ek_fread(mmap, op, fp)) == NULL)
         goto error;
     obf->mife = NULL;
     obf->cts = my_calloc(ninputs, sizeof obf->cts[0]);
     for (size_t i = 0; i < ninputs; ++i) {
         obf->cts[i] = my_calloc(cp->qs[i], sizeof obf->cts[i][0]);
         for (size_t j = 0; j < cp->qs[i]; ++j) {
-            if ((obf->cts[i][j] = mife_ciphertext_fread(mmap, cp, fp)) == NULL)
+            if ((obf->cts[i][j] = vt->mife_ct_fread(mmap, cp, fp)) == NULL)
                 goto error;
         }
     }
