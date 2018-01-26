@@ -1,6 +1,6 @@
 #include "mmap.h"
 #include "util.h"
-#include "polylog/extra.h"
+#include "obf-polylog/extra.h"
 
 #include <assert.h>
 #include <stdio.h>

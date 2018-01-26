@@ -17,13 +17,13 @@ set(mio_SOURCES
   src/obf_run.c
   src/util.c
   )
-set(lz_SOURCES
+set(obf_lz_SOURCES
   ${mio_SOURCES}
-  src/lz/encoding.c
-  src/lz/obf_params.c
-  src/lz/obfuscator.c
-  src/lz/public_params.c
-  src/lz/secret_params.c
+  src/obf-lz/encoding.c
+  src/obf-lz/obf_params.c
+  src/obf-lz/obfuscator.c
+  src/obf-lz/public_params.c
+  src/obf-lz/secret_params.c
   )
 set(mife_cmr_SOURCES
   ${mio_SOURCES}
@@ -38,25 +38,26 @@ set(obf_cmr_SOURCES
   src/obf-cmr/obf_params.c
   src/obf-cmr/obfuscator.c
   )
-set(polylog_SOURCES
+set(obf_polylog_SOURCES
   ${mio_SOURCES}
-  src/polylog/encoding.c
-  src/polylog/extra.c
-  src/polylog/obf_params.c
-  src/polylog/obfuscator.c
-  src/polylog/public_params.c
-  src/polylog/secret_params.c
-  src/polylog/wire.c
+  src/obf-polylog/encoding.c
+  src/obf-polylog/extra.c
+  src/obf-polylog/obf_params.c
+  src/obf-polylog/obfuscator.c
+  src/obf-polylog/public_params.c
+  src/obf-polylog/secret_params.c
+  src/obf-polylog/wire.c
   )
 
-add_library(lz SHARED ${lz_SOURCES})
+add_library(obf_lz SHARED ${obf_lz_SOURCES})
 add_library(mife_cmr SHARED ${mife_cmr_SOURCES})
 add_library(obf_cmr SHARED ${obf_cmr_SOURCES})
-add_library(polylog SHARED ${polylog_SOURCES})
+add_library(obf_polylog SHARED ${obf_polylog_SOURCES})
 add_executable(mio src/mio.c)
-target_link_libraries(mio lz)
-target_link_libraries(mio mife_cmr obf_cmr)
-target_link_libraries(mio polylog)
+target_link_libraries(mio obf_lz)
+target_link_libraries(mio mife_cmr)
+target_link_libraries(mio obf_cmr)
+target_link_libraries(mio obf_polylog)
 find_library(libacirc acirc)
 find_library(libmmap mmap)
 find_library(libclt13 clt13)

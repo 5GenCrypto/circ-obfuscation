@@ -2,12 +2,13 @@
 #include "obfuscator.h"
 #include "util.h"
 
-#include "mife-cmr/mife.h"
 #include "mife_run.h"
-#include "lz/obfuscator.h"
-#include "obf-cmr/obfuscator.h"
-#include "polylog/obfuscator.h"
 #include "obf_run.h"
+
+#include "mife-cmr/mife.h"
+#include "obf-lz/obfuscator.h"
+#include "obf-cmr/obfuscator.h"
+#include "obf-polylog/obfuscator.h"
 
 #include <aesrand.h>
 #include <acirc.h>
