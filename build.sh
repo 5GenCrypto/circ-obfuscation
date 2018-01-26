@@ -21,7 +21,7 @@ if [[ "$1" == "" ]]; then
 elif [[ "$1" == "debug" ]]; then
     debug='-DCMAKE_BUILD_TYPE=Debug'
 elif [[ "$1" == "clean" ]]; then
-    rm -rf build libaesrand clt13 libmmap libacirc libthreadpool
+    rm -rf build libaesrand clt13 libmmap libacirc libthreadpool circuit-synthesis *.so mio
     exit 0
 elif [[ "$1" == "help" ]]; then
     usage
