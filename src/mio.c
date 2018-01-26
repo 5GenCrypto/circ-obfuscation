@@ -571,7 +571,7 @@ mife_select_scheme(mife_scheme_e scheme, acirc_t *circ, mife_vtable **vt,
         abort();
     }
 
-    *op = (*op_vt)->new(circ, NULL);
+    *op = obf_params_new(*op_vt, circ, NULL);
     if (*op == NULL) {
         fprintf(stderr, "%s: initializing mife parameters failed\n", errorstr);
         return ERR;
@@ -842,7 +842,7 @@ obf_select_scheme(obf_scheme_e scheme, acirc_t *circ, size_t npowers,
         break;
     }
 
-    *op = (*op_vt)->new(circ, vparams);
+    *op = obf_params_new(*op_vt, circ, vparams);
     if (*op == NULL) {
         fprintf(stderr, "%s: initializing obfuscation parameters failed\n", errorstr);
         return ERR;

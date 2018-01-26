@@ -38,6 +38,10 @@ set(obf_cmr_SOURCES
   src/obf-cmr/obf_params.c
   src/obf-cmr/obfuscator.c
   )
+set(mife_gc_SOURCES
+  ${mio_SOURCES}
+  src/mife-gc/mife.c
+  )
 set(obf_polylog_SOURCES
   ${mio_SOURCES}
   src/obf-polylog/encoding.c
@@ -52,6 +56,7 @@ set(obf_polylog_SOURCES
 add_library(obf_lz SHARED ${obf_lz_SOURCES})
 add_library(mife_cmr SHARED ${mife_cmr_SOURCES})
 add_library(obf_cmr SHARED ${obf_cmr_SOURCES})
+# add_library(mife_gc SHARED ${mife_gc_SOURCES})
 add_library(obf_polylog SHARED ${obf_polylog_SOURCES})
 add_executable(mio src/mio.c)
 target_link_libraries(mio obf_lz)

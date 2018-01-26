@@ -11,6 +11,9 @@ typedef struct {
     size_t total;
 } mife_encrypt_cache_t;
 
+typedef mife_t mife_cmr_mife_t;
+typedef mife_sk_t mife_cmr_mife_sk_t;
+
 mife_ct_t *
 _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
               size_t nthreads, aes_randstate_t rng, mife_encrypt_cache_t *cache,

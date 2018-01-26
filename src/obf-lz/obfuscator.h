@@ -2,7 +2,7 @@
 
 #include "../obfuscator.h"
 
-typedef struct lz_obf_params_t {
+typedef struct {
     size_t npowers;
     bool sigma;
 } lz_obf_params_t;

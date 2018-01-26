@@ -20,6 +20,33 @@ mmap_params_fprint(FILE *fp, const mmap_params_t *params)
     fprintf(fp, "\n");
 }
 
+obf_params_t *
+obf_params_new(const op_vtable *vt, acirc_t *circ, void *vparams)
+{
+    const size_t nconsts = acirc_nconsts(circ) + acirc_nsecrets(circ);
+    const size_t has_consts = nconsts ? 1 : 0;
+    obf_params_t *op;
+    circ_params_t *cp;
+
+    op = vt->new(circ, vparams);
+    cp = obf_params_cp(op);
+    circ_params_init(cp, acirc_nsymbols(circ) + has_consts, circ);
+    for (size_t i = 0; i < cp->nslots - has_consts; ++i) {
+        cp->ds[i] = acirc_symlen(circ, i);
+        cp->qs[i] = acirc_is_sigma(circ, i) ? acirc_symlen(circ, i) : 2;
+    }
+    if (has_consts) {
+        cp->ds[cp->nslots - 1] = acirc_nconsts(circ) + acirc_nsecrets(circ);
+        cp->qs[cp->nslots - 1] = 1;
+    }
+    if (g_verbose) {
+        circ_params_print(cp);
+        if (vt->print)
+            vt->print(op);
+    }
+    return op;
+}
+
 secret_params *
 secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
                   size_t *kappa, size_t ncores, aes_randstate_t rng)

@@ -58,33 +58,22 @@ _free(obf_params_t *op)
 static obf_params_t *
 _new(acirc_t *circ, void *vparams)
 {
-    const lz_obf_params_t *const params = vparams;
-    const size_t nconsts = acirc_nconsts(circ);
-    const size_t has_consts = nconsts ? 1 : 0;
+    (void) circ;
+    const lz_obf_params_t *params = vparams;
     obf_params_t *op;
 
     if ((op = calloc(1, sizeof op[0])) == NULL)
-        return op;
-    circ_params_init(&op->cp, acirc_nsymbols(circ) + has_consts, circ);
-    for (size_t i = 0; i < op->cp.nslots - has_consts; ++i) {
-        op->cp.ds[i] = acirc_symlen(circ, i);
-        op->cp.qs[i] = params->sigma ? acirc_symlen(circ, i)
-                                     : ((size_t) 1 << acirc_symlen(circ, i));
-    }
-    if (has_consts) {
-        op->cp.ds[op->cp.nslots - 1] = nconsts;
-        op->cp.qs[op->cp.nslots - 1] = 1;
-    }
-    op->sigma = params->sigma;
+        return NULL;
     op->npowers = params->npowers;
-    if (g_verbose) {
-        circ_params_print(&op->cp);
-        fprintf(stderr, "Obfuscation parameters:\n");
-        fprintf(stderr, "* Σ: ......... %s\n", op->sigma ? "Yes" : "No");
-        fprintf(stderr, "* # powers: .. %lu\n", op->npowers);
-        fprintf(stderr, "* # encodings: %lu\n", obf_params_num_encodings(op));
-    }
     return op;
+}
+
+static void
+_print(const obf_params_t *op)
+{
+    fprintf(stderr, "Obfuscation parameters:\n");
+    fprintf(stderr, "* # powers: .. %lu\n", op->npowers);
+    fprintf(stderr, "* # encodings: %lu\n", obf_params_num_encodings(op));
 }
 
 static int
@@ -115,4 +104,5 @@ op_vtable lz_op_vtable =
     .free = _free,
     .fwrite = _fwrite,
     .fread = _fread,
+    .print = _print,
 };

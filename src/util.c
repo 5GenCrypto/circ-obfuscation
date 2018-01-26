@@ -176,9 +176,6 @@ size_t bit(size_t x, size_t i)
     return (x & (1 << i)) > 0;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// custom allocators that complain when they fail
-
 void *
 my_calloc(size_t nmemb, size_t size)
 {
@@ -190,9 +187,6 @@ my_calloc(size_t nmemb, size_t size)
     }
     return ptr;
 }
-
-////////////////////////////////////////////////////////////////////////////////
-// serialization
 
 int
 mpz_fread(mpz_t *x, FILE *fp)

@@ -34,15 +34,12 @@ get_input_syms(const long *inputs, size_t ninputs, reverse_chunker rchunker,
     for (size_t i = 0; i < nsymbols; i++) {
         input_syms[i] = 0;
         for (size_t j = 0; j < ds[i]; j++) {
-            /* const sym_id sym = { i, j }; */
-            /* const size_t k = rchunker(sym, ninputs, nsymbols); */
             if (sigmas[i])
                 input_syms[i] += inputs[k] * j;
             else
                 input_syms[i] += inputs[k] << j;
             k++;
         }
-        printf("%d\n", sigmas[i]);
         if ((size_t) input_syms[i] >= qs[i]) {
             fprintf(stderr, "error: invalid input for symbol %lu (%ld > %lu)\n",
                     i, input_syms[i], qs[i]);

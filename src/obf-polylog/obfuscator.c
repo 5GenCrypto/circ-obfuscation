@@ -28,16 +28,6 @@ struct obfuscation {
     long *deg_max;              /* [n] */
 };
 
-size_t
-obf_num_encodings(const circ_params_t *cp, size_t npowers)
-{
-    (void) npowers;             /* XXX */
-    const size_t ninputs = acirc_ninputs(cp->circ);
-    const size_t nconsts = acirc_nconsts(cp->circ);
-    const size_t noutputs = acirc_noutputs(cp->circ);
-    return 2 * 2 * ninputs + 2 * nconsts + ninputs * 2 * noutputs + 2 * noutputs;
-}
-
 /* static long * */
 /* populate_circ_degrees(const circ_params_t *cp) */
 /* { */

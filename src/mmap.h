@@ -22,7 +22,11 @@ typedef struct {
     void (*free)(obf_params_t *);
     int (*fwrite)(const obf_params_t *, FILE *);
     obf_params_t * (*fread)(acirc_t *, FILE *);
+    void (*print)(const obf_params_t *);
 } op_vtable;
+
+obf_params_t * obf_params_new(const op_vtable *vt, acirc_t *circ, void *vparams);
+
 
 typedef struct mmap_params_t {
     size_t kappa;
