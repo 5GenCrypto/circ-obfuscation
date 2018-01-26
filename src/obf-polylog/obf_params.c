@@ -44,7 +44,7 @@ _new(acirc_t *circ, void *vparams)
 
     if ((op = my_calloc(1, sizeof op[0])) == NULL)
         return NULL;
-    op->nlevels = acirc_max_depth(circ) + 1;
+    op->nlevels = MAX(acirc_max_depth(circ) + 1, ninputs);
     op->nswitches = acirc_nrefs(circ) + (ninputs + 2) * noutputs;
     return op;
 }
