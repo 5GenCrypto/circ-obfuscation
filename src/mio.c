@@ -31,6 +31,7 @@ static const char *progversion = "v2.0.0 (in progress)";
 
 #define NPOWERS_DEFAULT 1
 #define SECPARAM_DEFAULT 8
+#define WORDSIZE_DEFAULT 64
 
 typedef enum {
     OBF_SCHEME_LZ,
@@ -42,8 +43,10 @@ typedef enum {
 #define OBF_SCHEME_DEFAULT_STR "CMR"
 
 static int
-str_to_obf_scheme(const char *str, obf_scheme_e *scheme)
+args_get_obf_scheme(obf_scheme_e *scheme, int *argc, char ***argv)
 {
+    if (*argc <= 1) return ERR;
+    const char *str = (*argv)[1];
     if (!strcmp(str, "LZ")) {
         *scheme = OBF_SCHEME_LZ;
     } else if (!strcmp(str, "CMR")) {
@@ -54,6 +57,7 @@ str_to_obf_scheme(const char *str, obf_scheme_e *scheme)
         fprintf(stderr, "%s: unknown obfuscation scheme '%s'\n", errorstr, str);
         return ERR;
     }
+    (*argv)++; (*argc)--;
     return OK;
 }
 
@@ -66,8 +70,10 @@ typedef enum {
 #define MIFE_SCHEME_DEFAULT_STR "CMR"
 
 static int
-str_to_mife_scheme(const char *str, mife_scheme_e *scheme)
+args_get_mife_scheme(mife_scheme_e *scheme, int *argc, char ***argv)
 {
+    if (*argc <= 1) return ERR;
+    const char *str = (*argv)[1];
     if (!strcmp(str, "CMR")) {
         *scheme = MIFE_SCHEME_CMR;
     } else if (!strcmp(str, "GC")) {
@@ -76,22 +82,7 @@ str_to_mife_scheme(const char *str, mife_scheme_e *scheme)
         fprintf(stderr, "%s: unknown scheme '%s'\n", errorstr, str);
         return ERR;
     }
-    return OK;
-}
-
-static int
-str_to_kappa(const char *str, size_t *kappa)
-{
-    char *endptr;
-    *kappa = strtol(str, &endptr, 10);
-    if (*endptr != '\0') {
-        fprintf(stderr, "%s: invalid κ value given\n", errorstr);
-        return ERR;
-    }
-    if (*kappa == 0) {
-        fprintf(stderr, "%s: κ value cannot be zero\n", errorstr);
-        return ERR;
-    }
+    (*argv)++; (*argc)--;
     return OK;
 }
 
@@ -147,8 +138,7 @@ static int
 args_get_size_t(size_t *result, int *argc, char ***argv)
 {
     char *endptr;
-    if (*argc <= 1)
-        return ERR;
+    if (*argc <= 1) return ERR;
     *result = strtol((*argv)[1], &endptr, 10);
     if (*endptr != '\0') {
         fprintf(stderr, "%s: invalid argument '%s'\n", errorstr, (*argv)[1]);
@@ -181,8 +171,8 @@ mife_setup_usage(bool longform, int ret)
         printf(
 "    --secparam λ       set security parameter to λ (default: %d)\n"
 "    --npowers N        set the number of powers to N (default: %d)\n"
-"    --scheme S         set MIFE scheme to S (options: CMR, GC | default: CMR)\n",
-SECPARAM_DEFAULT, NPOWERS_DEFAULT);
+"    --scheme S         set MIFE scheme to S (options: CMR, GC | default: CMR)\n"
+, SECPARAM_DEFAULT, NPOWERS_DEFAULT);
         args_usage();
         printf("\n");
     }
@@ -199,9 +189,7 @@ mife_setup_handle_options(int *argc, char ***argv, void *vargs)
     } else if (!strcmp(cmd, "--npowers")) {
         if (args_get_size_t(&args->npowers, argc, argv) == ERR) return ERR;
     } else if (!strcmp(cmd, "--scheme")) {
-        if (*argc <= 1) return ERR;
-        if (str_to_mife_scheme((*argv)[1], &args->scheme) == ERR) return ERR;
-        (*argv)++; (*argc)++;
+        if (args_get_mife_scheme(&args->scheme, argc, argv) == ERR) return ERR;
     } else {
         return ERR;
     }
@@ -236,9 +224,7 @@ mife_encrypt_handle_options(int *argc, char ***argv, void *vargs)
     mife_encrypt_args_t *args = vargs;
     const char *cmd = (*argv)[0];
     if (!strcmp(cmd, "--scheme")) {
-        if (*argc <= 1) return ERR;
-        if (str_to_mife_scheme((*argv)[1], &args->scheme) == ERR) return ERR;
-        (*argv)++; (*argc)++;
+        if (args_get_mife_scheme(&args->scheme, argc, argv) == ERR) return ERR;
     } else {
         return ERR;
     }
@@ -287,8 +273,8 @@ mife_test_usage(bool longform, int ret)
 "    --secparam λ       set security parameter to λ (default: %d)\n"
 "    --npowers N        set the number of powers to N (default: %d)\n"
 "    --scheme S         set MIFE scheme to S (options: CMR, GC | default: CMR)\n"
-"    --kappa Κ          set multilinearity to Κ\n",
-SECPARAM_DEFAULT, NPOWERS_DEFAULT);
+"    --kappa Κ          set multilinearity to Κ\n"
+, SECPARAM_DEFAULT, NPOWERS_DEFAULT);
         args_usage();
         printf("\n");
     }
@@ -308,9 +294,7 @@ mife_test_handle_options(int *argc, char ***argv, void *vargs)
     } else if (!strcmp(cmd, "--kappa")) {
         if (args_get_size_t(&args->kappa, argc, argv) == ERR) return ERR;
     } else if (!strcmp(cmd, "--scheme")) {
-        if (*argc <= 1) return ERR;
-        if (str_to_mife_scheme((*argv)[1], &args->scheme) == ERR) return ERR;
-        (*argv)++; (*argc)--;
+        if (args_get_mife_scheme(&args->scheme, argc, argv) == ERR) return ERR;
     } else {
         return ERR;
     }
@@ -362,6 +346,7 @@ typedef struct {
     size_t secparam;
     size_t npowers;
     size_t kappa;
+    size_t wordsize;
     obf_scheme_e scheme;
 } obf_obfuscate_args_t;
 
@@ -372,6 +357,7 @@ obf_obfuscate_args_init(obf_obfuscate_args_t *args)
     args->npowers = NPOWERS_DEFAULT;
     args->scheme = OBF_SCHEME_CMR;
     args->kappa = 0;
+    args->wordsize = WORDSIZE_DEFAULT;
 }
 
 static void
@@ -383,10 +369,14 @@ obf_obfuscate_or_test_usage(bool longform, int ret, const char *cmd)
         printf(
 "    --secparam λ       set security parameter to λ (default: %d)\n"
 "    --npowers N        set the number of powers to N (default: %d)\n"
-"    --scheme S         set obfuscation scheme to S (options: CMR, LZ, POLYLOG | default: CMR)\n"
-"    --kappa Κ          set multilinearity to Κ\n",
-SECPARAM_DEFAULT, NPOWERS_DEFAULT);
+"    --scheme S         set obfuscation scheme to S (options: CMR, LZ, POLYLOG | default: %s)\n"
+"    --kappa Κ          set multilinearity to Κ\n"
+, SECPARAM_DEFAULT, NPOWERS_DEFAULT, OBF_SCHEME_DEFAULT_STR);
         args_usage();
+        printf(
+"\nPOLYLOG-only arguments:\n\n"
+"    --wordsize W       set the wordsize to W (default: %d)\n"
+, WORDSIZE_DEFAULT);
         printf("\n");
     }
     exit(ret);
@@ -408,12 +398,11 @@ obf_obfuscate_handle_options(int *argc, char ***argv, void *vargs)
     } else if (!strcmp(cmd, "--npowers")) {
         if (args_get_size_t(&args->npowers, argc, argv) == ERR) return ERR;
     } else if (!strcmp(cmd, "--scheme")) {
-        if (*argc <= 1) return ERR;
-        if (str_to_obf_scheme((*argv)[1], &args->scheme) == ERR) return ERR;
-        (*argv)++; (*argc)--;
+        if (args_get_obf_scheme(&args->scheme, argc, argv) == ERR) return ERR;
     } else if (!strcmp(cmd, "--kappa")) {
-        if (str_to_kappa((*argv)[1], &args->kappa) == ERR) return ERR;
-        (*argv)++; (*argc)--;
+        if (args_get_size_t(&args->kappa, argc, argv) == ERR) return ERR;
+    } else if (!strcmp(cmd, "--wordsize")) {
+        if (args_get_size_t(&args->wordsize, argc, argv) == ERR) return ERR;
     } else {
         return ERR;
     }
@@ -455,9 +444,7 @@ obf_evaluate_handle_options(int *argc, char ***argv, void *vargs)
     if (!strcmp(cmd, "--npowers")) {
         if (args_get_size_t(&args->npowers, argc, argv) == ERR) return ERR;
     } else if (!strcmp(cmd, "--scheme")) {
-        if (*argc <= 1) return ERR;
-        if (str_to_obf_scheme((*argv)[1], &args->scheme) == ERR) return ERR;
-        (*argv)++; (*argc)--;
+        if (args_get_obf_scheme(&args->scheme, argc, argv) == ERR) return ERR;
     } else {
         return ERR;
     }
@@ -486,9 +473,10 @@ obf_get_kappa_usage(bool longform, int ret)
     printf("usage: %s obf get-kappa [<args>] circuit input\n", progname);
     if (longform) {
         printf("\nAvailable arguments:\n\n");
-        printf("    --scheme S         set obfuscation scheme to S (options: CMR, LZ | default: CMR)\n"
-               "    --npowers N        set the number of powers to N (default: %d)\n",
-               NPOWERS_DEFAULT);
+        printf(
+"    --scheme S         set obfuscation scheme to S (options: CMR, LZ | default: %s)\n"
+"    --npowers N        set the number of powers to N (default: %d)\n"
+, OBF_SCHEME_DEFAULT_STR, NPOWERS_DEFAULT);
         args_usage();
         printf("\n");
     }
@@ -567,13 +555,13 @@ mife_select_scheme(mife_scheme_e scheme, acirc_t *circ, mife_vtable **vt,
         *op_vt = &mife_cmr_op_vtable;
         break;
     case MIFE_SCHEME_GC:
-        fprintf(stderr, "error: not yet supported");
+        fprintf(stderr, "%s: not yet supported\n", errorstr);
         abort();
     }
 
     *op = obf_params_new(*op_vt, circ, NULL);
     if (*op == NULL) {
-        fprintf(stderr, "%s: initializing mife parameters failed\n", errorstr);
+        fprintf(stderr, "%s: initializing MIFE parameters failed\n", errorstr);
         return ERR;
     }
     return OK;
@@ -816,10 +804,12 @@ cmd_mife(int argc, char **argv)
 
 static int
 obf_select_scheme(obf_scheme_e scheme, acirc_t *circ, size_t npowers,
-                  obfuscator_vtable **vt, op_vtable **op_vt, obf_params_t **op)
+                  size_t wordsize, obfuscator_vtable **vt,
+                  op_vtable **op_vt, obf_params_t **op)
 {
     lz_obf_params_t lz_params;
     mobf_obf_params_t mobf_params;
+    polylog_obf_params_t polylog_params;
     void *vparams = NULL;
 
     switch (scheme) {
@@ -838,7 +828,8 @@ obf_select_scheme(obf_scheme_e scheme, acirc_t *circ, size_t npowers,
     case OBF_SCHEME_POLYLOG:
         *vt = &polylog_obfuscator_vtable;
         *op_vt = &polylog_op_vtable;
-        vparams = NULL;
+        polylog_params.wordsize = wordsize;
+        vparams = &polylog_params;
         break;
     }
 
@@ -865,7 +856,7 @@ cmd_obf_obfuscate(int argc, char **argv, args_t *args)
     obf_obfuscate_args_init(&args_);
     handle_options(&argc, &argv, 0, args, &args_, obf_obfuscate_handle_options,
                    obf_obfuscate_usage);
-    if (obf_select_scheme(args_.scheme, args->circ, args_.npowers,
+    if (obf_select_scheme(args_.scheme, args->circ, args_.npowers, args_.wordsize,
                           &vt, &op_vt, &op) == ERR)
         goto cleanup;
 
@@ -913,7 +904,7 @@ cmd_obf_evaluate(int argc, char **argv, args_t *args)
     obf_evaluate_args_init(&args_);
     handle_options(&argc, &argv, 1, args, &args_, obf_evaluate_handle_options,
                    obf_evaluate_usage);
-    if (obf_select_scheme(args_.scheme, args->circ, args_.npowers,
+    if (obf_select_scheme(args_.scheme, args->circ, args_.npowers, 0,
                           &vt, &op_vt, &op) == ERR)
         goto cleanup;
 
@@ -970,7 +961,7 @@ cmd_obf_test(int argc, char **argv, args_t *args)
     argv++; argc--;
     obf_test_args_init(&args_);
     handle_options(&argc, &argv, 0, args, &args_, obf_test_handle_options, obf_test_usage);
-    if (obf_select_scheme(args_.scheme, args->circ, args_.npowers,
+    if (obf_select_scheme(args_.scheme, args->circ, args_.npowers, args_.wordsize,
                           &vt, &op_vt, &op) == ERR)
         goto cleanup;
     if (args_.scheme == OBF_SCHEME_POLYLOG && args->vt == &clt_vtable)
@@ -1025,7 +1016,7 @@ cmd_obf_get_kappa(int argc, char **argv, args_t *args)
     argv++, argc--;
     obf_get_kappa_args_init(&args_);
     handle_options(&argc, &argv, 0, args, &args_, obf_get_kappa_handle_options, obf_get_kappa_usage);
-    if (obf_select_scheme(args_.scheme, args->circ, args_.npowers,
+    if (obf_select_scheme(args_.scheme, args->circ, args_.npowers, 0,
                           &vt, &op_vt, &op) == ERR)
         goto cleanup;
 

@@ -25,9 +25,8 @@ obf_params_new_toplevel(const circ_params_t *const cp, size_t nzs)
 }
 
 PRIVATE size_t
-obf_num_encodings(const circ_params_t *cp, size_t npowers)
+obf_num_encodings(const circ_params_t *cp)
 {
-    (void) npowers;             /* XXX */
     const size_t ninputs = acirc_ninputs(cp->circ);
     const size_t nconsts = acirc_nconsts(cp->circ);
     const size_t noutputs = acirc_noutputs(cp->circ);
@@ -37,7 +36,7 @@ obf_num_encodings(const circ_params_t *cp, size_t npowers)
 static obf_params_t *
 _new(acirc_t *circ, void *vparams)
 {
-    (void) vparams;
+    const polylog_obf_params_t *params = vparams;
     obf_params_t *op;
     const size_t ninputs = acirc_ninputs(circ);
     const size_t noutputs = acirc_noutputs(circ);
@@ -46,6 +45,7 @@ _new(acirc_t *circ, void *vparams)
         return NULL;
     op->nlevels = MAX(acirc_max_depth(circ) + 1, ninputs);
     op->nswitches = acirc_nrefs(circ) + (ninputs + 2) * noutputs;
+    op->wordsize = params->wordsize;
     return op;
 }
 
@@ -55,7 +55,7 @@ _print(const obf_params_t *op)
     fprintf(stderr, "Obfuscation parameters:\n");
     fprintf(stderr, "* # levels: .. %lu\n", op->nlevels);
     fprintf(stderr, "* # switches:  %lu\n", op->nswitches);
-    fprintf(stderr, "* # encodings: %lu\n", obf_num_encodings(&op->cp, 1));
+    fprintf(stderr, "* # encodings: %lu\n", obf_num_encodings(&op->cp));
 }
 
 static int

@@ -5,18 +5,6 @@
 #include <acirc.h>
 #include <assert.h>
 
-size_t
-polylog_nlevels(obf_params_t *op)
-{
-    return op->nlevels;
-}
-
-size_t
-polylog_nswitches(obf_params_t *op)
-{
-    return op->nswitches;
-}
-
 typedef struct {
     obf_params_t *op;
     mmap_polylog_switch_params **sparams;
@@ -148,7 +136,7 @@ free_f(void *x, void *args_)
         free(x);
 }
 
-mmap_polylog_switch_params **
+static mmap_polylog_switch_params **
 polylog_switch_params(obf_params_t *op, size_t nzs)
 {
     (void) nzs;
@@ -164,4 +152,26 @@ polylog_switch_params(obf_params_t *op, size_t nzs)
                                              eval_f, output_f, free_f, &args, 0);
     free(outputs);
     return sparams;
+}
+
+mmap_sk
+polylog_secret_params_new(const sp_vtable *vt, const obf_params_t *op,
+                          mmap_sk_params *p, mmap_sk_opt_params *o,
+                          const mmap_params_t *params, size_t ncores,
+                          aes_randstate_t rng)
+{
+    mmap_sk sk = NULL;
+    o->is_polylog = true;
+    o->polylog.nlevels = op->nlevels;
+    o->polylog.nswitches = op->nswitches;
+    o->polylog.sparams = polylog_switch_params(op, params->nzs);
+    o->polylog.wordsize = op->wordsize;
+
+    if ((sk = vt->mmap->sk->new(p, o, ncores, rng, g_verbose)) == NULL)
+        goto cleanup;
+cleanup:
+    for (size_t i = 0; i < op->nswitches; ++i)
+        free(o->polylog.sparams[i]);
+    free(o->polylog.sparams);
+    return sk;
 }

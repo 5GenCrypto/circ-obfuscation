@@ -39,8 +39,6 @@ _sp_init(secret_params *sp, mmap_params_t *mp, const obf_params_t *op, size_t ka
     }
     mp->my_pows = true;
     mp->nslots = 1 + acirc_ninputs(cp->circ) + 1;
-
-    /* my(sp)->sparams = polylog_switch_params(op, mp->nzs); */
     return OK;
 }
 

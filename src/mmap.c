@@ -51,11 +51,14 @@ secret_params *
 secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
                   size_t *kappa, size_t ncores, aes_randstate_t rng)
 {
+    int ret = ERR;
     mpz_t modulus;
     mmap_params_t params;
     const circ_params_t *cp = obf_params_cp(op);
     size_t _kappa = kappa ? *kappa : 0;
-    secret_params *sp = my_calloc(1, sizeof sp[0]);
+    secret_params *sp;
+
+    sp = my_calloc(1, sizeof sp[0]);
     if (vt->init(sp, &params, op, _kappa) == ERR) {
         free(sp);
         return NULL;
@@ -80,25 +83,25 @@ secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
         o.modulus = &modulus;
     }
     if (vt->mmap == &clt_pl_vtable) {
-        o.is_polylog = true;
-        o.polylog.nlevels = polylog_nlevels(op);
-        o.polylog.nswitches = polylog_nswitches(op);
-        o.polylog.sparams = polylog_switch_params(op, params.nzs);
+        if ((sp->sk = polylog_secret_params_new(vt, op, &p, &o, &params, ncores, rng)) == NULL)
+            goto cleanup;
+    } else {
+        if ((sp->sk = vt->mmap->sk->new(&p, &o, ncores, rng, g_verbose)) == NULL)
+            goto cleanup;
     }
-    if ((sp->sk = vt->mmap->sk->new(&p, &o, ncores, rng, g_verbose)) == NULL) {
-        free(sp);
-        sp = NULL;
-    }
-    if (vt->mmap == &clt_pl_vtable) {
-        for (size_t i = 0; i < polylog_nswitches(op); ++i)
-            free(o.polylog.sparams[i]);
-        free(o.polylog.sparams);
-    }
+    ret = OK;
+cleanup:
     if (acirc_is_binary(cp->circ))
         mpz_clear(modulus);
     if (params.my_pows)
         free(params.pows);
-    return sp;
+    if (ret == OK)
+        return sp;
+    else {
+        if (sp)
+            free(sp);
+        return NULL;
+    }
 }
 
 int

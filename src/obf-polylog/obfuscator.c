@@ -19,7 +19,6 @@ struct obfuscation {
     const obf_params_t *op;
     secret_params *sp;
     public_params *pp;
-    size_t npowers;
     encoding **Chatstar;        /* [m] */
     encoding **zhat;            /* [m] */
     wire_t ***xhat;             /* [n][2] */
@@ -211,7 +210,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     const size_t nconsts = acirc_nconsts(cp->circ);
     const size_t noutputs = acirc_noutputs(cp->circ);
     const size_t nslots = 1 + ninputs + 1;
-    const size_t total = obf_num_encodings(cp, op->npowers);
+    const size_t total = obf_num_encodings(cp);
 
     obfuscation *obf;
     mpz_t *moduli = NULL, *slots = NULL, *alphas = NULL, *betas = NULL;
@@ -227,7 +226,6 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         goto cleanup;
     if ((obf->pp = public_params_new(obf->pp_vt, obf->sp_vt, obf->sp)) == NULL)
         goto cleanup;
-    obf->npowers = op->npowers;
     for (size_t o = 0; o < noutputs; ++o)
         obf->Chatstar[o] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
     for (size_t i = 0; i < ninputs; ++i)

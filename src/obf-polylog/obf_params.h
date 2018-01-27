@@ -7,9 +7,9 @@
 
 struct obf_params_t {
     circ_params_t cp;
-    size_t npowers;
     size_t nlevels;
     size_t nswitches;
+    size_t wordsize;
 };
 
 /* [ Z W₁ ... Wₙ X₁ ... Xₙ Y ] */
@@ -20,4 +20,4 @@ struct obf_params_t {
 
 PRIVATE size_t obf_params_nzs(const circ_params_t *cp);
 PRIVATE index_set * obf_params_new_toplevel(const circ_params_t *const cp, size_t nzs);
-PRIVATE size_t obf_num_encodings(const circ_params_t *cp, size_t npowers);
+PRIVATE size_t obf_num_encodings(const circ_params_t *cp);

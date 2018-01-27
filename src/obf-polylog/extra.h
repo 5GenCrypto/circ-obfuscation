@@ -3,7 +3,8 @@
 #include <mmap/mmap.h>
 #include "../mmap.h"
 
-size_t polylog_nlevels(obf_params_t *op);
-size_t polylog_nswitches(obf_params_t *op);
-mmap_polylog_switch_params ** polylog_switch_params(obf_params_t *op, size_t nzs);
-
+mmap_sk
+polylog_secret_params_new(const sp_vtable *vt, const obf_params_t *op,
+                          mmap_sk_params *p, mmap_sk_opt_params *o,
+                          const mmap_params_t *params, size_t ncores,
+                          aes_randstate_t rng);
