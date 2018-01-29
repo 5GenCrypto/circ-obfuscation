@@ -12,7 +12,7 @@ typedef struct obf_params_t obf_params_t;
 /* Epic hack alert! We expect all obf_params_t structs to contain circ_params_t
  * as their first argument. */
 static inline circ_params_t *
-obf_params_cp(obf_params_t *op)
+obf_params_cp(const obf_params_t *op)
 {
     return (circ_params_t *) op;
 }

@@ -6,7 +6,7 @@
 
 int
 mife_run_setup(const mmap_vtable *mmap, const mife_vtable *vt,
-               const char *circuit, obf_params_t *op, size_t secparam,
+               const char *circuit, const obf_params_t *op, size_t secparam,
                size_t *kappa, size_t npowers, size_t nthreads,
                aes_randstate_t rng);
 int
