@@ -26,13 +26,6 @@ double current_time(void) {
     return (double) (t.tv_sec + (double) (t.tv_usec / 1000000.0));
 }
 
-int max(int x, int y) {
-    if (x >= y)
-        return x;
-    else
-        return y;
-}
-
 int array_sum(const int *xs, size_t n)
 {
     size_t res = 0;
@@ -72,17 +65,6 @@ mpz_vect_init(mpz_t *xs, size_t n)
 {
     for (size_t i = 0; i < n; i++)
         mpz_init(xs[i]);
-}
-
-mpz_t * mpz_vect_create_of_fmpz(fmpz_t *fvec, size_t n)
-{
-    mpz_t *vec = mpz_vect_new(n);
-    for (size_t i = 0; i < n; ++i) {
-        fmpz_get_mpz(vec[i], fvec[i]);
-        fmpz_clear(fvec[i]);
-    }
-    free(fvec);
-    return vec;
 }
 
 void mpz_vect_print(mpz_t *xs, size_t len)

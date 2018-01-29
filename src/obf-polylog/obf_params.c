@@ -43,7 +43,7 @@ _new(acirc_t *circ, void *vparams)
 
     if ((op = my_calloc(1, sizeof op[0])) == NULL)
         return NULL;
-    op->nlevels = MAX(acirc_max_depth(circ) + 1, ninputs);
+    op->nlevels = max(acirc_max_depth(circ) + 1, ninputs);
     op->nswitches = acirc_nrefs(circ) + (ninputs + 2) * noutputs;
     op->wordsize = params->wordsize;
     return op;

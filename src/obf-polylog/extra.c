@@ -65,7 +65,7 @@ eval_f(size_t ref, acirc_op op, size_t xref, const void *x_, size_t yref, const 
             sparams->ix = NULL;
         }
         sparams = &args->sparams[ref][1];
-        level = MAX(x->level, y->level);
+        level = max(x->level, y->level);
         sparams->source = level;
         sparams->target = level + 1;
         sparams->ix = NULL;
@@ -115,8 +115,8 @@ output_f(size_t ref, size_t o, void *x_, void *args_)
     }
 
     sparams = &args->sparams[ref + ninputs][1];
-    sparams->source = MIN(top, ninputs);
-    sparams->target = MAX(top, ninputs);
+    sparams->source = min(top, ninputs);
+    sparams->target = max(top, ninputs);
     if (sparams->source == sparams->target) {
         sparams->source = 0;
         sparams->target = 0;

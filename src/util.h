@@ -36,13 +36,19 @@ const mmap_vtable * mmap_to_mmap(enum mmap_e mmap);
 
 double current_time(void);
 
-int max(int, int);
+static inline int
+max(int a, int b) {
+    return a > b ? a : b;
+}
+static inline int
+min(int a, int b) {
+    return a > b ? b : a;
+}
 
 void mpz_randomm_inv(mpz_t rop, aes_randstate_t rng, const mpz_t modulus);
 
 mpz_t * mpz_vect_new(size_t n);
 void mpz_vect_init(mpz_t *vec, size_t n);
-mpz_t * mpz_vect_create_of_fmpz(fmpz_t *fvec, size_t n);
 void mpz_vect_print(mpz_t *vec, size_t n);
 void mpz_vect_clear(mpz_t *vec, size_t n);
 void mpz_vect_free(mpz_t *vec, size_t n);

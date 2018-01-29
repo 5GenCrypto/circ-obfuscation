@@ -40,7 +40,10 @@ build () {
     url=$2
     branch=$3
     flags=$debug
-    if [ $path = "libmmap" ]; then
+    if [[ "${path}" == "libaesrand" ]]; then
+        flags+=" -DHAVE_FLINT=OFF -DHAVE_MPFR=OFF"
+    fi
+    if [[ "${path}" == "libmmap" ]]; then
         flags+=" -DHAVE_GGHLITE=OFF"
     fi
 
