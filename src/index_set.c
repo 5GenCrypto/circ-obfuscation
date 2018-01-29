@@ -7,10 +7,17 @@
 index_set *
 index_set_new(size_t nzs)
 {
-    index_set *ix = my_calloc(1, sizeof ix[0]);
+    index_set *ix = NULL;
+    if ((ix = my_calloc(1, sizeof ix[0])) == NULL)
+        goto error;
     ix->nzs = nzs;
-    ix->pows = my_calloc(ix->nzs, sizeof ix->pows[0]);
+    if ((ix->pows = my_calloc(ix->nzs, sizeof ix->pows[0])) == NULL)
+        goto error;
     return ix;
+error:
+    if (ix)
+        free(ix);
+    return NULL;
 }
 
 void

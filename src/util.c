@@ -179,12 +179,11 @@ size_t bit(size_t x, size_t i)
 void *
 my_calloc(size_t nmemb, size_t size)
 {
-    void *ptr = calloc(nmemb, size);
-    if (ptr == NULL) {
-        fprintf(stderr, "[%s] couldn't allocate %lu bytes!\n", __func__,
-                nmemb * size);
-        return NULL;
-    }
+    void *ptr;
+    ptr = calloc(nmemb, size);
+    if (ptr == NULL)
+        fprintf(stderr, "%s: %s: couldn't allocate %lu bytes!\n",
+                errorstr, __func__, nmemb * size);
     return ptr;
 }
 
@@ -437,9 +436,10 @@ get_input_syms(const long *inputs, size_t ninputs, size_t nsymbols,
             if (sigmas[i])
                 input_syms[i] += inputs[k++] * j;
             else
+                /* XXX causes an error if j > 63 */
                 input_syms[i] += inputs[k++] << j;
         }
-        if ((size_t) input_syms[i] >= qs[i]) {
+        if (input_syms[i] >= qs[i]) {
             fprintf(stderr, "%s: invalid input for symbol %lu (%ld > %lu)\n",
                     errorstr, i, input_syms[i], qs[i]);
             goto error;
