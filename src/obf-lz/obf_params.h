@@ -2,7 +2,6 @@
 
 #include "../circ_params.h"
 #include "../index_set.h"
-#include "../input_chunker.h"
 #include "../mmap.h"
 
 #include <acirc.h>

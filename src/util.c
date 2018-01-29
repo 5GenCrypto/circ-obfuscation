@@ -416,3 +416,38 @@ filesize(const char *fname)
     else
         return 0;
 }
+
+size_t *
+get_input_syms(const long *inputs, size_t ninputs, size_t nsymbols,
+               const size_t *ds, const size_t *qs, const bool *sigmas)
+{
+    size_t *input_syms;
+    size_t k = 0;
+
+    if ((input_syms = my_calloc(nsymbols, sizeof input_syms[0])) == NULL)
+        return NULL;
+    for (size_t i = 0; i < nsymbols; i++) {
+        input_syms[i] = 0;
+        for (size_t j = 0; j < ds[i]; j++) {
+            if (k >= ninputs) {
+                fprintf(stderr, "%s: too many symbols for input length\n",
+                        errorstr);
+                goto error;
+            }
+            if (sigmas[i])
+                input_syms[i] += inputs[k++] * j;
+            else
+                input_syms[i] += inputs[k++] << j;
+        }
+        if ((size_t) input_syms[i] >= qs[i]) {
+            fprintf(stderr, "%s: invalid input for symbol %lu (%ld > %lu)\n",
+                    errorstr, i, input_syms[i], qs[i]);
+            goto error;
+        }
+    }
+    return input_syms;
+error:
+    if (input_syms)
+        free(input_syms);
+    return NULL;
+}

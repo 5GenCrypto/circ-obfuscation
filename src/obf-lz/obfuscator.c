@@ -527,7 +527,7 @@ cleanup:
 
 typedef struct {
     const obfuscation *obf;
-    long *input_syms;
+    size_t *input_syms;
     long *inputs;
     size_t *kappas;
 } obf_args_t;
@@ -551,11 +551,10 @@ input_f(size_t ref, size_t i, void *args_)
     obf_args_t *args = args_;
     const obfuscation *const obf = args->obf;
     const circ_params_t *cp = &obf->op->cp;
-    const sym_id sym = chunker_in_order(i, acirc_ninputs(cp->circ), acirc_nsymbols(cp->circ));
-    const size_t k = sym.sym_number;
-    const size_t s = args->input_syms[k];
-    const size_t j = sym.bit_number;
-    return copy_f(obf->shat[k][s][j], args_);
+    const size_t slot = circ_params_slot(cp, i);
+    const size_t sym = args->input_syms[slot];
+    const size_t bit = circ_params_bit(cp, i);
+    return copy_f(obf->shat[slot][sym][bit], args_);
 }
 
 static void *
@@ -681,7 +680,7 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
     acirc_t *circ = cp->circ;
     const size_t has_consts = acirc_nconsts(circ) + acirc_nsecrets(circ) ? 1 : 0;
     size_t *kappas = NULL;
-    long *input_syms;
+    size_t *input_syms;
     int ret = ERR;
 
     if (ninputs != acirc_ninputs(circ)) {
@@ -702,8 +701,9 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
         sigmas = my_calloc(cp->nslots - has_consts, sizeof sigmas[0]);
         for (size_t i = 0; i < cp->nslots - has_consts; ++i)
             sigmas[i] = acirc_is_sigma(circ, i);
-        input_syms = get_input_syms(inputs, acirc_ninputs(circ), rchunker_in_order,
-                                    cp->nslots - has_consts, cp->ds, cp->qs, sigmas);
+        input_syms = get_input_syms(inputs, acirc_ninputs(circ),
+                                    cp->nslots - has_consts, cp->ds, cp->qs,
+                                    sigmas);
         free(sigmas);
         if (input_syms == NULL)
             goto finish;

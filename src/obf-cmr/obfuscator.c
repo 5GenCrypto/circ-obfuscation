@@ -1,7 +1,6 @@
 #include "obfuscator.h"
 #include "obf_params.h"
 #include "../mife-cmr/mife.h"
-#include "../input_chunker.h"
 #include "../util.h"
 
 #include <string.h>
@@ -130,7 +129,7 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
     const size_t has_consts = acirc_nconsts(circ) + acirc_nsecrets(circ) ? 1 : 0;
     const mife_vtable *vt = &mife_cmr_vtable;
     mife_ct_t **cts = NULL;
-    long *input_syms = NULL;
+    size_t *input_syms = NULL;
     int ret = ERR;
 
     if (ninputs != acirc_ninputs(circ)) {
@@ -146,8 +145,8 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
         sigmas = my_calloc(cp->nslots - has_consts, sizeof sigmas[0]);
         for (size_t i = 0; i < cp->nslots - has_consts; ++i)
             sigmas[i] = acirc_is_sigma(circ, i);
-        input_syms = get_input_syms(inputs, ninputs, rchunker_in_order,
-                                    cp->nslots - has_consts, cp->ds, cp->qs, sigmas);
+        input_syms = get_input_syms(inputs, ninputs, cp->nslots - has_consts,
+                                    cp->ds, cp->qs, sigmas);
         free(sigmas);
         if (input_syms == NULL)
             goto cleanup;

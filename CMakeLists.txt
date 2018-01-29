@@ -11,7 +11,6 @@ include(GNUInstallDirs)
 set(mio_SOURCES
   src/circ_params.c
   src/index_set.c
-  src/input_chunker.c
   src/mmap.c
   src/mife_run.c
   src/obf_run.c
