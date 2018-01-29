@@ -173,7 +173,7 @@ int
 mpz_fread(mpz_t *x, FILE *fp)
 {
     if (mpz_inp_raw(*x, fp) == 0) {
-        fprintf(stderr, "error: reading mpz failed\n");
+        fprintf(stderr, "%s: reading mpz failed\n", errorstr);
         return ERR;
     }
     (void) fscanf(fp, "\n");
@@ -184,7 +184,7 @@ int
 mpz_fwrite(mpz_t x, FILE *fp)
 {
     if (mpz_out_raw(fp, x) == 0) {
-        fprintf(stderr, "error: writing mpz failed\n");
+        fprintf(stderr, "%s: writing mpz failed\n", errorstr);
         return ERR;
     }
     (void) fprintf(fp, "\n");
@@ -195,7 +195,7 @@ int
 int_fread(int *x, FILE *fp)
 {
     if (fread(x, sizeof x[0], 1, fp) != 1) {
-        fprintf(stderr, "error: reading int failed\n");
+        fprintf(stderr, "%s: reading int failed\n", errorstr);
         return ERR;
     }
     return OK;
@@ -205,27 +205,7 @@ int
 int_fwrite(int x, FILE *fp)
 {
     if (fwrite(&x, sizeof x, 1, fp) != 1) {
-        fprintf(stderr, "error: writing int failed\n");
-        return ERR;
-    }
-    return OK;
-}
-
-int
-ulong_fread(unsigned long *x, FILE *fp)
-{
-    if (fread(x, sizeof x[0], 1, fp) != 1) {
-        fprintf(stderr, "error: reading unsigned long failed\n");
-        return ERR;
-    }
-    return OK;
-}
-
-int
-ulong_fwrite(unsigned long x, FILE *fp)
-{
-    if (fwrite(&x, sizeof x, 1, fp) != 1) {
-        fprintf(stderr, "error: writing unsigned long failed\n");
+        fprintf(stderr, "%s: writing int failed\n", errorstr);
         return ERR;
     }
     return OK;
@@ -235,7 +215,7 @@ int
 size_t_fread(size_t *x, FILE *fp)
 {
     if (fread(x, sizeof x[0], 1, fp) != 1) {
-        fprintf(stderr, "error: reading size_t failed\n");
+        fprintf(stderr, "%s: reading size_t failed\n", errorstr);
         return ERR;
     }
     return OK;
@@ -245,7 +225,7 @@ int
 size_t_fwrite(size_t x, FILE *fp)
 {
     if (fwrite(&x, sizeof x, 1, fp) != 1) {
-        fprintf(stderr, "error: writing size_t failed\n");
+        fprintf(stderr, "%s: writing size_t failed\n", errorstr);
         return ERR;
     }
     return OK;
@@ -255,7 +235,7 @@ int
 bool_fread(bool *x, FILE *fp)
 {
     if (fread(x, sizeof x[0], 1, fp) != 1) {
-        fprintf(stderr, "error: reading bool failed\n");
+        fprintf(stderr, "%s: reading bool failed\n", errorstr);
         return ERR;
     }
     return OK;
@@ -265,28 +245,27 @@ int
 bool_fwrite(bool x, FILE *fp)
 {
     if (fwrite(&x, sizeof x, 1, fp) != 1) {
-        fprintf(stderr, "error: writing bool failed\n");
+        fprintf(stderr, "%s: writing bool failed\n", errorstr);
         return ERR;
     }
     return OK;
 }
 
-#define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
-#define PBWIDTH 60
-
 void
 print_progress(size_t cur, size_t total)
 {
+    static const char *pbstr = "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||";
     static int last_val = 0;
-    double percentage = (double) cur / total;
-    int val  = percentage * 100;
-    int lpad = percentage * PBWIDTH;
-    int rpad = PBWIDTH - lpad;
+    const int pbwidth = 60;
+    const double percentage = (double) cur / total;
+    const int val  = percentage * 100;
+    const int lpad = percentage * pbwidth;
+    const int rpad = pbwidth - lpad;
     if (val != last_val) {
-        fprintf(stdout, "\r\t%3d%% [%.*s%*s] %lu/%lu", val, lpad, PBSTR, rpad, "", cur, total);
+        fprintf(stderr, "\r\t%3d%% [%.*s%*s] %lu/%lu", val, lpad, pbstr, rpad, "", cur, total);
         if (cur == total)
-            fprintf(stdout, "\n");
-        fflush(stdout);
+            fprintf(stderr, "\n");
+        fflush(stderr);
         last_val = val;
     }
 }
@@ -355,7 +334,7 @@ char_to_long(char c)
     else if (c >= '0' && c <= '9')
         return c - '0';
     else {
-        fprintf(stderr, "error: invalid input '%c'\n", c);
+        fprintf(stderr, "%s: invalid input '%c'\n", errorstr, c);
         return -1;
     }
 }

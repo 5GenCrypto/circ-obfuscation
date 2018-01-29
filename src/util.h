@@ -72,8 +72,6 @@ int mpz_fread(mpz_t *x, FILE *fp);
 int mpz_fwrite(mpz_t x, FILE *fp);
 int int_fread(int *x, FILE *fp);
 int int_fwrite(int x, FILE *fp);
-int ulong_fread(unsigned long *x, FILE *fp);
-int ulong_fwrite(unsigned long x, FILE *fp);
 int size_t_fread(size_t *x, FILE *fp);
 int size_t_fwrite(size_t x, FILE *fp);
 int bool_fread(bool *x, FILE *fp);
