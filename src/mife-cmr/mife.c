@@ -23,7 +23,7 @@ struct mife_t {
     encoding ***uhat;           /* [n][npowers] */
     mife_ct_t *constants;
     mpz_t *const_alphas;
-    long *deg_max;              /* [n] */
+    size_t *deg_max;            /* [n] */
 };
 
 struct mife_ct_t {
@@ -42,7 +42,7 @@ struct mife_sk_t {
     secret_params *sp;
     public_params *pp;
     mpz_t *const_alphas;
-    long *deg_max;              /* [n] */
+    size_t *deg_max;            /* [n] */
     bool local;
 };
 
@@ -57,7 +57,7 @@ struct mife_ek_t {
     encoding *zhat;
     encoding ***uhat;           /* [n][npowers] */
     mife_ct_t *constants;
-    long *deg_max;              /* [n] */
+    size_t *deg_max;            /* [n] */
     bool local;
 };
 
@@ -159,18 +159,17 @@ mife_sk_free(mife_sk_t *sk)
 static int
 mife_sk_fwrite(const mife_sk_t *sk, FILE *fp)
 {
-    public_params_fwrite(sk->pp_vt, sk->pp, fp);
-    secret_params_fwrite(sk->sp_vt, sk->sp, fp);
+    if (public_params_fwrite(sk->pp_vt, sk->pp, fp) == ERR) goto error;
+    if (secret_params_fwrite(sk->sp_vt, sk->sp, fp) == ERR) goto error;
     if (acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ))
         for (size_t o = 0; o < acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ); ++o)
-            if (mpz_fwrite(sk->const_alphas[o], fp) == ERR)
-                goto error;
+            if (mpz_fwrite(sk->const_alphas[o], fp) == ERR) goto error;
     for (size_t i = 0; i < sk->cp->nslots; ++i)
-        if (size_t_fwrite(sk->deg_max[i], fp) == ERR)
-            goto error;
+        if (size_t_fwrite(sk->deg_max[i], fp) == ERR) goto error;
     return OK;
 error:
-    fprintf(stderr, "error: writing mife secret key failed\n");
+    fprintf(stderr, "%s: %s: writing mife secret key failed\n",
+            errorstr, __func__);
     return ERR;
 }
 
@@ -187,35 +186,21 @@ mife_sk_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     sk->enc_vt = get_encoding_vtable(mmap);
     sk->pp_vt = get_pp_vtable(mmap);
     sk->sp_vt = get_sp_vtable(mmap);
-    {
-        const double start = current_time();
-        if ((sk->pp = public_params_fread(sk->pp_vt, op, fp)) == NULL)
-            goto error;
-        if (g_verbose)
-            fprintf(stderr, "    Reading public parameters from disk: %.2fs\n",
-                    current_time() - start);
-    }
-    {
-        const double start = current_time();
-        if ((sk->sp = secret_params_fread(sk->sp_vt, cp, fp)) == NULL)
-            goto error;
-        if (g_verbose)
-            fprintf(stderr, "    Reading secret parameters from disk: %.2fs\n",
-                    current_time() - start);
-    }
+    if ((sk->pp = public_params_fread(sk->pp_vt, op, fp)) == NULL) goto error;
+    if ((sk->sp = secret_params_fread(sk->sp_vt, cp, fp)) == NULL) goto error;
     if (acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ)) {
-        sk->const_alphas = my_calloc(acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ), sizeof sk->const_alphas[0]);
+        sk->const_alphas = my_calloc(acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ),
+                                     sizeof sk->const_alphas[0]);
         for (size_t o = 0; o < acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ); ++o)
-            if (mpz_fread(&sk->const_alphas[o], fp) == ERR)
-                goto error;
+            if (mpz_fread(&sk->const_alphas[o], fp) == ERR) goto error;
     }
     sk->deg_max = my_calloc(sk->cp->nslots, sizeof sk->deg_max[0]);
     for (size_t i = 0; i < sk->cp->nslots; ++i)
-        if (size_t_fread((size_t *) &sk->deg_max[i], fp) == ERR)
-            goto error;
+        if (size_t_fread(&sk->deg_max[i], fp) == ERR) goto error;
     return sk;
 error:
-    fprintf(stderr, "error: %s: reading mife secret key failed\n", __func__);
+    fprintf(stderr, "%s: %s: reading mife secret key failed\n",
+            errorstr, __func__);
     mife_sk_free(sk);
     return NULL;
 }
@@ -348,7 +333,7 @@ mife_num_encodings_encrypt(const circ_params_t *cp, size_t slot)
 }
 
 static int
-populate_circ_degrees(const circ_params_t *cp, long *maxdegs)
+populate_circ_degrees(const circ_params_t *cp, size_t *maxdegs)
 {
     const size_t has_consts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ) ? 1 : 0;
     const acirc_t *circ = cp->circ;

@@ -12,7 +12,6 @@ mife_run_setup(const mmap_vtable *mmap, const mife_vtable *vt,
                size_t nthreads, aes_randstate_t rng)
 {
     const double start = current_time();
-    const circ_params_t *cp = obf_params_cp(op);
     char skname[strlen(circuit) + sizeof ".sk\0"];
     char ekname[strlen(circuit) + sizeof ".ek\0"];
     mife_t *mife = NULL;
@@ -27,7 +26,6 @@ mife_run_setup(const mmap_vtable *mmap, const mife_vtable *vt,
         fprintf(stderr, "* security parameter: .. %lu\n", secparam);
         fprintf(stderr, "* # threads: ........... %lu\n", nthreads);
         /* fprintf(stderr, "* # encodings: ......... %lu\n", mife_num_encodings_setup(cp, npowers)); */
-        circ_params_print(cp);
     }
 
     if ((mife = vt->mife_setup(mmap, op, secparam, kappa, npowers, nthreads, rng)) == NULL)

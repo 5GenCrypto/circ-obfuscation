@@ -12,10 +12,10 @@ struct encoding_info {
 static int
 _encoding_new(const pp_vtable *vt, encoding *enc, const public_params *pp)
 {
-    const obf_params_t *const mp = vt->params(pp);
+    const circ_params_t *cp = vt->params(pp);
     if ((my(enc) = calloc(1, sizeof my(enc)[0])) == NULL)
         return ERR;
-    my(enc)->index = index_set_new(mife_params_nzs(&mp->cp));
+    my(enc)->index = index_set_new(mife_params_nzs(cp));
     return OK;
 }
 

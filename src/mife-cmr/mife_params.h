@@ -6,6 +6,7 @@
 
 struct obf_params_t {
     circ_params_t cp;
+    size_t npowers;
 };
 
 #define IX_Z(ix) (ix)->pows[0]
@@ -14,4 +15,3 @@ struct obf_params_t {
 
 size_t mife_params_nzs(const circ_params_t *cp);
 index_set * mife_params_new_toplevel(const circ_params_t *const cp, size_t nzs);
-

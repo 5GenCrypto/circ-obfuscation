@@ -115,7 +115,8 @@ secret_params_fwrite(const sp_vtable *vt, const secret_params *sp, FILE *fp)
 secret_params *
 secret_params_fread(const sp_vtable *vt, const circ_params_t *cp, FILE *fp)
 {
-    secret_params *sp = my_calloc(1, sizeof sp[0]);
+    secret_params *sp;
+    sp = my_calloc(1, sizeof sp[0]);
     vt->fread(sp, cp, fp);
     sp->sk = vt->mmap->sk->fread(fp);
     return sp;
