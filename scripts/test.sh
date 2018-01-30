@@ -37,5 +37,5 @@ done
 
 for circuit in $circuits/*.acirc; do
     obf_test "$circuit" DUMMY LZ
-    obf_test "$circuit" DUMMY MIFE
+    obf_test "$circuit" DUMMY CMR
 done
