@@ -585,7 +585,7 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
     const size_t nconsts = acirc_nconsts(cp->circ) + acirc_nsecrets(sk->cp->circ);
     const size_t has_consts = nconsts ? 1 : 0;
     const size_t noutputs = acirc_noutputs(cp->circ);
-    const mpz_t *moduli = sk->mmap->sk->plaintext_fields(sk->sp->sk);
+    const mpz_t *moduli = (const mpz_t *) sk->mmap->sk->plaintext_fields(sk->sp->sk);
     index_set *const ix = index_set_new(mife_params_nzs(cp));
     mpz_t *slots;
     mpz_t *alphas;
@@ -663,10 +663,10 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
         for (size_t i = 0; i < nconsts; ++i)
             consts[i] = mpz_vect_new(1);
 
-        populate_circ_input(cp, slot, circ_inputs, consts, alphas);
+        populate_circ_input(cp, slot, circ_inputs, consts, (const mpz_t *) alphas);
         cs = acirc_eval_mpz(cp->circ, circ_inputs, consts, moduli[1 + slot]);
         if (slot == 0 && has_consts) {
-            populate_circ_input(cp, cp->nslots - 1, circ_inputs, consts, sk->const_alphas);
+            populate_circ_input(cp, cp->nslots - 1, circ_inputs, consts, (const mpz_t *) sk->const_alphas);
             const_cs = acirc_eval_mpz(cp->circ, circ_inputs, consts, moduli[cp->nslots]);
         }
 
