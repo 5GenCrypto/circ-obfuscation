@@ -912,6 +912,22 @@ free_f(void *x, void *args_)
         encoding_free(args->ek->enc_vt, x);
 }
 
+static void
+fwrite_f(void *x, void *args_, FILE *fp)
+{
+    decrypt_args_t *args = args_;
+    if (x)
+        encoding_fwrite(args->ek->enc_vt, x, fp);
+}
+
+static void *
+fread_f(void *args_, FILE *fp)
+{
+    decrypt_args_t *args = args_;
+    return encoding_fread(args->ek->enc_vt, fp);
+
+}
+
 static int
 mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts, size_t nthreads, size_t *kappa)
 {
@@ -936,7 +952,7 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts, size_t nthre
             .kappas = kappas,
         };
         tmp = (long *) acirc_traverse(circ, input_f, const_f, eval_f, output_f,
-                                      free_f, NULL, NULL, &args, nthreads);
+                                      free_f, fwrite_f, fread_f, NULL, &args, nthreads);
         if (rop)
             for (size_t i = 0; i < acirc_noutputs(circ); ++i)
                 rop[i] = tmp[i];
