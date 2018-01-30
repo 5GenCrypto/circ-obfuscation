@@ -75,7 +75,7 @@ echo builddir = $builddir
 build libaesrand        https://github.com/5GenCrypto/libaesrand cmake
 build clt13             https://github.com/5GenCrypto/clt13 dev
 build libmmap           https://github.com/5GenCrypto/libmmap dev
-build libthreadpool     https://github.com/5GenCrypto/libthreadpool cmake
+build libthreadpool     https://github.com/5GenCrypto/libthreadpool dev
 build libacirc          https://github.com/amaloz/libacirc dev
 build circuit-synthesis https://github.com/spaceships/circuit-synthesis dev
 
