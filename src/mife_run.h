@@ -11,13 +11,13 @@ mife_run_setup(const mmap_vtable *mmap, const mife_vtable *vt,
                aes_randstate_t rng);
 int
 mife_run_encrypt(const mmap_vtable *mmap, const mife_vtable *vt,
-                 const char *circuit, obf_params_t *op, const long *input,
+                 const char *circuit, const obf_params_t *op, const long *input,
                  size_t slot, size_t nthreads, mife_sk_t *cached_sk,
                  aes_randstate_t rng);
 int
 mife_run_decrypt(const mmap_vtable *mmap, const mife_vtable *vt,
                  const char *ek_s, char **cts_s, long *rop,
-                 obf_params_t *op, size_t *kappa, size_t nthreads);
+                 const obf_params_t *op, size_t *kappa, size_t nthreads);
 int
 mife_run_test(const mmap_vtable *mmap, const mife_vtable *vt,
               const char *circuit, obf_params_t *op, size_t secparam,

@@ -69,7 +69,7 @@ find_library(libthreadpool threadpool)
 find_library(libaesrand aesrand)
 target_link_libraries(mio "${libacirc}" "${libmmap}" "${libclt13}" "${libthreadpool}" "${libaesrand}")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wno-discarded-qualifiers -Werror -std=gnu11 -march=native")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -std=gnu11 -march=native")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -pg -ggdb -O0")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
 

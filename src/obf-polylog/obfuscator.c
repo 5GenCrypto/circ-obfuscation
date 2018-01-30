@@ -442,8 +442,8 @@ _fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
 }
 
 typedef struct {
-    obfuscation *obf;
-    long *inputs;
+    const obfuscation *obf;
+    const long *inputs;
     switch_state_t ***switches;
 } eval_args_t;
 
@@ -451,7 +451,7 @@ static void *
 copy_f(void *x, void *args_)
 {
     eval_args_t *args = args_;
-    obfuscation *obf = args->obf;
+    const obfuscation *obf = args->obf;
     wire_t *out;
 
     out = wire_new(obf->enc_vt, obf->pp_vt, obf->pp);
@@ -482,7 +482,7 @@ eval_f(size_t ref, acirc_op op, size_t xref, const void *x_, size_t yref, const 
 {
     (void) xref; (void) yref;
     eval_args_t *args = args_;
-    obfuscation *obf = args->obf;
+    const obfuscation *obf = args->obf;
     const wire_t *x = x_;
     const wire_t *y = y_;
     wire_t *res;
@@ -515,7 +515,7 @@ output_f(size_t ref, size_t o, void *x_, void *args_)
     (void) ref;
     long output = 1;
     eval_args_t *args = args_;
-    obfuscation *obf = args->obf;
+    const obfuscation *obf = args->obf;
     const circ_params_t *const cp = &obf->op->cp;
     const size_t ninputs = acirc_ninputs(cp->circ);
     encoding *out, *lhs, *rhs;

@@ -90,7 +90,7 @@ cleanup:
 
 int
 mife_run_encrypt(const mmap_vtable *mmap, const mife_vtable *vt,
-                 const char *circuit, obf_params_t *op, const long *input,
+                 const char *circuit, const obf_params_t *op, const long *input,
                  size_t slot, size_t nthreads, mife_sk_t *cached_sk,
                  aes_randstate_t rng)
 {
@@ -188,12 +188,12 @@ cleanup:
 int
 mife_run_decrypt(const mmap_vtable *mmap, const mife_vtable *vt,
                  const char *ek_s, char **cts_s, long *rop,
-                 obf_params_t *op, size_t *kappa, size_t nthreads)
+                 const obf_params_t *op, size_t *kappa, size_t nthreads)
 {
     const double start = current_time();
     const circ_params_t *cp = obf_params_cp(op);
     const size_t has_consts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ) ? 1 : 0;
-    const mife_ct_t *cts[cp->nslots];
+    mife_ct_t *cts[cp->nslots];
     mife_ek_t *ek = NULL;
     FILE *fp;
     int ret = ERR;
@@ -244,7 +244,7 @@ mife_run_decrypt(const mmap_vtable *mmap, const mife_vtable *vt,
             fprintf(stderr, "  Reading ciphertext #%lu from disk: %.2fs\n",
                     i, current_time() - _start);
     }
-    if (vt->mife_decrypt(ek, rop, cts, nthreads, kappa) == ERR) {
+    if (vt->mife_decrypt(ek, rop, (const mife_ct_t **) cts, nthreads, kappa) == ERR) {
         fprintf(stderr, "error: %s: decryption failed\n", __func__);
         goto cleanup;
     }
@@ -266,8 +266,8 @@ cleanup:
 
 static int
 mife_run_all(const mmap_vtable *mmap, const mife_vtable *vt,
-             const char *circuit, obf_params_t *op, long **inp, long *outp,
-             size_t *kappa, size_t nthreads, aes_randstate_t rng)
+             const char *circuit, const obf_params_t *op, long **inp,
+             long *outp, size_t *kappa, size_t nthreads, aes_randstate_t rng)
 {
     const circ_params_t *cp = obf_params_cp(op);
     const acirc_t *const circ = cp->circ;

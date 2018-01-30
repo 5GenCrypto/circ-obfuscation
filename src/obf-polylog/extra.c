@@ -6,7 +6,7 @@
 #include <assert.h>
 
 typedef struct {
-    obf_params_t *op;
+    const obf_params_t *op;
     mmap_polylog_switch_params **sparams;
 } args_t;
 
@@ -137,7 +137,7 @@ free_f(void *x, void *args_)
 }
 
 static mmap_polylog_switch_params **
-polylog_switch_params(obf_params_t *op, size_t nzs)
+polylog_switch_params(const obf_params_t *op, size_t nzs)
 {
     (void) nzs;
     mmap_polylog_switch_params **sparams;

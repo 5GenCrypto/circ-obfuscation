@@ -260,10 +260,10 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         }
     }
 
-    long *const_deg;
-    long const_deg_max = 0;
-    long *var_deg[nsymbols];
-    long var_deg_max[nsymbols];
+    size_t *const_deg;
+    size_t const_deg_max = 0;
+    size_t *var_deg[nsymbols];
+    size_t var_deg_max[nsymbols];
 
     memset(var_deg, '\0', sizeof var_deg);
     memset(var_deg_max, '\0', sizeof var_deg_max);
@@ -528,7 +528,7 @@ cleanup:
 typedef struct {
     const obfuscation *obf;
     size_t *input_syms;
-    long *inputs;
+    const long *inputs;
     size_t *kappas;
 } obf_args_t;
 

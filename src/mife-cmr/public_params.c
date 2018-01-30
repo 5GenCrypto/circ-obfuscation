@@ -16,7 +16,7 @@ _pp_init(const sp_vtable *vt, public_params *pp, const secret_params *sp)
 {
     if ((my(pp) = calloc(1, sizeof my(pp)[0])) == NULL)
         return ERR;
-    my(pp)->toplevel = vt->toplevel(sp);
+    my(pp)->toplevel = (index_set *) vt->toplevel(sp);
     my(pp)->cp = vt->params(sp);
     my(pp)->local = false;
     return OK;

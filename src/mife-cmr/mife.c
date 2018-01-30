@@ -792,9 +792,9 @@ cleanup:
 }
 
 typedef struct {
-    circ_params_t *cp;
+    const circ_params_t *cp;
     const mife_ct_t **cts;
-    mife_ek_t *ek;
+    const mife_ek_t *ek;
     size_t *kappas;
 } decrypt_args_t;
 
@@ -802,7 +802,7 @@ static void *
 copy_f(void *x, void *args_)
 {
     decrypt_args_t *args = args_;
-    mife_ek_t *ek = args->ek;
+    const mife_ek_t *ek = args->ek;
     encoding *out;
 
     out = encoding_new(ek->enc_vt, ek->pp_vt, ek->pp);
@@ -836,7 +836,7 @@ eval_f(size_t ref, acirc_op op, size_t xref, const void *x_, size_t yref, const 
 {
     (void) ref; (void) xref; (void) yref;
     decrypt_args_t *args = args_;
-    mife_ek_t *ek = args->ek;
+    const mife_ek_t *ek = args->ek;
     const encoding *x = x_;
     const encoding *y = y_;
     encoding *res;
@@ -874,7 +874,7 @@ output_f(size_t ref, size_t o, void *x, void *args_)
     (void) ref;
     long output = 1;
     decrypt_args_t *args = args_;
-    mife_ek_t *ek = args->ek;
+    const mife_ek_t *ek = args->ek;
     const circ_params_t *const cp = ek->cp;
     encoding *out, *lhs, *rhs;
     const index_set *const toplevel = ek->pp_vt->toplevel(ek->pp);
