@@ -3,6 +3,7 @@
 #include "../mife-cmr/mife.h"
 #include "../util.h"
 
+#include <pthread.h>
 #include <string.h>
 
 typedef struct obfuscation {
