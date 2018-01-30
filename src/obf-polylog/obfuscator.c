@@ -305,7 +305,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
             mpz_t **outputs;
             for (size_t j = 0; j < ninputs + 1; ++j)
                 mpz_set_ui(slots[1 + j], 1);
-            populate_circ_inputs(cp, i, inputs, consts, alphas);
+            populate_circ_inputs(cp, i, inputs, consts, (const mpz_t *) alphas);
             outputs = acirc_eval_mpz(cp->circ, inputs, consts, moduli[1 + i]);
             for (size_t b = 0; b < 2; ++b) {
                 for (size_t o = 0; o < noutputs; ++o) {
@@ -347,7 +347,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         consts = calloc(nconsts, sizeof inputs[0]);
         for (size_t i = 0; i < nconsts; ++i)
             consts[i] = mpz_vect_new(1);
-        populate_circ_inputs(cp, -1, inputs, consts, betas);
+        populate_circ_inputs(cp, -1, inputs, consts, (const mpz_t *) betas);
         outputs = acirc_eval_mpz(cp->circ, inputs, consts, moduli[1 + ninputs]);
 
         mpz_set_ui(slots[0], 0);
