@@ -802,7 +802,7 @@ typedef struct {
 static void *
 copy_f(void *x, void *args_)
 {
-    decrypt_args_t *args = args_;
+    const decrypt_args_t *args = args_;
     const mife_ek_t *ek = args->ek;
     encoding *out;
 
@@ -815,10 +815,9 @@ static void *
 input_f(size_t ref, size_t i, void *args_)
 {
     (void) ref;
-    decrypt_args_t *args = args_;
+    const decrypt_args_t *args = args_;
     const size_t slot = circ_params_slot(args->cp, i);
     const size_t bit = circ_params_bit(args->cp, i);
-    /* XXX: check that slot and bit are valid! */
     return copy_f(args->cts[slot]->xhat[bit], args_);
 }
 
@@ -826,9 +825,8 @@ static void *
 const_f(size_t ref, size_t i, long val, void *args_)
 {
     (void) ref; (void) val;
-    decrypt_args_t *args = args_;
+    const decrypt_args_t *args = args_;
     const size_t bit = circ_params_bit(args->cp, acirc_ninputs(args->cp->circ) + i);
-    /* XXX: check that bit is valid! */
     return copy_f(args->ek->constants->xhat[bit], args_);
 }
 
@@ -836,7 +834,7 @@ static void *
 eval_f(size_t ref, acirc_op op, size_t xref, const void *x_, size_t yref, const void *y_, void *args_)
 {
     (void) ref; (void) xref; (void) yref;
-    decrypt_args_t *args = args_;
+    const decrypt_args_t *args = args_;
     const mife_ek_t *ek = args->ek;
     const encoding *x = x_;
     const encoding *y = y_;
@@ -873,12 +871,12 @@ static void *
 output_f(size_t ref, size_t o, void *x, void *args_)
 {
     (void) ref;
-    long output = 1;
-    decrypt_args_t *args = args_;
+    const decrypt_args_t *args = args_;
     const mife_ek_t *ek = args->ek;
-    const circ_params_t *const cp = ek->cp;
+    const circ_params_t *cp = ek->cp;
+    const index_set *toplevel = ek->pp_vt->toplevel(ek->pp);
     encoding *out, *lhs, *rhs;
-    const index_set *const toplevel = ek->pp_vt->toplevel(ek->pp);
+    long output = 1;
 
     out = encoding_new(ek->enc_vt, ek->pp_vt, ek->pp);
     lhs = encoding_new(ek->enc_vt, ek->pp_vt, ek->pp);
