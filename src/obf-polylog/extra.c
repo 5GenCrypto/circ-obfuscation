@@ -149,7 +149,8 @@ polylog_switch_params(const obf_params_t *op, size_t nzs)
     }
     args_t args = { .op = op, .sparams = sparams };
     outputs = (encoding_t **) acirc_traverse(op->cp.circ, input_f, const_f,
-                                             eval_f, output_f, free_f, &args, 0);
+                                             eval_f, output_f, free_f,
+                                             NULL, NULL, &args, 0);
     free(outputs);
     return sparams;
 }

@@ -726,7 +726,8 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
             .inputs = inputs,
             .kappas = kappas,
         };
-        tmp = (long *) acirc_traverse(circ, input_f, const_f, eval_f, output_f, free_f, &args, nthreads);
+        tmp = (long *) acirc_traverse(circ, input_f, const_f, eval_f, output_f,
+                                      free_f, NULL, NULL, &args, nthreads);
         if (outputs)
             for (size_t i = 0; i < acirc_noutputs(circ); ++i)
                 outputs[i] = tmp[i];

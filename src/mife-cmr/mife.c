@@ -935,7 +935,8 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts, size_t nthre
             .ek = ek,
             .kappas = kappas,
         };
-        tmp = (long *) acirc_traverse(circ, input_f, const_f, eval_f, output_f, free_f, &args, nthreads);
+        tmp = (long *) acirc_traverse(circ, input_f, const_f, eval_f, output_f,
+                                      free_f, NULL, NULL, &args, nthreads);
         if (rop)
             for (size_t i = 0; i < acirc_noutputs(circ); ++i)
                 rop[i] = tmp[i];
