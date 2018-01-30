@@ -176,7 +176,6 @@ mpz_fread(mpz_t *x, FILE *fp)
         fprintf(stderr, "%s: reading mpz failed\n", errorstr);
         return ERR;
     }
-    (void) fscanf(fp, "\n");
     return OK;
 }
 
@@ -187,7 +186,6 @@ mpz_fwrite(mpz_t x, FILE *fp)
         fprintf(stderr, "%s: writing mpz failed\n", errorstr);
         return ERR;
     }
-    (void) fprintf(fp, "\n");
     return OK;
 }
 
