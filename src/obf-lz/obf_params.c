@@ -9,7 +9,7 @@
 PRIVATE size_t
 obf_params_nzs(const circ_params_t *cp)
 {
-    const size_t has_consts = acirc_nconsts(cp->circ) ? 1 : 0;
+    const size_t has_consts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ) ? 1 : 0;
     const size_t ninputs = cp->nslots - has_consts;
     const size_t q = array_max(cp->qs, ninputs);
     return (2 + q) * ninputs + has_consts;
@@ -35,7 +35,7 @@ PRIVATE size_t
 obf_params_num_encodings(const obf_params_t *op)
 {
     const circ_params_t *cp = &op->cp;
-    const size_t nconsts = acirc_nconsts(cp->circ);
+    const size_t nconsts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ);
     const size_t noutputs = acirc_noutputs(cp->circ);
     size_t sum = nconsts + op->npowers + noutputs;
     for (size_t i = 0; i < acirc_nsymbols(cp->circ); ++i) {

@@ -77,7 +77,7 @@ _alloc(const mmap_vtable *mmap, const obf_params_t *op)
 
     const circ_params_t *cp = &op->cp;
     const size_t nsymbols = acirc_nsymbols(cp->circ);
-    const size_t nconsts = acirc_nconsts(cp->circ);
+    const size_t nconsts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ);
     const size_t noutputs = acirc_noutputs(cp->circ);
 
     obf = my_calloc(1, sizeof obf[0]);
@@ -118,7 +118,7 @@ _free(obfuscation *obf)
     const obf_params_t *op = obf->op;
     const circ_params_t *cp = &op->cp;
     const size_t nsymbols = acirc_nsymbols(cp->circ);
-    const size_t nconsts = acirc_nconsts(cp->circ);
+    const size_t nconsts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ);
     const size_t noutputs = acirc_noutputs(cp->circ);
 
     for (size_t k = 0; k < nsymbols; k++) {
@@ -171,7 +171,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
 
     const circ_params_t *cp = &op->cp;
     const size_t nsymbols = acirc_nsymbols(cp->circ);
-    const size_t nconsts = acirc_nconsts(cp->circ);
+    const size_t nconsts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ);
     const size_t noutputs = acirc_noutputs(cp->circ);
     acirc_t *const circ = cp->circ;
     index_set *ix;
@@ -326,12 +326,20 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         }
     }
 
-    for (size_t i = 0; i < nconsts; i++) {
+    for (size_t i = 0; i < acirc_nconsts(cp->circ); i++) {
         ix = index_set_new(obf_params_nzs(cp));
         ix_y_set(ix, cp, 1);
         mpz_set_si(inps[0], acirc_const(circ, i));
         mpz_set   (inps[1], *beta[i]);
         __encode(pool, obf->enc_vt, obf->yhat[i], inps, ix,
+                 obf->sp, &count_lock, &count, total);
+    }
+    for (size_t i = 0; i < acirc_nsecrets(cp->circ); i++) {
+        ix = index_set_new(obf_params_nzs(cp));
+        ix_y_set(ix, cp, 1);
+        mpz_set_si(inps[0], acirc_secret(circ, i));
+        mpz_set   (inps[1], *beta[i + acirc_nconsts(cp->circ)]);
+        __encode(pool, obf->enc_vt, obf->yhat[i + acirc_nconsts(cp->circ)], inps, ix,
                  obf->sp, &count_lock, &count, total);
     }
     for (size_t p = 0; p < op->npowers; p++) {
@@ -411,7 +419,7 @@ _fwrite(const obfuscation *const obf, FILE *const fp)
     const obf_params_t *const op = obf->op;
 
     const circ_params_t *cp = &op->cp;
-    const size_t nconsts = acirc_nconsts(cp->circ);
+    const size_t nconsts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ);
     const size_t noutputs = acirc_noutputs(cp->circ);
 
     public_params_fwrite(obf->pp_vt, obf->pp, fp);
@@ -442,7 +450,7 @@ _fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     obfuscation *obf;
 
     const circ_params_t *cp = &op->cp;
-    const size_t nconsts = acirc_nconsts(cp->circ);
+    const size_t nconsts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ);
     const size_t noutputs = acirc_noutputs(cp->circ);
 
     if ((obf = _alloc(mmap, op)) == NULL)

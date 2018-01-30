@@ -16,13 +16,13 @@ struct obf_params_t {
 static inline void
 ix_y_set(index_set *ix, const circ_params_t *cp, int pow)
 {
-    if (acirc_nconsts(cp->circ))
+    if (acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ))
         ix->pows[0] = pow;
 }
 static inline int
 ix_y_get(index_set *ix, const circ_params_t *cp)
 {
-    if (acirc_nconsts(cp->circ))
+    if (acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ))
         return ix->pows[0];
     else
         return 0;
@@ -30,25 +30,25 @@ ix_y_get(index_set *ix, const circ_params_t *cp)
 static inline void
 ix_s_set(index_set *ix, const circ_params_t *cp, size_t k, size_t s, int pow)
 {
-    const size_t has_consts = acirc_nconsts(cp->circ) ? 1 : 0;
+    const size_t has_consts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ) ? 1 : 0;
     ix->pows[has_consts + cp->qs[k] * k + s] = pow;
 }
 static inline int
 ix_s_get(index_set *ix, const circ_params_t *cp, size_t k, size_t s)
 {
-    const size_t has_consts = acirc_nconsts(cp->circ) ? 1 : 0;
+    const size_t has_consts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ) ? 1 : 0;
     return ix->pows[has_consts + cp->qs[k] * k + s];
 }
 static inline void
 ix_z_set(index_set *ix, const circ_params_t *cp, size_t k, int pow)
 {
-    const size_t has_consts = acirc_nconsts(cp->circ) ? 1 : 0;
+    const size_t has_consts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ) ? 1 : 0;
     ix->pows[has_consts + cp->qs[k] * (cp->nslots - has_consts) + k] = pow;
 }
 static inline void
 ix_w_set(index_set *ix, const circ_params_t *cp, size_t k, int pow)
 {
-    const size_t has_consts = acirc_nconsts(cp->circ) ? 1 : 0;
+    const size_t has_consts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ) ? 1 : 0;
     ix->pows[has_consts + (1 + cp->qs[k]) * (cp->nslots - has_consts) + k] = pow;
 }
 
