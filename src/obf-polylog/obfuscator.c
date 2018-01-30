@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <clt_pl.h>
 #include <mmap/mmap_clt_pl.h>
+#include <pthread.h>
 #include <string.h>
 #include <threadpool.h>
 
