@@ -20,17 +20,6 @@ obf_test () {
     $prog obf test --smart --mmap $2 --scheme $3 $1
 }
 
-obf_test_sigma () {
-    echo ""
-    echo "***"
-    echo "***"
-    echo "*** OBF SIGMA $1 $2 $3"
-    echo "***"
-    echo "***"
-    echo ""
-    $prog obf test --smart --sigma --mmap $2 --scheme $3 $1
-}
-
 mife_test () {
     echo ""
     echo "***"
@@ -42,31 +31,11 @@ mife_test () {
     $prog mife test --smart --mmap $2 $1
 }
 
-mife_test_sigma () {
-    echo ""
-    echo "***"
-    echo "***"
-    echo "*** MIFE SIGMA $1 $2"
-    echo "***"
-    echo "***"
-    echo ""
-    $prog mife test --smart --sigma --mmap $2 $1
-}
-
 for circuit in $circuits/*.acirc; do
     mife_test "$circuit" DUMMY
-done
-
-for circuit in $circuits/sigma/*.acirc; do
-    mife_test_sigma "$circuit" DUMMY
 done
 
 for circuit in $circuits/*.acirc; do
     obf_test "$circuit" DUMMY LZ
     obf_test "$circuit" DUMMY MIFE
-done
-
-for circuit in $circuits/sigma/*.acirc; do
-    obf_test_sigma "$circuit" DUMMY LZ
-    obf_test_sigma "$circuit" DUMMY MIFE
 done
