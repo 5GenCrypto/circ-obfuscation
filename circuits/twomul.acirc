@@ -1,0 +1,15 @@
+:ninputs 3
+:nrefs 5
+:consts
+:outputs 4
+:symlens 1 1 1
+:test 000 0
+:test 100 0
+:test 010 0
+:test 111 1
+:start
+0 input 0
+1 input 1
+2 input 2
+3 mul 0 1
+4 mul 2 3
