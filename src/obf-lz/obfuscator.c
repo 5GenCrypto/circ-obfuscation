@@ -4,6 +4,7 @@
 #include "../util.h"
 
 #include <assert.h>
+#include <pthread.h>
 #include <string.h>
 #include <threadpool.h>
 
