@@ -8,9 +8,12 @@ circ_params_init(circ_params_t *cp, size_t n, acirc_t *circ)
 {
     cp->nslots = n;
     cp->circ = circ;
-    cp->ds = my_calloc(n, sizeof cp->ds[0]);
-    cp->qs = my_calloc(n, sizeof cp->ds[0]);
+    if ((cp->ds = my_calloc(n, sizeof cp->ds[0])) == NULL) goto error;
+    if ((cp->qs = my_calloc(n, sizeof cp->ds[0])) == NULL) goto error;
     return OK;
+error:
+    circ_params_clear(cp);
+    return ERR;
 }
 
 void
@@ -23,7 +26,7 @@ circ_params_clear(circ_params_t *cp)
 }
 
 int
-circ_params_fwrite(const circ_params_t *const cp, FILE *fp)
+circ_params_fwrite(const circ_params_t *cp, FILE *fp)
 {
     if (size_t_fwrite(cp->nslots, fp) == ERR) goto error;
     for (size_t i = 0; i < acirc_nsymbols(cp->circ); ++i)
@@ -32,12 +35,13 @@ circ_params_fwrite(const circ_params_t *const cp, FILE *fp)
         if (size_t_fwrite(cp->qs[i], fp) == ERR) goto error;
     return OK;
 error:
-    fprintf(stderr, "error: writing circuit parameters failed\n");
+    fprintf(stderr, "%s: %s: writing circuit parameters failed\n",
+            errorstr, __func__);
     return ERR;
 }
 
 int
-circ_params_fread(circ_params_t *const cp, acirc_t *circ, FILE *fp)
+circ_params_fread(circ_params_t *cp, acirc_t *circ, FILE *fp)
 {
     if (size_t_fread(&cp->nslots, fp) == ERR) goto error;
     cp->ds = my_calloc(acirc_nsymbols(circ), sizeof cp->ds[0]);
@@ -49,11 +53,9 @@ circ_params_fread(circ_params_t *const cp, acirc_t *circ, FILE *fp)
     cp->circ = circ;
     return OK;
 error:
-    if (cp->ds)
-        free(cp->ds);
-    if (cp->qs)
-        free(cp->qs);
-    fprintf(stderr, "error: reading circuit parameters failed\n");
+    circ_params_clear(cp);
+    fprintf(stderr, "%s: %s: reading circuit parameters failed\n",
+            errorstr, __func__);
     return ERR;
 }
 
@@ -76,6 +78,8 @@ circ_params_slot(const circ_params_t *cp, size_t pos)
             return i;
         total += cp->ds[i];
     }
+    fprintf(stderr, "%s: %s: fatal: slot not found?\n",
+            errorstr, __func__);
     abort();
 }
 
@@ -88,6 +92,8 @@ circ_params_bit(const circ_params_t *cp, size_t pos)
             return pos - total;
         total += cp->ds[i];
     }
+    fprintf(stderr, "%s: %s: fatal: bit not found?\n",
+            errorstr, __func__);
     abort();
 }
 

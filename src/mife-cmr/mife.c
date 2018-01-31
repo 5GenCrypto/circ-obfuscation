@@ -343,9 +343,9 @@ populate_circ_degrees(const circ_params_t *cp, size_t *maxdegs)
     const size_t has_consts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ) ? 1 : 0;
     const acirc_t *circ = cp->circ;
     for (size_t i = 0; i < cp->nslots - has_consts; ++i)
-        maxdegs[i] = acirc_max_var_degree(circ, i);
+        if ((maxdegs[i] = acirc_max_var_degree(circ, i)) == 0) return ERR;
     if (has_consts)
-        maxdegs[cp->nslots - 1] = acirc_max_const_degree(circ);
+        if ((maxdegs[cp->nslots - 1] = acirc_max_const_degree(circ)) == 0) return ERR;
     return OK;
 }
 
@@ -422,8 +422,11 @@ mife_free(mife_t *mife)
         encoding_free(mife->enc_vt, mife->zhat);
     if (mife->uhat) {
         for (size_t i = 0; i < mife->cp->nslots; ++i) {
-            for (size_t p = 0; p < mife->npowers; ++p) {
-                encoding_free(mife->enc_vt, mife->uhat[i][p]);
+            if (mife->uhat[i]) {
+                for (size_t p = 0; p < mife->npowers; ++p) {
+                    if (mife->uhat[i][p])
+                        encoding_free(mife->enc_vt, mife->uhat[i][p]);
+                }
             }
             free(mife->uhat[i]);
         }
@@ -473,7 +476,8 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     mife->zhat = encoding_new(mife->enc_vt, mife->pp_vt, mife->pp);
     mife->uhat = my_calloc(cp->nslots, sizeof mife->uhat[0]);
     mife->deg_max = my_calloc(cp->nslots, sizeof mife->deg_max[0]);
-    populate_circ_degrees(cp, mife->deg_max);
+    if (populate_circ_degrees(cp, mife->deg_max) == ERR)
+        goto cleanup;
 
     moduli = mmap->sk->plaintext_fields(mife->sp->sk);
     pthread_mutex_init(&lock, NULL);
@@ -997,7 +1001,7 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
 {
     const circ_params_t *cp = ek->cp;
     acirc_t *circ = cp->circ;
-    int ret = OK;
+    int ret = ERR;
 
     if (ek == NULL || cts == NULL)
         return ERR;
@@ -1026,6 +1030,8 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
         };
         out = (long *) acirc_traverse(circ, input_f, const_f, eval_f, output_f,
                                       free_f, write_f, read_f, &args, nthreads);
+        if (out == NULL)
+            goto cleanup;
         if (rop)
             for (size_t i = 0; i < acirc_noutputs(circ); ++i)
                 rop[i] = out[i];
@@ -1038,10 +1044,12 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
             if (kappas[i] > maxkappa)
                 maxkappa = kappas[i];
         }
-        free(kappas);
         *kappa = maxkappa;
     }
-
+    ret = OK;
+cleanup:
+    if (kappa)
+        free(kappa);
     return ret;
 }
 

@@ -16,12 +16,15 @@ static int
 _sp_init(secret_params *sp, mmap_params_t *mp, const obf_params_t *op, size_t kappa)
 {
     const circ_params_t *cp = &op->cp;
+    const size_t delta = acirc_delta(cp->circ);
+    if (delta == 0)
+        return ERR;
     if ((my(sp) = calloc(1, sizeof my(sp)[0])) == NULL)
         return ERR;
     my(sp)->toplevel = mife_params_new_toplevel(cp, mife_params_nzs(cp));
     my(sp)->cp = cp;
 
-    mp->kappa = kappa ? kappa : (size_t) max(acirc_delta(cp->circ) + 1, acirc_nsymbols(cp->circ));
+    mp->kappa = kappa ? kappa : (size_t) max(delta + 1, acirc_nsymbols(cp->circ));
     mp->nzs = my(sp)->toplevel->nzs;
     mp->pows = my_calloc(mp->nzs, sizeof mp->pows[0]);
     for (size_t i = 0; i < mp->nzs; ++i) {
