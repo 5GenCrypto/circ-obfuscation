@@ -793,6 +793,7 @@ typedef struct {
     const mife_ek_t *ek;
     size_t *kappas;
     const char *dirname;
+    bool dir_exists;
 } decrypt_args_t;
 
 static void *
@@ -927,7 +928,7 @@ free_f(void *x, void *args_)
 }
 
 static FILE *
-_file(const char *dirname, size_t ref, const char *mode)
+open_ref_file(const char *dirname, size_t ref, const char *mode)
 {
     char *fname = NULL;
     FILE *fp = NULL;
@@ -951,10 +952,13 @@ error:
 static int
 write_f(size_t ref, void *x, void *args_)
 {
-    const decrypt_args_t *args = args_;
-    if (x) {
-        int ret = ACIRC_ERR;
-        FILE *fp = NULL;
+    if (x == NULL)
+        return ACIRC_OK;
+
+    decrypt_args_t *args = args_;
+    int ret = ACIRC_ERR;
+    FILE *fp = NULL;
+    if (!args->dir_exists) {
         DIR *dir = NULL;
         dir = opendir(args->dirname);
         if (dir) {
@@ -970,16 +974,17 @@ write_f(size_t ref, void *x, void *args_)
         } else {
             goto cleanup;
         }
-        fp = _file(args->dirname, ref, "w");
-        (void) encoding_fwrite(args->ek->enc_vt, x, fp);
-        ret = ACIRC_OK;
-    cleanup:
-        if (fp)
-            fclose(fp);
-        return ret;
-    } else {
-        return ACIRC_OK;
+        args->dir_exists = true;
     }
+    if ((fp = open_ref_file(args->dirname, ref, "w")) == NULL)
+        goto cleanup;
+    if (encoding_fwrite(args->ek->enc_vt, x, fp) == ERR)
+        goto cleanup;
+    ret = ACIRC_OK;
+cleanup:
+    if (fp)
+        fclose(fp);
+    return ret;
 }
 
 static void *
@@ -988,7 +993,7 @@ read_f(size_t ref, void *args_)
     const decrypt_args_t *args = args_;
     void *rop = NULL;
     FILE *fp = NULL;
-    if ((fp = _file(args->dirname, ref, "r")) == NULL)
+    if ((fp = open_ref_file(args->dirname, ref, "r")) == NULL)
         return NULL;
     rop = encoding_fread(args->ek->enc_vt, fp);
     fclose(fp);
