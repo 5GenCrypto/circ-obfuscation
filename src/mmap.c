@@ -33,8 +33,8 @@ obf_params_new(const op_vtable *vt, acirc_t *circ, void *vparams)
     circ_params_init(cp, acirc_nsymbols(circ) + has_consts, circ);
     for (size_t i = 0; i < cp->nslots - has_consts; ++i) {
         if (!acirc_is_sigma(circ, i) && acirc_symlen(circ, i) >= sizeof(size_t) * 8) {
-            fprintf(stderr, "%s: %s: overflow detected: symbol length too long\n",
-                    warnstr, __func__);
+            fprintf(stderr, "%s: %s: number of symbols ≥ %lu, which will cause issues for obfuscation\n",
+                    warnstr, __func__, sizeof(size_t) * 8);
         }
         cp->ds[i] = acirc_symlen(circ, i);
         cp->qs[i] = acirc_is_sigma(circ, i) ? acirc_symlen(circ, i)
@@ -54,6 +54,7 @@ obf_params_new(const op_vtable *vt, acirc_t *circ, void *vparams)
 error:
     if (op)
         vt->free(op);
+    circ_params_clear(cp);
     return NULL;
 }
 
