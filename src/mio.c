@@ -91,6 +91,7 @@ typedef struct args_t {
     char *circuit;
     acirc_t *circ;
     bool smart;
+    bool saved;
     size_t nthreads;
     bool verbose;
     aes_randstate_t rng;
@@ -162,23 +163,6 @@ mife_setup_args_init(mife_setup_args_t *args)
     args->scheme = MIFE_SCHEME_DEFAULT;
 }
 
-static void
-mife_setup_usage(bool longform, int ret)
-{
-    printf("usage: %s mife setup [<args>] circuit\n", progname);
-    if (longform) {
-        printf("\nAvailable arguments:\n\n");
-        printf(
-"    --secparam λ       set security parameter to λ (default: %d)\n"
-"    --npowers N        set the number of powers to N (default: %d)\n"
-"    --scheme S         set MIFE scheme to S (options: CMR, GC | default: CMR)\n"
-, SECPARAM_DEFAULT, NPOWERS_DEFAULT);
-        args_usage();
-        printf("\n");
-    }
-    exit(ret);
-}
-
 static int
 mife_setup_handle_options(int *argc, char ***argv, void *vargs)
 {
@@ -196,6 +180,23 @@ mife_setup_handle_options(int *argc, char ***argv, void *vargs)
     return OK;
 }
 
+static void
+mife_setup_usage(bool longform, int ret)
+{
+    printf("usage: %s mife setup [<args>] circuit\n", progname);
+    if (longform) {
+        printf("\nAvailable arguments:\n\n");
+        printf(
+            "    --secparam λ       set security parameter to λ (default: %d)\n"
+            "    --npowers N        set the number of powers to N (default: %d)\n"
+            "    --scheme S         set MIFE scheme to S (options: CMR, GC | default: %s)\n"
+            , SECPARAM_DEFAULT, NPOWERS_DEFAULT, MIFE_SCHEME_DEFAULT_STR);
+        args_usage();
+        printf("\n");
+    }
+    exit(ret);
+}
+
 typedef struct {
     mife_scheme_e scheme;
 } mife_encrypt_args_t;
@@ -204,18 +205,6 @@ static void
 mife_encrypt_args_init(mife_encrypt_args_t *args)
 {
     args->scheme = MIFE_SCHEME_DEFAULT;
-}
-
-static void
-mife_encrypt_usage(bool longform, int ret)
-{
-    printf("usage: %s mife encrypt [<args>] circuit input slot\n", progname);
-    if (longform) {
-        printf("\nAvailable arguments:\n\n");
-        args_usage();
-        printf("\n");
-    }
-    exit(ret);
 }
 
 static int
@@ -231,9 +220,46 @@ mife_encrypt_handle_options(int *argc, char ***argv, void *vargs)
     return OK;
 }
 
-#define mife_decrypt_args_t mife_encrypt_args_t
-#define mife_decrypt_args_init mife_encrypt_args_init
-#define mife_decrypt_handle_options mife_encrypt_handle_options
+static void
+mife_encrypt_usage(bool longform, int ret)
+{
+    printf("usage: %s mife encrypt [<args>] circuit input slot\n", progname);
+    if (longform) {
+        printf("\nAvailable arguments:\n\n");
+        printf("    --scheme S         set MIFE scheme to S (options: CMR, GC | default: %s)\n",
+               MIFE_SCHEME_DEFAULT_STR);
+        args_usage();
+        printf("\n");
+    }
+    exit(ret);
+}
+
+typedef struct {
+    mife_scheme_e scheme;
+    bool saved;
+} mife_decrypt_args_t;
+
+static void
+mife_decrypt_args_init(mife_decrypt_args_t *args)
+{
+    args->scheme = MIFE_SCHEME_DEFAULT;
+    args->saved = false;
+}
+
+static int
+mife_decrypt_handle_options(int *argc, char ***argv, void *vargs)
+{
+    mife_decrypt_args_t *args = vargs;
+    const char *cmd = (*argv)[0];
+    if (!strcmp(cmd, "--scheme")) {
+        if (args_get_mife_scheme(&args->scheme, argc, argv) == ERR) return ERR;
+    } else if (!strcmp(cmd, "--saved")) {
+        args->saved = true;
+    } else {
+        return ERR;
+    }
+    return OK;
+}
 
 static void
 mife_decrypt_usage(bool longform, int ret)
@@ -241,6 +267,10 @@ mife_decrypt_usage(bool longform, int ret)
     printf("usage: %s mife decrypt [<args>] circuit\n", progname);
     if (longform) {
         printf("\nAvailable arguments:\n\n");
+        printf(
+"    --scheme S         set MIFE scheme to S (options: CMR, GC | default: %s)\n"
+"    --saved            use saved encodings\n"
+, MIFE_SCHEME_DEFAULT_STR);
         args_usage();
         printf("\n");
     }
@@ -537,7 +567,7 @@ handle_options(int *argc, char ***argv, int left, args_t *args, void *others,
         f(false, EXIT_FAILURE);
     }
     args->circuit = (*argv)[0];
-    args->circ = acirc_new(args->circuit, true);
+    args->circ = acirc_new(args->circuit, false, true);
     if (args->circ == NULL) {
         fprintf(stderr, "%s: parsing circuit '%s' failed\n", errorstr, args->circuit);
         exit(EXIT_FAILURE);

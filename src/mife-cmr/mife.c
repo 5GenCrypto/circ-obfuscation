@@ -6,8 +6,11 @@
 #include "../util.h"
 
 #include <assert.h>
+#include <dirent.h>
+#include <errno.h>
 #include <pthread.h>
 #include <string.h>
+#include <sys/stat.h>
 
 struct mife_t {
     const mmap_vtable *mmap;
@@ -782,6 +785,7 @@ typedef struct {
     const mife_ct_t **cts;
     const mife_ek_t *ek;
     size_t *kappas;
+    const char *dirname;
 } decrypt_args_t;
 
 static void *
@@ -912,20 +916,72 @@ free_f(void *x, void *args_)
         encoding_free(args->ek->enc_vt, x);
 }
 
-static void
-fwrite_f(void *x, void *args_, FILE *fp)
+static FILE *
+_file(const char *dirname, size_t ref)
+{
+    char *fname = NULL;
+    FILE *fp = NULL;
+    int length;
+
+    length = snprintf(NULL, 0, "%s/%lu", dirname, ref);
+    fname = calloc(length + 1, sizeof fname[0]);
+    (void) snprintf(fname, length + 1, "%s/%lu", dirname, ref);
+    if ((fp = fopen(fname, "wr")) == NULL)
+        goto error;
+    free(fname);
+    return fp;
+error:
+    if (fname)
+        free(fname);
+    if (fp)
+        fclose(fp);
+    return NULL;
+}
+
+static int
+write_f(size_t ref, void *x, void *args_)
 {
     decrypt_args_t *args = args_;
-    if (x)
-        encoding_fwrite(args->ek->enc_vt, x, fp);
+    if (x) {
+        int ret = ACIRC_ERR;
+        FILE *fp = NULL;
+        DIR *dir = NULL;
+        dir = opendir(args->dirname);
+        if (dir) {
+            closedir(dir);
+        } else if (errno == ENOENT) {
+            if (mkdir(args->dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == -1) {
+                if (errno != EEXIST) {
+                    fprintf(stderr, "%s: unable to make directory '%s'\n",
+                            errorstr, args->dirname);
+                    goto cleanup;
+                }
+            }
+        } else {
+            goto cleanup;
+        }
+        fp = _file(args->dirname, ref);
+        (void) encoding_fwrite(args->ek->enc_vt, x, fp);
+        ret = ACIRC_OK;
+    cleanup:
+        if (fp)
+            fclose(fp);
+        return ret;
+    } else {
+        return ACIRC_OK;
+    }
 }
 
 static void *
-fread_f(void *args_, FILE *fp)
+read_f(size_t ref, void *args_)
 {
     decrypt_args_t *args = args_;
-    return encoding_fread(args->ek->enc_vt, fp);
-
+    void *rop;
+    FILE *fp;
+    fp = _file(args->dirname, ref);
+    rop = encoding_fread(args->ek->enc_vt, fp);
+    fclose(fp);
+    return rop;
 }
 
 static int
@@ -944,20 +1000,28 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts, size_t nthre
         kappas = my_calloc(acirc_noutputs(cp->circ), sizeof kappas[0]);
 
     {
-        long *tmp;
+        long *out;
+        char *dirname;
+        {
+            int length;
+            length = snprintf(NULL, 0, "%s.encodings", acirc_fname(circ));
+            dirname = calloc(length + 1, sizeof dirname[0]);
+            (void) snprintf(dirname, length + 1, "%s.encodings", acirc_fname(circ));
+        }
+
         decrypt_args_t args = {
             .cp = cp,
             .cts = cts,
             .ek = ek,
             .kappas = kappas,
+            .dirname = dirname,
         };
-        tmp = (long *) acirc_traverse(circ, input_f, const_f, eval_f, output_f,
-                                      free_f, fwrite_f, fread_f, acirc_fname(circ),
-                                      &args, nthreads);
+        out = (long *) acirc_traverse(circ, input_f, const_f, eval_f, output_f,
+                                      free_f, write_f, read_f, &args, nthreads);
         if (rop)
             for (size_t i = 0; i < acirc_noutputs(circ); ++i)
-                rop[i] = tmp[i];
-        free(tmp);
+                rop[i] = out[i];
+        free(out);
     }
 
     if (kappa) {

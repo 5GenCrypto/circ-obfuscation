@@ -601,8 +601,8 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
         if (obf->mmap == &clt_pl_vtable)
             args.switches = clt_pl_pp_switches(obf->pp->pp);
         tmp = (long *) acirc_traverse(cp->circ, input_f, const_f, eval_f,
-                                      output_f, free_f, NULL, NULL, NULL,
-                                      &args, nthreads);
+                                      output_f, free_f, NULL, NULL, &args,
+                                      nthreads);
         if (outputs)
             for (size_t i = 0; i < acirc_noutputs(cp->circ); ++i)
                 outputs[i] = tmp[i];
