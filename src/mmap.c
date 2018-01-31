@@ -32,13 +32,18 @@ obf_params_new(const op_vtable *vt, acirc_t *circ, void *vparams)
     cp = obf_params_cp(op);
     circ_params_init(cp, acirc_nsymbols(circ) + has_consts, circ);
     for (size_t i = 0; i < cp->nslots - has_consts; ++i) {
-        if (!acirc_is_sigma(circ, i) && acirc_symlen(circ, i) >= sizeof(size_t) * 8) {
-            fprintf(stderr, "%s: %s: number of symbols ≥ %lu, which will cause issues for obfuscation\n",
-                    warnstr, __func__, sizeof(size_t) * 8);
-        }
         cp->ds[i] = acirc_symlen(circ, i);
-        cp->qs[i] = acirc_is_sigma(circ, i) ? acirc_symlen(circ, i)
-            : (size_t) 1 << acirc_symlen(circ, i);
+        if (acirc_is_sigma(circ, i)) {
+            cp->qs[i] = acirc_symlen(circ, i);
+        } else {
+            if (acirc_symlen(circ, i) >= sizeof(size_t) * 8) {
+                /* fprintf(stderr, "%s: %s: number of symbols ≥ %lu, which will cause issues for obfuscation\n", */
+                /*         warnstr, __func__, sizeof(size_t) * 8); */
+                cp->qs[i] = 0;
+            } else {
+                cp->qs[i] = (size_t) 1 << acirc_symlen(circ, i);
+            }
+        }
     }
     if (has_consts) {
         cp->ds[cp->nslots - 1] = acirc_nconsts(circ) + acirc_nsecrets(circ);
