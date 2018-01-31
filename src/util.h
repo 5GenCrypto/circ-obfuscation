@@ -12,6 +12,7 @@
 #define PRIVATE __attribute__ ((visibility ("hidden")))
 
 extern const char *errorstr;
+extern const char *warnstr;
 
 typedef enum debug_e {
     ERROR = 0,

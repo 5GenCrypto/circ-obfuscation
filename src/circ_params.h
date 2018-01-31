@@ -17,4 +17,4 @@ int    circ_params_fread(circ_params_t *const cp, acirc_t *circ, FILE *fp);
 size_t circ_params_ninputs(const circ_params_t *cp);
 size_t circ_params_slot(const circ_params_t *cp, size_t pos);
 size_t circ_params_bit(const circ_params_t *cp, size_t pos);
-void   circ_params_print(const circ_params_t *cp);
+int    circ_params_print(const circ_params_t *cp);

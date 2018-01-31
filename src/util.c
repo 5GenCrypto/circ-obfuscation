@@ -15,7 +15,8 @@
 #include <mmap/mmap_clt.h>
 #include <mmap/mmap_dummy.h>
 
-const char *errorstr = "\033[1;41merror\033[0m";
+const char *errorstr = "\033[1;31merror\033[0m";
+const char *warnstr = "\033[1;33mwarning\033[0m";
 
 bool g_verbose = false;
 debug_e g_debug = ERROR;

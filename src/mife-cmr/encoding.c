@@ -13,10 +13,15 @@ static int
 _encoding_new(const pp_vtable *vt, encoding *enc, const public_params *pp)
 {
     const circ_params_t *cp = vt->params(pp);
-    if ((my(enc) = calloc(1, sizeof my(enc)[0])) == NULL)
-        return ERR;
-    my(enc)->index = index_set_new(mife_params_nzs(cp));
+    if ((my(enc) = my_calloc(1, sizeof my(enc)[0])) == NULL)
+        goto error;
+    if ((my(enc)->index = index_set_new(mife_params_nzs(cp))) == NULL)
+        goto error;
     return OK;
+error:
+    if (my(enc))
+        free(my(enc));
+    return ERR;
 }
 
 static void
@@ -39,10 +44,11 @@ _encoding_print(const encoding *enc)
 static int *
 _encode(encoding *rop, const void *ix_)
 {
+    const index_set *ix = ix_;
     int *pows;
-    const index_set *const ix = ix_;
     index_set_set(rop->info->index, ix);
-    pows = calloc(ix->nzs, sizeof pows[0]);
+    if ((pows = my_calloc(ix->nzs, sizeof pows[0])) == NULL)
+        return NULL;
     if (pows)
         memcpy(pows, ix->pows, ix->nzs * sizeof pows[0]);
     return pows;
@@ -87,7 +93,7 @@ _encoding_is_zero(const pp_vtable *vt, const encoding *x, const public_params *p
 {
     const index_set *const toplevel = vt->toplevel(pp);
     if (!index_set_eq(my(x)->index, toplevel)) {
-        fprintf(stderr, "error: index sets not equal\n");
+        fprintf(stderr, "%s: %s: index sets not equal\n", errorstr, __func__);
         index_set_print(my(x)->index);
         index_set_print(toplevel);
         return ERR;

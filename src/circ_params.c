@@ -91,7 +91,7 @@ circ_params_bit(const circ_params_t *cp, size_t pos)
     abort();
 }
 
-void
+int
 circ_params_print(const circ_params_t *cp)
 {
     const size_t has_consts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ) ? 1 : 0;
@@ -112,6 +112,7 @@ circ_params_print(const circ_params_t *cp)
             degree = acirc_max_const_degree(cp->circ);
         else
             degree = acirc_max_var_degree(cp->circ, i);
+        if (degree == 0) return ERR; /* happens if we fail to parse the circuit */
         fprintf(stderr, "*   slot %lu: ..... %lu (%lu) [%lu]\n", i,
                 cp->ds[i], cp->qs[i], degree);
     }
@@ -124,4 +125,5 @@ circ_params_print(const circ_params_t *cp)
         fprintf(stderr, " [%s.encodings/]", acirc_fname(cp->circ));
     fprintf(stderr, "\n");
     fprintf(stderr, "* binary? ....... %s\n", acirc_is_binary(cp->circ) ? "✓" : "✗");
+    return OK;
 }

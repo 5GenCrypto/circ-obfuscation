@@ -103,7 +103,8 @@ mife_ct_fread(const mmap_vtable *mmap, const circ_params_t *cp, FILE *fp)
     if (size_t_fread(&ct->slot, fp) == ERR)
         goto error;
     if (ct->slot >= cp->nslots) {
-        fprintf(stderr, "error: slot number > number of slots\n");
+        fprintf(stderr, "%s: %s: slot number > number of slots\n",
+                errorstr, __func__);
         goto error;
     }
     ninputs = cp->ds[ct->slot];
@@ -118,7 +119,8 @@ mife_ct_fread(const mmap_vtable *mmap, const circ_params_t *cp, FILE *fp)
             goto error;
     return ct;
 error:
-    fprintf(stderr, "error: reading ciphertext failed\n");
+    fprintf(stderr, "%s: %s: reading ciphertext failed\n",
+            errorstr, __func__);
     free(ct);
     return NULL;
 }
@@ -526,7 +528,8 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         mife->constants = _mife_encrypt(sk, cp->nslots - 1, consts, nthreads, rng,
                                         &cache, mife->const_alphas, false);
         if (mife->constants == NULL) {
-            fprintf(stderr, "error: mife setup: unable to encrypt constants\n");
+            fprintf(stderr, "%s: %s: unable to encrypt constants\n",
+                    errorstr, __func__);
             goto cleanup;
         }
         mife_sk_free(sk);
@@ -718,7 +721,7 @@ mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
              size_t nthreads, aes_randstate_t rng)
 {
     if (sk == NULL || slot >= sk->cp->nslots || inputs == NULL) {
-        fprintf(stderr, "error: mife encrypt: invalid input\n");
+        fprintf(stderr, "%s: %s: invalid input\n", errorstr, __func__);
         return NULL;
     }
     return _mife_encrypt(sk, slot, inputs, nthreads, rng, NULL, NULL, false);
@@ -878,7 +881,7 @@ output_f(size_t ref, size_t o, void *x, void *args_)
     encoding_mul(ek->enc_vt, ek->pp_vt, lhs, x, ek->zhat, ek->pp);
     raise_encoding(ek, lhs, toplevel);
     if (!index_set_eq(ek->enc_vt->mmap_set(lhs), toplevel)) {
-        fprintf(stderr, "error: lhs != toplevel\n");
+        fprintf(stderr, "%s: %s: lhs != toplevel\n", errorstr, __func__);
         index_set_print(ek->enc_vt->mmap_set(lhs));
         index_set_print(toplevel);
         goto cleanup;
@@ -894,7 +897,7 @@ output_f(size_t ref, size_t o, void *x, void *args_)
             encoding_mul(ek->enc_vt, ek->pp_vt, rhs, rhs, args->cts[i]->what[o], ek->pp);
     }
     if (!index_set_eq(ek->enc_vt->mmap_set(rhs), toplevel)) {
-        fprintf(stderr, "error: rhs != toplevel\n");
+        fprintf(stderr, "%s: %s: rhs != toplevel\n", errorstr, __func__);
         index_set_print(ek->enc_vt->mmap_set(rhs));
         index_set_print(toplevel);
         goto cleanup;
@@ -914,7 +917,7 @@ cleanup:
 static void
 free_f(void *x, void *args_)
 {
-    decrypt_args_t *args = args_;
+    const decrypt_args_t *args = args_;
     if (x)
         encoding_free(args->ek->enc_vt, x);
 }
@@ -944,7 +947,7 @@ error:
 static int
 write_f(size_t ref, void *x, void *args_)
 {
-    decrypt_args_t *args = args_;
+    const decrypt_args_t *args = args_;
     if (x) {
         int ret = ACIRC_ERR;
         FILE *fp = NULL;
@@ -978,9 +981,9 @@ write_f(size_t ref, void *x, void *args_)
 static void *
 read_f(size_t ref, void *args_)
 {
-    decrypt_args_t *args = args_;
-    void *rop;
-    FILE *fp;
+    const decrypt_args_t *args = args_;
+    void *rop = NULL;
+    FILE *fp = NULL;
     if ((fp = _file(args->dirname, ref, "r")) == NULL)
         return NULL;
     rop = encoding_fread(args->ek->enc_vt, fp);
