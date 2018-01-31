@@ -276,16 +276,27 @@ encoding_get_degree(const encoding_vtable *vt, const encoding *x)
 encoding *
 encoding_fread(const encoding_vtable *vt, FILE *fp)
 {
-    encoding *const x = my_calloc(1, sizeof x[0]);
-    vt->fread(x, fp);
-    x->enc = vt->mmap->enc->fread(fp);
+    encoding *x;
+    if ((x = my_calloc(1, sizeof x[0])) == NULL) goto error;
+    if (vt->fread(x, fp) == ERR) goto error;
+    if ((x->enc = vt->mmap->enc->fread(fp)) == NULL) goto error;
     return x;
+error:
+    fprintf(stderr, "%s: %s: reading encoding failed\n",
+            errorstr, __func__);
+    if (x)
+        free(x);
+    return NULL;
 }
 
 int
 encoding_fwrite(const encoding_vtable *vt, const encoding *x, FILE *fp)
 {
-    vt->fwrite(x, fp);
-    vt->mmap->enc->fwrite(x->enc, fp);
+    if (vt->fwrite(x, fp) == ERR) goto error;
+    if (vt->mmap->enc->fwrite(x->enc, fp) == ERR) goto error;
     return OK;
+error:
+    fprintf(stderr, "%s: %s: writing encoding failed\n",
+            errorstr, __func__);
+    return ERR;
 }

@@ -677,6 +677,8 @@ cmd_mife_decrypt(int argc, char **argv, args_t *args)
     argv++; argc--;
     mife_decrypt_args_init(&args_);
     handle_options(&argc, &argv, 0, args, &args_, mife_decrypt_handle_options, mife_decrypt_usage);
+    if (args_.saved)
+        acirc_set_saved(args->circ);
     if (mife_select_scheme(args_.scheme, args->circ, 0, &vt, &op_vt, &op) == ERR)
         goto cleanup;
     nslots = obf_params_cp(op)->nslots;

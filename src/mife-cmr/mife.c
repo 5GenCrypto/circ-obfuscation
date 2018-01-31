@@ -829,6 +829,9 @@ eval_f(size_t ref, acirc_op op, size_t xref, const void *x_, size_t yref, const 
     const encoding *y = y_;
     encoding *res;
 
+    if (x == NULL || y == NULL)
+        return NULL;
+
     res = encoding_new(ek->enc_vt, ek->pp_vt, ek->pp);
     switch (op) {
     case ACIRC_OP_MUL:
@@ -917,7 +920,7 @@ free_f(void *x, void *args_)
 }
 
 static FILE *
-_file(const char *dirname, size_t ref)
+_file(const char *dirname, size_t ref, const char *mode)
 {
     char *fname = NULL;
     FILE *fp = NULL;
@@ -926,7 +929,7 @@ _file(const char *dirname, size_t ref)
     length = snprintf(NULL, 0, "%s/%lu", dirname, ref);
     fname = calloc(length + 1, sizeof fname[0]);
     (void) snprintf(fname, length + 1, "%s/%lu", dirname, ref);
-    if ((fp = fopen(fname, "wr")) == NULL)
+    if ((fp = fopen(fname, mode)) == NULL)
         goto error;
     free(fname);
     return fp;
@@ -960,7 +963,7 @@ write_f(size_t ref, void *x, void *args_)
         } else {
             goto cleanup;
         }
-        fp = _file(args->dirname, ref);
+        fp = _file(args->dirname, ref, "w");
         (void) encoding_fwrite(args->ek->enc_vt, x, fp);
         ret = ACIRC_OK;
     cleanup:
@@ -978,14 +981,16 @@ read_f(size_t ref, void *args_)
     decrypt_args_t *args = args_;
     void *rop;
     FILE *fp;
-    fp = _file(args->dirname, ref);
+    if ((fp = _file(args->dirname, ref, "r")) == NULL)
+        return NULL;
     rop = encoding_fread(args->ek->enc_vt, fp);
     fclose(fp);
     return rop;
 }
 
 static int
-mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts, size_t nthreads, size_t *kappa)
+mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
+             size_t nthreads, size_t *kappa)
 {
     const circ_params_t *cp = ek->cp;
     acirc_t *circ = cp->circ;

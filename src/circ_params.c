@@ -96,29 +96,32 @@ circ_params_print(const circ_params_t *cp)
 {
     const size_t has_consts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ) ? 1 : 0;
     fprintf(stderr, "Circuit parameters:\n");
-    fprintf(stderr, "* ninputs:...... %lu\n", acirc_ninputs(cp->circ));
-    fprintf(stderr, "* nconsts:...... %lu\n", acirc_nconsts(cp->circ));
-    fprintf(stderr, "* nsecrets:..... %lu\n", acirc_nsecrets(cp->circ));
-    fprintf(stderr, "* noutputs: .... %lu\n", acirc_noutputs(cp->circ));
-    fprintf(stderr, "* nsymbols: .... %lu  [", acirc_nsymbols(cp->circ));
+    fprintf(stderr, "* # inputs:...... %lu\n", acirc_ninputs(cp->circ));
+    fprintf(stderr, "* # consts:...... %lu\n", acirc_nconsts(cp->circ));
+    fprintf(stderr, "* # secrets:..... %lu\n", acirc_nsecrets(cp->circ));
+    fprintf(stderr, "* # outputs: .... %lu\n", acirc_noutputs(cp->circ));
+    fprintf(stderr, "* # symbols: .... %lu  [", acirc_nsymbols(cp->circ));
     for (size_t i = 0; i < acirc_nsymbols(cp->circ); ++i) {
         fprintf(stderr, " %lu ", acirc_symlen(cp->circ, i));
     }
     fprintf(stderr, "]\n");
-    fprintf(stderr, "* nslots: ...... %lu\n", cp->nslots);
+    fprintf(stderr, "* # slots: ...... %lu\n", cp->nslots);
     for (size_t i = 0; i < cp->nslots; ++i) {
         size_t degree;
         if (i == cp->nslots - has_consts)
             degree = acirc_max_const_degree(cp->circ);
         else
             degree = acirc_max_var_degree(cp->circ, i);
-        fprintf(stderr, "*   slot #%lu: ..... %lu (%lu) [%lu]\n", i,
+        fprintf(stderr, "*   slot %lu: ..... %lu (%lu) [%lu]\n", i,
                 cp->ds[i], cp->qs[i], degree);
     }
-    fprintf(stderr, "* nrefs: ....... %lu\n", acirc_nrefs(cp->circ));
-    fprintf(stderr, "* ngates: ...... %lu\n", acirc_ngates(cp->circ));
-    fprintf(stderr, "* nmuls: ....... %lu\n", acirc_nmuls(cp->circ));
-    fprintf(stderr, "* depth: ....... %lu\n", acirc_max_depth(cp->circ));
-    fprintf(stderr, "* degree: ...... %lu\n", acirc_max_degree(cp->circ));
-    fprintf(stderr, "* binary: ...... %s\n", acirc_is_binary(cp->circ) ? "✓" : "✗");
+    fprintf(stderr, "* # refs: ....... %lu\n", acirc_nrefs(cp->circ));
+    fprintf(stderr, "* # gates: ...... %lu\n", acirc_ngates(cp->circ));
+    fprintf(stderr, "* # muls: ....... %lu\n", acirc_nmuls(cp->circ));
+    fprintf(stderr, "* depth: ........ %lu\n", acirc_max_depth(cp->circ));
+    fprintf(stderr, "* saved? ........ %s", acirc_is_saved(cp->circ) ? "✓" : "✗");
+    if (acirc_is_saved(cp->circ))
+        fprintf(stderr, " [%s.encodings/]", acirc_fname(cp->circ));
+    fprintf(stderr, "\n");
+    fprintf(stderr, "* binary? ....... %s\n", acirc_is_binary(cp->circ) ? "✓" : "✗");
 }

@@ -98,12 +98,14 @@ _encoding_is_zero(const pp_vtable *vt, const encoding *x, const public_params *p
 static int
 _encoding_fread(encoding *x, FILE *fp)
 {
-    x->info = calloc(1, sizeof x->info[0]);
+    if ((x->info = my_calloc(1, sizeof x->info[0])) == NULL)
+        goto error;
     if ((x->info->index = index_set_fread(fp)) == NULL)
         goto error;
     return OK;
 error:
-    free(x->info);
+    if (x->info)
+        free(x->info);
     return ERR;
 }
 
