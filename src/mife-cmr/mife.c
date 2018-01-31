@@ -1048,8 +1048,8 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
     }
     ret = OK;
 cleanup:
-    if (kappa)
-        free(kappa);
+    if (kappa && kappas)
+        free(kappas);
     return ret;
 }
 
