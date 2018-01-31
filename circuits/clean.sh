@@ -6,4 +6,4 @@ find "$dir" -name "*.ct" | xargs rm -f
 find "$dir" -name "*.obf" | xargs rm -f
 find "$dir" -name "*.ek" | xargs rm -f
 find "$dir" -name "*.sk" | xargs rm -f
-
+find "$dir" -name "*.encodings" | xargs rm -rf
