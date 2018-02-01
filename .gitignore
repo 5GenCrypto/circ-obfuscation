@@ -12,14 +12,7 @@ circuits/*.obf
 circuits/*.ct
 circuits/*.ek
 circuits/*.sk
-circuits/sigma/*.obf
-circuits/sigma/*.ct
-circuits/sigma/*.ek
-circuits/sigma/*.sk
-circuits/point/*.obf
-circuits/point/*.ct
-circuits/point/*.ek
-circuits/point/*.sk
+circuits/*.encodings
 Makefile
 *.a
 *.so
