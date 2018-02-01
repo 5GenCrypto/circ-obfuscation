@@ -59,7 +59,8 @@ build () {
     if [[ $path == "circuit-synthesis" ]]; then
         pushd $path
         ./build-app.sh
-        cp cxs boots "${builddir}/bin"
+        ln -sf "${PWD}"/cxs "${builddir}/bin/cxs"
+        ln -sf "${PWD}"/boots "${builddir}/bin/boots"
         popd
     else
         pushd $path
