@@ -14,7 +14,7 @@
 
 struct mife_t {
     const mmap_vtable *mmap;
-    const circ_params_t *cp;
+    const acirc_t *circ;
     const encoding_vtable *enc_vt;
     const pp_vtable *pp_vt;
     const sp_vtable *sp_vt;
@@ -38,7 +38,7 @@ struct mife_ct_t {
 
 struct mife_sk_t {
     const mmap_vtable *mmap;
-    const circ_params_t *cp;
+    const acirc_t *circ;
     const encoding_vtable *enc_vt;
     const pp_vtable *pp_vt;
     const sp_vtable *sp_vt;
@@ -51,7 +51,7 @@ struct mife_sk_t {
 
 struct mife_ek_t {
     const mmap_vtable *mmap;
-    const circ_params_t *cp;
+    const acirc_t *circ;
     const encoding_vtable *enc_vt;
     const pp_vtable *pp_vt;
     public_params *pp;
@@ -65,34 +65,38 @@ struct mife_ek_t {
 };
 
 static void
-mife_ct_free(mife_ct_t *ct, const circ_params_t *cp)
+mife_ct_free(mife_ct_t *ct, const acirc_t *circ)
 {
     if (ct == NULL)
         return;
-    const size_t ninputs = cp->ds[ct->slot];
-    for (size_t j = 0; j < ninputs; ++j)
-        encoding_free(ct->enc_vt, ct->xhat[j]);
-    free(ct->xhat);
-    for (size_t o = 0; o < acirc_noutputs(cp->circ); ++o)
-        encoding_free(ct->enc_vt, ct->what[o]);
-    free(ct->what);
+    const size_t ninputs = acirc_symlen(circ, ct->slot);
+    if (ct->xhat) {
+        for (size_t j = 0; j < ninputs; ++j)
+            encoding_free(ct->enc_vt, ct->xhat[j]);
+        free(ct->xhat);
+    }
+    if (ct->what) {
+        for (size_t o = 0; o < acirc_noutputs(circ); ++o)
+            encoding_free(ct->enc_vt, ct->what[o]);
+        free(ct->what);
+    }
     free(ct);
 }
 
 static int
-mife_ct_fwrite(const mife_ct_t *ct, const circ_params_t *cp, FILE *fp)
+mife_ct_fwrite(const mife_ct_t *ct, const acirc_t *circ, FILE *fp)
 {
-    const size_t ninputs = cp->ds[ct->slot];
+    const size_t ninputs = acirc_symlen(circ, ct->slot);
     if (size_t_fwrite(ct->slot, fp) == ERR) return ERR;
     for (size_t j = 0; j < ninputs; ++j)
         if (encoding_fwrite(ct->enc_vt, ct->xhat[j], fp) == ERR) return ERR;
-    for (size_t o = 0; o < acirc_noutputs(cp->circ); ++o)
+    for (size_t o = 0; o < acirc_noutputs(circ); ++o)
         if (encoding_fwrite(ct->enc_vt, ct->what[o], fp) == ERR) return ERR;
     return OK;
 }
 
 static mife_ct_t *
-mife_ct_fread(const mmap_vtable *mmap, const circ_params_t *cp, FILE *fp)
+mife_ct_fread(const mmap_vtable *mmap, const acirc_t *circ, FILE *fp)
 {
     mife_ct_t *ct;
     size_t ninputs;
@@ -102,19 +106,19 @@ mife_ct_fread(const mmap_vtable *mmap, const circ_params_t *cp, FILE *fp)
     ct->enc_vt = get_encoding_vtable(mmap);
     if (size_t_fread(&ct->slot, fp) == ERR)
         goto error;
-    if (ct->slot >= cp->nslots) {
+    if (ct->slot >= acirc_nslots(circ)) {
         fprintf(stderr, "%s: %s: slot number > number of slots\n",
                 errorstr, __func__);
         goto error;
     }
-    ninputs = cp->ds[ct->slot];
+    ninputs = acirc_symlen(circ, ct->slot);
     ct->xhat = my_calloc(ninputs, sizeof ct->xhat[0]);
     for (size_t j = 0; j < ninputs; ++j) {
         if ((ct->xhat[j] = encoding_fread(ct->enc_vt, fp)) == NULL)
             goto error;
     }
-    ct->what = my_calloc(acirc_noutputs(cp->circ), sizeof ct->what[0]);
-    for (size_t o = 0; o < acirc_noutputs(cp->circ); ++o)
+    ct->what = my_calloc(acirc_noutputs(circ), sizeof ct->what[0]);
+    for (size_t o = 0; o < acirc_noutputs(circ); ++o)
         if ((ct->what[o] = encoding_fread(ct->enc_vt, fp)) == NULL)
             goto error;
     return ct;
@@ -129,9 +133,10 @@ static mife_sk_t *
 mife_sk(const mife_t *mife)
 {
     mife_sk_t *sk;
-    sk = my_calloc(1, sizeof sk[0]);
+    if ((sk = my_calloc(1, sizeof sk[0])) == NULL)
+        return NULL;
     sk->mmap = mife->mmap;
-    sk->cp = mife->cp;
+    sk->circ = mife->circ;
     sk->enc_vt = mife->enc_vt;
     sk->pp_vt = mife->pp_vt;
     sk->sp_vt = mife->sp_vt;
@@ -154,7 +159,7 @@ mife_sk_free(mife_sk_t *sk)
         if (sk->sp)
             secret_params_free(sk->sp_vt, sk->sp);
         if (sk->const_alphas)
-            mpz_vect_free(sk->const_alphas, acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ));
+            mpz_vect_free(sk->const_alphas, acirc_nconsts(sk->circ) + acirc_nsecrets(sk->circ));
         if (sk->deg_max)
             free(sk->deg_max);
     }
@@ -166,10 +171,10 @@ mife_sk_fwrite(const mife_sk_t *sk, FILE *fp)
 {
     if (public_params_fwrite(sk->pp_vt, sk->pp, fp) == ERR) goto error;
     if (secret_params_fwrite(sk->sp_vt, sk->sp, fp) == ERR) goto error;
-    if (acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ))
-        for (size_t o = 0; o < acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ); ++o)
+    if (acirc_nconsts(sk->circ) + acirc_nsecrets(sk->circ))
+        for (size_t o = 0; o < acirc_nconsts(sk->circ) + acirc_nsecrets(sk->circ); ++o)
             if (mpz_fwrite(sk->const_alphas[o], fp) == ERR) goto error;
-    for (size_t i = 0; i < sk->cp->nslots; ++i)
+    for (size_t i = 0; i < acirc_nslots(sk->circ); ++i)
         if (size_t_fwrite(sk->deg_max[i], fp) == ERR) goto error;
     return OK;
 error:
@@ -187,20 +192,20 @@ mife_sk_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     sk = my_calloc(1, sizeof sk[0]);
     sk->local = true;
     sk->mmap = mmap;
-    sk->cp = cp;
+    sk->circ = cp->circ;
     sk->enc_vt = get_encoding_vtable(mmap);
     sk->pp_vt = get_pp_vtable(mmap);
     sk->sp_vt = get_sp_vtable(mmap);
     if ((sk->pp = public_params_fread(sk->pp_vt, op, fp)) == NULL) goto error;
-    if ((sk->sp = secret_params_fread(sk->sp_vt, cp, fp)) == NULL) goto error;
-    if (acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ)) {
-        sk->const_alphas = my_calloc(acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ),
+    if ((sk->sp = secret_params_fread(sk->sp_vt, op, fp)) == NULL) goto error;
+    if (acirc_nconsts(sk->circ) + acirc_nsecrets(sk->circ)) {
+        sk->const_alphas = my_calloc(acirc_nconsts(sk->circ) + acirc_nsecrets(sk->circ),
                                      sizeof sk->const_alphas[0]);
-        for (size_t o = 0; o < acirc_nconsts(sk->cp->circ) + acirc_nsecrets(sk->cp->circ); ++o)
+        for (size_t o = 0; o < acirc_nconsts(sk->circ) + acirc_nsecrets(sk->circ); ++o)
             if (mpz_fread(&sk->const_alphas[o], fp) == ERR) goto error;
     }
-    sk->deg_max = my_calloc(sk->cp->nslots, sizeof sk->deg_max[0]);
-    for (size_t i = 0; i < sk->cp->nslots; ++i)
+    sk->deg_max = my_calloc(acirc_nslots(sk->circ), sizeof sk->deg_max[0]);
+    for (size_t i = 0; i < acirc_nslots(sk->circ); ++i)
         if (size_t_fread(&sk->deg_max[i], fp) == ERR) goto error;
     return sk;
 error:
@@ -217,7 +222,7 @@ mife_ek(const mife_t *mife)
     if ((ek = my_calloc(1, sizeof ek[0])) == NULL)
         return NULL;
     ek->mmap = mife->mmap;
-    ek->cp = mife->cp;
+    ek->circ = mife->circ;
     ek->enc_vt = mife->enc_vt;
     ek->pp_vt = mife->pp_vt;
     ek->pp = mife->pp;
@@ -241,11 +246,11 @@ mife_ek_free(mife_ek_t *ek)
         if (ek->Chatstar)
             encoding_free(ek->enc_vt, ek->Chatstar);
         if (ek->constants)
-            mife_ct_free(ek->constants, ek->cp);
+            mife_ct_free(ek->constants, ek->circ);
         if (ek->zhat)
             encoding_free(ek->enc_vt, ek->zhat);
         if (ek->uhat) {
-            for (size_t i = 0; i < ek->cp->nslots; ++i) {
+            for (size_t i = 0; i < acirc_nslots(ek->circ); ++i) {
                 for (size_t p = 0; p < ek->npowers; ++p)
                     encoding_free(ek->enc_vt, ek->uhat[i][p]);
                 free(ek->uhat[i]);
@@ -262,14 +267,14 @@ mife_ek_fwrite(const mife_ek_t *ek, FILE *fp)
     public_params_fwrite(ek->pp_vt, ek->pp, fp);
     if (ek->constants) {
         bool_fwrite(true, fp);
-        mife_ct_fwrite(ek->constants, ek->cp, fp);
+        mife_ct_fwrite(ek->constants, ek->circ, fp);
     } else {
         bool_fwrite(false, fp);
         encoding_fwrite(ek->enc_vt, ek->Chatstar, fp);
     }
     encoding_fwrite(ek->enc_vt, ek->zhat, fp);
     size_t_fwrite(ek->npowers, fp);
-    for (size_t i = 0; i < ek->cp->nslots; ++i)
+    for (size_t i = 0; i < acirc_nslots(ek->circ); ++i)
         for (size_t p = 0; p < ek->npowers; ++p)
             encoding_fwrite(ek->enc_vt, ek->uhat[i][p], fp);
     return OK;
@@ -278,7 +283,7 @@ mife_ek_fwrite(const mife_ek_t *ek, FILE *fp)
 static mife_ek_t *
 mife_ek_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
 {
-    const circ_params_t *cp = &op->cp;
+    const acirc_t *circ = op->cp.circ;
     mife_ek_t *ek;
     bool has_consts;
 
@@ -286,13 +291,13 @@ mife_ek_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
         return NULL;
     ek->local = true;
     ek->mmap = mmap;
-    ek->cp = cp;
+    ek->circ = circ;
     ek->enc_vt = get_encoding_vtable(mmap);
     ek->pp_vt = get_pp_vtable(mmap);
     ek->pp = public_params_fread(ek->pp_vt, op, fp);
     bool_fread(&has_consts, fp);
     if (has_consts) {
-        if ((ek->constants = mife_ct_fread(ek->mmap, ek->cp, fp)) == NULL)
+        if ((ek->constants = mife_ct_fread(ek->mmap, ek->circ, fp)) == NULL)
             goto error;
     } else {
         if ((ek->Chatstar = encoding_fread(ek->enc_vt, fp)) == NULL)
@@ -300,8 +305,8 @@ mife_ek_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     }
     ek->zhat = encoding_fread(ek->enc_vt, fp);
     size_t_fread(&ek->npowers, fp);
-    ek->uhat = my_calloc(ek->cp->nslots, sizeof ek->uhat[0]);
-    for (size_t i = 0; i < ek->cp->nslots; ++i) {
+    ek->uhat = my_calloc(acirc_nslots(ek->circ), sizeof ek->uhat[0]);
+    for (size_t i = 0; i < acirc_nslots(ek->circ); ++i) {
         ek->uhat[i] = my_calloc(ek->npowers, sizeof ek->uhat[i][0]);
         for (size_t p = 0; p < ek->npowers; ++p)
             ek->uhat[i][p] = encoding_fread(ek->enc_vt, fp);
@@ -325,48 +330,48 @@ typedef struct {
 } encode_args_t;
 
 size_t
-mife_num_encodings_setup(const circ_params_t *cp, size_t npowers)
+mife_num_encodings_setup(const acirc_t *circ, size_t npowers)
 {
-    size_t nconsts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ) ? cp->ds[cp->nslots - 1] : 1;
-    return 1 + cp->nslots * npowers + nconsts;
+    const size_t nconsts = acirc_nconsts(circ) + acirc_nsecrets(circ)
+        ? acirc_symlen(circ, acirc_nsymbols(circ)) : 1;
+    return 1 + acirc_nslots(circ) * npowers + nconsts;
 }
 
 size_t
-mife_num_encodings_encrypt(const circ_params_t *cp, size_t slot)
+mife_num_encodings_encrypt(const acirc_t *circ, size_t slot)
 {
-    return cp->ds[slot] + acirc_noutputs(cp->circ);
+    return acirc_symlen(circ, slot) + acirc_noutputs(circ);
 }
 
 static int
-populate_circ_degrees(const circ_params_t *cp, size_t *maxdegs)
+populate_circ_degrees(const acirc_t *circ, size_t *maxdegs)
 {
-    const size_t has_consts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ) ? 1 : 0;
-    const acirc_t *circ = cp->circ;
-    for (size_t i = 0; i < cp->nslots - has_consts; ++i)
+    const size_t has_consts = acirc_nconsts(circ) + acirc_nsecrets(circ) ? 1 : 0;
+    for (size_t i = 0; i < acirc_nsymbols(circ); ++i)
         if ((maxdegs[i] = acirc_max_var_degree(circ, i)) == 0) return ERR;
     if (has_consts)
-        if ((maxdegs[cp->nslots - 1] = acirc_max_const_degree(circ)) == 0) return ERR;
+        if ((maxdegs[acirc_nsymbols(circ)] = acirc_max_const_degree(circ)) == 0) return ERR;
     return OK;
 }
 
 static int
-populate_circ_input(const circ_params_t *cp, size_t slot, mpz_t **inputs,
+populate_circ_input(const acirc_t *circ, size_t slot, mpz_t **inputs,
                     mpz_t **consts, const mpz_t *alphas)
 {
-    const size_t nconsts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ);
+    const size_t nconsts = acirc_nconsts(circ) + acirc_nsecrets(circ);
     const size_t has_consts = nconsts ? 1 : 0;
     size_t idx = 0;
-    for (size_t i = 0; i < cp->nslots - has_consts; ++i) {
-        for (size_t j = 0; j < cp->ds[i]; ++j) {
+    for (size_t i = 0; i < acirc_nsymbols(circ); ++i) {
+        for (size_t j = 0; j < acirc_symlen(circ, i); ++j) {
             if (i == slot)
                 mpz_set   (*inputs[idx + j], alphas[j]);
             else
                 mpz_set_ui(*inputs[idx + j], 1);
         }
-        idx += cp->ds[i];
+        idx += acirc_symlen(circ, i);
     }
     for (size_t i = 0; i < nconsts; ++i) {
-        if (has_consts && slot == cp->nslots - 1)
+        if (has_consts && slot == acirc_nsymbols(circ))
             mpz_set   (*consts[i], alphas[i]);
         else
             mpz_set_ui(*consts[i], 1);
@@ -421,7 +426,7 @@ mife_free(mife_t *mife)
     if (mife->zhat)
         encoding_free(mife->enc_vt, mife->zhat);
     if (mife->uhat) {
-        for (size_t i = 0; i < mife->cp->nslots; ++i) {
+        for (size_t i = 0; i < acirc_nslots(mife->circ); ++i) {
             if (mife->uhat[i]) {
                 for (size_t p = 0; p < mife->npowers; ++p) {
                     if (mife->uhat[i][p])
@@ -433,9 +438,10 @@ mife_free(mife_t *mife)
         free(mife->uhat);
     }
     if (mife->const_alphas)
-        mpz_vect_free(mife->const_alphas, acirc_nconsts(mife->cp->circ) + acirc_nsecrets(mife->cp->circ));
+        mpz_vect_free(mife->const_alphas,
+                      acirc_nconsts(mife->circ) + acirc_nsecrets(mife->circ));
     if (mife->constants)
-        mife_ct_free(mife->constants, mife->cp);
+        mife_ct_free(mife->constants, mife->circ);
     if (mife->pp)
         public_params_free(mife->pp_vt, mife->pp);
     if (mife->sp)
@@ -451,32 +457,33 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
 {
     int result = ERR;
     mife_t *mife;
-    const circ_params_t *cp = &op->cp;
-    const size_t has_consts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ) ? 1 : 0;
+    const acirc_t *circ = op->cp.circ;
+    const size_t has_consts = acirc_nconsts(circ) + acirc_nsecrets(circ) ? 1 : 0;
     threadpool *pool = threadpool_create(nthreads);
     pthread_mutex_t lock;
     size_t count = 0;
-    size_t total = mife_num_encodings_setup(cp, npowers);
+    size_t total = mife_num_encodings_setup(circ, npowers);
     index_set *ix;
     mpz_t *moduli;
-    mpz_t inps[1 + cp->nslots];
-    mpz_vect_init(inps, 1 + cp->nslots);
+    const size_t nslots = acirc_nslots(circ);
+    mpz_t inps[1 + nslots];
+    mpz_vect_init(inps, 1 + nslots);
 
     mife = my_calloc(1, sizeof mife[0]);
     mife->mmap = mmap;
-    mife->cp = cp;
+    mife->circ = circ;
     mife->enc_vt = get_encoding_vtable(mmap);
     mife->pp_vt = get_pp_vtable(mmap);
     mife->sp_vt = get_sp_vtable(mmap);
     if ((mife->sp = secret_params_new(mife->sp_vt, op, secparam, kappa, nthreads, rng)) == NULL)
         goto cleanup;
-    if ((mife->pp = public_params_new(mife->pp_vt, mife->sp_vt, mife->sp)) == NULL)
+    if ((mife->pp = public_params_new(mife->pp_vt, mife->sp_vt, mife->sp, op)) == NULL)
         goto cleanup;
     mife->npowers = npowers;
     mife->zhat = encoding_new(mife->enc_vt, mife->pp_vt, mife->pp);
-    mife->uhat = my_calloc(cp->nslots, sizeof mife->uhat[0]);
-    mife->deg_max = my_calloc(cp->nslots, sizeof mife->deg_max[0]);
-    if (populate_circ_degrees(cp, mife->deg_max) == ERR)
+    mife->uhat = my_calloc(nslots, sizeof mife->uhat[0]);
+    mife->deg_max = my_calloc(nslots, sizeof mife->deg_max[0]);
+    if (populate_circ_degrees(circ, mife->deg_max) == ERR)
         goto cleanup;
 
     moduli = mmap->sk->plaintext_fields(mife->sp->sk);
@@ -486,36 +493,36 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         print_progress(count, total);
 
     {
-        ix = index_set_new(mife_params_nzs(cp));
+        ix = index_set_new(mife_params_nzs(circ));
         if (mpz_cmp_ui(moduli[0], 2) == 0)
             mpz_set_ui(inps[0], 1);
         else
             mpz_randomm_inv(inps[0], rng, moduli[0]);
-        for (size_t i = 0; i < cp->nslots; ++i) {
+        for (size_t i = 0; i < nslots; ++i) {
             mpz_set_ui(inps[1 + i], 1);
-            IX_W(ix, cp, i) = 1;
+            IX_W(ix, circ, i) = 1;
         }
         IX_Z(ix) = 1;
         /* Encode \hat z = [δ, 1, ..., 1] */
-        __encode(pool, mife->enc_vt, mife->zhat, inps, 1 + cp->nslots,
+        __encode(pool, mife->enc_vt, mife->zhat, inps, 1 + nslots,
                  ix, mife->sp, &lock, &count, total);
     }
-    for (size_t i = 0; i < 1 + cp->nslots; ++i)
+    for (size_t i = 0; i < 1 + nslots; ++i)
         mpz_set_ui(inps[i], 1);
-    for (size_t i = 0; i < cp->nslots; ++i) {
+    for (size_t i = 0; i < nslots; ++i) {
         mife->uhat[i] = my_calloc(mife->npowers, sizeof mife->uhat[i][0]);
         for (size_t p = 0; p < mife->npowers; ++p) {
-            ix = index_set_new(mife_params_nzs(cp));
+            ix = index_set_new(mife_params_nzs(circ));
             mife->uhat[i][p] = encoding_new(mife->enc_vt, mife->pp_vt, mife->pp);
-            IX_X(ix, cp, i) = 1 << p;
+            IX_X(ix, circ, i) = 1 << p;
             /* Encode \hat u_i,p = [1, ..., 1] */
-            __encode(pool, mife->enc_vt, mife->uhat[i][p], inps, 1 + cp->nslots,
+            __encode(pool, mife->enc_vt, mife->uhat[i][p], inps, 1 + nslots,
                      ix, mife->sp, &lock, &count, total);
         }
     }
     if (has_consts) {
         /* Encrypt constants as part of setup */
-        const size_t nconsts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ);
+        const size_t nconsts = acirc_nconsts(circ) + acirc_nsecrets(circ);
         mife_encrypt_cache_t cache = {
             .pool = pool,
             .lock = &lock,
@@ -524,12 +531,12 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         };
         long consts[nconsts];
         mife_sk_t *sk = mife_sk(mife);
-        for (size_t i = 0; i < acirc_nconsts(cp->circ); ++i)
-            consts[i] = acirc_const(cp->circ, i);
-        for (size_t i = 0; i < acirc_nsecrets(cp->circ); ++i)
-            consts[i + acirc_nconsts(cp->circ)] = acirc_secret(cp->circ, i);
+        for (size_t i = 0; i < acirc_nconsts(circ); ++i)
+            consts[i] = acirc_const(circ, i);
+        for (size_t i = 0; i < acirc_nsecrets(circ); ++i)
+            consts[i + acirc_nconsts(circ)] = acirc_secret(circ, i);
         mife->const_alphas = calloc(nconsts, sizeof mife->const_alphas[0]);
-        mife->constants = _mife_encrypt(sk, cp->nslots - 1, consts, nthreads, rng,
+        mife->constants = _mife_encrypt(sk, nslots - 1, consts, nthreads, rng,
                                         &cache, mife->const_alphas, false);
         if (mife->constants == NULL) {
             fprintf(stderr, "%s: %s: unable to encrypt constants\n",
@@ -540,24 +547,24 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         mife->Chatstar = NULL;
     } else {
         /* No constants, so encode \hat C* as normal */
-        ix = index_set_new(mife_params_nzs(cp));
+        ix = index_set_new(mife_params_nzs(circ));
         mife->const_alphas = NULL;
         mife->constants = NULL;
         mife->Chatstar = encoding_new(mife->enc_vt, mife->pp_vt, mife->pp);
         mpz_set_ui(inps[0], 0);
-        for (size_t i = 0; i < cp->nslots; ++i) {
+        for (size_t i = 0; i < nslots; ++i) {
             mpz_set_ui(inps[1 + i], 1);
-            IX_X(ix, cp, i) = mife->deg_max[i];
+            IX_X(ix, circ, i) = mife->deg_max[i];
         }
         IX_Z(ix) = 1;
         /* Encode \hat C* = [0, 1, ..., 1] */
-        __encode(pool, mife->enc_vt, mife->Chatstar, inps, 1 + cp->nslots,
+        __encode(pool, mife->enc_vt, mife->Chatstar, inps, 1 + nslots,
                  ix, mife->sp, &lock, &count, total);
     }
 
     result = OK;
 cleanup:
-    mpz_vect_clear(inps, 1 + cp->nslots);
+    mpz_vect_clear(inps, 1 + nslots);
     threadpool_destroy(pool);
     pthread_mutex_destroy(&lock);
     if (result == OK)
@@ -576,13 +583,14 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
     (void) parallelize_circ_eval;
     mife_ct_t *ct;
     double start, end, _start, _end;
-    const circ_params_t *cp = sk->cp;
-    const size_t ninputs = cp->ds[slot];
-    const size_t nconsts = acirc_nconsts(cp->circ) + acirc_nsecrets(sk->cp->circ);
+    const acirc_t *circ = sk->circ;
+    const size_t ninputs = acirc_symlen(circ, slot);
+    const size_t nconsts = acirc_nconsts(circ) + acirc_nsecrets(sk->circ);
+    const size_t nslots = acirc_nslots(circ);
     const size_t has_consts = nconsts ? 1 : 0;
-    const size_t noutputs = acirc_noutputs(cp->circ);
+    const size_t noutputs = acirc_noutputs(circ);
     const mpz_t *moduli = (const mpz_t *) sk->mmap->sk->plaintext_fields(sk->sp->sk);
-    index_set *const ix = index_set_new(mife_params_nzs(cp));
+    index_set *const ix = index_set_new(mife_params_nzs(sk->circ));
     mpz_t *slots;
     mpz_t *alphas;
 
@@ -602,7 +610,7 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
     for (size_t o = 0; o < noutputs; ++o)
         ct->what[o] = encoding_new(sk->enc_vt, sk->pp_vt, sk->pp);
 
-    slots = mpz_vect_new(1 + cp->nslots);
+    slots = mpz_vect_new(1 + nslots);
     alphas = _alphas ? _alphas : mpz_vect_new(ninputs);
     for (size_t j = 0; j < ninputs; ++j)
         mpz_randomm_inv(alphas[j], rng, moduli[1 + slot]);
@@ -625,7 +633,7 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
         lock = my_calloc(1, sizeof lock[0]);
         pthread_mutex_init(lock, NULL);
         count = my_calloc(1, sizeof count[0]);
-        total = mife_num_encodings_encrypt(cp, slot);
+        total = mife_num_encodings_encrypt(circ, slot);
     }
 
     _start = current_time();
@@ -635,14 +643,14 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
 
     /* Encode \hat xⱼ */
     index_set_clear(ix);
-    IX_X(ix, cp, slot) = 1;
-    for (size_t i = 0; i < cp->nslots; ++i)
+    IX_X(ix, circ, slot) = 1;
+    for (size_t i = 0; i < nslots; ++i)
         mpz_set_ui(slots[1 + i], 1);
     for (size_t j = 0; j < ninputs; ++j) {
         mpz_set_ui(slots[0],        inputs[j]);
         mpz_set   (slots[1 + slot], alphas[j]);
         /* Encode \hat xⱼ := [xⱼ, 1, ..., 1, αⱼ, 1, ..., 1] */
-        __encode(pool, sk->enc_vt, ct->xhat[j], slots, 1 + cp->nslots,
+        __encode(pool, sk->enc_vt, ct->xhat[j], slots, 1 + nslots,
                  index_set_copy(ix), sk->sp, lock, count, total);
     }
     /* Encode \hat wₒ */
@@ -651,27 +659,28 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
          * be multiplied into the wₒ's of the first MIFE slot */
         mpz_t **cs, **const_cs = NULL;
         mpz_t **circ_inputs, **consts;
+        const size_t ntotal = acirc_ninputs(circ) + acirc_nconsts(circ) + acirc_nsecrets(circ);
 
-        circ_inputs = calloc(circ_params_ninputs(cp), sizeof circ_inputs[0]);
-        for (size_t i = 0; i < circ_params_ninputs(cp); ++i)
+        circ_inputs = calloc(ntotal, sizeof circ_inputs[0]);
+        for (size_t i = 0; i < ntotal; ++i)
             circ_inputs[i] = mpz_vect_new(1);
         consts = calloc(nconsts, sizeof consts[0]);
         for (size_t i = 0; i < nconsts; ++i)
             consts[i] = mpz_vect_new(1);
 
-        populate_circ_input(cp, slot, circ_inputs, consts, (const mpz_t *) alphas);
-        cs = acirc_eval_mpz(cp->circ, circ_inputs, consts, moduli[1 + slot]);
+        populate_circ_input(circ, slot, circ_inputs, consts, (const mpz_t *) alphas);
+        cs = acirc_eval_mpz(circ, circ_inputs, consts, moduli[1 + slot]);
         if (slot == 0 && has_consts) {
-            populate_circ_input(cp, cp->nslots - 1, circ_inputs, consts, (const mpz_t *) sk->const_alphas);
-            const_cs = acirc_eval_mpz(cp->circ, circ_inputs, consts, moduli[cp->nslots]);
+            populate_circ_input(circ, nslots - 1, circ_inputs, consts, (const mpz_t *) sk->const_alphas);
+            const_cs = acirc_eval_mpz(circ, circ_inputs, consts, moduli[nslots]);
         }
 
         index_set_clear(ix);
-        IX_W(ix, cp, slot) = 1;
+        IX_W(ix, circ, slot) = 1;
         if (slot == 0 && has_consts) {
-            for (size_t i = 0; i < cp->nslots; ++i)
-                IX_X(ix, cp, i) = sk->deg_max[i];
-            IX_W(ix, cp, cp->nslots - 1) = 1;
+            for (size_t i = 0; i < nslots; ++i)
+                IX_X(ix, circ, i) = sk->deg_max[i];
+            IX_W(ix, circ, nslots - 1) = 1;
             IX_Z(ix) = 1;
         }
         mpz_set_ui(slots[0], 0);
@@ -679,18 +688,18 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
             mpz_set(slots[1 + slot], *cs[o]);
             mpz_vect_free(cs[o], 1);
             if (slot == 0 && has_consts) {
-                mpz_set(slots[cp->nslots], *const_cs[o]);
+                mpz_set(slots[nslots], *const_cs[o]);
                 mpz_vect_free(const_cs[o], 1);
             }
             /* Encode \hat wₒ = [0, 1, ..., 1, C†ₒ, 1, ..., 1] */
-            __encode(pool, sk->enc_vt, ct->what[o], slots, 1 + cp->nslots,
+            __encode(pool, sk->enc_vt, ct->what[o], slots, 1 + nslots,
                      index_set_copy(ix), sk->sp, lock, count, total);
         }
         free(cs);
         if (const_cs)
             free(const_cs);
 
-        for (size_t i = 0; i < circ_params_ninputs(cp); ++i)
+        for (size_t i = 0; i < ntotal; ++i)
             mpz_vect_free(circ_inputs[i], 1);
         free(circ_inputs);
         for (size_t i = 0; i < nconsts; ++i)
@@ -711,7 +720,7 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
         fprintf(stderr, "    Encode: %.2fs\n", _end - _start);
 
     index_set_free(ix);
-    mpz_vect_free(slots, 1 + cp->nslots);
+    mpz_vect_free(slots, 1 + nslots);
 
     end = current_time();
     if (g_verbose && !cache)
@@ -724,7 +733,7 @@ static mife_ct_t *
 mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
              size_t nthreads, aes_randstate_t rng)
 {
-    if (sk == NULL || slot >= sk->cp->nslots || inputs == NULL) {
+    if (sk == NULL || slot >= acirc_nslots(sk->circ) || inputs == NULL) {
         fprintf(stderr, "%s: %s: invalid input\n", errorstr, __func__);
         return NULL;
     }
@@ -746,23 +755,24 @@ _raise_encoding(const mife_ek_t *ek, encoding *x, encoding **us, size_t diff)
 static int
 raise_encoding(const mife_ek_t *ek, encoding *x, const index_set *target)
 {
-    const circ_params_t *const cp = ek->cp;
-    const size_t has_consts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ) ? 1 : 0;
+    const acirc_t *circ = ek->circ;
+    const size_t has_consts = acirc_nconsts(circ) + acirc_nsecrets(circ) ? 1 : 0;
+    const size_t nslots = acirc_nslots(circ);
     index_set *ix;
     size_t diff;
 
     ix = index_set_difference(target, ek->enc_vt->mmap_set(x));
     if (ix == NULL)
         return ERR;
-    for (size_t i = 0; i < cp->nslots - has_consts; i++) {
-        diff = IX_X(ix, cp, i);
+    for (size_t i = 0; i < nslots - has_consts; i++) {
+        diff = IX_X(ix, circ, i);
         if (diff > 0)
             _raise_encoding(ek, x, ek->uhat[i], diff);
     }
     if (has_consts) {
-        diff = IX_X(ix, cp, cp->nslots - 1);
+        diff = IX_X(ix, circ, nslots - 1);
         if (diff > 0)
-            _raise_encoding(ek, x, ek->uhat[cp->nslots - 1], diff);
+            _raise_encoding(ek, x, ek->uhat[nslots - 1], diff);
     }
     index_set_free(ix);
     return OK;
@@ -788,9 +798,10 @@ cleanup:
 }
 
 typedef struct {
-    const circ_params_t *cp;
+    const acirc_t *circ;
     const mife_ct_t **cts;
     const mife_ek_t *ek;
+    const obf_params_t *op;
     size_t *kappas;
     const char *dirname;
     bool dir_exists;
@@ -813,8 +824,8 @@ input_f(size_t ref, size_t i, void *args_)
 {
     (void) ref;
     const decrypt_args_t *args = args_;
-    const size_t slot = circ_params_slot(args->cp, i);
-    const size_t bit = circ_params_bit(args->cp, i);
+    const size_t slot = circ_params_slot(args->circ, i);
+    const size_t bit = circ_params_bit(args->circ, i);
     return copy_f(args->cts[slot]->xhat[bit], args_);
 }
 
@@ -823,7 +834,7 @@ const_f(size_t ref, size_t i, long val, void *args_)
 {
     (void) ref; (void) val;
     const decrypt_args_t *args = args_;
-    const size_t bit = circ_params_bit(args->cp, acirc_ninputs(args->cp->circ) + i);
+    const size_t bit = circ_params_bit(args->circ, acirc_ninputs(args->circ) + i);
     return copy_f(args->ek->constants->xhat[bit], args_);
 }
 
@@ -873,8 +884,8 @@ output_f(size_t ref, size_t o, void *x, void *args_)
     (void) ref;
     const decrypt_args_t *args = args_;
     const mife_ek_t *ek = args->ek;
-    const circ_params_t *cp = ek->cp;
     const index_set *toplevel = ek->pp_vt->toplevel(ek->pp);
+    const size_t nslots = acirc_nslots(ek->circ);
     encoding *out, *lhs, *rhs;
     long output = 1;
 
@@ -894,11 +905,11 @@ output_f(size_t ref, size_t o, void *x, void *args_)
     /* Compute RHS */
     if (ek->Chatstar) {
         encoding_set(ek->enc_vt, rhs, ek->Chatstar);
-        for (size_t i = 0; i < cp->nslots; ++i)
+        for (size_t i = 0; i < nslots; ++i)
             encoding_mul(ek->enc_vt, ek->pp_vt, rhs, rhs, args->cts[i]->what[o], ek->pp);
     } else {
         encoding_set(ek->enc_vt, rhs, args->cts[0]->what[o]);
-        for (size_t i = 1; i < cp->nslots - 1; ++i)
+        for (size_t i = 1; i < nslots - 1; ++i)
             encoding_mul(ek->enc_vt, ek->pp_vt, rhs, rhs, args->cts[i]->what[o], ek->pp);
     }
     if (!index_set_eq(ek->enc_vt->mmap_set(rhs), toplevel)) {
@@ -1004,8 +1015,7 @@ static int
 mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
              size_t nthreads, size_t *kappa)
 {
-    const circ_params_t *cp = ek->cp;
-    acirc_t *circ = cp->circ;
+    const acirc_t *circ = ek->circ;
     int ret = ERR;
 
     if (ek == NULL || cts == NULL)
@@ -1014,7 +1024,7 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
     size_t *kappas = NULL;
 
     if (kappa)
-        kappas = my_calloc(acirc_noutputs(cp->circ), sizeof kappas[0]);
+        kappas = my_calloc(acirc_noutputs(circ), sizeof kappas[0]);
 
     {
         long *out;
@@ -1027,13 +1037,13 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
         }
 
         decrypt_args_t args = {
-            .cp = cp,
+            .circ = circ,
             .cts = cts,
             .ek = ek,
             .kappas = kappas,
             .dirname = dirname,
         };
-        out = (long *) acirc_traverse(circ, input_f, const_f, eval_f, output_f,
+        out = (long *) acirc_traverse((acirc_t *) circ, input_f, const_f, eval_f, output_f,
                                       free_f, write_f, read_f, &args, nthreads);
         if (out == NULL)
             goto cleanup;
@@ -1045,7 +1055,7 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
 
     if (kappa) {
         size_t maxkappa = 0;
-        for (size_t i = 0; i < acirc_noutputs(cp->circ); i++) {
+        for (size_t i = 0; i < acirc_noutputs(circ); i++) {
             if (kappas[i] > maxkappa)
                 maxkappa = kappas[i];
         }

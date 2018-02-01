@@ -12,10 +12,10 @@ struct encoding_info {
 static int
 _encoding_new(const pp_vtable *vt, encoding *enc, const public_params *pp)
 {
-    const circ_params_t *cp = vt->params(pp);
+    (void) vt;
     if ((my(enc) = my_calloc(1, sizeof my(enc)[0])) == NULL)
         goto error;
-    if ((my(enc)->index = index_set_new(mife_params_nzs(cp))) == NULL)
+    if ((my(enc)->index = index_set_new(mife_params_nzs(pp_circ(pp)))) == NULL)
         goto error;
     return OK;
 error:

@@ -50,7 +50,7 @@ obf_params_new(const op_vtable *vt, acirc_t *circ, void *vparams)
         cp->qs[cp->nslots - 1] = 1;
     }
     if (g_verbose) {
-        if (circ_params_print(cp) == ERR)
+        if (circ_params_print(circ) == ERR)
             goto error;
         if (vt->print)
             vt->print(op);
@@ -129,11 +129,11 @@ secret_params_fwrite(const sp_vtable *vt, const secret_params *sp, FILE *fp)
 }
 
 secret_params *
-secret_params_fread(const sp_vtable *vt, const circ_params_t *cp, FILE *fp)
+secret_params_fread(const sp_vtable *vt, const obf_params_t *op, FILE *fp)
 {
     secret_params *sp;
     sp = my_calloc(1, sizeof sp[0]);
-    vt->fread(sp, cp, fp);
+    vt->fread(sp, op, fp);
     sp->sk = vt->mmap->sk->fread(fp);
     return sp;
 }
@@ -150,10 +150,10 @@ secret_params_free(const sp_vtable *vt, secret_params *sp)
 
 public_params *
 public_params_new(const pp_vtable *vt, const sp_vtable *sp_vt,
-                  const secret_params *sp)
+                  const secret_params *sp, const obf_params_t *op)
 {
     public_params *pp = my_calloc(1, sizeof pp[0]);
-    vt->init(sp_vt, pp, sp);
+    vt->init(sp_vt, pp, sp, op);
     pp->pp = vt->mmap->sk->pp(sp->sk);
     return pp;
 }

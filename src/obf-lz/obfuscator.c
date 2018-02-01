@@ -185,7 +185,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         _free(obf);
         return NULL;
     }
-    obf->pp = public_params_new(obf->pp_vt, obf->sp_vt, obf->sp);
+    obf->pp = public_params_new(obf->pp_vt, obf->sp_vt, obf->sp, op);
     if (obf->pp == NULL) {
         _free(obf);
         return NULL;
@@ -289,35 +289,35 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     for (size_t k = 0; k < nsymbols; k++) {
         for (size_t s = 0; s < cp->qs[k]; s++) {
             for (size_t j = 0; j < cp->ds[k]; j++) {
-                ix = index_set_new(obf_params_nzs(cp));
+                ix = index_set_new(obf_params_nzs(cp->circ));
                 mpz_set_ui(inps[0], op->sigma ? s == j : bit(s, j));
                 mpz_set   (inps[1], *alpha[k * cp->ds[k] + j]);
-                ix_s_set(ix, cp, k, s, 1);
+                ix_s_set(ix, cp->circ, k, s, 1);
                 __encode(pool, obf->enc_vt, obf->shat[k][s][j], inps,
                          ix, obf->sp, &count_lock, &count, total);
             }
-            ix = index_set_new(obf_params_nzs(cp));
+            ix = index_set_new(obf_params_nzs(cp->circ));
             mpz_set_ui(inps[0], 1);
             mpz_set_ui(inps[1], 1);
             for (size_t p = 0; p < op->npowers; p++) {
-                ix_s_set(ix, cp, k, s, 1 << p);
+                ix_s_set(ix, cp->circ, k, s, 1 << p);
                 __encode(pool, obf->enc_vt, obf->uhat[k][s][p], inps,
                          ix, obf->sp, &count_lock, &count, total);
             }
             for (size_t o = 0; o < noutputs; o++) {
-                ix = index_set_new(obf_params_nzs(cp));
+                ix = index_set_new(obf_params_nzs(cp->circ));
                 if (k == 0)
-                    ix_y_set(ix, cp, const_deg_max - const_deg[o]);
+                    ix_y_set(ix, cp->circ, const_deg_max - const_deg[o]);
                 for (size_t r = 0; r < cp->qs[k]; r++)
-                    ix_s_set(ix, cp, k, r, r == s ? var_deg_max[k] - var_deg[k][o] : var_deg_max[k]);
-                ix_z_set(ix, cp, k, 1);
-                ix_w_set(ix, cp, k, 1);
+                    ix_s_set(ix, cp->circ, k, r, r == s ? var_deg_max[k] - var_deg[k][o] : var_deg_max[k]);
+                ix_z_set(ix, cp->circ, k, 1);
+                ix_w_set(ix, cp->circ, k, 1);
                 mpz_set(inps[0], delta[k][s][o]);
                 mpz_set(inps[1], gamma[k][s][o]);
                 __encode(pool, obf->enc_vt, obf->zhat[k][s][o], inps,
                          ix, obf->sp, &count_lock, &count, total);
-                ix = index_set_new(obf_params_nzs(cp));
-                ix_w_set(ix, cp, k, 1);
+                ix = index_set_new(obf_params_nzs(cp->circ));
+                ix_w_set(ix, cp->circ, k, 1);
                 mpz_set_ui(inps[0], 0);
                 mpz_set   (inps[1], gamma[k][s][o]);
                 __encode(pool, obf->enc_vt, obf->what[k][s][o], inps,
@@ -327,24 +327,24 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     }
 
     for (size_t i = 0; i < acirc_nconsts(cp->circ); i++) {
-        ix = index_set_new(obf_params_nzs(cp));
-        ix_y_set(ix, cp, 1);
+        ix = index_set_new(obf_params_nzs(cp->circ));
+        ix_y_set(ix, cp->circ, 1);
         mpz_set_si(inps[0], acirc_const(circ, i));
         mpz_set   (inps[1], *beta[i]);
         __encode(pool, obf->enc_vt, obf->yhat[i], inps, ix,
                  obf->sp, &count_lock, &count, total);
     }
     for (size_t i = 0; i < acirc_nsecrets(cp->circ); i++) {
-        ix = index_set_new(obf_params_nzs(cp));
-        ix_y_set(ix, cp, 1);
+        ix = index_set_new(obf_params_nzs(cp->circ));
+        ix_y_set(ix, cp->circ, 1);
         mpz_set_si(inps[0], acirc_secret(circ, i));
         mpz_set   (inps[1], *beta[i + acirc_nconsts(cp->circ)]);
         __encode(pool, obf->enc_vt, obf->yhat[i + acirc_nconsts(cp->circ)], inps, ix,
                  obf->sp, &count_lock, &count, total);
     }
     for (size_t p = 0; p < op->npowers; p++) {
-        ix = index_set_new(obf_params_nzs(cp));
-        ix_y_set(ix, cp, 1 << p);
+        ix = index_set_new(obf_params_nzs(cp->circ));
+        ix_y_set(ix, cp->circ, 1 << p);
         mpz_set_ui(inps[0], 1);
         mpz_set_ui(inps[1], 1);
         __encode(pool, obf->enc_vt, obf->vhat[p], inps, ix,
@@ -363,13 +363,13 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     }
 
     for (size_t i = 0; i < noutputs; i++) {
-        ix = index_set_new(obf_params_nzs(cp));
-        ix_y_set(ix, cp, const_deg_max);
+        ix = index_set_new(obf_params_nzs(cp->circ));
+        ix_y_set(ix, cp->circ, const_deg_max);
         for (size_t k = 0; k < nsymbols; k++) {
             for (size_t s = 0; s < cp->qs[k]; s++) {
-                ix_s_set(ix, cp, k, s, var_deg_max[k]);
+                ix_s_set(ix, cp->circ, k, s, var_deg_max[k]);
             }
-            ix_z_set(ix, cp, k, 1);
+            ix_z_set(ix, cp->circ, k, 1);
         }
 
         mpz_set_ui(inps[0], 0);
@@ -506,11 +506,11 @@ raise_encoding(const obfuscation *obf, encoding *x, const index_set *target)
         return ERR;
     for (size_t k = 0; k < acirc_nsymbols(cp->circ); k++) {
         for (size_t s = 0; s < cp->qs[k]; s++) {
-            diff = ix_s_get(ix, cp, k, s);
+            diff = ix_s_get(ix, cp->circ, k, s);
             _raise_encoding(obf, x, obf->uhat[k][s], diff);
         }
     }
-    diff = ix_y_get(ix, cp);
+    diff = ix_y_get(ix, cp->circ);
     _raise_encoding(obf, x, obf->vhat, diff);
     index_set_free(ix);
     return OK;
@@ -560,9 +560,9 @@ input_f(size_t ref, size_t i, void *args_)
     obf_args_t *args = args_;
     const obfuscation *const obf = args->obf;
     const circ_params_t *cp = &obf->op->cp;
-    const size_t slot = circ_params_slot(cp, i);
+    const size_t slot = circ_params_slot(cp->circ, i);
     const size_t sym = args->input_syms[slot];
-    const size_t bit = circ_params_bit(cp, i);
+    const size_t bit = circ_params_bit(cp->circ, i);
     return copy_f(obf->shat[slot][sym][bit], args_);
 }
 

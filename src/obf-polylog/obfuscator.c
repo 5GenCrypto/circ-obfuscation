@@ -225,7 +225,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         return NULL;
     if ((obf->sp = secret_params_new(obf->sp_vt, op, secparam, 0, nthreads, rng)) == NULL)
         goto cleanup;
-    if ((obf->pp = public_params_new(obf->pp_vt, obf->sp_vt, obf->sp)) == NULL)
+    if ((obf->pp = public_params_new(obf->pp_vt, obf->sp_vt, obf->sp, op)) == NULL)
         goto cleanup;
     for (size_t o = 0; o < noutputs; ++o)
         obf->Chatstar[o] = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);

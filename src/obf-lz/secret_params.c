@@ -8,7 +8,6 @@
 
 struct sp_info {
     index_set *toplevel;
-    const circ_params_t *cp;
 };
 #define my(x) (x)->info
 
@@ -16,14 +15,13 @@ static int
 _sp_init(secret_params *sp, mmap_params_t *params, const obf_params_t *op,
          size_t kappa)
 {
-    const circ_params_t *cp = &op->cp;
+    const acirc_t *circ = op->cp.circ;
 
     if ((my(sp) = calloc(1, sizeof my(sp)[0])) == NULL)
         return ERR;
-    my(sp)->toplevel = obf_params_new_toplevel(cp, obf_params_nzs(cp));
-    my(sp)->cp = cp;
+    my(sp)->toplevel = obf_params_new_toplevel(circ, obf_params_nzs(circ));
 
-    params->kappa = kappa ? kappa : acirc_delta(cp->circ) + acirc_nsymbols(cp->circ);
+    params->kappa = kappa ? kappa : acirc_delta(circ) + acirc_nsymbols(circ);
     params->nzs = my(sp)->toplevel->nzs;
     if ((params->pows = calloc(params->nzs, sizeof params->pows[0])) == NULL)
         goto error;
@@ -58,18 +56,11 @@ _sp_toplevel(const secret_params *sp)
     return my(sp)->toplevel;
 }
 
-static const void *
-_sp_params(const secret_params *sp)
-{
-    return my(sp)->cp;
-}
-
 static sp_vtable _sp_vtable = {
     .mmap = NULL,
     .init = _sp_init,
     .clear = _sp_clear,
     .toplevel = _sp_toplevel,
-    .params = _sp_params,
 };
 
 PRIVATE const sp_vtable *

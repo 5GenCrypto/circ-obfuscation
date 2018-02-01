@@ -60,23 +60,22 @@ error:
 }
 
 size_t
-circ_params_ninputs(const circ_params_t *cp)
+circ_params_ninputs(const acirc_t *circ)
 {
     size_t ninputs = 0;
-    for (size_t i = 0; i < cp->nslots; ++i) {
-        ninputs += cp->ds[i];
-    }
+    for (size_t i = 0; i < acirc_nslots(circ); ++i)
+        ninputs += acirc_symlen(circ, i);
     return ninputs;
 }
 
 size_t
-circ_params_slot(const circ_params_t *cp, size_t pos)
+circ_params_slot(const acirc_t *circ, size_t pos)
 {
     size_t total = 0;
-    for (size_t i = 0; i < cp->nslots; ++i) {
-        if (pos >= total && pos < total + cp->ds[i])
+    for (size_t i = 0; i < acirc_nslots(circ); ++i) {
+        if (pos >= total && pos < total + acirc_symlen(circ, i))
             return i;
-        total += cp->ds[i];
+        total += acirc_symlen(circ, i);
     }
     fprintf(stderr, "%s: %s: fatal: slot not found?\n",
             errorstr, __func__);
@@ -84,13 +83,13 @@ circ_params_slot(const circ_params_t *cp, size_t pos)
 }
 
 size_t
-circ_params_bit(const circ_params_t *cp, size_t pos)
+circ_params_bit(const acirc_t *circ, size_t pos)
 {
     size_t total = 0;
-    for (size_t i = 0; i < cp->nslots; ++i) {
-        if (pos >= total && pos < total + cp->ds[i])
+    for (size_t i = 0; i < acirc_nslots(circ); ++i) {
+        if (pos >= total && pos < total + acirc_symlen(circ, i))
             return pos - total;
-        total += cp->ds[i];
+        total += acirc_symlen(circ, i);
     }
     fprintf(stderr, "%s: %s: fatal: bit not found?\n",
             errorstr, __func__);
@@ -98,38 +97,38 @@ circ_params_bit(const circ_params_t *cp, size_t pos)
 }
 
 int
-circ_params_print(const circ_params_t *cp)
+circ_params_print(const acirc_t *circ)
 {
-    const size_t has_consts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ) ? 1 : 0;
+    const size_t has_consts = acirc_nconsts(circ) + acirc_nsecrets(circ) ? 1 : 0;
     fprintf(stderr, "Circuit parameters:\n");
-    fprintf(stderr, "* # inputs:...... %lu\n", acirc_ninputs(cp->circ));
-    fprintf(stderr, "* # consts:...... %lu\n", acirc_nconsts(cp->circ));
-    fprintf(stderr, "* # secrets:..... %lu\n", acirc_nsecrets(cp->circ));
-    fprintf(stderr, "* # outputs: .... %lu\n", acirc_noutputs(cp->circ));
-    fprintf(stderr, "* # symbols: .... %lu  [", acirc_nsymbols(cp->circ));
-    for (size_t i = 0; i < acirc_nsymbols(cp->circ); ++i) {
-        fprintf(stderr, " %lu ", acirc_symlen(cp->circ, i));
+    fprintf(stderr, "* # inputs:...... %lu\n", acirc_ninputs(circ));
+    fprintf(stderr, "* # consts:...... %lu\n", acirc_nconsts(circ));
+    fprintf(stderr, "* # secrets:..... %lu\n", acirc_nsecrets(circ));
+    fprintf(stderr, "* # outputs: .... %lu\n", acirc_noutputs(circ));
+    fprintf(stderr, "* # symbols: .... %lu  [", acirc_nsymbols(circ));
+    for (size_t i = 0; i < acirc_nsymbols(circ); ++i) {
+        fprintf(stderr, " %lu ", acirc_symlen(circ, i));
     }
     fprintf(stderr, "]\n");
-    fprintf(stderr, "* # slots: ...... %lu\n", cp->nslots);
-    for (size_t i = 0; i < cp->nslots; ++i) {
+    fprintf(stderr, "* # slots: ...... %lu\n", acirc_nslots(circ));
+    for (size_t i = 0; i < acirc_nslots(circ); ++i) {
         size_t degree;
-        if (i == cp->nslots - has_consts)
-            degree = acirc_max_const_degree(cp->circ);
+        if (i == acirc_nslots(circ) - has_consts)
+            degree = acirc_max_const_degree(circ);
         else
-            degree = acirc_max_var_degree(cp->circ, i);
+            degree = acirc_max_var_degree(circ, i);
         if (degree == 0) return ERR; /* happens if we fail to parse the circuit */
         fprintf(stderr, "*   slot %lu: ..... %lu (%lu) [%lu]\n", i,
-                cp->ds[i], cp->qs[i], degree);
+                acirc_symlen(circ, i), acirc_symnum(circ, i), degree);
     }
-    fprintf(stderr, "* # refs: ....... %lu\n", acirc_nrefs(cp->circ));
-    fprintf(stderr, "* # gates: ...... %lu\n", acirc_ngates(cp->circ));
-    fprintf(stderr, "* # muls: ....... %lu\n", acirc_nmuls(cp->circ));
-    fprintf(stderr, "* depth: ........ %lu\n", acirc_max_depth(cp->circ));
-    fprintf(stderr, "* saved? ........ %s", acirc_is_saved(cp->circ) ? "✓" : "✗");
-    if (acirc_is_saved(cp->circ))
-        fprintf(stderr, " [%s.encodings/]", acirc_fname(cp->circ));
+    fprintf(stderr, "* # refs: ....... %lu\n", acirc_nrefs(circ));
+    fprintf(stderr, "* # gates: ...... %lu\n", acirc_ngates(circ));
+    fprintf(stderr, "* # muls: ....... %lu\n", acirc_nmuls(circ));
+    fprintf(stderr, "* depth: ........ %lu\n", acirc_max_depth(circ));
+    fprintf(stderr, "* saved? ........ %s", acirc_is_saved(circ) ? "✓" : "✗");
+    if (acirc_is_saved(circ))
+        fprintf(stderr, " [%s.encodings/]", acirc_fname(circ));
     fprintf(stderr, "\n");
-    fprintf(stderr, "* binary? ....... %s\n", acirc_is_binary(cp->circ) ? "✓" : "✗");
+    fprintf(stderr, "* binary? ....... %s\n", acirc_is_binary(circ) ? "✓" : "✗");
     return OK;
 }

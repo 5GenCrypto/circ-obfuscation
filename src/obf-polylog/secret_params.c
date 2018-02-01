@@ -50,13 +50,13 @@ _sp_fwrite(const secret_params *sp, FILE *fp)
 }
 
 static int
-_sp_fread(secret_params *sp, const circ_params_t *cp, FILE *fp)
+_sp_fread(secret_params *sp, const obf_params_t *op, FILE *fp)
 {
     (void) fp;
     if ((my(sp) = calloc(1, sizeof my(sp)[0])) == NULL)
         return ERR;
-    my(sp)->toplevel = obf_params_new_toplevel(cp, obf_params_nzs(cp));
-    my(sp)->cp = cp;
+    my(sp)->toplevel = obf_params_new_toplevel(&op->cp, obf_params_nzs(&op->cp));
+    my(sp)->cp = &op->cp;
     return OK;
 }
 
@@ -73,12 +73,6 @@ _sp_toplevel(const secret_params *sp)
     return my(sp)->toplevel;
 }
 
-static const void *
-_sp_params(const secret_params *sp)
-{
-    return my(sp)->cp;
-}
-
 static sp_vtable _sp_vtable = {
     .mmap = NULL,
     .init = _sp_init,
@@ -86,7 +80,6 @@ static sp_vtable _sp_vtable = {
     .fread = _sp_fread,
     .clear = _sp_clear,
     .toplevel = _sp_toplevel,
-    .params = _sp_params,
 };
 
 PRIVATE const sp_vtable *

@@ -3,27 +3,27 @@
 #include "../util.h"
 
 PRIVATE size_t
-mife_params_nzs(const circ_params_t *cp)
+mife_params_nzs(const acirc_t *circ)
 {
-    return 2 * cp->nslots + 1;
+    return 2 * acirc_nslots(circ) + 1;
 }
 
 PRIVATE index_set *
-mife_params_new_toplevel(const circ_params_t *cp, size_t nzs)
+mife_params_new_toplevel(const acirc_t *circ)
 {
+    const size_t nzs = mife_params_nzs(circ);
     index_set *ix;
-    size_t has_consts = acirc_nconsts(cp->circ) + acirc_nsecrets(cp->circ) ? 1 : 0;
 
     if ((ix = index_set_new(nzs)) == NULL)
         return NULL;
     IX_Z(ix) = 1;
-    for (size_t i = 0; i < cp->nslots - has_consts; ++i) {
-        IX_W(ix, cp, i) = 1;
-        IX_X(ix, cp, i) = acirc_max_var_degree(cp->circ, i);
+    for (size_t i = 0; i < acirc_nsymbols(circ); ++i) {
+        IX_W(ix, circ, i) = 1;
+        IX_X(ix, circ, i) = acirc_max_var_degree(circ, i);
     }
-    if (has_consts) {
-        IX_W(ix, cp, cp->nslots - 1) = 1;
-        IX_X(ix, cp, cp->nslots - 1) = acirc_max_const_degree(cp->circ);
+    for (size_t i = acirc_nsymbols(circ); i < acirc_nslots(circ); ++i) {
+        IX_W(ix, circ, i) = 1;
+        IX_X(ix, circ, i) = acirc_max_const_degree(circ);
     }
     return ix;
 }

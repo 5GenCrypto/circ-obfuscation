@@ -12,9 +12,10 @@ struct encoding_info {
 static int
 _encoding_new(const pp_vtable *vt, encoding *enc, const public_params *pp)
 {
-    const obf_params_t *const op = vt->params(pp);
-    enc->info = calloc(1, sizeof enc->info[0]);
-    enc->info->index = index_set_new(obf_params_nzs(&op->cp));
+    (void) vt;
+    if ((enc->info = my_calloc(1, sizeof enc->info[0])) == NULL)
+        return ERR;
+    enc->info->index = index_set_new(obf_params_nzs(pp_circ(pp)));
     return OK;
 }
 

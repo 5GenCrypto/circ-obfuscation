@@ -5,19 +5,20 @@
 #include "../util.h"
 
 struct pp_info {
-    const circ_params_t *cp;
+    const acirc_t *circ;
     index_set *toplevel;
     bool local;
 };
 #define my(x) x->info
 
 static int
-_pp_init(const sp_vtable *vt, public_params *pp, const secret_params *sp)
+_pp_init(const sp_vtable *vt, public_params *pp, const secret_params *sp,
+         const obf_params_t *op)
 {
     if ((my(pp) = calloc(1, sizeof my(pp)[0])) == NULL)
         return ERR;
     my(pp)->toplevel = (index_set *) vt->toplevel(sp);
-    my(pp)->cp = vt->params(sp);
+    my(pp)->circ = op->cp.circ;
     my(pp)->local = false;
     return OK;
 }
@@ -41,19 +42,12 @@ static int
 _pp_fread(public_params *pp, const obf_params_t *op, FILE *fp)
 {
     (void) fp;
-    const circ_params_t *cp = &op->cp;
     if ((my(pp) = calloc(1, sizeof my(pp)[0])) == NULL)
         return ERR;
-    my(pp)->toplevel = obf_params_new_toplevel(cp, obf_params_nzs(cp));
-    my(pp)->cp = cp;
+    my(pp)->toplevel = obf_params_new_toplevel(my(pp)->circ, obf_params_nzs(my(pp)->circ));
+    my(pp)->circ = op->cp.circ;
     my(pp)->local = true;
     return OK;
-}
-
-static const void *
-_pp_params(const public_params *pp)
-{
-    return my(pp)->cp;
 }
 
 static const void *
@@ -69,7 +63,6 @@ static pp_vtable _pp_vtable = {
     .fwrite = _pp_fwrite,
     .fread = _pp_fread,
     .toplevel = _pp_toplevel,
-    .params = _pp_params,
 };
 
 PRIVATE const pp_vtable *

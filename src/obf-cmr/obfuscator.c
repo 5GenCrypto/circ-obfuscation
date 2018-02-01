@@ -30,7 +30,7 @@ _free(obfuscation *obf)
             if (obf->cts[i]) {
                 for (size_t j = 0; j < cp->qs[i]; ++j) {
                     if (obf->cts[i][j])
-                        vt->mife_ct_free(obf->cts[i][j], cp);
+                        vt->mife_ct_free(obf->cts[i][j], cp->circ);
                 }
                 free(obf->cts[i]);
             }
@@ -179,7 +179,7 @@ _fwrite(const obfuscation *const obf, FILE *const fp)
     vt->mife_ek_fwrite(obf->ek, fp);
     for (size_t i = 0; i < ninputs; ++i) {
         for (size_t j = 0; j < cp->qs[i]; ++j) {
-            vt->mife_ct_fwrite(obf->cts[i][j], cp, fp);
+            vt->mife_ct_fwrite(obf->cts[i][j], cp->circ, fp);
         }
     }
     return OK;
@@ -201,7 +201,7 @@ _fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     for (size_t i = 0; i < ninputs; ++i) {
         obf->cts[i] = my_calloc(cp->qs[i], sizeof obf->cts[i][0]);
         for (size_t j = 0; j < cp->qs[i]; ++j) {
-            if ((obf->cts[i][j] = vt->mife_ct_fread(mmap, cp, fp)) == NULL)
+            if ((obf->cts[i][j] = vt->mife_ct_fread(mmap, cp->circ, fp)) == NULL)
                 goto error;
         }
     }

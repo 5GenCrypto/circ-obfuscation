@@ -27,5 +27,5 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
 extern mife_vtable mife_cmr_vtable;
 extern op_vtable mife_cmr_op_vtable;
 
-size_t mife_num_encodings_setup(const circ_params_t *cp, size_t npowers);
-size_t mife_num_encodings_encrypt(const circ_params_t *cp, size_t slot);
+size_t mife_num_encodings_setup(const acirc_t *circ, size_t npowers);
+size_t mife_num_encodings_encrypt(const acirc_t *circ, size_t slot);

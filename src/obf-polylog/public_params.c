@@ -11,13 +11,20 @@ struct pp_info {
 };
 #define my(pp) pp->info
 
+const circ_params_t *
+pp_cp(const public_params *pp)
+{
+    return my(pp)->cp;
+}
+
 static int
-_pp_init(const sp_vtable *vt, public_params *pp, const secret_params *sp)
+_pp_init(const sp_vtable *vt, public_params *pp, const secret_params *sp,
+         const obf_params_t *op)
 {
     if ((my(pp) = calloc(1, sizeof my(pp)[0])) == NULL)
         return ERR;
     my(pp)->toplevel = (index_set *) vt->toplevel(sp);
-    my(pp)->cp = vt->params(sp);
+    my(pp)->cp = &op->cp;
     my(pp)->local = false;
     return OK;
 }
@@ -51,12 +58,6 @@ _pp_fread(public_params *pp, const obf_params_t *op, FILE *fp)
 }
 
 static const void *
-_pp_params(const public_params *pp)
-{
-    return my(pp)->cp;
-}
-
-static const void *
 _pp_toplevel(const public_params *pp)
 {
     return my(pp)->toplevel;
@@ -69,7 +70,6 @@ static pp_vtable _pp_vtable = {
     .fwrite = _pp_fwrite,
     .fread = _pp_fread,
     .toplevel = _pp_toplevel,
-    .params = _pp_params,
 };
 
 PRIVATE const pp_vtable *

@@ -615,7 +615,7 @@ cmd_mife_setup(int argc, char **argv, args_t *args)
     handle_options(&argc, &argv, 0, args, &args_, mife_setup_handle_options, mife_setup_usage);
     if (mife_select_scheme(args_.scheme, args->circ, args_.npowers, &vt, &op_vt, &op) == ERR)
         goto cleanup;
-    if (mife_run_setup(args->vt, vt, args->circuit, op, args_.secparam, NULL, args_.npowers,
+    if (mife_run_setup(args->vt, vt, args->circ, op, args_.secparam, NULL, args_.npowers,
                        args->nthreads, args->rng) == ERR)
         goto cleanup;
     ret = OK;
@@ -649,7 +649,7 @@ cmd_mife_encrypt(int argc, char **argv, args_t *args)
         goto cleanup;
     if (mife_select_scheme(args_.scheme, args->circ, 0, &vt, &op_vt, &op) == ERR)
         goto cleanup;
-    if (mife_run_encrypt(args->vt, vt, args->circuit, op, input, slot,
+    if (mife_run_encrypt(args->vt, vt, args->circ, op, input, slot,
                          args->nthreads, NULL, args->rng) == ERR)
         goto cleanup;
     ret = OK;
@@ -681,7 +681,7 @@ cmd_mife_decrypt(int argc, char **argv, args_t *args)
         acirc_set_saved(args->circ);
     if (mife_select_scheme(args_.scheme, args->circ, 0, &vt, &op_vt, &op) == ERR)
         goto cleanup;
-    nslots = obf_params_cp(op)->nslots;
+    nslots = acirc_nslots(args->circ);
 
     length = snprintf(NULL, 0, "%s.ek\n", args->circuit);
     ek = my_calloc(length, sizeof ek[0]);
@@ -693,7 +693,7 @@ cmd_mife_decrypt(int argc, char **argv, args_t *args)
         (void) snprintf(cts[i], length, "%s.%lu.ct\n", args->circuit, i);
     }
     rop = my_calloc(acirc_noutputs(args->circ), sizeof rop[0]);
-    if (mife_run_decrypt(args->vt, vt, ek, cts, rop, op, NULL, args->nthreads) == ERR) {
+    if (mife_run_decrypt(args->vt, vt, args->circ, ek, cts, rop, op, NULL, args->nthreads) == ERR) {
         fprintf(stderr, "%s: mife decrypt failed\n", errorstr);
         goto cleanup;
     }
@@ -736,11 +736,11 @@ cmd_mife_test(int argc, char **argv, args_t *args)
     if (args_.kappa)
         kappa = args_.kappa;
     if (args->smart) {
-        kappa = mife_run_smart_kappa(vt, args->circuit, op, args_.npowers, args->nthreads, args->rng);
+        kappa = mife_run_smart_kappa(vt, args->circ, op, args_.npowers, args->nthreads, args->rng);
         if (kappa == 0)
             goto cleanup;
     }
-    if (mife_run_test(args->vt, vt, args->circuit, op, args_.secparam,
+    if (mife_run_test(args->vt, vt, args->circ, op, args_.secparam,
                       &kappa, args_.npowers, args->nthreads, args->rng) == ERR) {
         fprintf(stderr, "%s: mife test failed\n", errorstr);
         goto cleanup;
@@ -769,11 +769,11 @@ cmd_mife_get_kappa(int argc, char **argv, args_t *args)
     if (mife_select_scheme(args_.scheme, args->circ, args_.npowers, &vt, &op_vt, &op) == ERR)
         goto cleanup;
     if (args->smart) {
-        kappa = mife_run_smart_kappa(vt, args->circuit, op, args_.npowers, args->nthreads, args->rng);
+        kappa = mife_run_smart_kappa(vt, args->circ, op, args_.npowers, args->nthreads, args->rng);
         if (kappa == 0)
             goto cleanup;
     } else {
-        if (mife_run_setup(mmap, vt, args->circuit, op, 8, &kappa, args_.npowers,
+        if (mife_run_setup(mmap, vt, args->circ, op, 8, &kappa, args_.npowers,
                            args->nthreads, args->rng) == ERR) {
             fprintf(stderr, "%s: mife setup failed\n", errorstr);
             goto cleanup;
