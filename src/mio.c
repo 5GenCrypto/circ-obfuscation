@@ -86,7 +86,7 @@ args_get_mife_scheme(mife_scheme_e *scheme, int *argc, char ***argv)
     return OK;
 }
 
-typedef struct args_t {
+typedef struct {
     const mmap_vtable *vt;
     char *circuit;
     acirc_t *circ;
@@ -868,7 +868,6 @@ obf_select_scheme(obf_scheme_e scheme, acirc_t *circ, size_t npowers,
         vparams = &polylog_params;
         break;
     }
-
     *op = obf_params_new(*op_vt, circ, vparams);
     if (*op == NULL) {
         fprintf(stderr, "%s: initializing obfuscation parameters failed\n", errorstr);
@@ -1129,12 +1128,11 @@ usage(bool longform, int ret)
     if (longform) {
         printf("\nSupported MIFE schemes:\n");
         printf("· CMR:     CMR MIFE scheme [http://ia.cr/2017/826, §5.1]\n");
-        printf("· GC:      Garbled-circuit-based scheme\n");
+        /* printf("· GC:      Garbled-circuit-based scheme\n"); */
         printf("\n");
         printf("Supported obfuscation schemes:\n");
         printf("· CMR:     CMR obfuscation scheme [http://ia.cr/2017/826, §5.4]\n");
         printf("· LZ:      Linnerman scheme       [http://ia.cr/2017/826, §B]\n");
-        printf("· POLYLOG: Obfuscation using polylog CLT\n");
         printf("\nAvailable commands:\n"
                "   mife       run multi-input functional encryption\n"
                "   obf        run program obfuscation\n"

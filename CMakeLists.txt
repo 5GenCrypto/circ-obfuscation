@@ -40,6 +40,7 @@ set(obf_cmr_SOURCES
 set(mife_gc_SOURCES
   ${mio_SOURCES}
   src/mife-gc/mife.c
+  src/mife-gc/mife_params.c
   )
 set(obf_polylog_SOURCES
   ${mio_SOURCES}

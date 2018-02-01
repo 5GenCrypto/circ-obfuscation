@@ -210,7 +210,7 @@ error:
     return NULL;
 }
 
-mife_ek_t *
+static mife_ek_t *
 mife_ek(const mife_t *mife)
 {
     mife_ek_t *ek;
@@ -411,7 +411,7 @@ __encode(threadpool *pool, const encoding_vtable *vt, encoding *enc, mpz_t *inps
     threadpool_add_job(pool, encode_worker, args);
 }
 
-void
+static void
 mife_free(mife_t *mife)
 {
     if (mife == NULL)
@@ -445,7 +445,7 @@ mife_free(mife_t *mife)
     free(mife);
 }
 
-mife_t *
+static mife_t *
 mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
            size_t *kappa, size_t npowers, size_t nthreads, aes_randstate_t rng)
 {

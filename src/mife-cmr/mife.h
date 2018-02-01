@@ -17,6 +17,7 @@ typedef struct {
 
 typedef mife_t mife_cmr_mife_t;
 typedef mife_sk_t mife_cmr_mife_sk_t;
+typedef mife_ek_t mife_cmr_mife_ek_t;
 
 mife_ct_t *
 _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
