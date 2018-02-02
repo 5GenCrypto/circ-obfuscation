@@ -58,10 +58,10 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     const size_t nslots = acirc_nslots(circ);
     const mife_vtable *vt = &mife_cmr_vtable;
 
-    /* MIFE setup */
     start = _start = current_time();
 
-    obf = my_calloc(1, sizeof obf[0]);
+    if ((obf = my_calloc(1, sizeof obf[0])) == NULL)
+        return NULL;
     obf->op = op;
     obf->mife = vt->mife_setup(mmap, op, secparam, kappa, nthreads, rng);
     obf->ek = vt->mife_ek(obf->mife);
@@ -72,7 +72,6 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     if (g_verbose)
         fprintf(stderr, "  MIFE setup: %.2fs\n", _end - _start);
 
-    /* MIFE encryption */
     _start = current_time();
 
     pthread_mutex_init(&lock, NULL);
@@ -84,25 +83,16 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     for (size_t i = 0; i < nslots; ++i) {
         obf->cts[i] = my_calloc(acirc_symnum(circ, i), sizeof obf->cts[i][0]);
         for (size_t j = 0; j < acirc_symnum(circ, i); ++j) {
-            long inputs[acirc_symlen(circ, i)];
-            for (size_t k = 0; k < acirc_symlen(circ, i); ++k) {
-                if (acirc_is_sigma(circ, i))
-                    inputs[k] = j == k;
-                else if (acirc_symnum(circ, i) == 2)
-                    inputs[k] = bit(j, k);
-                else {
-                    if (acirc_symnum(circ, i) != 1 && acirc_symlen(circ, i) != 1) {
-                        fprintf(stderr, "error: don't yet support base != 2 and symlen > 1\n");
-                        goto cleanup;
-                    }
-                    inputs[k] = j;
-                }
-            }
-            obf->cts[i][j] = _mife_encrypt(sk, i, inputs, nthreads, rng, &cache, NULL, false);
+            long *inputs;
+            inputs = my_calloc(acirc_symlen(circ, i), sizeof inputs[0]);
+            for (size_t k = 0; k < acirc_symlen(circ, i); ++k)
+                inputs[k] = acirc_is_sigma(circ, i) ? j == k : j;
+            obf->cts[i][j] = _mife_encrypt(sk, i, inputs, nthreads, rng, &cache,
+                                           NULL, false);
+            free(inputs);
         }
     }
     res = OK;
-cleanup:
     threadpool_destroy(cache.pool);
     pthread_mutex_destroy(&lock);
     vt->mife_sk_free(sk);
@@ -126,7 +116,6 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
 {
     (void) npowers;
     const acirc_t *circ = obf->op->circ;
-    const size_t has_consts = acirc_nconsts(circ) + acirc_nsecrets(circ) ? 1 : 0;
     const mife_vtable *vt = &mife_cmr_vtable;
     mife_ct_t **cts = NULL;
     size_t *input_syms = NULL;
@@ -145,7 +134,7 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
     cts = my_calloc(acirc_nslots(circ), sizeof cts[0]);
     for (size_t i = 0; i < acirc_nsymbols(circ); ++i)
         cts[i] = obf->cts[i][input_syms[i]];
-    if (has_consts)
+    if (acirc_nconsts(circ))
         cts[acirc_nsymbols(circ)] = obf->cts[acirc_nsymbols(circ)][0];
     if (vt->mife_decrypt(obf->ek, outputs, (const mife_ct_t **) cts, nthreads, kappa) == ERR)
         goto cleanup;

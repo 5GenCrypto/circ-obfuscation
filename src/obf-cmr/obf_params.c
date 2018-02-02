@@ -37,7 +37,7 @@ static void
 _print(const obf_params_t *op)
 {
     const acirc_t *circ = op->circ;
-    const size_t nconsts = acirc_nconsts(circ) + acirc_nsecrets(circ);
+    const size_t nconsts = acirc_nconsts(circ);
     const size_t noutputs = acirc_noutputs(circ);
     const size_t has_consts = nconsts ? 1 : 0;
     size_t nencodings;
