@@ -6,7 +6,8 @@
 
 int
 mife_run_setup(const mmap_vtable *mmap, const mife_vtable *vt,
-               const acirc_t *circ, const obf_params_t *op, size_t secparam,
+               const acirc_t *circ, const obf_params_t *op,
+               size_t secparam, const char *ekname_, const char *skname_,
                size_t *kappa, size_t nthreads, aes_randstate_t rng);
 int
 mife_run_encrypt(const mmap_vtable *mmap, const mife_vtable *vt,

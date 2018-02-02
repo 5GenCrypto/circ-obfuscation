@@ -8,22 +8,38 @@
 int
 mife_run_setup(const mmap_vtable *mmap, const mife_vtable *vt,
                const acirc_t *circ, const obf_params_t *op,
-               size_t secparam, size_t *kappa, size_t nthreads,
-               aes_randstate_t rng)
+               size_t secparam, const char *ekname_, const char *skname_,
+               size_t *kappa, size_t nthreads, aes_randstate_t rng)
 {
     const double start = current_time();
     const char *circuit = acirc_fname(circ);
-    char skname[strlen(circuit) + sizeof ".sk\0"];
-    char ekname[strlen(circuit) + sizeof ".ek\0"];
+    char *skname = NULL, *ekname = NULL;
     mife_t *mife = NULL;
     mife_sk_t *sk = NULL;
     mife_ek_t *ek = NULL;
     FILE *fp = NULL;
     int ret = ERR;
 
+    if (ekname_ == NULL) {
+        int length = strlen(circuit) + sizeof ".ek\0";
+        ekname = my_calloc(length, sizeof ekname[0]);
+        snprintf(ekname, length, "%s.ek", circuit);
+    } else {
+        ekname = (char *) ekname_;
+    }
+    if (skname_ == NULL) {
+        int length = strlen(circuit) + sizeof ".sk\0";
+        skname = my_calloc(length, sizeof skname[0]);
+        snprintf(skname, length, "%s.sk", circuit);
+    } else {
+        skname = (char *) skname_;
+    }
+
     if (g_verbose) {
         fprintf(stderr, "MIFE setup details:\n");
         fprintf(stderr, "* circuit: ............. %s\n", circuit);
+        fprintf(stderr, "* ek: .................. %s\n", ekname);
+        fprintf(stderr, "* sk: .................. %s\n", skname);
         fprintf(stderr, "* security parameter: .. %lu\n", secparam);
         fprintf(stderr, "* # threads: ........... %lu\n", nthreads);
     }
@@ -34,7 +50,6 @@ mife_run_setup(const mmap_vtable *mmap, const mife_vtable *vt,
         const double _start = current_time();
         if ((sk = vt->mife_sk(mife)) == NULL)
             goto cleanup;
-        snprintf(skname, sizeof skname, "%s.sk", circuit);
         if ((fp = fopen(skname, "w")) == NULL) {
             fprintf(stderr, "%s: %s: unable to open '%s' for writing\n",
                     errorstr, __func__, skname);
@@ -54,7 +69,6 @@ mife_run_setup(const mmap_vtable *mmap, const mife_vtable *vt,
         const double _start = current_time();
         if ((ek = vt->mife_ek(mife)) == NULL)
             goto cleanup;
-        snprintf(ekname, sizeof ekname, "%s.ek", circuit);
         if ((fp = fopen(ekname, "w")) == NULL) {
             fprintf(stderr, "%s: %s: unable to open '%s' for writing\n",
                     errorstr, __func__, ekname);
@@ -75,6 +89,10 @@ mife_run_setup(const mmap_vtable *mmap, const mife_vtable *vt,
     fp = NULL;
     ret = OK;
 cleanup:
+    if (ekname_ == NULL && ekname)
+        free(ekname);
+    if (skname_ == NULL && skname)
+        free(skname);
     if (fp)
         fclose(fp);
     if (sk)
@@ -327,7 +345,7 @@ mife_run_test(const mmap_vtable *mmap, const mife_vtable *vt,
 {
     int ret = OK;
 
-    if (mife_run_setup(mmap, vt, circ, op, secparam, kappa, nthreads, rng) == ERR)
+    if (mife_run_setup(mmap, vt, circ, op, secparam, NULL, NULL, kappa, nthreads, rng) == ERR)
         return ERR;
 
     for (size_t t = 0; t < acirc_ntests(circ); ++t) {
@@ -372,7 +390,7 @@ mife_run_smart_kappa(const mife_vtable *vt, const acirc_t *circ,
         fprintf(stderr, "Choosing κ smartly... ");
 
     g_verbose = false;
-    if (mife_run_setup(&dummy_vtable, vt, circ, op, 8, &kappa, nthreads, rng) == ERR)
+    if (mife_run_setup(&dummy_vtable, vt, circ, op, 8, NULL, NULL, &kappa, nthreads, rng) == ERR)
         goto cleanup;
 
     for (size_t i = 0; i < acirc_nsymbols(circ); ++i)

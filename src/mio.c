@@ -149,10 +149,21 @@ args_get_size_t(size_t *result, int *argc, char ***argv)
     return OK;
 }
 
+static int
+args_get_string(char **result, int *argc, char ***argv)
+{
+    if (*argc <= 1) return ERR;
+    *result = (*argv)[1];
+    (*argv)++; (*argc)--;
+    return OK;
+}
+
 typedef struct {
     size_t secparam;
     size_t npowers;
     mife_scheme_e scheme;
+    char *ek;
+    char *sk;
 } mife_setup_args_t;
 
 static void
@@ -161,6 +172,8 @@ mife_setup_args_init(mife_setup_args_t *args)
     args->secparam = SECPARAM_DEFAULT;
     args->npowers = NPOWERS_DEFAULT;
     args->scheme = MIFE_SCHEME_DEFAULT;
+    args->ek = NULL;
+    args->sk = NULL;
 }
 
 static int
@@ -174,6 +187,10 @@ mife_setup_handle_options(int *argc, char ***argv, void *vargs)
         if (args_get_size_t(&args->npowers, argc, argv) == ERR) return ERR;
     } else if (!strcmp(cmd, "--scheme")) {
         if (args_get_mife_scheme(&args->scheme, argc, argv) == ERR) return ERR;
+    } else if (!strcmp(cmd, "--ek")) {
+        if (args_get_string(&args->ek, argc, argv) == ERR) return ERR;
+    } else if (!strcmp(cmd, "--sk")) {
+        if (args_get_string(&args->sk, argc, argv) == ERR) return ERR;
     } else {
         return ERR;
     }
@@ -190,6 +207,8 @@ mife_setup_usage(bool longform, int ret)
             "    --secparam λ       set security parameter to λ (default: %d)\n"
             "    --npowers N        set the number of powers to N (default: %d)\n"
             "    --scheme S         set MIFE scheme to S (options: CMR, GC | default: %s)\n"
+            "    --ek F             save evaluation key to file F (default: <circuit>.ek)\n"
+            "    --sk F             save secret key to file F (default: <circuit>.sk)\n"
             , SECPARAM_DEFAULT, NPOWERS_DEFAULT, MIFE_SCHEME_DEFAULT_STR);
         args_usage();
         printf("\n");
@@ -615,8 +634,8 @@ cmd_mife_setup(int argc, char **argv, args_t *args)
     handle_options(&argc, &argv, 0, args, &args_, mife_setup_handle_options, mife_setup_usage);
     if (mife_select_scheme(args_.scheme, args->circ, args_.npowers, &vt, &op_vt, &op) == ERR)
         goto cleanup;
-    if (mife_run_setup(args->vt, vt, args->circ, op, args_.secparam, NULL,
-                       args->nthreads, args->rng) == ERR)
+    if (mife_run_setup(args->vt, vt, args->circ, op, args_.secparam, args_.ek,
+                       args_.sk, NULL, args->nthreads, args->rng) == ERR)
         goto cleanup;
     ret = OK;
 cleanup:
@@ -773,8 +792,8 @@ cmd_mife_get_kappa(int argc, char **argv, args_t *args)
         if (kappa == 0)
             goto cleanup;
     } else {
-        if (mife_run_setup(mmap, vt, args->circ, op, 8, &kappa, args->nthreads,
-                           args->rng) == ERR) {
+        if (mife_run_setup(mmap, vt, args->circ, op, 8, NULL, NULL, &kappa,
+                           args->nthreads, args->rng) == ERR) {
             fprintf(stderr, "%s: mife setup failed\n", errorstr);
             goto cleanup;
         }
