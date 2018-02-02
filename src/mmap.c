@@ -62,7 +62,7 @@ secret_params_new(const sp_vtable *vt, const obf_params_t *op, const acirc_t *ci
         .lambda = lambda,
         .kappa = params.kappa,
         .gamma = params.nzs,
-        .pows = params.pows,
+        .pows = (int *) params.pows,
     };
     mmap_sk_opt_params o = {
         .nslots = params.nslots,
@@ -84,8 +84,6 @@ secret_params_new(const sp_vtable *vt, const obf_params_t *op, const acirc_t *ci
 cleanup:
     if (acirc_is_binary(circ))
         mpz_clear(modulus);
-    if (params.my_pows)
-        free(params.pows);
     if (ret == OK)
         return sp;
     else {
@@ -98,7 +96,8 @@ cleanup:
 int
 secret_params_fwrite(const sp_vtable *vt, const secret_params *sp, FILE *fp)
 {
-    vt->fwrite(sp, fp);
+    if (vt->fwrite)
+        vt->fwrite(sp, fp);
     vt->mmap->sk->fwrite(sp->sk, fp);
     return OK;
 }
@@ -108,7 +107,8 @@ secret_params_fread(const sp_vtable *vt, const obf_params_t *op, FILE *fp)
 {
     secret_params *sp;
     sp = my_calloc(1, sizeof sp[0]);
-    vt->fread(sp, op, fp);
+    if (vt->fread)
+        vt->fread(sp, op, fp);
     sp->sk = vt->mmap->sk->fread(fp);
     return sp;
 }
@@ -117,9 +117,8 @@ void
 secret_params_free(const sp_vtable *vt, secret_params *sp)
 {
     vt->clear(sp);
-    if (sp->sk) {
+    if (sp->sk)
         vt->mmap->sk->free(sp->sk);
-    }
     free(sp);
 }
 
@@ -127,7 +126,9 @@ public_params *
 public_params_new(const pp_vtable *vt, const sp_vtable *sp_vt,
                   const secret_params *sp, const obf_params_t *op)
 {
-    public_params *pp = my_calloc(1, sizeof pp[0]);
+    public_params *pp;
+    if ((pp = my_calloc(1, sizeof pp[0])) == NULL)
+        return NULL;
     vt->init(sp_vt, pp, sp, op);
     pp->pp = vt->mmap->sk->pp(sp->sk);
     return pp;

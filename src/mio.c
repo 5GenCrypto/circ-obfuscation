@@ -773,8 +773,8 @@ cmd_mife_get_kappa(int argc, char **argv, args_t *args)
         if (kappa == 0)
             goto cleanup;
     } else {
-        if (mife_run_setup(mmap, vt, args->circ, op, 8, &kappa,
-                           args->nthreads, args->rng) == ERR) {
+        if (mife_run_setup(mmap, vt, args->circ, op, 8, &kappa, args->nthreads,
+                           args->rng) == ERR) {
             fprintf(stderr, "%s: mife setup failed\n", errorstr);
             goto cleanup;
         }

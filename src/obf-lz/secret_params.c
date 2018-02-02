@@ -19,25 +19,15 @@ _sp_init(secret_params *sp, mmap_params_t *params, const obf_params_t *op,
 
     if ((my(sp) = calloc(1, sizeof my(sp)[0])) == NULL)
         return ERR;
-    my(sp)->toplevel = obf_params_new_toplevel(circ, obf_params_nzs(circ));
+    if ((my(sp)->toplevel = obf_params_new_toplevel(circ, obf_params_nzs(circ))) == NULL)
+        goto error;
 
     params->kappa = kappa ? kappa : acirc_delta(circ) + acirc_nsymbols(circ);
     params->nzs = my(sp)->toplevel->nzs;
-    if ((params->pows = calloc(params->nzs, sizeof params->pows[0])) == NULL)
-        goto error;
-    for (size_t i = 0; i < params->nzs; ++i) {
-        if (my(sp)->toplevel->pows[i] < 0) {
-            fprintf(stderr, "error: toplevel overflow\n");
-            goto error;
-        }
-        params->pows[i] = my(sp)->toplevel->pows[i];
-    }
-    params->my_pows = true;
+    params->pows = my(sp)->toplevel->pows;
     params->nslots = 2;
     return OK;
 error:
-    if (params->pows)
-        free(params->pows);
     index_set_free(my(sp)->toplevel);
     free(my(sp));
     return ERR;
@@ -47,7 +37,7 @@ static void
 _sp_clear(secret_params *sp)
 {
     index_set_free(my(sp)->toplevel);
-    free(sp->info);
+    free(my(sp));
 }
 
 static const void *

@@ -19,13 +19,11 @@ typedef struct {
 
 obf_params_t * obf_params_new(const op_vtable *vt, acirc_t *circ, void *vparams);
 
-
-typedef struct mmap_params_t {
+typedef struct {
     size_t kappa;
     size_t nzs;
     size_t nslots;
-    int *pows;
-    bool my_pows;
+    const int *pows;
 } mmap_params_t;
 
 typedef struct sp_info sp_info;

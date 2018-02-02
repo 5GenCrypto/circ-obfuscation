@@ -24,26 +24,8 @@ _sp_init(secret_params *sp, mmap_params_t *mp, const obf_params_t *op, size_t ka
 
     mp->kappa = kappa ? kappa : (size_t) max(delta + 1, acirc_nsymbols(circ));
     mp->nzs = my(sp)->toplevel->nzs;
-    mp->pows = my_calloc(mp->nzs, sizeof mp->pows[0]);
-    for (size_t i = 0; i < mp->nzs; ++i) {
-        if (my(sp)->toplevel->pows[i] < 0) {
-            fprintf(stderr, "error: toplevel overflow\n");
-            free(mp->pows);
-            index_set_free(my(sp)->toplevel);
-            free(my(sp));
-            return ERR;
-        }
-        mp->pows[i] = my(sp)->toplevel->pows[i];
-    }
-    mp->my_pows = true;
+    mp->pows = my(sp)->toplevel->pows;
     mp->nslots = 1 + acirc_nslots(circ);
-    return OK;
-}
-
-static int
-_sp_fwrite(const secret_params *sp, FILE *fp)
-{
-    (void) sp; (void) fp;
     return OK;
 }
 
@@ -74,7 +56,6 @@ _sp_toplevel(const secret_params *sp)
 static sp_vtable _sp_vtable = {
     .mmap = NULL,
     .init = _sp_init,
-    .fwrite = _sp_fwrite,
     .fread = _sp_fread,
     .clear = _sp_clear,
     .toplevel = _sp_toplevel,
