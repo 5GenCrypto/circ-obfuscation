@@ -44,11 +44,11 @@ struct obfuscation {
 /* } */
 
 static int
-populate_circ_inputs(const circ_params_t *cp, ssize_t slot, mpz_t **inputs,
+populate_circ_inputs(const acirc_t *circ, ssize_t slot, mpz_t **inputs,
                      mpz_t **consts, const mpz_t *betas)
 {
-    const size_t ninputs = acirc_ninputs(cp->circ);
-    const size_t nconsts = acirc_nconsts(cp->circ);
+    const size_t ninputs = acirc_ninputs(circ);
+    const size_t nconsts = acirc_nconsts(circ);
     for (size_t i = 0; i < ninputs; ++i) {
         if (slot < 0 || i == (size_t) slot)
             mpz_set   (*inputs[i], betas[i]);
@@ -58,7 +58,7 @@ populate_circ_inputs(const circ_params_t *cp, ssize_t slot, mpz_t **inputs,
     if (consts) {
         for (size_t i = 0; i < nconsts; ++i) {
             if (slot >= 0)
-                mpz_set_ui(*consts[i], acirc_const(cp->circ, i));
+                mpz_set_ui(*consts[i], acirc_const(circ, i));
             else
                 mpz_set(*consts[i], betas[ninputs + i]);
         }
@@ -123,10 +123,10 @@ _free(obfuscation *obf)
     if (obf == NULL)
         return;
 
-    const circ_params_t *cp = &obf->op->cp;
-    const size_t ninputs = acirc_ninputs(cp->circ);
-    const size_t nconsts = acirc_nconsts(cp->circ);
-    const size_t noutputs = acirc_noutputs(cp->circ);
+    const acirc_t *circ = obf->op->circ;
+    const size_t ninputs = acirc_ninputs(circ);
+    const size_t nconsts = acirc_nconsts(circ);
+    const size_t noutputs = acirc_noutputs(circ);
 
     if (obf->Chatstar) {
         for (size_t o = 0; o < noutputs; ++o)
@@ -174,10 +174,10 @@ _alloc(const mmap_vtable *mmap, const obf_params_t *op)
 {
     obfuscation *obf;
 
-    const circ_params_t *cp = &op->cp;
-    const size_t ninputs = acirc_ninputs(cp->circ);
-    const size_t nconsts = acirc_nconsts(cp->circ);
-    const size_t noutputs = acirc_noutputs(cp->circ);
+    const acirc_t *circ = op->circ;
+    const size_t ninputs = acirc_ninputs(circ);
+    const size_t nconsts = acirc_nconsts(circ);
+    const size_t noutputs = acirc_noutputs(circ);
 
     if ((obf = my_calloc(1, sizeof obf[0])) == NULL)
         return NULL;
@@ -206,12 +206,12 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
            size_t *kappa, size_t nthreads, aes_randstate_t rng)
 {
     (void) kappa;
-    const circ_params_t *cp = &op->cp;
-    const size_t ninputs = acirc_ninputs(cp->circ);
-    const size_t nconsts = acirc_nconsts(cp->circ);
-    const size_t noutputs = acirc_noutputs(cp->circ);
+    const acirc_t *circ = op->circ;
+    const size_t ninputs = acirc_ninputs(circ);
+    const size_t nconsts = acirc_nconsts(circ);
+    const size_t noutputs = acirc_noutputs(circ);
     const size_t nslots = 1 + ninputs + 1;
-    const size_t total = obf_num_encodings(cp);
+    const size_t total = obf_num_encodings(circ);
 
     obfuscation *obf;
     mpz_t *moduli = NULL, *slots = NULL, *alphas = NULL, *betas = NULL;
@@ -223,7 +223,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
 
     if ((obf = _alloc(mmap, op)) == NULL)
         return NULL;
-    if ((obf->sp = secret_params_new(obf->sp_vt, op, secparam, 0, nthreads, rng)) == NULL)
+    if ((obf->sp = secret_params_new(obf->sp_vt, op, circ, secparam, 0, nthreads, rng)) == NULL)
         goto cleanup;
     if ((obf->pp = public_params_new(obf->pp_vt, obf->sp_vt, obf->sp, op)) == NULL)
         goto cleanup;
@@ -263,13 +263,13 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
                 mpz_set_ui(slots[0], b);
                 mpz_set(slots[1 + i], alphas[i]);
                 mpz_set(slots[1 + ninputs], betas[i]);
-                ix = index_set_new(obf_params_nzs(cp));
+                ix = index_set_new(obf_params_nzs(circ));
                 __encode(pool, obf->enc_vt, wire_x(obf->xhat[i][b]), nslots, slots,
                          ix, obf->sp, 0, &lock, &count, total);
                 mpz_set_ui(slots[0], 1);
                 mpz_set_ui(slots[1 + i], 1);
                 mpz_set_ui(slots[1 + ninputs], 1);
-                ix = index_set_new(obf_params_nzs(cp));
+                ix = index_set_new(obf_params_nzs(circ));
                 __encode(pool, obf->enc_vt, wire_u(obf->xhat[i][b]), nslots, slots,
                          ix, obf->sp, 0, &lock, &count, total);
             }
@@ -280,14 +280,14 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         for (size_t i = 0; i < nconsts; i++) {
             for (size_t j = 0; j < ninputs; ++j)
                 mpz_set_ui(slots[1 + j], 1);
-            mpz_set_si(slots[0],           acirc_const(cp->circ, i));
+            mpz_set_si(slots[0],           acirc_const(circ, i));
             mpz_set   (slots[1 + ninputs], betas[ninputs + i]);
-            ix = index_set_new(obf_params_nzs(cp));
+            ix = index_set_new(obf_params_nzs(circ));
             __encode(pool, obf->enc_vt, wire_x(obf->yhat[i]), nslots, slots,
                      ix, obf->sp, 0, &lock, &count, total);
             mpz_set_ui(slots[0],           1);
             mpz_set_ui(slots[1 + ninputs], 1);
-            ix = index_set_new(obf_params_nzs(cp));
+            ix = index_set_new(obf_params_nzs(circ));
             __encode(pool, obf->enc_vt, wire_u(obf->yhat[i]), nslots, slots,
                      ix, obf->sp, 0, &lock, &count, total);
         }
@@ -306,12 +306,12 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
             mpz_t **outputs;
             for (size_t j = 0; j < ninputs + 1; ++j)
                 mpz_set_ui(slots[1 + j], 1);
-            populate_circ_inputs(cp, i, inputs, consts, (const mpz_t *) alphas);
-            outputs = acirc_eval_mpz(cp->circ, inputs, consts, moduli[1 + i]);
+            populate_circ_inputs(circ, i, inputs, consts, (const mpz_t *) alphas);
+            outputs = acirc_eval_mpz(circ, inputs, consts, moduli[1 + i]);
             for (size_t b = 0; b < 2; ++b) {
                 for (size_t o = 0; o < noutputs; ++o) {
                     mpz_set(slots[1 + i], *outputs[o]);
-                    ix = index_set_new(obf_params_nzs(cp));
+                    ix = index_set_new(obf_params_nzs(circ));
                     __encode(pool, obf->enc_vt, obf->what[i][b][o], nslots, slots,
                              ix, obf->sp, i /* XXX */, &lock, &count, total);
                 }
@@ -332,7 +332,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         for (size_t i = 0; i < ninputs + 1; ++i)
             mpz_set_ui(slots[1 + i], 1);
         for (size_t i = 0; i < noutputs; ++i) {
-            ix = index_set_new(obf_params_nzs(cp));
+            ix = index_set_new(obf_params_nzs(circ));
             mpz_randomm_inv(slots[0], rng, moduli[0]);
             __encode(pool, obf->enc_vt, obf->zhat[i], nslots, slots,
                      ix, obf->sp, obf->op->nlevels - 1, &lock, &count, total);
@@ -348,8 +348,8 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         consts = calloc(nconsts, sizeof inputs[0]);
         for (size_t i = 0; i < nconsts; ++i)
             consts[i] = mpz_vect_new(1);
-        populate_circ_inputs(cp, -1, inputs, consts, (const mpz_t *) betas);
-        outputs = acirc_eval_mpz(cp->circ, inputs, consts, moduli[1 + ninputs]);
+        populate_circ_inputs(circ, -1, inputs, consts, (const mpz_t *) betas);
+        outputs = acirc_eval_mpz(circ, inputs, consts, moduli[1 + ninputs]);
 
         mpz_set_ui(slots[0], 0);
         for (size_t i = 0; i < ninputs; ++i) {
@@ -357,7 +357,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         }
         for (size_t o = 0; o < noutputs; ++o) {
             mpz_set(slots[1 + ninputs], *outputs[o]);
-            ix = index_set_new(obf_params_nzs(cp));
+            ix = index_set_new(obf_params_nzs(circ));
             __encode(pool, obf->enc_vt, obf->Chatstar[o], nslots, slots,
                      ix, obf->sp, 0, &lock, &count, total);
         }
@@ -391,10 +391,10 @@ cleanup:
 static int
 _fwrite(const obfuscation *obf, FILE *fp)
 {
-    const circ_params_t *cp = &obf->op->cp;
-    const size_t ninputs = acirc_ninputs(cp->circ);
-    const size_t nconsts = acirc_nconsts(cp->circ);
-    const size_t noutputs = acirc_noutputs(cp->circ);
+    const acirc_t *circ = obf->op->circ;
+    const size_t ninputs = acirc_ninputs(circ);
+    const size_t nconsts = acirc_nconsts(circ);
+    const size_t noutputs = acirc_noutputs(circ);
 
     public_params_fwrite(obf->pp_vt, obf->pp, fp);
     for (size_t o = 0; o < noutputs; ++o)
@@ -417,10 +417,10 @@ static obfuscation *
 _fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
 {
     obfuscation *obf;
-    const circ_params_t *cp = &op->cp;
-    const size_t ninputs = acirc_ninputs(cp->circ);
-    const size_t nconsts = acirc_nconsts(cp->circ);
-    const size_t noutputs = acirc_noutputs(cp->circ);
+    const acirc_t *circ = op->circ;
+    const size_t ninputs = acirc_ninputs(circ);
+    const size_t nconsts = acirc_nconsts(circ);
+    const size_t noutputs = acirc_noutputs(circ);
 
     if ((obf = _alloc(mmap, op)) == NULL)
         return NULL;
@@ -517,8 +517,8 @@ output_f(size_t ref, size_t o, void *x_, void *args_)
     long output = 1;
     eval_args_t *args = args_;
     const obfuscation *obf = args->obf;
-    const circ_params_t *const cp = &obf->op->cp;
-    const size_t ninputs = acirc_ninputs(cp->circ);
+    const acirc_t *circ = obf->op->circ;
+    const size_t ninputs = acirc_ninputs(circ);
     encoding *out, *lhs, *rhs;
     const index_set *const toplevel = obf->pp_vt->toplevel(obf->pp);
     wire_t *x = x_;
@@ -528,7 +528,7 @@ output_f(size_t ref, size_t o, void *x_, void *args_)
     rhs = encoding_new(obf->enc_vt, obf->pp_vt, obf->pp);
 
     /* Compute LHS */
-    ref = acirc_nrefs(cp->circ) + o * (ninputs + 2);
+    ref = acirc_nrefs(circ) + o * (ninputs + 2);
     if (obf->mmap == &clt_pl_vtable)
         clt_pl_elem_switch(wire_x(x)->enc, obf->pp->pp, wire_x(x)->enc, args->switches[ref][0]);
     encoding_mul(obf->enc_vt, obf->pp_vt, lhs, wire_x(x), obf->zhat[o], obf->pp);
@@ -580,13 +580,13 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
           size_t *kappa, size_t *npowers)
 {
     (void) kappa; (void) npowers;
-    const circ_params_t *cp = &obf->op->cp;
+    const acirc_t *circ = obf->op->circ;
 
-    if (ninputs != acirc_ninputs(cp->circ)) {
+    if (ninputs != acirc_ninputs(circ)) {
         fprintf(stderr, "error: obf evaluate: invalid number of inputs\n");
         return ERR;
     }
-    if (noutputs != acirc_noutputs(cp->circ)) {
+    if (noutputs != acirc_noutputs(circ)) {
         fprintf(stderr, "error: obf evaluate: invalid number of outputs\n");
         return ERR;
     }
@@ -600,11 +600,11 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
         };
         if (obf->mmap == &clt_pl_vtable)
             args.switches = clt_pl_pp_switches(obf->pp->pp);
-        tmp = (long *) acirc_traverse(cp->circ, input_f, const_f, eval_f,
+        tmp = (long *) acirc_traverse((acirc_t *) circ, input_f, const_f, eval_f,
                                       output_f, free_f, NULL, NULL, &args,
                                       nthreads);
         if (outputs)
-            for (size_t i = 0; i < acirc_noutputs(cp->circ); ++i)
+            for (size_t i = 0; i < acirc_noutputs(circ); ++i)
                 outputs[i] = tmp[i];
         free(tmp);
     }

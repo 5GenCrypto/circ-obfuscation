@@ -186,13 +186,12 @@ error:
 static mife_sk_t *
 mife_sk_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
 {
-    const circ_params_t *cp = &op->cp;
     mife_sk_t *sk;
 
     sk = my_calloc(1, sizeof sk[0]);
     sk->local = true;
     sk->mmap = mmap;
-    sk->circ = cp->circ;
+    sk->circ = op->circ;
     sk->enc_vt = get_encoding_vtable(mmap);
     sk->pp_vt = get_pp_vtable(mmap);
     sk->sp_vt = get_sp_vtable(mmap);
@@ -283,7 +282,7 @@ mife_ek_fwrite(const mife_ek_t *ek, FILE *fp)
 static mife_ek_t *
 mife_ek_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
 {
-    const acirc_t *circ = op->cp.circ;
+    const acirc_t *circ = op->circ;
     mife_ek_t *ek;
     bool has_consts;
 
@@ -457,7 +456,7 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
 {
     int result = ERR;
     mife_t *mife;
-    const acirc_t *circ = op->cp.circ;
+    const acirc_t *circ = op->circ;
     const size_t has_consts = acirc_nconsts(circ) + acirc_nsecrets(circ) ? 1 : 0;
     threadpool *pool = threadpool_create(nthreads);
     pthread_mutex_t lock;
@@ -475,7 +474,8 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     mife->enc_vt = get_encoding_vtable(mmap);
     mife->pp_vt = get_pp_vtable(mmap);
     mife->sp_vt = get_sp_vtable(mmap);
-    if ((mife->sp = secret_params_new(mife->sp_vt, op, secparam, kappa, nthreads, rng)) == NULL)
+    if ((mife->sp = secret_params_new(mife->sp_vt, op, circ, secparam, kappa,
+                                      nthreads, rng)) == NULL)
         goto cleanup;
     if ((mife->pp = public_params_new(mife->pp_vt, mife->sp_vt, mife->sp, op)) == NULL)
         goto cleanup;

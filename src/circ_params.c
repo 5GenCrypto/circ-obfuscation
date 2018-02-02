@@ -1,64 +1,6 @@
 #include "circ_params.h"
 #include "util.h"
 
-#include <assert.h>
-
-int
-circ_params_init(circ_params_t *cp, size_t n, acirc_t *circ)
-{
-    cp->nslots = n;
-    cp->circ = circ;
-    if ((cp->ds = my_calloc(n, sizeof cp->ds[0])) == NULL) goto error;
-    if ((cp->qs = my_calloc(n, sizeof cp->ds[0])) == NULL) goto error;
-    return OK;
-error:
-    circ_params_clear(cp);
-    return ERR;
-}
-
-void
-circ_params_clear(circ_params_t *cp)
-{
-    if (cp->ds)
-        free(cp->ds);
-    if (cp->qs)
-        free(cp->qs);
-}
-
-int
-circ_params_fwrite(const circ_params_t *cp, FILE *fp)
-{
-    if (size_t_fwrite(cp->nslots, fp) == ERR) goto error;
-    for (size_t i = 0; i < acirc_nsymbols(cp->circ); ++i)
-        if (size_t_fwrite(cp->ds[i], fp) == ERR) goto error;
-    for (size_t i = 0; i < acirc_nsymbols(cp->circ); ++i)
-        if (size_t_fwrite(cp->qs[i], fp) == ERR) goto error;
-    return OK;
-error:
-    fprintf(stderr, "%s: %s: writing circuit parameters failed\n",
-            errorstr, __func__);
-    return ERR;
-}
-
-int
-circ_params_fread(circ_params_t *cp, acirc_t *circ, FILE *fp)
-{
-    if (size_t_fread(&cp->nslots, fp) == ERR) goto error;
-    cp->ds = my_calloc(acirc_nsymbols(circ), sizeof cp->ds[0]);
-    cp->qs = my_calloc(acirc_nsymbols(circ), sizeof cp->qs[0]);
-    for (size_t i = 0; i < acirc_nsymbols(circ); ++i)
-        if (size_t_fread(&cp->ds[i], fp) == ERR) goto error;
-    for (size_t i = 0; i < acirc_nsymbols(circ); ++i)
-        if (size_t_fread(&cp->qs[i], fp) == ERR) goto error;
-    cp->circ = circ;
-    return OK;
-error:
-    circ_params_clear(cp);
-    fprintf(stderr, "%s: %s: reading circuit parameters failed\n",
-            errorstr, __func__);
-    return ERR;
-}
-
 size_t
 circ_params_ninputs(const acirc_t *circ)
 {
@@ -131,4 +73,40 @@ circ_params_print(const acirc_t *circ)
     fprintf(stderr, "\n");
     fprintf(stderr, "* binary? ....... %s\n", acirc_is_binary(circ) ? "✓" : "✗");
     return OK;
+}
+
+size_t *
+get_input_syms(const long *inputs, size_t ninputs, const acirc_t *circ)
+{
+    const size_t nsymbols = acirc_nsymbols(circ);
+    size_t *input_syms;
+    size_t k = 0;
+
+    if ((input_syms = my_calloc(nsymbols, sizeof input_syms[0])) == NULL)
+        return NULL;
+    for (size_t i = 0; i < nsymbols; i++) {
+        input_syms[i] = 0;
+        for (size_t j = 0; j < acirc_symlen(circ, i); j++) {
+            if (k >= ninputs) {
+                fprintf(stderr, "%s: too many symbols for input length\n",
+                        errorstr);
+                goto error;
+            }
+            if (acirc_is_sigma(circ, i))
+                input_syms[i] += inputs[k++] * j;
+            else
+                /* XXX causes an error if j > 63 */
+                input_syms[i] += inputs[k++] << j;
+        }
+        if (input_syms[i] >= acirc_symnum(circ, i)) {
+            fprintf(stderr, "%s: invalid input for symbol %lu (%ld > %lu)\n",
+                    errorstr, i, input_syms[i], acirc_symnum(circ, i));
+            goto error;
+        }
+    }
+    return input_syms;
+error:
+    if (input_syms)
+        free(input_syms);
+    return NULL;
 }

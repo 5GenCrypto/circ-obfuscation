@@ -7,7 +7,7 @@
 #include "../util.h"
 
 struct sp_info {
-    const circ_params_t *cp;
+    const acirc_t *circ;
     index_set *toplevel;
     mmap_polylog_switch_params *sparams;
 };
@@ -17,12 +17,12 @@ static int
 _sp_init(secret_params *sp, mmap_params_t *mp, const obf_params_t *op, size_t kappa)
 {
     (void) kappa;
-    const circ_params_t *cp = &op->cp;
+    const acirc_t *circ = op->circ;
 
     if ((my(sp) = calloc(1, sizeof my(sp)[0])) == NULL)
         return ERR;
-    my(sp)->toplevel = obf_params_new_toplevel(cp, obf_params_nzs(cp));
-    my(sp)->cp = cp;
+    my(sp)->toplevel = obf_params_new_toplevel(circ, obf_params_nzs(circ));
+    my(sp)->circ = circ;
 
     mp->kappa = 0;
     mp->nzs = my(sp)->toplevel->nzs;
@@ -38,7 +38,7 @@ _sp_init(secret_params *sp, mmap_params_t *mp, const obf_params_t *op, size_t ka
         mp->pows[i] = my(sp)->toplevel->pows[i];
     }
     mp->my_pows = true;
-    mp->nslots = 1 + acirc_ninputs(cp->circ) + 1;
+    mp->nslots = 1 + acirc_ninputs(circ) + 1;
     return OK;
 }
 
@@ -55,8 +55,8 @@ _sp_fread(secret_params *sp, const obf_params_t *op, FILE *fp)
     (void) fp;
     if ((my(sp) = calloc(1, sizeof my(sp)[0])) == NULL)
         return ERR;
-    my(sp)->toplevel = obf_params_new_toplevel(&op->cp, obf_params_nzs(&op->cp));
-    my(sp)->cp = &op->cp;
+    my(sp)->toplevel = obf_params_new_toplevel(op->circ, obf_params_nzs(op->circ));
+    my(sp)->circ = op->circ;
     return OK;
 }
 

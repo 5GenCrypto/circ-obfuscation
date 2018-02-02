@@ -92,6 +92,3 @@ char long_to_char(long i);
 int memory(unsigned long *size, unsigned long *resident);
 /* file size (in bytes) */
 size_t filesize(const char *fname);
-
-size_t * get_input_syms(const long *inputs, size_t ninputs, size_t nsymbols,
-                        const size_t *ds, const size_t *qs, const bool *sigmas);

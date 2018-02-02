@@ -24,7 +24,7 @@ _pp_init(const sp_vtable *vt, public_params *pp, const secret_params *sp,
     if ((my(pp) = calloc(1, sizeof my(pp)[0])) == NULL)
         return ERR;
     my(pp)->toplevel = (index_set *) vt->toplevel(sp);
-    my(pp)->circ = op->cp.circ;
+    my(pp)->circ = op->circ;
     my(pp)->local = false;
     return OK;
 }
@@ -48,7 +48,7 @@ static int
 _pp_fread(public_params *pp, const obf_params_t *op, FILE *fp)
 {
     (void) fp;
-    const acirc_t *circ = op->cp.circ;
+    const acirc_t *circ = op->circ;
     if ((my(pp) = calloc(1, sizeof my(pp)[0])) == NULL)
         return ERR;
     my(pp)->toplevel = mife_params_new_toplevel(circ);

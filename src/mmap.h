@@ -9,14 +9,6 @@
 
 typedef struct obf_params_t obf_params_t;
 
-/* Epic hack alert! We expect all obf_params_t structs to contain circ_params_t
- * as their first argument. */
-static inline circ_params_t *
-obf_params_cp(const obf_params_t *op)
-{
-    return (circ_params_t *) op;
-}
-
 typedef struct {
     obf_params_t * (*new)(acirc_t *, void *);
     void (*free)(obf_params_t *);
@@ -94,8 +86,8 @@ typedef struct {
 
 
 secret_params * secret_params_new(const sp_vtable *vt, const obf_params_t *op,
-                                  size_t lambda, size_t *kappa, size_t ncores,
-                                  aes_randstate_t rng);
+                                  const acirc_t *circ, size_t lambda,
+                                  size_t *kappa, size_t ncores, aes_randstate_t rng);
 int             secret_params_fwrite(const sp_vtable *vt,
                                      const secret_params *sp, FILE *fp);
 secret_params * secret_params_fread(const sp_vtable *vt, const obf_params_t *cp,

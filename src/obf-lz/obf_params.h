@@ -8,7 +8,7 @@
 #include <stddef.h>
 
 struct obf_params_t {
-    circ_params_t cp;
+    const acirc_t *circ;
     int sigma;
     size_t npowers;
 };

@@ -5,16 +5,16 @@
 #include "../util.h"
 
 struct pp_info {
-    const circ_params_t *cp;
+    const acirc_t *circ;
     index_set *toplevel;
     bool local;
 };
 #define my(pp) pp->info
 
-const circ_params_t *
-pp_cp(const public_params *pp)
+const acirc_t *
+pp_circ(const public_params *pp)
 {
-    return my(pp)->cp;
+    return my(pp)->circ;
 }
 
 static int
@@ -24,7 +24,7 @@ _pp_init(const sp_vtable *vt, public_params *pp, const secret_params *sp,
     if ((my(pp) = calloc(1, sizeof my(pp)[0])) == NULL)
         return ERR;
     my(pp)->toplevel = (index_set *) vt->toplevel(sp);
-    my(pp)->cp = &op->cp;
+    my(pp)->circ = op->circ;
     my(pp)->local = false;
     return OK;
 }
@@ -48,11 +48,11 @@ static int
 _pp_fread(public_params *pp, const obf_params_t *op, FILE *fp)
 {
     (void) fp;
-    const circ_params_t *cp = &op->cp;
+    const acirc_t *circ = op->circ;
     if ((my(pp) = calloc(1, sizeof my(pp)[0])) == NULL)
         return ERR;
-    my(pp)->toplevel = obf_params_new_toplevel(cp, obf_params_nzs(cp));
-    my(pp)->cp = cp;
+    my(pp)->toplevel = obf_params_new_toplevel(circ, obf_params_nzs(circ));
+    my(pp)->circ = circ;
     my(pp)->local = true;
     return OK;
 }

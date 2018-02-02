@@ -15,7 +15,7 @@ static int
 _sp_init(secret_params *sp, mmap_params_t *params, const obf_params_t *op,
          size_t kappa)
 {
-    const acirc_t *circ = op->cp.circ;
+    const acirc_t *circ = op->circ;
 
     if ((my(sp) = calloc(1, sizeof my(sp)[0])) == NULL)
         return ERR;

@@ -3,15 +3,15 @@
 #include "../util.h"
 
 PRIVATE size_t
-obf_params_nzs(const circ_params_t *cp)
+obf_params_nzs(const acirc_t *circ)
 {
-    return 2 * acirc_ninputs(cp->circ) + 1;
+    return 2 * acirc_ninputs(circ) + 1;
 }
 
 PRIVATE index_set *
-obf_params_new_toplevel(const circ_params_t *const cp, size_t nzs)
+obf_params_new_toplevel(const acirc_t *circ, size_t nzs)
 {
-    (void) cp;
+    (void) circ;
     index_set *ix;
 
     if ((ix = index_set_new(nzs)) == NULL)
@@ -25,11 +25,11 @@ obf_params_new_toplevel(const circ_params_t *const cp, size_t nzs)
 }
 
 PRIVATE size_t
-obf_num_encodings(const circ_params_t *cp)
+obf_num_encodings(const acirc_t *circ)
 {
-    const size_t ninputs = acirc_ninputs(cp->circ);
-    const size_t nconsts = acirc_nconsts(cp->circ);
-    const size_t noutputs = acirc_noutputs(cp->circ);
+    const size_t ninputs = acirc_ninputs(circ);
+    const size_t nconsts = acirc_nconsts(circ);
+    const size_t noutputs = acirc_noutputs(circ);
     return 2 * 2 * ninputs + 2 * nconsts + ninputs * 2 * noutputs + 2 * noutputs;
 }
 
@@ -55,13 +55,12 @@ _print(const obf_params_t *op)
     fprintf(stderr, "Obfuscation parameters:\n");
     fprintf(stderr, "* # levels: .. %lu\n", op->nlevels);
     fprintf(stderr, "* # switches:  %lu\n", op->nswitches);
-    fprintf(stderr, "* # encodings: %lu\n", obf_num_encodings(&op->cp));
+    fprintf(stderr, "* # encodings: %lu\n", obf_num_encodings(op->circ));
 }
 
 static int
 _fwrite(const obf_params_t *op, FILE *fp)
 {
-    circ_params_fwrite(&op->cp, fp);
     size_t_fwrite(op->nlevels, fp);
     size_t_fwrite(op->nswitches, fp);
     return OK;
@@ -70,10 +69,10 @@ _fwrite(const obf_params_t *op, FILE *fp)
 static obf_params_t *
 _fread(acirc_t *circ, FILE *fp)
 {
+    (void) circ;
     obf_params_t *op;
 
     op = my_calloc(1, sizeof op[0]);
-    circ_params_fread(&op->cp, circ, fp);
     size_t_fread(&op->nlevels, fp);
     size_t_fread(&op->nswitches, fp);
     return op;
@@ -82,7 +81,6 @@ _fread(acirc_t *circ, FILE *fp)
 static void
 _free(obf_params_t *op)
 {
-    circ_params_clear(&op->cp);
     free(op);
 }
 

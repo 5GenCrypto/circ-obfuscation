@@ -23,32 +23,9 @@ mmap_params_fprint(FILE *fp, const mmap_params_t *params)
 obf_params_t *
 obf_params_new(const op_vtable *vt, acirc_t *circ, void *vparams)
 {
-    const size_t nconsts = acirc_nconsts(circ) + acirc_nsecrets(circ);
-    const size_t has_consts = nconsts ? 1 : 0;
     obf_params_t *op = NULL;
-    circ_params_t *cp;
 
     op = vt->new(circ, vparams);
-    cp = obf_params_cp(op);
-    circ_params_init(cp, acirc_nsymbols(circ) + has_consts, circ);
-    for (size_t i = 0; i < cp->nslots - has_consts; ++i) {
-        cp->ds[i] = acirc_symlen(circ, i);
-        if (acirc_is_sigma(circ, i)) {
-            cp->qs[i] = acirc_symlen(circ, i);
-        } else {
-            if (acirc_symlen(circ, i) >= sizeof(size_t) * 8) {
-                /* fprintf(stderr, "%s: %s: number of symbols ≥ %lu, which will cause issues for obfuscation\n", */
-                /*         warnstr, __func__, sizeof(size_t) * 8); */
-                cp->qs[i] = 0;
-            } else {
-                cp->qs[i] = (size_t) 1 << acirc_symlen(circ, i);
-            }
-        }
-    }
-    if (has_consts) {
-        cp->ds[cp->nslots - 1] = acirc_nconsts(circ) + acirc_nsecrets(circ);
-        cp->qs[cp->nslots - 1] = 1;
-    }
     if (g_verbose) {
         if (circ_params_print(circ) == ERR)
             goto error;
@@ -59,18 +36,16 @@ obf_params_new(const op_vtable *vt, acirc_t *circ, void *vparams)
 error:
     if (op)
         vt->free(op);
-    circ_params_clear(cp);
     return NULL;
 }
 
 secret_params *
-secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
-                  size_t *kappa, size_t ncores, aes_randstate_t rng)
+secret_params_new(const sp_vtable *vt, const obf_params_t *op, const acirc_t *circ,
+                  size_t lambda, size_t *kappa, size_t ncores, aes_randstate_t rng)
 {
     int ret = ERR;
     mpz_t modulus;
     mmap_params_t params;
-    const circ_params_t *cp = obf_params_cp(op);
     size_t _kappa = kappa ? *kappa : 0;
     secret_params *sp;
 
@@ -94,7 +69,7 @@ secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
         .modulus = NULL,
         .is_polylog = false,
     };
-    if (acirc_is_binary(cp->circ)) {
+    if (acirc_is_binary(circ)) {
         mpz_init_set_ui(modulus, 2);
         o.modulus = &modulus;
     }
@@ -107,7 +82,7 @@ secret_params_new(const sp_vtable *vt, const obf_params_t *op, size_t lambda,
     }
     ret = OK;
 cleanup:
-    if (acirc_is_binary(cp->circ))
+    if (acirc_is_binary(circ))
         mpz_clear(modulus);
     if (params.my_pows)
         free(params.pows);

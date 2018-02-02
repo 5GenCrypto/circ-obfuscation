@@ -83,7 +83,7 @@ output_f(size_t ref, size_t o, void *x_, void *args_)
 {
     args_t *args = args_;
     mmap_polylog_switch_params *sparams;
-    acirc_t *circ = args->op->cp.circ;
+    const acirc_t *circ = args->op->circ;
     const size_t ninputs = acirc_ninputs(circ);
     const encoding_t *x = x_;
     const size_t top = args->op->nlevels;
@@ -148,7 +148,7 @@ polylog_switch_params(const obf_params_t *op, size_t nzs)
         sparams[i] = calloc(2, sizeof sparams[i][0]);
     }
     args_t args = { .op = op, .sparams = sparams };
-    outputs = (encoding_t **) acirc_traverse(op->cp.circ, input_f, const_f,
+    outputs = (encoding_t **) acirc_traverse((acirc_t *) op->circ, input_f, const_f,
                                              eval_f, output_f, free_f,
                                              NULL, NULL, &args, 0);
     free(outputs);

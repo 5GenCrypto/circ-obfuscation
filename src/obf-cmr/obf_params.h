@@ -3,6 +3,6 @@
 #include "../circ_params.h"
 
 struct obf_params_t {
-    circ_params_t cp;
+    const acirc_t *circ;
     size_t npowers;
 };

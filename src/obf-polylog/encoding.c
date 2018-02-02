@@ -17,7 +17,7 @@ _encoding_new(const pp_vtable *vt, encoding *enc, const public_params *pp)
     (void) pp;
     if ((my(enc) = calloc(1, sizeof my(enc)[0])) == NULL)
         return ERR;
-    my(enc)->ix = index_set_new(obf_params_nzs(pp_cp(pp)));
+    my(enc)->ix = index_set_new(obf_params_nzs(pp_circ(pp)));
     if (vt->mmap == &clt_pl_vtable)
         my(enc)->polylog = true;
     return OK;

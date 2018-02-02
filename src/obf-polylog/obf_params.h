@@ -6,19 +6,19 @@
 #include "../util.h"
 
 struct obf_params_t {
-    circ_params_t cp;
+    acirc_t *circ;
     size_t nlevels;
     size_t nswitches;
     size_t wordsize;
 };
 
 /* [ Z W₁ ... Wₙ X₁ ... Xₙ Y ] */
-#define IX_Z(ix)        (ix)->pows[0]
-#define IX_W(ix, cp, i) (ix)->pows[1 + (i)]
-#define IX_X(ix, cp, i) (ix)->pows[1 + (cp)->nslots + (i)]
-#define IX_Y(ix, cp)    (ix)->pows[1 + (cp)->nslots + (cp)->nslots]
+#define IX_Z(ix)          (ix)->pows[0]
+#define IX_W(ix, circ, i) (ix)->pows[1 + (i)]
+#define IX_X(ix, circ, i) (ix)->pows[1 + acirc_nslots(circ) + (i)]
+#define IX_Y(ix, circ)    (ix)->pows[1 + 2 * acirc_nslots(circ)]
 
-const circ_params_t *pp_cp(const public_params *pp);
-PRIVATE size_t obf_params_nzs(const circ_params_t *cp);
-PRIVATE index_set * obf_params_new_toplevel(const circ_params_t *const cp, size_t nzs);
-PRIVATE size_t obf_num_encodings(const circ_params_t *cp);
+const acirc_t *pp_circ(const public_params *pp);
+PRIVATE size_t obf_params_nzs(const acirc_t *circ);
+PRIVATE index_set * obf_params_new_toplevel(const acirc_t *circ, size_t nzs);
+PRIVATE size_t obf_num_encodings(const acirc_t *circ);

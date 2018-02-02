@@ -36,7 +36,7 @@ obf_params_new_toplevel(const acirc_t *circ, size_t nzs)
 PRIVATE size_t
 obf_params_num_encodings(const obf_params_t *op)
 {
-    const acirc_t *circ = op->cp.circ;
+    const acirc_t *circ = op->circ;
     const size_t nconsts = acirc_nconsts(circ) + acirc_nsecrets(circ);
     const size_t noutputs = acirc_noutputs(circ);
     size_t sum = nconsts + op->npowers + noutputs;
@@ -52,7 +52,6 @@ static void
 _free(obf_params_t *op)
 {
     if (op) {
-        circ_params_clear(&op->cp);
         free(op);
     }
 }
@@ -60,12 +59,12 @@ _free(obf_params_t *op)
 static obf_params_t *
 _new(acirc_t *circ, void *vparams)
 {
-    (void) circ;
     const lz_obf_params_t *params = vparams;
     obf_params_t *op;
 
     if ((op = calloc(1, sizeof op[0])) == NULL)
         return NULL;
+    op->circ = circ;
     op->npowers = params->npowers;
     return op;
 }
@@ -81,7 +80,6 @@ _print(const obf_params_t *op)
 static int
 _fwrite(const obf_params_t *op, FILE *fp)
 {
-    circ_params_fwrite(&op->cp, fp);
     int_fwrite(op->sigma, fp);
     size_t_fwrite(op->npowers, fp);
     return OK;
@@ -94,7 +92,7 @@ _fread(acirc_t *circ, FILE *fp)
 
     if ((op = calloc(1, sizeof op[0])) == NULL)
         return NULL;
-    circ_params_fread(&op->cp, circ, fp);
+    op->circ = circ;
     int_fread(&op->sigma, fp);
     size_t_fread(&op->npowers, fp);
     return op;
