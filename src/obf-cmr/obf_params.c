@@ -21,7 +21,7 @@ _free(obf_params_t *op)
 }
 
 static obf_params_t *
-_new(acirc_t *circ, void *vparams)
+_new(const acirc_t *circ, void *vparams)
 {
     const mobf_obf_params_t *params = vparams;
     obf_params_t *op;
@@ -58,7 +58,7 @@ _fwrite(const obf_params_t *op, FILE *fp)
 }
 
 static obf_params_t *
-_fread(acirc_t *circ, FILE *fp)
+_fread(const acirc_t *circ, FILE *fp)
 {
     obf_params_t *op;
 

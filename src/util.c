@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <err.h>
 #include <fcntl.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -374,4 +375,20 @@ filesize(const char *fname)
         return st.st_size;
     else
         return 0;
+}
+
+char *
+makestr(const char *fmt, ...)
+{
+    int length;
+    char *str;
+    va_list argp;
+    va_start(argp, fmt);
+    length = vsnprintf(NULL, 0, fmt, argp);
+    va_end(argp);
+    str = my_calloc(length + 1, sizeof str[0]);
+    va_start(argp, fmt);
+    (void) vsnprintf(str, length + 1, fmt, argp);
+    va_end(argp);
+    return str;
 }

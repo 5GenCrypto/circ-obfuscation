@@ -20,25 +20,6 @@ mmap_params_fprint(FILE *fp, const mmap_params_t *params)
     fprintf(fp, "\n");
 }
 
-obf_params_t *
-obf_params_new(const op_vtable *vt, acirc_t *circ, void *vparams)
-{
-    obf_params_t *op = NULL;
-
-    op = vt->new(circ, vparams);
-    if (g_verbose) {
-        if (circ_params_print(circ) == ERR)
-            goto error;
-        if (vt->print)
-            vt->print(op);
-    }
-    return op;
-error:
-    if (op)
-        vt->free(op);
-    return NULL;
-}
-
 secret_params *
 secret_params_new(const sp_vtable *vt, const obf_params_t *op, const acirc_t *circ,
                   size_t lambda, size_t *kappa, size_t ncores, aes_randstate_t rng)

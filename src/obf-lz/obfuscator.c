@@ -38,7 +38,7 @@ typedef struct {
 
 static void obf_worker(void *wargs)
 {
-    obf_args *const args = wargs;
+    obf_args *args = wargs;
 
     encode(args->vt, args->enc, args->inps, 2, args->ix, args->sp, 0);
     if (g_verbose) {

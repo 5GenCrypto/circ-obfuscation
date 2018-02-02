@@ -1,5 +1,4 @@
 #include "mife_run.h"
-/* #include "mife_params.h" */
 #include "util.h"
 
 #include <string.h>
@@ -20,20 +19,14 @@ mife_run_setup(const mmap_vtable *mmap, const mife_vtable *vt,
     FILE *fp = NULL;
     int ret = ERR;
 
-    if (ekname_ == NULL) {
-        int length = strlen(circuit) + sizeof ".ek\0";
-        ekname = my_calloc(length, sizeof ekname[0]);
-        snprintf(ekname, length, "%s.ek", circuit);
-    } else {
+    if (ekname_ == NULL)
+        ekname = makestr("%s.ek", circuit);
+    else
         ekname = (char *) ekname_;
-    }
-    if (skname_ == NULL) {
-        int length = strlen(circuit) + sizeof ".sk\0";
-        skname = my_calloc(length, sizeof skname[0]);
-        snprintf(skname, length, "%s.sk", circuit);
-    } else {
+    if (skname_ == NULL)
+        skname = makestr("%s.sk", circuit);
+    else
         skname = (char *) skname_;
-    }
 
     if (g_verbose) {
         fprintf(stderr, "MIFE setup details:\n");
@@ -133,16 +126,12 @@ mife_run_encrypt(const mmap_vtable *mmap, const mife_vtable *vt,
             fprintf(stderr, "%ld", input[i]);
         fprintf(stderr, "\n");
         fprintf(stderr, "* # threads: ..... %lu\n", nthreads);
-        /* XXX */
-        /* fprintf(stderr, "* # encodings: ... %lu\n", */
-        /*         mife_num_encodings_encrypt(cp, slot)); */
     }
 
     if (cached_sk == NULL) {
         const double _start = current_time();
-        char skname[strlen(circuit) + sizeof ".sk\0"];
-
-        snprintf(skname, sizeof skname, "%s.sk", circuit);
+        char *skname;
+        skname = makestr("%s.sk", circuit);
         if ((fp = fopen(skname, "r")) == NULL) {
             fprintf(stderr, "error: %s: unable to open '%s' for reading\n",
                     __func__, skname);
@@ -154,6 +143,7 @@ mife_run_encrypt(const mmap_vtable *mmap, const mife_vtable *vt,
             goto cleanup;
         }
         fclose(fp);
+        free(skname);
         if (g_verbose)
             fprintf(stderr, "  Reading secret key from disk: %.2fs\n",
                     current_time() - _start);
@@ -168,20 +158,10 @@ mife_run_encrypt(const mmap_vtable *mmap, const mife_vtable *vt,
 
     {
         double _start = current_time();
-        char ctname[strlen(circuit) + 10 + strlen("..ct\0")];
-        snprintf(ctname, sizeof ctname, "%s.%lu.ct", circuit, slot);
-
-        if ((fp = fopen(ctname, "w")) == NULL) {
-            fprintf(stderr, "error: %s: unable to open '%s' for writing\n",
-                    __func__, ctname);
-            goto cleanup;
-        }
-        if (vt->mife_ct_fwrite(ct, circ, fp) == ERR) {
-            fprintf(stderr, "error: %s: unable to write ciphertext to disk\n",
-                    __func__);
-            goto cleanup;
-        }
-        fclose(fp);
+        char *ctname;
+        ctname = makestr("%s.%lu.ct", circuit, slot);
+        mife_ct_write(vt, ct, ctname, circ);
+        free(ctname);
         if (g_verbose) {
             fprintf(stderr, "  Writing ciphertext to disk: %.2fs\n", current_time() - _start);
             fprintf(stderr, "    Ciphertext file size: %lu KB\n", filesize(ctname) / 1024);
@@ -289,15 +269,16 @@ mife_run_all(const mmap_vtable *mmap, const mife_vtable *vt,
 
     {
         const double _start = current_time();
-        char skname[strlen(circuit) + sizeof ".sk\0"];
+        char *skname;
         FILE *fp;
 
-        snprintf(skname, sizeof skname, "%s.sk", circuit);
+        skname = makestr("%s.sk", circuit);
         if ((fp = fopen(skname, "r")) == NULL) {
             fprintf(stderr, "error: %s: unable to open '%s' for reading\n",
                     __func__, skname);
             return ERR;
         }
+        free(skname);
         sk = vt->mife_sk_fread(mmap, op, fp);
         fclose(fp);
         if (sk == NULL)
@@ -322,18 +303,16 @@ mife_run_all(const mmap_vtable *mmap, const mife_vtable *vt,
     vt->mife_sk_free(sk);
 
     {
-        char ek[strlen(circuit) + sizeof ".ek\0"];
+        char *ek;
         char *cts[acirc_nsymbols(circ)];
 
-        snprintf(ek, sizeof ek, "%s.ek", circuit);
-        for (size_t j = 0; j < acirc_nsymbols(circ); ++j) {
-            size_t length = strlen(circuit) + 10 + sizeof ".ct\0";
-            cts[j] = my_calloc(length, sizeof cts[j][0]);
-            snprintf(cts[j], length, "%s.%lu.ct", circuit, j);
-        }
+        ek = makestr("%s.ek", circuit);
+        for (size_t j = 0; j < acirc_nsymbols(circ); ++j)
+            cts[j] = makestr("%s.%lu.ct", circuit, j);
         ret = mife_run_decrypt(mmap, vt, circ, ek, cts, outp, op, kappa, nthreads);
         for (size_t j = 0; j < acirc_nsymbols(circ); ++j)
             free(cts[j]);
+        free(ek);
     }
     return ret;
 }

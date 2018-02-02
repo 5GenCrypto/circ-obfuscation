@@ -92,3 +92,5 @@ char long_to_char(long i);
 int memory(unsigned long *size, unsigned long *resident);
 /* file size (in bytes) */
 size_t filesize(const char *fname);
+
+char * makestr(const char *format, ...);

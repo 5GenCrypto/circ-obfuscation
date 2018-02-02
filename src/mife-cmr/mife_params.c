@@ -29,7 +29,7 @@ mife_params_new_toplevel(const acirc_t *circ)
 }
 
 static obf_params_t *
-_new(acirc_t *circ, void *vparams)
+_new(const acirc_t *circ, void *vparams)
 {
     mife_cmr_params_t *params = vparams;
     obf_params_t *op;
@@ -37,7 +37,8 @@ _new(acirc_t *circ, void *vparams)
     if ((op = my_calloc(1, sizeof op[0])) == NULL)
         return NULL;
     op->circ = circ;
-    op->npowers = params->npowers;
+    if (params)
+        op->npowers = params->npowers;
     return op;
 }
 

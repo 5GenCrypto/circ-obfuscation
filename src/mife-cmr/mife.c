@@ -377,7 +377,7 @@ populate_circ_input(const acirc_t *circ, size_t slot, mpz_t **inputs,
 static void
 encode_worker(void *wargs)
 {
-    encode_args_t *const args = wargs;
+    encode_args_t *args = wargs;
 
     encode(args->vt, args->enc, args->inps, args->nslots, args->ix, args->sp, 0);
     if (g_verbose) {
@@ -390,12 +390,14 @@ encode_worker(void *wargs)
     free(args);
 }
 
-static void
+static int
 __encode(threadpool *pool, const encoding_vtable *vt, encoding *enc, mpz_t *inps,
          size_t nslots, index_set *ix, const secret_params *sp,
          pthread_mutex_t *lock, size_t *count, size_t total)
 {
-    encode_args_t *args = my_calloc(1, sizeof args[0]);
+    encode_args_t *args;
+    if ((args = my_calloc(1, sizeof args[0])) == NULL)
+        return ERR;
     args->vt = vt;
     args->enc = enc;
     args->inps = my_calloc(nslots, sizeof args->inps[0]);
@@ -409,6 +411,8 @@ __encode(threadpool *pool, const encoding_vtable *vt, encoding *enc, mpz_t *inps
     args->count = count;
     args->total = total;
     threadpool_add_job(pool, encode_worker, args);
+    return OK;
+
 }
 
 static void
@@ -581,8 +585,8 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
     const size_t nslots = acirc_nslots(circ);
     const size_t has_consts = nconsts ? 1 : 0;
     const size_t noutputs = acirc_noutputs(circ);
-    const mpz_t *moduli = (const mpz_t *) sk->mmap->sk->plaintext_fields(sk->sp->sk);
-    index_set *const ix = index_set_new(mife_params_nzs(sk->circ));
+    const mpz_t *moduli = sk->mmap->sk->plaintext_fields(sk->sp->sk);
+    index_set *ix = index_set_new(mife_params_nzs(sk->circ));
     mpz_t *slots;
     mpz_t *alphas;
 
@@ -592,7 +596,8 @@ _mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
     start = current_time();
     _start = current_time();
 
-    ct = my_calloc(1, sizeof ct[0]);
+    if ((ct = my_calloc(1, sizeof ct[0])) == NULL)
+        return NULL;
     ct->enc_vt = sk->enc_vt;
     ct->slot = slot;
     ct->xhat = my_calloc(ninputs, sizeof ct->xhat[0]);

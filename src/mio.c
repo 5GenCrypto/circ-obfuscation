@@ -6,6 +6,7 @@
 #include "obf_run.h"
 
 #include "mife-cmr/mife.h"
+#include "mife-gc/mife.h"
 #include "obf-lz/obfuscator.h"
 #include "obf-cmr/obfuscator.h"
 #include "obf-polylog/obfuscator.h"
@@ -599,6 +600,7 @@ mife_select_scheme(mife_scheme_e scheme, acirc_t *circ, size_t npowers,
                    mife_vtable **vt, op_vtable **op_vt, obf_params_t **op)
 {
     mife_cmr_params_t mife_cmr_params;
+    mife_gc_params_t mife_gc_params;
     void *vparams = NULL;
     switch (scheme) {
     case MIFE_SCHEME_CMR:
@@ -608,14 +610,20 @@ mife_select_scheme(mife_scheme_e scheme, acirc_t *circ, size_t npowers,
         vparams = &mife_cmr_params;
         break;
     case MIFE_SCHEME_GC:
-        fprintf(stderr, "%s: not yet supported\n", errorstr);
-        abort();
+        *vt = &mife_gc_vtable;
+        *op_vt = &mife_gc_op_vtable;
+        vparams = &mife_gc_params;
     }
-
-    *op = obf_params_new(*op_vt, circ, vparams);
+    *op = (*op_vt)->new(circ, vparams);
     if (*op == NULL) {
         fprintf(stderr, "%s: initializing MIFE parameters failed\n", errorstr);
         return ERR;
+    }
+    if (g_verbose) {
+        if (circ_params_print(circ) == ERR)
+            return ERR;
+        if ((*op_vt)->print)
+            (*op_vt)->print(*op);
     }
     return OK;
 }
@@ -887,10 +895,16 @@ obf_select_scheme(obf_scheme_e scheme, acirc_t *circ, size_t npowers,
         vparams = &polylog_params;
         break;
     }
-    *op = obf_params_new(*op_vt, circ, vparams);
+    *op = (*op_vt)->new(circ, vparams);
     if (*op == NULL) {
         fprintf(stderr, "%s: initializing obfuscation parameters failed\n", errorstr);
         return ERR;
+    }
+    if (g_verbose) {
+        if (circ_params_print(circ) == ERR)
+            return ERR;
+        if ((*op_vt)->print)
+            (*op_vt)->print(*op);
     }
     return OK;
 }
