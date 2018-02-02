@@ -45,7 +45,6 @@ circ_params_print(const acirc_t *circ)
     fprintf(stderr, "Circuit parameters:\n");
     fprintf(stderr, "* # inputs:...... %lu\n", acirc_ninputs(circ));
     fprintf(stderr, "* # consts:...... %lu\n", acirc_nconsts(circ));
-    /* fprintf(stderr, "* # secrets:..... %lu\n", acirc_nsecrets(circ)); */
     fprintf(stderr, "* # outputs: .... %lu\n", acirc_noutputs(circ));
     fprintf(stderr, "* # symbols: .... %lu  [", acirc_nsymbols(circ));
     for (size_t i = 0; i < acirc_nsymbols(circ); ++i) {
