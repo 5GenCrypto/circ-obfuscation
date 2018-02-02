@@ -157,7 +157,7 @@ _fwrite(const obfuscation *const obf, FILE *const fp)
     vt->mife_ek_fwrite(obf->ek, fp);
     for (size_t i = 0; i < nslots; ++i) {
         for (size_t j = 0; j < acirc_symnum(circ, i); ++j) {
-            vt->mife_ct_fwrite(obf->cts[i][j], circ, fp);
+            vt->mife_ct_fwrite(obf->cts[i][j], obf->op, fp);
         }
     }
     return OK;
@@ -179,7 +179,7 @@ _fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     for (size_t i = 0; i < nslots; ++i) {
         obf->cts[i] = my_calloc(acirc_symnum(circ, i), sizeof obf->cts[i][0]);
         for (size_t j = 0; j < acirc_symnum(circ, i); ++j) {
-            if ((obf->cts[i][j] = vt->mife_ct_fread(mmap, circ, fp)) == NULL)
+            if ((obf->cts[i][j] = vt->mife_ct_fread(mmap, op, fp)) == NULL)
                 goto error;
         }
     }

@@ -1,4 +1,5 @@
 #include "mife_run.h"
+#include "mife_util.h"
 #include "util.h"
 
 #include <string.h>
@@ -160,7 +161,7 @@ mife_run_encrypt(const mmap_vtable *mmap, const mife_vtable *vt,
         double _start = current_time();
         char *ctname;
         ctname = makestr("%s.%lu.ct", circuit, slot);
-        mife_ct_write(vt, ct, ctname, circ);
+        mife_ct_write(vt, ct, ctname, op);
         free(ctname);
         if (g_verbose) {
             fprintf(stderr, "  Writing ciphertext to disk: %.2fs\n", current_time() - _start);
@@ -228,7 +229,7 @@ mife_run_decrypt(const mmap_vtable *mmap, const mife_vtable *vt,
                     __func__, cts_s[i]);
             goto cleanup;
         }
-        if ((cts[i] = vt->mife_ct_fread(mmap, circ, fp)) == NULL) {
+        if ((cts[i] = vt->mife_ct_fread(mmap, op, fp)) == NULL) {
             fprintf(stderr, "error: %s: unable to read ciphertext for slot %lu\n",
                     __func__, i);
             goto cleanup;

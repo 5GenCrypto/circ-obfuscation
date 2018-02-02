@@ -3,7 +3,7 @@
 
 int
 mife_ct_write(const mife_vtable *vt, mife_ct_t *ct, const char *ctname,
-              const acirc_t *circ)
+              const obf_params_t *op)
 {
     FILE *fp = NULL;
     int ret = ERR;
@@ -12,7 +12,7 @@ mife_ct_write(const mife_vtable *vt, mife_ct_t *ct, const char *ctname,
                 errorstr, __func__, ctname);
         goto cleanup;
     }
-    if (vt->mife_ct_fwrite(ct, circ, fp) == ERR) {
+    if (vt->mife_ct_fwrite(ct, op, fp) == ERR) {
         fprintf(stderr, "%s: %s: unable to write ciphertext to disk\n",
                 errorstr, __func__);
         goto cleanup;
