@@ -7,8 +7,7 @@
 int
 mife_run_setup(const mmap_vtable *mmap, const mife_vtable *vt,
                const acirc_t *circ, const obf_params_t *op, size_t secparam,
-               size_t *kappa, size_t npowers, size_t nthreads,
-               aes_randstate_t rng);
+               size_t *kappa, size_t nthreads, aes_randstate_t rng);
 int
 mife_run_encrypt(const mmap_vtable *mmap, const mife_vtable *vt,
                  const acirc_t *circ, const obf_params_t *op,
@@ -21,9 +20,8 @@ mife_run_decrypt(const mmap_vtable *mmap, const mife_vtable *vt,
 int
 mife_run_test(const mmap_vtable *mmap, const mife_vtable *vt,
               const acirc_t *circ, obf_params_t *op, size_t secparam,
-              size_t *kappa, size_t npowers, size_t nthreads,
-              aes_randstate_t rng);
+              size_t *kappa, size_t nthreads, aes_randstate_t rng);
 size_t
 mife_run_smart_kappa(const mife_vtable *vt, const acirc_t *circ,
-                     const obf_params_t *op, size_t npowers,
-                     size_t nthreads, aes_randstate_t rng);
+                     const obf_params_t *op, size_t nthreads,
+                     aes_randstate_t rng);

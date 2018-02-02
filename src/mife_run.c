@@ -8,8 +8,8 @@
 int
 mife_run_setup(const mmap_vtable *mmap, const mife_vtable *vt,
                const acirc_t *circ, const obf_params_t *op,
-               size_t secparam, size_t *kappa, size_t npowers,
-               size_t nthreads, aes_randstate_t rng)
+               size_t secparam, size_t *kappa, size_t nthreads,
+               aes_randstate_t rng)
 {
     const double start = current_time();
     const char *circuit = acirc_fname(circ);
@@ -26,10 +26,9 @@ mife_run_setup(const mmap_vtable *mmap, const mife_vtable *vt,
         fprintf(stderr, "* circuit: ............. %s\n", circuit);
         fprintf(stderr, "* security parameter: .. %lu\n", secparam);
         fprintf(stderr, "* # threads: ........... %lu\n", nthreads);
-        /* fprintf(stderr, "* # encodings: ......... %lu\n", mife_num_encodings_setup(cp, npowers)); */
     }
 
-    if ((mife = vt->mife_setup(mmap, op, secparam, kappa, npowers, nthreads, rng)) == NULL)
+    if ((mife = vt->mife_setup(mmap, op, secparam, kappa, nthreads, rng)) == NULL)
         goto cleanup;
     {
         const double _start = current_time();
@@ -324,12 +323,11 @@ mife_run_all(const mmap_vtable *mmap, const mife_vtable *vt,
 int
 mife_run_test(const mmap_vtable *mmap, const mife_vtable *vt,
               const acirc_t *circ, obf_params_t *op, size_t secparam,
-              size_t *kappa, size_t npowers, size_t nthreads,
-              aes_randstate_t rng)
+              size_t *kappa, size_t nthreads, aes_randstate_t rng)
 {
     int ret = OK;
 
-    if (mife_run_setup(mmap, vt, circ, op, secparam, kappa, npowers, nthreads, rng) == ERR)
+    if (mife_run_setup(mmap, vt, circ, op, secparam, kappa, nthreads, rng) == ERR)
         return ERR;
 
     for (size_t t = 0; t < acirc_ntests(circ); ++t) {
@@ -360,7 +358,7 @@ mife_run_test(const mmap_vtable *mmap, const mife_vtable *vt,
 
 size_t
 mife_run_smart_kappa(const mife_vtable *vt, const acirc_t *circ,
-                     const obf_params_t *op, size_t npowers, size_t nthreads,
+                     const obf_params_t *op, size_t nthreads,
                      aes_randstate_t rng)
 {
     long **inps = NULL;
@@ -374,7 +372,7 @@ mife_run_smart_kappa(const mife_vtable *vt, const acirc_t *circ,
         fprintf(stderr, "Choosing κ smartly... ");
 
     g_verbose = false;
-    if (mife_run_setup(&dummy_vtable, vt, circ, op, 8, &kappa, npowers, nthreads, rng) == ERR)
+    if (mife_run_setup(&dummy_vtable, vt, circ, op, 8, &kappa, nthreads, rng) == ERR)
         goto cleanup;
 
     for (size_t i = 0; i < acirc_nsymbols(circ); ++i)

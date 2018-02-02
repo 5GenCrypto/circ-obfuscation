@@ -63,7 +63,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
 
     obf = my_calloc(1, sizeof obf[0]);
     obf->op = op;
-    obf->mife = vt->mife_setup(mmap, op, secparam, kappa, op->npowers, nthreads, rng);
+    obf->mife = vt->mife_setup(mmap, op, secparam, kappa, nthreads, rng);
     obf->ek = vt->mife_ek(obf->mife);
     sk = vt->mife_sk(obf->mife);
     obf->cts = my_calloc(nslots, sizeof obf->cts[0]);

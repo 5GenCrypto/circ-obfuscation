@@ -452,7 +452,7 @@ mife_free(mife_t *mife)
 
 static mife_t *
 mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
-           size_t *kappa, size_t npowers, size_t nthreads, aes_randstate_t rng)
+           size_t *kappa, size_t nthreads, aes_randstate_t rng)
 {
     int result = ERR;
     mife_t *mife;
@@ -461,7 +461,7 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     threadpool *pool = threadpool_create(nthreads);
     pthread_mutex_t lock;
     size_t count = 0;
-    size_t total = mife_num_encodings_setup(circ, npowers);
+    size_t total = mife_num_encodings_setup(circ, op->npowers);
     index_set *ix;
     mpz_t *moduli;
     const size_t nslots = acirc_nslots(circ);
@@ -479,7 +479,7 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         goto cleanup;
     if ((mife->pp = public_params_new(mife->pp_vt, mife->sp_vt, mife->sp, op)) == NULL)
         goto cleanup;
-    mife->npowers = npowers;
+    mife->npowers = op->npowers;
     mife->zhat = encoding_new(mife->enc_vt, mife->pp_vt, mife->pp);
     mife->uhat = my_calloc(nslots, sizeof mife->uhat[0]);
     mife->deg_max = my_calloc(nslots, sizeof mife->deg_max[0]);
