@@ -402,8 +402,6 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     for (size_t i = 0; i < nsymbols; ++i)
         free(var_deg[i]);
 
-    /* mpz_vect_free(moduli, obf->mmap->sk->nslots(obf->sp->sk)); */
-
     return obf;
 }
 
@@ -530,8 +528,7 @@ cleanup:
 
 typedef struct {
     const obfuscation *obf;
-    size_t *input_syms;
-    const long *inputs;
+    const size_t *symbols;
     size_t *kappas;
 } obf_args_t;
 
@@ -555,7 +552,7 @@ input_f(size_t ref, size_t i, void *args_)
     const obfuscation *const obf = args->obf;
     const acirc_t *circ = obf->op->circ;
     const size_t slot = circ_params_slot(circ, i);
-    const size_t sym = args->input_syms[slot];
+    const size_t sym = args->symbols[slot];
     const size_t bit = circ_params_bit(circ, i);
     return copy_f(obf->shat[slot][sym][bit], args_);
 }
@@ -611,8 +608,8 @@ output_f(size_t ref, size_t o, void *x, void *args_)
 {
     (void) ref;
     long output = 1;
-    obf_args_t *args = args_;
-    const long *inputs = args->inputs;
+    const obf_args_t *args = args_;
+    const size_t *symbols = args->symbols;
     const obfuscation *obf = args->obf;
     const acirc_t *circ = obf->op->circ;
     encoding *out, *lhs, *rhs, *tmp;
@@ -625,15 +622,16 @@ output_f(size_t ref, size_t o, void *x, void *args_)
 
     /* Compute LHS */
     encoding_set(obf->enc_vt, lhs, x);
-    for (size_t k = 0; k < acirc_ninputs(circ); k++) {
+    for (size_t k = 0; k < acirc_nsymbols(circ); k++) {
         encoding_set(obf->enc_vt, tmp, lhs);
         encoding_mul(obf->enc_vt, obf->pp_vt, lhs, tmp,
-                     obf->zhat[k][inputs[k]][o], obf->pp);
+                     obf->zhat[k][symbols[k]][o], obf->pp);
     }
     if (raise_encoding(obf, lhs, toplevel) == ERR)
         goto cleanup;
     if (!index_set_eq(obf->enc_vt->mmap_set(lhs), toplevel)) {
-        fprintf(stderr, "lhs != toplevel\n");
+        fprintf(stderr, "%s: %s: lhs != toplevel\n", errorstr,
+                __func__);
         index_set_print(obf->enc_vt->mmap_set(lhs));
         index_set_print(toplevel);
         goto cleanup;
@@ -641,13 +639,14 @@ output_f(size_t ref, size_t o, void *x, void *args_)
 
     /* Compute RHS */
     encoding_set(obf->enc_vt, rhs, obf->Chatstar[o]);
-    for (size_t k = 0; k < acirc_ninputs(circ); k++) {
+    for (size_t k = 0; k < acirc_nsymbols(circ); k++) {
         encoding_set(obf->enc_vt, tmp, rhs);
         encoding_mul(obf->enc_vt, obf->pp_vt, rhs, tmp,
-                     obf->what[k][inputs[k]][o], obf->pp);
+                     obf->what[k][symbols[k]][o], obf->pp);
     }
     if (!index_set_eq(obf->enc_vt->mmap_set(rhs), toplevel)) {
-        fprintf(stderr, "rhs != toplevel\n");
+        fprintf(stderr, "%s: %s: rhs != toplevel\n", errorstr,
+                __func__);
         index_set_print(obf->enc_vt->mmap_set(rhs));
         index_set_print(toplevel);
         goto cleanup;
@@ -681,31 +680,32 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
 {
     const acirc_t *circ = obf->op->circ;
     size_t *kappas = NULL;
-    size_t *input_syms;
+    size_t *symbols;
     int ret = ERR;
 
     if (ninputs != acirc_ninputs(circ)) {
-        fprintf(stderr, "error: obf evaluate: invalid number of inputs\n");
+        fprintf(stderr, "%s: %s: invalid number of inputs\n",
+                errorstr, __func__);
         return ERR;
     }
     if (noutputs != acirc_noutputs(circ)) {
-        fprintf(stderr, "error: obf evaluate: invalid number of outputs\n");
+        fprintf(stderr, "%s: %s: invalid number of outputs\n",
+                errorstr, __func__);
         return ERR;
     }
 
     g_max_npowers = 0;
 
     if (kappa)
-        kappas = calloc(acirc_noutputs(circ), sizeof kappas[0]);
-    if ((input_syms = get_input_syms(inputs, ninputs, circ)) == NULL)
+        kappas = my_calloc(acirc_noutputs(circ), sizeof kappas[0]);
+    if ((symbols = get_input_syms(inputs, ninputs, circ)) == NULL)
         goto finish;
 
     {
         long *tmp;
         obf_args_t args = {
             .obf = obf,
-            .input_syms = input_syms,
-            .inputs = inputs,
+            .symbols = symbols,
             .kappas = kappas,
         };
         tmp = (long *) acirc_traverse((acirc_t *) circ, input_f, const_f, eval_f, output_f,
@@ -730,9 +730,8 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
 finish:
     if (kappas)
         free(kappas);
-    if (input_syms)
-        free(input_syms);
-
+    if (symbols)
+        free(symbols);
     return ret;
 }
 

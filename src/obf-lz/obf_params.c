@@ -10,11 +10,10 @@ PRIVATE size_t
 obf_params_nzs(const acirc_t *circ)
 {
     const size_t has_consts = acirc_nconsts(circ) ? 1 : 0;
-    const size_t ninputs = acirc_nsymbols(circ);
-    size_t q = 0;
-    for (size_t i = 0; i < ninputs; ++i)
-        q = q > acirc_symnum(circ, i) ? q : acirc_symnum(circ, i);
-    return (2 + q) * ninputs + has_consts;
+    size_t n = 0;
+    for (size_t i = 0; i < acirc_nsymbols(circ); ++i)
+        n += acirc_symnum(circ, i) + 2;
+    return n + has_consts;
 }
 
 PRIVATE index_set *

@@ -31,25 +31,39 @@ static inline void
 ix_s_set(index_set *ix, const acirc_t *circ, size_t k, size_t s, int pow)
 {
     const size_t has_consts = acirc_nconsts(circ) ? 1 : 0;
-    ix->pows[has_consts + acirc_symnum(circ, k) * k + s] = pow;
+    size_t n = 0;
+    for (size_t i = 0; i < k; ++i)
+        n += acirc_symnum(circ, i) + 2;
+    ix->pows[has_consts + n + s] = pow;
 }
 static inline int
 ix_s_get(index_set *ix, const acirc_t *circ, size_t k, size_t s)
 {
     const size_t has_consts = acirc_nconsts(circ) ? 1 : 0;
-    return ix->pows[has_consts + acirc_symnum(circ, k) * k + s];
+    size_t n = 0;
+    for (size_t i = 0; i < k; ++i)
+        n += acirc_symnum(circ, i) + 2;
+    return ix->pows[has_consts + n + s];
 }
 static inline void
 ix_z_set(index_set *ix, const acirc_t *circ, size_t k, int pow)
 {
     const size_t has_consts = acirc_nconsts(circ) ? 1 : 0;
-    ix->pows[has_consts + acirc_symnum(circ, k) * acirc_nsymbols(circ) + k] = pow;
+    size_t n = 0;
+    for (size_t i = 0; i < k; ++i)
+        n += acirc_symnum(circ, i) + 2;
+    n += acirc_symnum(circ, k);
+    ix->pows[has_consts + n] = pow;
 }
 static inline void
 ix_w_set(index_set *ix, const acirc_t *circ, size_t k, int pow)
 {
     const size_t has_consts = acirc_nconsts(circ) ? 1 : 0;
-    ix->pows[has_consts + (1 + acirc_symnum(circ, k)) * acirc_nsymbols(circ) + k] = pow;
+    size_t n = 0;
+    for (size_t i = 0; i < k; ++i)
+        n += acirc_symnum(circ, i) + 2;
+    n += acirc_symnum(circ, k);
+    ix->pows[has_consts + n + 1] = pow;
 }
 
 const acirc_t * pp_circ(const public_params *pp);

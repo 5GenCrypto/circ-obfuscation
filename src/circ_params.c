@@ -78,13 +78,13 @@ size_t *
 get_input_syms(const long *inputs, size_t ninputs, const acirc_t *circ)
 {
     const size_t nsymbols = acirc_nsymbols(circ);
-    size_t *input_syms;
+    size_t *symbols;
     size_t k = 0;
 
-    if ((input_syms = my_calloc(nsymbols, sizeof input_syms[0])) == NULL)
+    if ((symbols = my_calloc(nsymbols, sizeof symbols[0])) == NULL)
         return NULL;
     for (size_t i = 0; i < nsymbols; i++) {
-        input_syms[i] = 0;
+        symbols[i] = 0;
         for (size_t j = 0; j < acirc_symlen(circ, i); j++) {
             if (k >= ninputs) {
                 fprintf(stderr, "%s: too many symbols for input length\n",
@@ -92,20 +92,24 @@ get_input_syms(const long *inputs, size_t ninputs, const acirc_t *circ)
                 goto error;
             }
             if (acirc_is_sigma(circ, i))
-                input_syms[i] += inputs[k++] * j;
-            else
-                /* XXX causes an error if j > 63 */
-                input_syms[i] += inputs[k++] << j;
+                symbols[i] += inputs[k++] * j;
+            else if (j >= sizeof(size_t) * 8){
+                fprintf(stderr, "%s: overflow detected: symbol length > 64\n",
+                        errorstr);
+                goto error;
+            } else {
+                symbols[i] += inputs[k++] << j;
+            }
         }
-        if (input_syms[i] >= acirc_symnum(circ, i)) {
+        if (symbols[i] >= acirc_symnum(circ, i)) {
             fprintf(stderr, "%s: invalid input for symbol %lu (%ld > %lu)\n",
-                    errorstr, i, input_syms[i], acirc_symnum(circ, i));
+                    errorstr, i, symbols[i], acirc_symnum(circ, i));
             goto error;
         }
     }
-    return input_syms;
+    return symbols;
 error:
-    if (input_syms)
-        free(input_syms);
+    if (symbols)
+        free(symbols);
     return NULL;
 }
