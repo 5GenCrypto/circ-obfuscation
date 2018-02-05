@@ -49,26 +49,20 @@ min(int a, int b) {
 void mpz_randomm_inv(mpz_t rop, aes_randstate_t rng, const mpz_t modulus);
 
 mpz_t * mpz_vect_new(size_t n);
-void mpz_vect_init(mpz_t *vec, size_t n);
 void mpz_vect_print(mpz_t *vec, size_t n);
-void mpz_vect_clear(mpz_t *vec, size_t n);
 void mpz_vect_free(mpz_t *vec, size_t n);
-
-void mpz_vect_urandomm(mpz_t *vec, const mpz_t modulus, size_t n, aes_randstate_t rng);
-void mpz_vect_urandomms(mpz_t *vec, const mpz_t *moduli, size_t n, aes_randstate_t rng);
-
 void mpz_vect_mul(mpz_t *rop, const mpz_t *xs, const mpz_t *ys, size_t n);
 void mpz_vect_mod(mpz_t *rop, const mpz_t *xs, const mpz_t *moduli, size_t n);
 void mpz_vect_mul_mod(mpz_t *rop, const mpz_t *xs, const mpz_t *ys, const mpz_t *moduli, size_t n);
-
 void mpz_vect_set(mpz_t *rop, const mpz_t *xs, size_t n);
-
 void mpz_vect_repeat_ui(mpz_t *vec, size_t x, size_t n);
 
 size_t bit(size_t x, size_t i);
 
 void * my_calloc(size_t nmemb, size_t size);
 
+char * str_fread(FILE *fp);
+int    str_fwrite(const char *x, FILE *fp);
 int mpz_fread(mpz_t *x, FILE *fp);
 int mpz_fwrite(mpz_t x, FILE *fp);
 int int_fread(int *x, FILE *fp);
@@ -77,9 +71,6 @@ int size_t_fread(size_t *x, FILE *fp);
 int size_t_fwrite(size_t x, FILE *fp);
 int bool_fread(bool *x, FILE *fp);
 int bool_fwrite(bool x, FILE *fp);
-
-int array_sum(const int *xs, size_t n);
-size_t array_max(const size_t *xs, size_t n);
 
 void print_progress(size_t cur, size_t total);
 
@@ -94,3 +85,5 @@ int memory(unsigned long *size, unsigned long *resident);
 size_t filesize(const char *fname);
 
 char * makestr(const char *format, ...);
+char * longs_to_str(const long *xs, size_t n);
+long * str_to_longs(const char *str, size_t n);

@@ -39,6 +39,8 @@ _new(const acirc_t *circ, void *vparams)
     op->circ = circ;
     if (params)
         op->npowers = params->npowers;
+    /* XXX hack! */
+    else op->npowers = 1;
     return op;
 }
 

@@ -1,40 +1,40 @@
 :ninputs 5
-:nrefs 22
-:consts 1
-:secrets 0 1 0 1 0
 :outputs 21
 :symlens 2 3
 :sigmas 0 1
-:test 10010 1
-:test 00010 1
-:test 11100 1
-:test 11001 1
-:test 10100 1
-:test 10010 1
-:test 10100 1
-:test 00001 1
-:test 00010 1
-:test 11100 1
+:nrefs 22
+:consts 1
+:secrets 0 1 0 1 0
+:test 10001 0
+:test 10010 0
+:test 10001 0
+:test 10001 0
+:test 10010 0
+:test 00010 0
+:test 10010 0
+:test 01010 0
+:test 01001 0
+:test 10010 0
 :start
-0 input 0 : 1
-1 input 1 : 1
-2 input 2 : 1
-3 input 3 : 1
-4 input 4 : 1
-5 secret 0 : 1
-6 secret 1 : 1
-7 secret 2 : 1
-8 secret 3 : 1
-9 secret 4 : 1
-10 const 0 : 2
-11 add 0 5 : 1
-12 add 1 6 : 1
-13 add 2 7 : 1
-14 add 3 8 : 1
-15 add 4 9 : 1
-16 mul 11 12 : 1
-17 mul 13 14 : 1
-18 mul 16 17 : 1
-19 mul 18 15 : 1
-20 sub 10 19 : 1
-21 add 20 10 : 1
+0 input 0
+1 input 1
+2 input 2
+3 input 3
+4 input 4
+5 secret 0
+6 secret 1
+7 secret 2
+8 secret 3
+9 secret 4
+10 const 0
+11 xor 0 5
+12 xor 1 6
+13 xor 2 7
+14 xor 3 8
+15 xor 4 9
+16 and 11 12
+17 and 13 14
+18 and 16 17
+19 and 18 15
+20 not 19
+21 xor 20 10

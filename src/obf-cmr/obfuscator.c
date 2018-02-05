@@ -30,7 +30,7 @@ _free(obfuscation *obf)
             if (obf->cts[i]) {
                 for (size_t j = 0; j < acirc_symnum(circ, i); ++j) {
                     if (obf->cts[i][j])
-                        vt->mife_ct_free(obf->cts[i][j], circ);
+                        vt->mife_ct_free(obf->cts[i][j]);
                 }
                 free(obf->cts[i]);
             }
@@ -87,8 +87,8 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
             inputs = my_calloc(acirc_symlen(circ, i), sizeof inputs[0]);
             for (size_t k = 0; k < acirc_symlen(circ, i); ++k)
                 inputs[k] = acirc_is_sigma(circ, i) ? j == k : j;
-            obf->cts[i][j] = _mife_encrypt(sk, i, inputs, nthreads, rng, &cache,
-                                           NULL, false);
+            obf->cts[i][j] = mife_cmr_encrypt(sk, i, inputs, acirc_symlen(circ, i),
+                                              nthreads, rng, &cache, NULL);
             free(inputs);
         }
     }
@@ -157,7 +157,7 @@ _fwrite(const obfuscation *const obf, FILE *const fp)
     vt->mife_ek_fwrite(obf->ek, fp);
     for (size_t i = 0; i < nslots; ++i) {
         for (size_t j = 0; j < acirc_symnum(circ, i); ++j) {
-            vt->mife_ct_fwrite(obf->cts[i][j], obf->op, fp);
+            vt->mife_ct_fwrite(obf->cts[i][j], fp);
         }
     }
     return OK;
@@ -179,7 +179,7 @@ _fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     for (size_t i = 0; i < nslots; ++i) {
         obf->cts[i] = my_calloc(acirc_symnum(circ, i), sizeof obf->cts[i][0]);
         for (size_t j = 0; j < acirc_symnum(circ, i); ++j) {
-            if ((obf->cts[i][j] = vt->mife_ct_fread(mmap, op, fp)) == NULL)
+            if ((obf->cts[i][j] = vt->mife_ct_fread(mmap, obf->ek, fp)) == NULL)
                 goto error;
         }
     }

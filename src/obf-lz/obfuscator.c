@@ -28,7 +28,7 @@ struct obfuscation {
 typedef struct {
     const encoding_vtable *vt;
     encoding *enc;
-    mpz_t inps[2];
+    mpz_t *inps;
     index_set *ix;
     const secret_params *sp;
     pthread_mutex_t *count_lock;
@@ -46,7 +46,7 @@ static void obf_worker(void *wargs)
         print_progress(++*args->count, args->total);
         pthread_mutex_unlock(args->count_lock);
     }
-    mpz_vect_clear(args->inps, 2);
+    mpz_vect_free(args->inps, 2);
     index_set_free(args->ix);
     free(args);
 }
@@ -59,7 +59,7 @@ __encode(threadpool *pool, const encoding_vtable *vt, encoding *enc, mpz_t inps[
     obf_args *args = my_calloc(1, sizeof args[0]);
     args->vt = vt;
     args->enc = enc;
-    mpz_vect_init(args->inps, 2);
+    args->inps = mpz_vect_new(2);
     mpz_set(args->inps[0], inps[0]);
     mpz_set(args->inps[1], inps[1]);
     args->ix = ix;
@@ -219,7 +219,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     for (size_t i = 0; i < nsymbols; ++i)
         q = q > acirc_symnum(circ, i) ? q : acirc_symnum(circ, i);
 
-    mpz_t inps[2];
+    mpz_t *inps;
     mpz_t **alpha;
     mpz_t **beta = NULL;
     mpz_t gamma[nsymbols][q][noutputs];
@@ -236,7 +236,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     const size_t total = obf_params_num_encodings(op);
 
     pthread_mutex_init(&count_lock, NULL);
-    mpz_vect_init(inps, 2);
+    inps = mpz_vect_new(2);
 
     assert(obf->mmap->sk->nslots(obf->sp->sk) >= 2);
 
@@ -377,7 +377,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         threadpool_destroy(pool);
     pthread_mutex_destroy(&count_lock);
 
-    mpz_vect_clear(inps, 2);
+    mpz_vect_free(inps, 2);
 
     for (size_t k = 0; k < nsymbols; k++) {
         for (size_t j = 0; j < acirc_symlen(circ, k); j++) {

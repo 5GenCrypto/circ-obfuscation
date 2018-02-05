@@ -6,16 +6,16 @@
 :outputs 21
 :symlens 2 3
 :sigmas 0 1
-:test 00100 0
-:test 01010 0
-:test 01100 0
-:test 11001 0
-:test 10010 0
-:test 01001 0
-:test 01100 0
-:test 00100 0
 :test 11100 0
-:test 00010 0
+:test 11001 0
+:test 11001 0
+:test 00001 0
+:test 10100 0
+:test 10001 0
+:test 11001 0
+:test 00001 0
+:test 11001 0
+:test 11010 0
 :start
 0 input 0 : 1
 1 input 1 : 1

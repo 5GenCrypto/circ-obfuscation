@@ -7,6 +7,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -22,29 +23,11 @@ const char *warnstr = "\033[1;33mwarning\033[0m";
 bool g_verbose = false;
 debug_e g_debug = ERROR;
 
-double current_time(void) {
+double
+current_time(void) {
     struct timeval t;
     (void) gettimeofday(&t, NULL);
     return (double) (t.tv_sec + (double) (t.tv_usec / 1000000.0));
-}
-
-int array_sum(const int *xs, size_t n)
-{
-    size_t res = 0;
-    for (size_t i = 0; i < n; ++i) {
-        res += xs[i];
-    }
-    return res;
-}
-
-size_t array_max(const size_t *xs, size_t n)
-{
-    size_t max = 0;
-    for (size_t i = 0; i < n; ++i) {
-        if (max < xs[i])
-            max = xs[i];
-    }
-    return max;
 }
 
 static void
@@ -58,15 +41,9 @@ mpz_t *
 mpz_vect_new(size_t n)
 {
     mpz_t *xs = my_calloc(n, sizeof xs[0]);
-    mpz_vect_init(xs, n);
-    return xs;
-}
-
-void
-mpz_vect_init(mpz_t *xs, size_t n)
-{
     for (size_t i = 0; i < n; i++)
         mpz_init(xs[i]);
+    return xs;
 }
 
 void mpz_vect_print(mpz_t *xs, size_t len)
@@ -89,39 +66,15 @@ void mpz_vect_print(mpz_t *xs, size_t len)
 void
 mpz_vect_free(mpz_t *xs, size_t n)
 {
-    mpz_vect_clear(xs, n);
-    free(xs);
-}
-
-void
-mpz_vect_clear(mpz_t *xs, size_t n)
-{
     for (size_t i = 0; i < n; i++)
         mpz_clear(xs[i]);
+    free(xs);
 }
 
 void mpz_vect_set(mpz_t *rop, const mpz_t *xs, size_t n)
 {
     for (size_t i = 0; i < n; i++)
         mpz_set(rop[i], xs[i]);
-}
-
-void mpz_vect_urandomm(mpz_t *vec, const mpz_t modulus, size_t n, aes_randstate_t rng)
-{
-    for (size_t i = 0; i < n; i++) {
-        do {
-            mpz_urandomm_aes(vec[i], rng, modulus);
-        } while (mpz_cmp_ui(vec[i], 0) == 0);
-    }
-}
-
-void mpz_vect_urandomms(mpz_t *vec, const mpz_t *moduli, size_t n, aes_randstate_t rng)
-{
-    for (size_t i = 0; i < n; i++) {
-        do {
-            mpz_urandomm_aes(vec[i], rng, moduli[i]);
-        } while (mpz_cmp_ui(vec[i], 0) == 0);
-    }
 }
 
 void mpz_vect_mul(mpz_t *rop, const mpz_t *xs, const mpz_t *ys, size_t n)
@@ -251,6 +204,34 @@ bool_fwrite(bool x, FILE *fp)
     return OK;
 }
 
+char *
+str_fread(FILE *fp)
+{
+    size_t len;
+    char *str = NULL;
+    if (size_t_fread(&len, fp) == ERR) goto error;
+    if ((str = my_calloc(len, sizeof str[0])) == NULL) goto error;
+    if (fread(str, 1, len, fp) != len) goto error;
+    return str;
+error:
+    fprintf(stderr, "%s: reading string failed\n", errorstr);
+    if (str)
+        free(str);
+    return NULL;
+}
+
+int
+str_fwrite(const char *x, FILE *fp)
+{
+    if (size_t_fwrite(strlen(x) + 1, fp) == ERR) return ERR;
+    if (fwrite(x, sizeof x[0], strlen(x) + 1, fp) != strlen(x) + 1) {
+        fprintf(stderr, "%s: writing string failed\n", errorstr);
+        return ERR;
+    }
+    return OK;
+}
+
+
 void
 print_progress(size_t cur, size_t total)
 {
@@ -373,8 +354,11 @@ filesize(const char *fname)
     struct stat st;
     if (stat(fname, &st) == 0)
         return st.st_size;
-    else
+    else {
+        fprintf(stderr, "%s: unable to get file size of '%s'\n",
+                warnstr, fname);
         return 0;
+    }
 }
 
 char *
@@ -391,4 +375,26 @@ makestr(const char *fmt, ...)
     (void) vsnprintf(str, length + 1, fmt, argp);
     va_end(argp);
     return str;
+}
+
+char *
+longs_to_str(const long *xs, size_t n)
+{
+    char *str;
+    str = my_calloc(sizeof(long) * (n + 1), sizeof str[0]);
+    for (size_t i = 0; i < n; ++i) {
+        snprintf(&str[i], sizeof(long), "%ld", xs[i]);
+    }
+    return str;
+}
+
+long *
+str_to_longs(const char *str, size_t n)
+{
+    long *xs;
+    xs = my_calloc(n, sizeof xs[0]);
+    for (size_t i = 0; i < n; ++i) {
+        xs[i] = char_to_long(str[i]);
+    }
+    return xs;
 }

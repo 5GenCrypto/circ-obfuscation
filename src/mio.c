@@ -612,7 +612,10 @@ mife_select_scheme(mife_scheme_e scheme, acirc_t *circ, size_t npowers,
     case MIFE_SCHEME_GC:
         *vt = &mife_gc_vtable;
         *op_vt = &mife_gc_op_vtable;
+        mife_gc_params.indexed = false;
+        mife_gc_params.padding = 4;
         vparams = &mife_gc_params;
+        break;
     }
     *op = (*op_vt)->new(circ, vparams);
     if (*op == NULL) {
@@ -660,15 +663,17 @@ cmd_mife_encrypt(int argc, char **argv, args_t *args)
     op_vtable *op_vt = NULL;
     obf_params_t *op = NULL;
     long *input = NULL;
+    size_t ninputs;
     size_t slot;
     int ret = ERR;
 
     argv++; argc--;
     mife_encrypt_args_init(&args_);
     handle_options(&argc, &argv, 2, args, &args_, mife_encrypt_handle_options, mife_encrypt_usage);
-    if ((input = my_calloc(strlen(argv[0]), sizeof input[0])) == NULL)
+    ninputs = strlen(argv[0]);
+    if ((input = my_calloc(ninputs, sizeof input[0])) == NULL)
         goto cleanup;
-    for (size_t i = 0; i < strlen(argv[0]); ++i) {
+    for (size_t i = 0; i < ninputs; ++i) {
         if ((input[i] = char_to_long(argv[0][i])) < 0)
             goto cleanup;
     }
@@ -676,7 +681,7 @@ cmd_mife_encrypt(int argc, char **argv, args_t *args)
         goto cleanup;
     if (mife_select_scheme(args_.scheme, args->circ, 0, &vt, &op_vt, &op) == ERR)
         goto cleanup;
-    if (mife_run_encrypt(args->vt, vt, args->circ, op, input, slot,
+    if (mife_run_encrypt(args->vt, vt, args->circ, op, input, ninputs, slot,
                          args->nthreads, NULL, args->rng) == ERR)
         goto cleanup;
     ret = OK;

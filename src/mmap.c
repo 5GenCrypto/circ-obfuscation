@@ -6,20 +6,6 @@
 #include <stdio.h>
 #include <mmap/mmap_clt_pl.h>
 
-static void
-mmap_params_fprint(FILE *fp, const mmap_params_t *params)
-{
-    fprintf(fp, "Multilinear map parameter settings:\n");
-    fprintf(fp, "* κ:       %lu\n", params->kappa);
-    fprintf(fp, "* # Zs:    %lu\n", params->nzs);
-    fprintf(fp, "* # slots: %lu\n", params->nslots);
-    fprintf(fp, "* toplevel: ");
-    for (size_t i = 0; i < params->nzs; ++i) {
-        fprintf(fp, "%d ", params->pows[i]);
-    }
-    fprintf(fp, "\n");
-}
-
 secret_params *
 secret_params_new(const sp_vtable *vt, const obf_params_t *op, const acirc_t *circ,
                   size_t lambda, size_t *kappa, size_t ncores, aes_randstate_t rng)
@@ -35,8 +21,17 @@ secret_params_new(const sp_vtable *vt, const obf_params_t *op, const acirc_t *ci
         free(sp);
         return NULL;
     }
-    if (g_verbose)
-        mmap_params_fprint(stderr, &params);
+    if (g_verbose) {
+        fprintf(stderr, "Multilinear map parameter settings:\n");
+        fprintf(stderr, "———— κ:       %lu\n", params.kappa);
+        fprintf(stderr, "———— # Zs:    %lu\n", params.nzs);
+        fprintf(stderr, "———— # slots: %lu\n", params.nslots);
+        fprintf(stderr, "———— toplevel: ");
+        for (size_t i = 0; i < params.nzs; ++i) {
+            fprintf(stderr, "%d ", params.pows[i]);
+        }
+        fprintf(stderr, "\n");
+    }
     if (kappa)
         *kappa = params.kappa;
     mmap_sk_params p = {

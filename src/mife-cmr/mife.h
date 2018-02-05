@@ -21,9 +21,9 @@ typedef mife_ek_t mife_cmr_mife_ek_t;
 typedef mife_ct_t mife_cmr_mife_ct_t;
 
 mife_ct_t *
-_mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
-              size_t nthreads, aes_randstate_t rng, mife_encrypt_cache_t *cache,
-              mpz_t *alphas, bool parallelize_circ_eval);
+mife_cmr_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
+                 size_t ninputs, size_t nthreads, aes_randstate_t rng,
+                 mife_encrypt_cache_t *cache, mpz_t *_alphas);
 
 extern mife_vtable mife_cmr_vtable;
 extern op_vtable mife_cmr_op_vtable;

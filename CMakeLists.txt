@@ -13,6 +13,7 @@ set(mio_SOURCES
   src/index_set.c
   src/mmap.c
   src/mife_run.c
+  src/mife_util.c
   src/obf_run.c
   src/util.c
   )
@@ -56,11 +57,12 @@ set(obf_polylog_SOURCES
 add_library(obf_lz SHARED ${obf_lz_SOURCES})
 add_library(mife_cmr SHARED ${mife_cmr_SOURCES})
 add_library(obf_cmr SHARED ${obf_cmr_SOURCES})
-# add_library(mife_gc SHARED ${mife_gc_SOURCES})
+add_library(mife_gc SHARED ${mife_gc_SOURCES})
 add_library(obf_polylog SHARED ${obf_polylog_SOURCES})
 add_executable(mio src/mio.c)
-target_link_libraries(mio obf_lz)
 target_link_libraries(mio mife_cmr)
+target_link_libraries(mio mife_gc)
+target_link_libraries(mio obf_lz)
 target_link_libraries(mio obf_cmr)
 target_link_libraries(mio obf_polylog)
 find_library(libacirc acirc)
