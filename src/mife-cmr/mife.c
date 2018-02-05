@@ -977,6 +977,8 @@ write_f(size_t ref, void *x, void *args_)
     decrypt_args_t *args = args_;
     int ret = ACIRC_ERR;
     FILE *fp = NULL;
+    if (args->dirname == NULL)
+        return OK;
     if (!args->dir_exists) {
         DIR *dir = NULL;
         dir = opendir(args->dirname);
@@ -1019,9 +1021,9 @@ read_f(size_t ref, void *args_)
     return rop;
 }
 
-static int
-mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
-             size_t nthreads, size_t *kappa)
+int
+mife_cmr_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
+                 size_t nthreads, size_t *kappa, size_t save)
 {
     const acirc_t *circ = ek->op->circ;
     char *dirname = NULL;
@@ -1037,7 +1039,8 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
 
     {
         long *out;
-        dirname = makestr("%s.encodings", acirc_fname(circ));
+        if (save)
+            dirname = makestr("%s.encodings", acirc_fname(circ));
         decrypt_args_t args = {
             .circ = circ,
             .cts = cts,
@@ -1071,6 +1074,13 @@ cleanup:
     if (kappa && kappas)
         free(kappas);
     return ret;
+}
+
+static int
+mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
+             size_t nthreads, size_t *kappa)
+{
+    return mife_cmr_decrypt(ek, rop, cts, nthreads, kappa, false);
 }
 
 mife_vtable mife_cmr_vtable = {

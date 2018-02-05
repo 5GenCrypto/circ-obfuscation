@@ -25,6 +25,11 @@ mife_cmr_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
                  size_t ninputs, size_t nthreads, aes_randstate_t rng,
                  mife_encrypt_cache_t *cache, mpz_t *_alphas);
 
+int
+mife_cmr_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
+                 size_t nthreads, size_t *kappa, size_t save);
+
+
 extern mife_vtable mife_cmr_vtable;
 extern op_vtable mife_cmr_op_vtable;
 

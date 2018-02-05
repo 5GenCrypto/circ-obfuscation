@@ -241,7 +241,7 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
             fprintf(stderr, "— Generating garbled circuit: ");
 
         cmd = makestr("boots garble \"%s\" -p %lu -s %lu",
-                      acirc_fname(op->circ), op->padding, secparam);
+                      acirc_fname(op->circ), op->padding, op->wirelen);
         if (system(cmd) != 0) {
             if (g_verbose) fprintf(stderr, "\n");
             fprintf(stderr, "%s: %s: error calling '%s'\n",
@@ -322,9 +322,8 @@ mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
              size_t ninputs, size_t nthreads, aes_randstate_t rng)
 {
     mife_ct_t *ct = NULL;
-    char *cmd = NULL, *inp = NULL;
+    char *cmd = NULL, *inp = NULL, *seed_s = NULL;
     FILE *fp = NULL;
-    char seed_s[80];          /* XXX */
     long *seed = NULL;
 
     if (ninputs != acirc_symlen(sk->circ, slot)) {
@@ -350,9 +349,11 @@ mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
     }
     {
         const double start = current_time();
-        const size_t seedlen = 8; /* XXX */
+        const size_t seedlen = sk->wirelen;
         if (g_verbose)
             fprintf(stderr, "— Running MIFE encrypt on input seed\n");
+        if ((seed_s = my_calloc(seedlen, sizeof seed_s[0])) == NULL)
+            goto cleanup;
         if ((fp = fopen("obf/seed", "r")) == NULL) {
             fprintf(stderr, "%s: %s: unable to open seed file\n",
                     errorstr, __func__);
@@ -374,6 +375,8 @@ mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
                     current_time() - start);
     }
 cleanup:
+    if (seed_s)
+        free(seed_s);
     if (fp)
         fclose(fp);
     if (seed)
@@ -392,6 +395,7 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
     (void) rop;
     const size_t noutputs = acirc_noutputs(ek->gc);
     mife_ct_t **cmr_cts = NULL;
+    char *outs = NULL;
     FILE *fp = NULL;
     long *rop_ = NULL;
     int ret = ERR;
@@ -412,57 +416,84 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
         const double start = current_time();
         mife_ct_t *ct = NULL;
         char *ctname = NULL, *wire = NULL;
+        int ret_ = ERR;
         if (g_verbose)
             fprintf(stderr, "— Running MIFE decrypt on garbled gate #%lu\n", i);
         ctname = makestr("%s.ix%lu.1.ct", acirc_fname(ek->gc), i);
         if ((ct = mife_ct_read(ek->mmap, &mife_gc_vtable, ek, ctname)) == NULL) {
             fprintf(stderr, "%s: %s: failed to read ciphertext\n",
                     errorstr, __func__);
-            free(ctname);
-            goto cleanup;
+            goto cleanup_;
         }
         cmr_cts[acirc_nsymbols(ek->circ)] = ct->ct;
-        free(ctname);
-        if (ek->vt->mife_decrypt(ek->ek, rop_, (const mife_ct_t **) cmr_cts,
-                                 nthreads, kappa) == ERR) {
+        if (mife_cmr_decrypt(ek->ek, rop_, (const mife_ct_t **) cmr_cts,
+                             nthreads, kappa, true) == ERR) {
             fprintf(stderr, "%s: %s: mife decrypt failed on garbled circuit\n",
                     errorstr, __func__);
-            goto cleanup;
+            goto cleanup_;
         }
         wire = longs_to_str(rop_, noutputs);
         if (fwrite(wire, sizeof wire[0], noutputs, fp) != noutputs) {
             fprintf(stderr, "%s: %s: failed to write wire to file\n",
                     errorstr, __func__);
-            free(wire);
-            goto cleanup;
+            goto cleanup_;
         }
         if (fwrite("\n", sizeof(char), 1, fp) != 1) {
             fprintf(stderr, "%s: %s: failed to write wire to file\n",
                     errorstr, __func__);
-            free(wire);
-            goto cleanup;
+            goto cleanup_;
         }
-        free(wire);
-        mife_ct_free(ct);
+        ret_ = OK;
+        acirc_set_saved(ek->gc);
+    cleanup_:
+        if (wire)
+            free(wire);
+        if (ctname)
+            free(ctname);
+        if (ct)
+            mife_ct_free(ct);
+        if (ret_ == ERR)
+            goto cleanup;
         if (g_verbose)
             fprintf(stderr, "— MIFE decrypt: %.2f s\n",
                     current_time() - start);
     }
+    fclose(fp);
+    fp = NULL;
     {
         const double start = current_time();
         if (g_verbose)
             fprintf(stderr, "— Evaluating the garbled circuit\n");
-        if (system("boots eval") != 0) {
-            fprintf(stderr, "%s: %s: error calling '%s'\n",
+        if ((outs = my_calloc(1025, sizeof outs[0])) == NULL)
+            goto cleanup;
+        if ((fp = popen("boots eval", "r")) == NULL) {
+            fprintf(stderr, "%s: %s: failed to run '%s'\n",
                     errorstr, __func__, "boots eval");
             goto cleanup;
         }
+        if (fgets(outs, 1025, fp) == NULL) {
+            fprintf(stderr, "%s: %s: failed to get output\n",
+                    errorstr, __func__);
+            pclose(fp); fp = NULL;
+            goto cleanup;
+        }
+        if (pclose(fp)) {
+            fprintf(stderr, "%s: %s: '%s' failed: %s\n",
+                    errorstr, __func__, "boots eval", outs);
+            fp = NULL;
+            goto cleanup;
+        }
+        for (size_t i = 0; i < acirc_noutputs(ek->circ); ++i)
+            rop[i] = char_to_long(outs[i]);
         if (g_verbose)
             fprintf(stderr, "— Evaluation time: %.2f s\n",
                     current_time() - start);
     }
+    fp = NULL;
     ret = OK;
 cleanup:
+    if (outs)
+        free(outs);
     if (fp)
         fclose(fp);
     if (cmr_cts)
