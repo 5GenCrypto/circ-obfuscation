@@ -53,7 +53,7 @@ mife_run_setup(const mmap_vtable *mmap, const mife_vtable *vt,
             goto cleanup;
         fclose(fp);
         if (g_verbose)
-            fprintf(stderr, "Writing secret key to disk: %.2f s [%lu KB]\n",
+            fprintf(stderr, "— Writing secret key to disk: %.2f s [%lu KB]\n",
                     current_time() - _start, filesize(skname) / 1024);
     }
     {
@@ -69,7 +69,7 @@ mife_run_setup(const mmap_vtable *mmap, const mife_vtable *vt,
             goto cleanup;
         fclose(fp);
         if (g_verbose)
-            fprintf(stderr, "Writing evaluation key to disk: %.2f s [%lu KB]\n",
+            fprintf(stderr, "— Writing evaluation key to disk: %.2f s [%lu KB]\n",
                     current_time() - _start, filesize(ekname) / 1024);
     }
     if (g_verbose)
@@ -143,7 +143,7 @@ mife_run_encrypt(const mmap_vtable *mmap, const mife_vtable *vt,
         }
         fclose(fp);
         if (g_verbose)
-            fprintf(stderr, "Reading secret key from disk: %.2f s [%lu KB]\n",
+            fprintf(stderr, "— Reading secret key from disk: %.2f s [%lu KB]\n",
                     current_time() - _start, filesize(skname) / 1024);
         free(skname);
     } else {
@@ -161,7 +161,7 @@ mife_run_encrypt(const mmap_vtable *mmap, const mife_vtable *vt,
         ctname = makestr("%s.%lu.ct", circuit, slot);
         mife_ct_write(vt, ct, ctname);
         if (g_verbose)
-            fprintf(stderr, "Writing ciphertext to disk: %.2f s [%lu KB]\n",
+            fprintf(stderr, "— Writing ciphertext to disk: %.2f s [%lu KB]\n",
                     current_time() - _start, filesize(ctname) / 1024);
         free(ctname);
     }
@@ -216,7 +216,7 @@ mife_run_decrypt(const mmap_vtable *mmap, const mife_vtable *vt,
         }
         fclose(fp);
         if (g_verbose)
-            fprintf(stderr, "Reading evaluation key from disk: %.2f s [%lu KB]\n",
+            fprintf(stderr, "— Reading evaluation key from disk: %.2f s [%lu KB]\n",
                     current_time() - _start, filesize(ek_s) / 1024);
     }
 
@@ -225,7 +225,7 @@ mife_run_decrypt(const mmap_vtable *mmap, const mife_vtable *vt,
         if ((cts[i] = mife_ct_read(mmap, vt, ek, cts_s[i])) == NULL)
             goto cleanup;
         if (g_verbose)
-            fprintf(stderr, "Reading ciphertext #%lu from disk: %.2f s [%lu KB]\n",
+            fprintf(stderr, "— Reading ciphertext #%lu from disk: %.2f s [%lu KB]\n",
                     i, current_time() - _start, filesize(cts_s[i]) / 1024);
     }
     if (vt->mife_decrypt(ek, rop, (const mife_ct_t **) cts, nthreads, kappa) == ERR) {
@@ -269,7 +269,7 @@ mife_run_all(const mmap_vtable *mmap, const mife_vtable *vt,
         if (sk == NULL)
             return ERR;
         if (g_verbose)
-            fprintf(stderr, "Reading secret key from disk: %.2f s [%lu KB]\n",
+            fprintf(stderr, "— Reading secret key from disk: %.2f s [%lu KB]\n",
                     current_time() - _start, filesize(skname) / 1024);
         free(skname);
     }
@@ -284,6 +284,7 @@ mife_run_all(const mmap_vtable *mmap, const mife_vtable *vt,
                 fprintf(stderr, "%ld", inp[i][j]);
             }
             fprintf(stderr, "' in slot %lu failed\n", i);
+            vt->mife_sk_free(sk);
             return ERR;
         }
     }

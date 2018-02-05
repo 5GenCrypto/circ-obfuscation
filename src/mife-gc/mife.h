@@ -5,6 +5,7 @@
 typedef struct {
     bool indexed;
     size_t padding;
+    size_t wirelen;
 } mife_gc_params_t;
 
 extern mife_vtable mife_gc_vtable;

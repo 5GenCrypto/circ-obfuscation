@@ -4,17 +4,21 @@
 #include "../util.h"
 
 static obf_params_t *
-_new(const acirc_t *circ, void *vparams)
+_new(const acirc_t *circ, void *params_)
 {
-    mife_gc_params_t *params = vparams;
+    mife_gc_params_t *params = params_;
     obf_params_t *op;
+
+    if (params == NULL)
+        return NULL;
 
     if ((op = my_calloc(1, sizeof op[0])) == NULL)
         return NULL;
     op->circ = circ;
     op->vt = &mife_cmr_vtable;
-    op->indexed = params ? params->indexed : false;
-    op->padding = params ? params->padding : 10;
+    op->indexed = params->indexed;
+    op->padding = params->padding;
+    op->wirelen = params->wirelen;
     return op;
 }
 

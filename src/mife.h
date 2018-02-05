@@ -16,10 +16,12 @@ typedef struct {
     mife_sk_t * (*mife_sk)(const mife_t *mife);
     void        (*mife_sk_free)(mife_sk_t *sk);
     int         (*mife_sk_fwrite)(const mife_sk_t *sk, FILE *fp);
+    /* XXX should be circ instead of op */
     mife_sk_t * (*mife_sk_fread)(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp);
     mife_ek_t * (*mife_ek)(const mife_t *mife);
     void        (*mife_ek_free)(mife_ek_t *ek);
     int         (*mife_ek_fwrite)(const mife_ek_t *ek, FILE *fp);
+    /* XXX should be circ instead of op */
     mife_ek_t * (*mife_ek_fread)(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp);
     void        (*mife_ct_free)(mife_ct_t *ct);
     int         (*mife_ct_fwrite)(const mife_ct_t *ct, FILE *fp);

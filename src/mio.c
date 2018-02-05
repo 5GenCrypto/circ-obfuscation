@@ -612,8 +612,9 @@ mife_select_scheme(mife_scheme_e scheme, acirc_t *circ, size_t npowers,
     case MIFE_SCHEME_GC:
         *vt = &mife_gc_vtable;
         *op_vt = &mife_gc_op_vtable;
-        mife_gc_params.indexed = false;
+        mife_gc_params.indexed = true;
         mife_gc_params.padding = 4;
+        mife_gc_params.wirelen = 40; /* XXX */
         vparams = &mife_gc_params;
         break;
     }

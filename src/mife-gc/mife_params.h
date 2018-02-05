@@ -8,4 +8,5 @@ struct obf_params_t {
     const mife_vtable *vt;
     bool indexed;
     size_t padding;
+    size_t wirelen;
 };

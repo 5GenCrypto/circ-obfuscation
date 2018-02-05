@@ -1045,8 +1045,9 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
             .kappas = kappas,
             .dirname = dirname,
         };
-        out = (long *) acirc_traverse((acirc_t *) circ, input_f, const_f, eval_f, output_f,
-                                      free_f, write_f, read_f, &args, nthreads);
+        out = (long *) acirc_traverse((acirc_t *) circ, input_f, const_f,
+                                      eval_f, output_f, free_f, write_f,
+                                      read_f, &args, nthreads);
         if (out == NULL)
             goto cleanup;
         if (rop)
