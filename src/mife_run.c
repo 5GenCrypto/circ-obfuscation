@@ -198,7 +198,7 @@ mife_run_decrypt(const mmap_vtable *mmap, const mife_vtable *vt,
         fprintf(stderr, "———— evaluation key: . %s\n", ek_s);
         fprintf(stderr, "———— ciphertexts: .... ");
         for (size_t i = 0; i < acirc_nsymbols(circ); ++i) {
-            fprintf(stderr, "%s%s\n", i == 0 ? "" : "                    ", cts_s[i]);
+            fprintf(stderr, "%s%s\n", i == 0 ? "" : "                       ", cts_s[i]);
         }
     }
 

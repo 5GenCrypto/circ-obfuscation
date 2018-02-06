@@ -33,7 +33,7 @@ static const char *progversion = "v2.0.0 (in progress)";
 #define NPOWERS_DEFAULT 1
 #define SECPARAM_DEFAULT 8
 #define WORDSIZE_DEFAULT 64
-#define PADDING_DEFAULT 10
+#define PADDING_DEFAULT 4
 
 typedef enum {
     OBF_SCHEME_LZ,
@@ -81,7 +81,7 @@ args_get_mife_scheme(mife_scheme_e *scheme, int *argc, char ***argv)
     } else if (!strcmp(str, "GC")) {
         *scheme = MIFE_SCHEME_GC;
     } else {
-        fprintf(stderr, "%s: unknown scheme '%s'\n", errorstr, str);
+        fprintf(stderr, "%s: unknown mife scheme '%s'\n", errorstr, str);
         return ERR;
     }
     (*argv)++; (*argc)--;

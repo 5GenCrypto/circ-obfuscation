@@ -265,7 +265,7 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
             if (g_verbose)
                 fprintf(stderr, "— Generating encryptions for %lu indices\n",
                         acirc_nmuls(mife->op->circ));
-            for (size_t i = 0; i < acirc_nmuls(mife->op->circ); ++i) {
+            for (size_t i = 0; i < acirc_symlen(mife->gc, 1); ++i) {
                 char *ctname = NULL;
                 mife_cmr_mife_ct_t *ct = NULL;
                 long *input = NULL;
@@ -407,7 +407,7 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
         goto cleanup;
     }
 
-    for (size_t i = 0; i < acirc_nmuls(ek->circ); ++i) {
+    for (size_t i = 0; i < acirc_symlen(ek->gc, 1); ++i) { /* XXX */
         const double start = current_time();
         mife_ct_t *ct = NULL;
         char *ctname = NULL, *wire = NULL;
