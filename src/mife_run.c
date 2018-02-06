@@ -94,12 +94,10 @@ cleanup:
 
 int
 mife_run_encrypt(const mmap_vtable *mmap, const mife_vtable *vt,
-                 const acirc_t *circ, const obf_params_t *op,
-                 const long *input, size_t ninputs, size_t slot,
-                 size_t nthreads, mife_sk_t *cached_sk,
+                 const acirc_t *circ, const long *input, size_t ninputs,
+                 size_t slot, size_t nthreads, mife_sk_t *cached_sk,
                  aes_randstate_t rng)
 {
-    (void) op;
     const double start = current_time();
     const char *circuit = acirc_fname(circ);
     mife_ct_t *ct = NULL;
@@ -183,9 +181,8 @@ cleanup:
 int
 mife_run_decrypt(const mmap_vtable *mmap, const mife_vtable *vt,
                  const acirc_t *circ, const char *ek_s, char **cts_s, long *rop,
-                 const obf_params_t *op, size_t *kappa, size_t nthreads)
+                 size_t *kappa, size_t nthreads)
 {
-    (void) op;
     const double start = current_time();
     mife_ct_t *cts[acirc_nsymbols(circ)];
     mife_ek_t *ek = NULL;
@@ -248,8 +245,8 @@ cleanup:
 
 static int
 mife_run_all(const mmap_vtable *mmap, const mife_vtable *vt,
-             const acirc_t *circ, const obf_params_t *op, long **inp,
-             long *outp, size_t *kappa, size_t nthreads, aes_randstate_t rng)
+             const acirc_t *circ, long **inp, long *outp,
+             size_t *kappa, size_t nthreads, aes_randstate_t rng)
 {
     const char *circuit = acirc_fname(circ);
     mife_sk_t *sk = NULL;
@@ -278,7 +275,7 @@ mife_run_all(const mmap_vtable *mmap, const mife_vtable *vt,
 
     /* Encrypt each input in the right slot */
     for (size_t i = 0; i < acirc_nsymbols(circ); ++i) {
-        if (mife_run_encrypt(mmap, vt, circ, op, inp[i], acirc_symlen(circ, i),
+        if (mife_run_encrypt(mmap, vt, circ, inp[i], acirc_symlen(circ, i),
                              i, nthreads, sk, rng) == ERR) {
             fprintf(stderr, "%s: %s: mife encryption of '",
                     errorstr, __func__);
@@ -300,7 +297,7 @@ mife_run_all(const mmap_vtable *mmap, const mife_vtable *vt,
         ek = makestr("%s.ek", circuit);
         for (size_t j = 0; j < acirc_nsymbols(circ); ++j)
             cts[j] = makestr("%s.%lu.ct", circuit, j);
-        ret = mife_run_decrypt(mmap, vt, circ, ek, cts, outp, op, kappa, nthreads);
+        ret = mife_run_decrypt(mmap, vt, circ, ek, cts, outp, kappa, nthreads);
         for (size_t j = 0; j < acirc_nsymbols(circ); ++j)
             free(cts[j]);
         free(ek);
@@ -315,7 +312,8 @@ mife_run_test(const mmap_vtable *mmap, const mife_vtable *vt,
 {
     int ret = OK;
 
-    if (mife_run_setup(mmap, vt, circ, op, secparam, NULL, NULL, kappa, nthreads, rng) == ERR)
+    if (mife_run_setup(mmap, vt, circ, op, secparam, NULL, NULL, kappa,
+                       nthreads, rng) == ERR)
         return ERR;
 
     for (size_t t = 0; t < acirc_ntests(circ); ++t) {
@@ -328,7 +326,7 @@ mife_run_test(const mmap_vtable *mmap, const mife_vtable *vt,
                    acirc_symlen(circ, i) * sizeof inps[i][0]);
             idx += acirc_symlen(circ, i);
         }
-        if (mife_run_all(mmap, vt, circ, op, inps, outp, kappa, nthreads,
+        if (mife_run_all(mmap, vt, circ, inps, outp, kappa, nthreads,
                          rng) == OK) {
             if (!print_test_output(t + 1, acirc_test_input(circ, t),
                                    acirc_ninputs(circ),
@@ -356,7 +354,7 @@ mife_run_smart_kappa(const mife_vtable *vt, const acirc_t *circ,
                      aes_randstate_t rng)
 {
     long **inps = NULL;
-    size_t kappa = 1;
+    size_t kappa = 0;
     bool verbosity = g_verbose;
 
     if ((inps = my_calloc(acirc_nsymbols(circ), sizeof inps[0])) == NULL)
@@ -371,7 +369,7 @@ mife_run_smart_kappa(const mife_vtable *vt, const acirc_t *circ,
 
     for (size_t i = 0; i < acirc_nsymbols(circ); ++i)
         inps[i] = my_calloc(acirc_symlen(circ, i), sizeof inps[i][0]);
-    if (mife_run_all(&dummy_vtable, vt, circ, op, inps, NULL, &kappa, nthreads, rng) == ERR) {
+    if (mife_run_all(&dummy_vtable, vt, circ, inps, NULL, &kappa, nthreads, rng) == ERR) {
         fprintf(stderr, "%s: %s: unable to determine κ smartly\n",
                 errorstr, __func__);
         kappa = 0;

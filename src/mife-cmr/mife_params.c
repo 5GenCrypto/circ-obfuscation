@@ -37,10 +37,7 @@ _new(const acirc_t *circ, void *vparams)
     if ((op = my_calloc(1, sizeof op[0])) == NULL)
         return NULL;
     op->circ = circ;
-    if (params)
-        op->npowers = params->npowers;
-    /* XXX hack! */
-    else op->npowers = 1;
+    op->npowers = params->npowers;
     return op;
 }
 

@@ -735,7 +735,7 @@ finish:
     return ret;
 }
 
-obfuscator_vtable lz_obfuscator_vtable = {
+obfuscator_vtable obf_lz_vtable = {
     .free = _free,
     .obfuscate = _obfuscate,
     .evaluate = _evaluate,

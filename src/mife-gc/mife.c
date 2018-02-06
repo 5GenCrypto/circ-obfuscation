@@ -18,6 +18,7 @@ struct mife_sk_t {
     mife_cmr_mife_sk_t *sk;
     acirc_t *gc;
     const acirc_t *circ;
+    size_t npowers;
     size_t wirelen;
     size_t padding;
     bool local;
@@ -29,7 +30,7 @@ struct mife_ek_t {
     mife_cmr_mife_ek_t *ek;
     const acirc_t *circ;
     acirc_t *gc;
-    bool indexed;
+    size_t npowers;
     size_t padding;
     bool local;
 };
@@ -82,6 +83,7 @@ mife_sk(const mife_t *mife)
     sk->gc = mife->gc;
     if ((sk->sk = mife->vt->mife_sk(mife->mife)) == NULL)
         goto error;
+    sk->npowers = mife->op->npowers;
     sk->padding = mife->op->padding;
     sk->wirelen = mife->op->wirelen;
     sk->local = false;
@@ -107,6 +109,7 @@ mife_sk_fwrite(const mife_sk_t *sk, FILE *fp)
 {
     if (sk == NULL) return ERR;
     if (sk->vt->mife_sk_fwrite(sk->sk, fp) == ERR) return ERR;
+    if (size_t_fwrite(sk->npowers, fp) == ERR) return ERR;
     if (size_t_fwrite(sk->padding, fp) == ERR) return ERR;
     if (size_t_fwrite(sk->wirelen, fp) == ERR) return ERR;
     return OK;
@@ -120,8 +123,9 @@ mife_sk_fread(const mmap_vtable *mmap, const acirc_t *circ, FILE *fp)
         return NULL;
     sk->vt = &mife_cmr_vtable;
     sk->circ = circ;
-    sk->gc = acirc_new("obf/gb.acirc2", false, true); /* XXX */
+    if ((sk->gc = acirc_new("obf/gb.acirc2", false, true)) == NULL) goto error;
     if ((sk->sk = sk->vt->mife_sk_fread(mmap, sk->gc, fp)) == NULL) goto error;
+    if (size_t_fread(&sk->npowers, fp) == ERR) goto error;
     if (size_t_fread(&sk->padding, fp) == ERR) goto error;
     if (size_t_fread(&sk->wirelen, fp) == ERR) goto error;
     sk->local = true;
@@ -142,8 +146,8 @@ mife_ek(const mife_t *mife)
     ek->vt = mife->vt;
     ek->ek = mife->vt->mife_ek(mife->mife);
     ek->circ = mife->op->circ;
+    ek->npowers = mife->op->npowers;
     ek->padding = mife->op->padding;
-    /* ek->wirelen = mife->op->wirelen; */
     ek->local = false;
     return ek;
 }
@@ -162,7 +166,7 @@ static int
 mife_ek_fwrite(const mife_ek_t *ek, FILE *fp)
 {
     if (ek->vt->mife_ek_fwrite(ek->ek, fp) == ERR) return ERR;
-    if (bool_fwrite(ek->indexed, fp) == ERR) return ERR;
+    if (size_t_fwrite(ek->npowers, fp) == ERR) return ERR;
     if (size_t_fwrite(ek->padding, fp) == ERR) return ERR;
     return OK;
 }
@@ -176,9 +180,9 @@ mife_ek_fread(const mmap_vtable *mmap, const acirc_t *circ, FILE *fp)
     ek->mmap = mmap;
     ek->vt = &mife_cmr_vtable;
     ek->circ = circ;
-    ek->gc = acirc_new("obf/gb.acirc2", false, true); /* XXX */
-    ek->ek = ek->vt->mife_ek_fread(mmap, ek->gc, fp);
-    if (bool_fread(&ek->indexed, fp) == ERR) goto error;
+    if ((ek->gc = acirc_new("obf/gb.acirc2", false, true)) == NULL) goto error;
+    if ((ek->ek = ek->vt->mife_ek_fread(mmap, ek->gc, fp)) == NULL) goto error;
+    if (size_t_fread(&ek->npowers, fp) == ERR) goto error;
     if (size_t_fread(&ek->padding, fp) == ERR) goto error;
     ek->local = true;
     return ek;
@@ -206,7 +210,6 @@ static mife_t *
 mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
            size_t *kappa, size_t nthreads, aes_randstate_t rng)
 {
-    (void) kappa;
     mife_t *mife;
 
     if (!acirc_is_binary(op->circ)) {
@@ -250,12 +253,18 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         if (g_verbose)
             fprintf(stderr, "— Running MIFE setup on garbled circuit:\n");
 
-        mife->gc = acirc_new("obf/gb.acirc2", false, true); /* XXX */
+        if ((mife->gc = acirc_new("obf/gb.acirc2", false, true)) == NULL) {
+            fprintf(stderr, "%s: %s: unable to parse 'obf/gb.acirc2'\n",
+                    errorstr, __func__);
+            goto error;
+        }
         if (g_verbose)
             circ_params_print(mife->gc);
-        mife->op_ = mife_cmr_op_vtable.new(mife->gc, NULL); /* XXX */
-
-        if ((mife->mife = mife->vt->mife_setup(mmap, mife->op_, secparam, NULL,
+        {
+            mife_cmr_params_t params = { .npowers = mife->op->npowers };
+            mife->op_ = mife_cmr_op_vtable.new(mife->gc, &params);
+        }
+        if ((mife->mife = mife->vt->mife_setup(mmap, mife->op_, secparam, kappa,
                                                nthreads, rng)) == NULL)
             goto error;
         if (g_verbose)
@@ -489,8 +498,9 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
             fp = NULL;
             goto cleanup;
         }
-        for (size_t i = 0; i < acirc_noutputs(ek->circ); ++i)
-            rop[i] = char_to_long(outs[i]);
+        if (rop)
+            for (size_t i = 0; i < acirc_noutputs(ek->circ); ++i)
+                rop[i] = char_to_long(outs[i]);
         if (g_verbose)
             fprintf(stderr, "%.2f s\n", current_time() - start);
     }

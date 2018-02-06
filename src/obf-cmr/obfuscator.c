@@ -78,7 +78,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     cache.pool = threadpool_create(nthreads);
     cache.lock = &lock;
     cache.count = &count;
-    cache.total = mobf_num_encodings(op);
+    cache.total = obf_cmr_num_encodings(op);
 
     for (size_t i = 0; i < nslots; ++i) {
         obf->cts[i] = my_calloc(acirc_symnum(circ, i), sizeof obf->cts[i][0]);
@@ -189,7 +189,7 @@ error:
     return NULL;
 }
 
-obfuscator_vtable mobf_obfuscator_vtable = {
+obfuscator_vtable obf_cmr_vtable = {
     .free = _free,
     .obfuscate = _obfuscate,
     .evaluate = _evaluate,

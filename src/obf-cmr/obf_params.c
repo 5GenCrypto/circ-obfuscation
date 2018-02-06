@@ -4,7 +4,7 @@
 #include "../util.h"
 
 size_t
-mobf_num_encodings(const obf_params_t *op)
+obf_cmr_num_encodings(const obf_params_t *op)
 {
     const acirc_t *circ = op->circ;
     size_t count = 0;
@@ -14,16 +14,16 @@ mobf_num_encodings(const obf_params_t *op)
 }
 
 static void
-_free(obf_params_t *op)
+obf_cmr_op_free(obf_params_t *op)
 {
     if (op)
         free(op);
 }
 
 static obf_params_t *
-_new(const acirc_t *circ, void *vparams)
+obf_cmr_op_new(const acirc_t *circ, void *vparams)
 {
-    const mobf_obf_params_t *params = vparams;
+    const obf_cmr_params_t *params = vparams;
     obf_params_t *op;
 
     if ((op = my_calloc(1, sizeof op[0])) == NULL)
@@ -34,45 +34,25 @@ _new(const acirc_t *circ, void *vparams)
 }
 
 static void
-_print(const obf_params_t *op)
+obf_cmr_op_print(const obf_params_t *op)
 {
     const acirc_t *circ = op->circ;
     const size_t nconsts = acirc_nconsts(circ);
     const size_t noutputs = acirc_noutputs(circ);
     const size_t has_consts = nconsts ? 1 : 0;
     size_t nencodings;
-    nencodings = mobf_num_encodings(op)                     \
+    nencodings = obf_cmr_num_encodings(op)                     \
         + noutputs                                          \
         + acirc_nslots(circ) * op->npowers                  \
         + (has_consts ? acirc_symlen(circ, acirc_nsymbols(circ)) : 1);
     fprintf(stderr, "Obfuscation parameters:\n");
-    fprintf(stderr, "* # powers: .. %lu\n", op->npowers);
-    fprintf(stderr, "* # encodings: %lu\n", nencodings);
+    fprintf(stderr, "———— # powers: .. %lu\n", op->npowers);
+    fprintf(stderr, "———— # encodings: %lu\n", nencodings);
 }
 
-static int
-_fwrite(const obf_params_t *op, FILE *fp)
+op_vtable obf_cmr_op_vtable =
 {
-    size_t_fwrite(op->npowers, fp);
-    return OK;
-}
-
-static obf_params_t *
-_fread(const acirc_t *circ, FILE *fp)
-{
-    obf_params_t *op;
-
-    op = my_calloc(1, sizeof op[0]);
-    op->circ = circ;
-    size_t_fread(&op->npowers, fp);
-    return op;
-}
-
-op_vtable mobf_op_vtable =
-{
-    .new = _new,
-    .free = _free,
-    .fwrite = _fwrite,
-    .fread = _fread,
-    .print = _print,
+    .new = obf_cmr_op_new,
+    .free = obf_cmr_op_free,
+    .print = obf_cmr_op_print,
 };

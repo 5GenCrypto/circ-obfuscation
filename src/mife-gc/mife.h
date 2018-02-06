@@ -3,7 +3,7 @@
 #include "../mife.h"
 
 typedef struct {
-    bool indexed;
+    size_t npowers;
     size_t padding;
     size_t wirelen;
 } mife_gc_params_t;

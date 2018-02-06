@@ -4,7 +4,7 @@
 #include "../util.h"
 
 static obf_params_t *
-_new(const acirc_t *circ, void *params_)
+mife_gc_op_new(const acirc_t *circ, void *params_)
 {
     mife_gc_params_t *params = params_;
     obf_params_t *op;
@@ -16,19 +16,30 @@ _new(const acirc_t *circ, void *params_)
         return NULL;
     op->circ = circ;
     op->vt = &mife_cmr_vtable;
+    op->npowers = params->npowers;
     op->padding = params->padding;
     op->wirelen = params->wirelen;
     return op;
 }
 
 static void
-_free(obf_params_t *op)
+mife_gc_op_free(obf_params_t *op)
 {
     free(op);
 }
 
+static void
+mife_gc_op_print(const obf_params_t *op)
+{
+    fprintf(stderr, "MIFE parameters:\n");
+    fprintf(stderr, "———— # powers: .... %lu\n", op->npowers);
+    fprintf(stderr, "———— padding: ..... %lu\n", op->padding);
+    fprintf(stderr, "———— wire length: . %lu\n", op->wirelen);
+}
+
 op_vtable mife_gc_op_vtable =
 {
-    .new = _new,
-    .free = _free,
+    .new = mife_gc_op_new,
+    .free = mife_gc_op_free,
+    .print = mife_gc_op_print,
 };

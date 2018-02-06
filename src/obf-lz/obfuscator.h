@@ -5,7 +5,7 @@
 typedef struct {
     size_t npowers;
     bool sigma;
-} lz_obf_params_t;
+} obf_lz_params_t;
 
-extern obfuscator_vtable lz_obfuscator_vtable;
-extern op_vtable lz_op_vtable;
+extern obfuscator_vtable obf_lz_vtable;
+extern op_vtable obf_lz_op_vtable;

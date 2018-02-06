@@ -12,8 +12,6 @@ typedef struct obf_params_t obf_params_t;
 typedef struct {
     obf_params_t * (*new)(const acirc_t *, void *);
     void (*free)(obf_params_t *);
-    int (*fwrite)(const obf_params_t *, FILE *);
-    obf_params_t * (*fread)(const acirc_t *, FILE *);
     void (*print)(const obf_params_t *);
 } op_vtable;
 

@@ -4,9 +4,9 @@
 
 typedef struct {
     size_t npowers;
-} mobf_obf_params_t;
+} obf_cmr_params_t;
 
-size_t mobf_num_encodings(const obf_params_t *op);
+size_t obf_cmr_num_encodings(const obf_params_t *op);
 
-extern obfuscator_vtable mobf_obfuscator_vtable;
-extern op_vtable mobf_op_vtable;
+extern obfuscator_vtable obf_cmr_vtable;
+extern op_vtable obf_cmr_op_vtable;

@@ -22,6 +22,10 @@ struct mife_t {
     public_params *pp;
     size_t npowers;
     encoding *Chatstar;
+    /* XXX may want to bring back [noutputs] number of zhats, as with only a
+     * single one we may get the scenario where we need to do multiple
+     * `raise_encodings` operations when computing the LHS of the final
+     * comparison equation. */
     encoding *zhat;
     encoding ***uhat;           /* [n][npowers] */
     mife_ct_t *constants;
@@ -766,10 +770,9 @@ raise_encoding(const mife_ek_t *ek, encoding *x, const index_set *target)
     index_set *ix;
     size_t diff;
 
-    ix = index_set_difference(target, ek->enc_vt->mmap_set(x));
-    if (ix == NULL)
+    if ((ix = index_set_difference(target, ek->enc_vt->mmap_set(x))) == NULL)
         return ERR;
-    for (size_t i = 0; i < nslots - has_consts; i++) {
+    for (size_t i = 0; i < acirc_nsymbols(circ); i++) {
         diff = IX_X(ix, circ, i);
         if (diff > 0)
             _raise_encoding(ek, x, ek->uhat[i], diff);
@@ -788,8 +791,8 @@ raise_encodings(const mife_ek_t *ek, encoding *x, encoding *y)
 {
     index_set *ix;
     int ret = ERR;
-    ix = index_set_union(ek->enc_vt->mmap_set(x), ek->enc_vt->mmap_set(y));
-    if (ix == NULL)
+    if ((ix = index_set_union(ek->enc_vt->mmap_set(x),
+                              ek->enc_vt->mmap_set(y))) == NULL)
         goto cleanup;
     if (raise_encoding(ek, x, ix) == ERR)
         goto cleanup;
@@ -911,11 +914,13 @@ output_f(size_t ref, size_t o, void *x, void *args_)
     if (ek->Chatstar) {
         encoding_set(ek->enc_vt, rhs, ek->Chatstar);
         for (size_t i = 0; i < nslots; ++i)
-            encoding_mul(ek->enc_vt, ek->pp_vt, rhs, rhs, args->cts[i]->what[o], ek->pp);
+            encoding_mul(ek->enc_vt, ek->pp_vt, rhs, rhs,
+                         args->cts[i]->what[o], ek->pp);
     } else {
         encoding_set(ek->enc_vt, rhs, args->cts[0]->what[o]);
         for (size_t i = 1; i < nslots - 1; ++i)
-            encoding_mul(ek->enc_vt, ek->pp_vt, rhs, rhs, args->cts[i]->what[o], ek->pp);
+            encoding_mul(ek->enc_vt, ek->pp_vt, rhs, rhs,
+                         args->cts[i]->what[o], ek->pp);
     }
     if (!index_set_eq(ek->enc_vt->mmap_set(rhs), toplevel)) {
         fprintf(stderr, "%s: %s: rhs != toplevel\n", errorstr, __func__);

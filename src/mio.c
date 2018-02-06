@@ -192,6 +192,11 @@ static inline void usage_saved()
     printf("    --saved            use saved encodings\n");
 }
 
+static inline void usage_smart(void)
+{
+    printf("    --smart            be smart when setting the multilinearity\n");
+}
+
 static inline void usage_verbose(void)
 {
     printf("    --verbose          be verbose\n");
@@ -427,6 +432,7 @@ typedef struct {
     mife_scheme_e scheme;
     const mmap_vtable *mmap;
     size_t npowers;
+    bool smart;
     size_t nthreads;
     size_t padding;
     size_t wirelen;
@@ -439,6 +445,7 @@ mife_test_args_init(mife_test_args_t *args)
     args->scheme = MIFE_SCHEME_DEFAULT;
     args->mmap = &dummy_vtable;
     args->npowers = NPOWERS_DEFAULT;
+    args->smart = false;
     args->nthreads = sysconf(_SC_NPROCESSORS_ONLN);
     args->padding = PADDING_DEFAULT;
     args->wirelen = SECPARAM_DEFAULT;
@@ -455,6 +462,7 @@ mife_test_usage(bool longform, int ret)
         usage_mmap();
         usage_nthreads();
         usage_npowers();
+        usage_smart();
         usage_verbose();
         usage_help();
         printf("\n  GC-specific arguments:\n");
@@ -482,6 +490,8 @@ mife_test_handle_options(int *argc, char ***argv, void *vargs)
             if (args_get_size_t(&args->nthreads, argc, argv) == ERR) return ERR;
         } else if (!strcmp(cmd, "--npowers")) {
             if (args_get_size_t(&args->npowers, argc, argv) == ERR) return ERR;
+        } else if (!strcmp(cmd, "--smart")) {
+            args->smart = true;
         } else if (!strcmp(cmd, "--padding")) {
             if (args_get_size_t(&args->padding, argc, argv) == ERR) return ERR;
         } else if (!strcmp(cmd, "--wirelen")) {
@@ -500,12 +510,16 @@ mife_test_handle_options(int *argc, char ***argv, void *vargs)
 
 typedef struct {
     mife_scheme_e scheme;
+    size_t npowers;
+    bool smart;
 } mife_get_kappa_args_t;
 
 static void
 mife_get_kappa_args_init(mife_get_kappa_args_t *args)
 {
     args->scheme = MIFE_SCHEME_DEFAULT;
+    args->npowers = NPOWERS_DEFAULT;
+    args->smart = false;
 }
 
 static void
@@ -515,6 +529,8 @@ mife_get_kappa_usage(bool longform, int ret)
     if (longform) {
         printf("\nAvailable arguments:\n\n");
         usage_mife_scheme();
+        usage_npowers();
+        usage_smart();
         usage_verbose();
         usage_help();
         printf("\n");
@@ -532,6 +548,10 @@ mife_get_kappa_handle_options(int *argc, char ***argv, void *vargs)
             break;
         if (!strcmp(cmd, "--scheme")) {
             if (args_get_mife_scheme(&args->scheme, argc, argv) == ERR) return ERR;
+        } else if (!strcmp(cmd, "--npowers")) {
+            if (args_get_size_t(&args->npowers, argc, argv) == ERR) return ERR;
+        } else if (!strcmp(cmd, "--smart")) {
+            args->smart = true;
         } else if (!strcmp(cmd, "--verbose")) {
             g_verbose = true;
         } else if (!strcmp(cmd, "--help") || !strcmp(cmd, "-h")) {
@@ -744,6 +764,7 @@ mife_select_scheme(mife_scheme_e scheme, acirc_t *circ, size_t npowers,
     case MIFE_SCHEME_GC:
         *vt = &mife_gc_vtable;
         *op_vt = &mife_gc_op_vtable;
+        mife_gc_params.npowers = npowers;
         mife_gc_params.padding = padding;
         mife_gc_params.wirelen = wirelen;
         vparams = &mife_gc_params;
@@ -812,9 +833,7 @@ cmd_mife_encrypt(int argc, char **argv, args_t *args)
     }
     if (args_get_size_t(&slot, &argc, &argv) == ERR)
         goto cleanup;
-    if (mife_select_scheme(args_.scheme, args->circ, 0, 0, 0, &vt, &op_vt, &op) == ERR)
-        goto cleanup;
-    if (mife_run_encrypt(args_.mmap, vt, args->circ, op, input, ninputs, slot,
+    if (mife_run_encrypt(args_.mmap, vt, args->circ, input, ninputs, slot,
                          args_.nthreads, NULL, args->rng) == ERR)
         goto cleanup;
     ret = OK;
@@ -831,8 +850,6 @@ cmd_mife_decrypt(int argc, char **argv, args_t *args)
 {
     mife_decrypt_args_t args_;
     mife_vtable *vt = NULL;
-    op_vtable *op_vt = NULL;
-    obf_params_t *op = NULL;
     char *ek = NULL;
     char **cts = NULL;
     long *rop = NULL;
@@ -841,11 +858,10 @@ cmd_mife_decrypt(int argc, char **argv, args_t *args)
 
     argv++; argc--;
     mife_decrypt_args_init(&args_);
-    handle_options(&argc, &argv, 0, args, &args_, mife_decrypt_handle_options, mife_decrypt_usage);
+    handle_options(&argc, &argv, 0, args, &args_, mife_decrypt_handle_options,
+                   mife_decrypt_usage);
     if (args_.saved)
         acirc_set_saved(args->circ);
-    if (mife_select_scheme(args_.scheme, args->circ, 0, 0, 0, &vt, &op_vt, &op) == ERR)
-        goto cleanup;
     nslots = acirc_nslots(args->circ);
 
     length = snprintf(NULL, 0, "%s.ek\n", args->circuit);
@@ -858,7 +874,7 @@ cmd_mife_decrypt(int argc, char **argv, args_t *args)
         (void) snprintf(cts[i], length, "%s.%lu.ct\n", args->circuit, i);
     }
     rop = my_calloc(acirc_noutputs(args->circ), sizeof rop[0]);
-    if (mife_run_decrypt(args_.mmap, vt, args->circ, ek, cts, rop, op, NULL,
+    if (mife_run_decrypt(args_.mmap, vt, args->circ, ek, cts, rop, NULL,
                          args_.nthreads) == ERR) {
         fprintf(stderr, "%s: mife decrypt failed\n", errorstr);
         goto cleanup;
@@ -877,8 +893,6 @@ cleanup:
             free(cts[i]);
         free(cts);
     }
-    if (op)
-        op_vt->free(op);
     if (rop)
         free(rop);
     return ret;
@@ -902,12 +916,12 @@ cmd_mife_test(int argc, char **argv, args_t *args)
                            args_.padding, args_.wirelen, &vt, &op_vt,
                            &op) == ERR)
         goto cleanup;
-    /* if (args->smart) { */
-    /*     kappa = mife_run_smart_kappa(vt, args->circ, op, args_.nthreads, */
-    /*                                  args->rng); */
-    /*     if (kappa == 0) */
-    /*         goto cleanup; */
-    /* } */
+    if (args_.smart) {
+        kappa = mife_run_smart_kappa(vt, args->circ, op, args_.nthreads,
+                                     args->rng);
+        if (kappa == 0)
+            goto cleanup;
+    }
     if (mife_run_test(args_.mmap, vt, args->circ, op, args_.secparam,
                       &kappa, args_.nthreads, args->rng) == ERR) {
         fprintf(stderr, "%s: mife test failed\n", errorstr);
@@ -934,20 +948,20 @@ cmd_mife_get_kappa(int argc, char **argv, args_t *args)
     mife_get_kappa_args_init(&args_);
     handle_options(&argc, &argv, 0, args, &args_, mife_get_kappa_handle_options,
                    mife_get_kappa_usage);
-    if (mife_select_scheme(args_.scheme, args->circ, 1, 0, 0, &vt, &op_vt,
-                           &op) == ERR)
+    if (mife_select_scheme(args_.scheme, args->circ, args_.npowers, 8, 8, &vt,
+                           &op_vt, &op) == ERR)
         goto cleanup;
-    /* if (args->smart) { */
-    /*     kappa = mife_run_smart_kappa(vt, args->circ, op, args->nthreads, args->rng); */
-    /*     if (kappa == 0) */
-    /*         goto cleanup; */
-    /* } else { */
+    if (args_.smart) {
+        kappa = mife_run_smart_kappa(vt, args->circ, op, 1, args->rng);
+        if (kappa == 0)
+            goto cleanup;
+    } else {
         if (mife_run_setup(&dummy_vtable, vt, args->circ, op, 8, NULL, NULL, &kappa,
                            1, args->rng) == ERR) {
             fprintf(stderr, "%s: mife setup failed\n", errorstr);
             goto cleanup;
         }
-    /* } */
+    }
     printf("κ = %lu\n", kappa);
     ret = OK;
 cleanup:
@@ -1013,23 +1027,23 @@ obf_select_scheme(obf_scheme_e scheme, acirc_t *circ, size_t npowers,
                   op_vtable **op_vt, obf_params_t **op)
 {
     (void) wordsize;
-    lz_obf_params_t lz_params;
-    mobf_obf_params_t mobf_params;
+    obf_lz_params_t obf_lz_params;
+    obf_cmr_params_t obf_cmr_params;
     /* polylog_obf_params_t polylog_params; */
     void *vparams = NULL;
 
     switch (scheme) {
     case OBF_SCHEME_CMR:
-        *vt = &mobf_obfuscator_vtable;
-        *op_vt = &mobf_op_vtable;
-        mobf_params.npowers = npowers;
-        vparams = &mobf_params;
+        *vt = &obf_cmr_vtable;
+        *op_vt = &obf_cmr_op_vtable;
+        obf_cmr_params.npowers = npowers;
+        vparams = &obf_cmr_params;
         break;
     case OBF_SCHEME_LZ:
-        *vt = &lz_obfuscator_vtable;
-        *op_vt = &lz_op_vtable;
-        lz_params.npowers = npowers;
-        vparams = &lz_params;
+        *vt = &obf_lz_vtable;
+        *op_vt = &obf_lz_op_vtable;
+        obf_lz_params.npowers = npowers;
+        vparams = &obf_lz_params;
         break;
     /* case OBF_SCHEME_POLYLOG: */
     /*     *vt = &polylog_obfuscator_vtable; */
@@ -1296,7 +1310,7 @@ usage(bool longform, int ret)
     if (longform) {
         printf("\nSupported MIFE schemes:\n");
         printf("· CMR:     CMR MIFE scheme [http://ia.cr/2017/826, §5.1]\n");
-        /* printf("· GC:      Garbled-circuit-based scheme\n"); */
+        printf("· GC:      Garbled-circuit-based scheme\n");
         printf("\n");
         printf("Supported obfuscation schemes:\n");
         printf("· CMR:     CMR obfuscation scheme [http://ia.cr/2017/826, §5.4]\n");
