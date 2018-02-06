@@ -248,7 +248,7 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         const double start = current_time();
 
         if (g_verbose)
-            fprintf(stderr, "— Running MIFE setup on garbled circuit\n");
+            fprintf(stderr, "— Running MIFE setup on garbled circuit:\n");
 
         mife->gc = acirc_new("obf/gb.acirc2", false, true); /* XXX */
         if (g_verbose)
@@ -258,52 +258,55 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         if ((mife->mife = mife->vt->mife_setup(mmap, mife->op_, secparam, NULL,
                                                nthreads, rng)) == NULL)
             goto error;
-        {
-            mife_sk_t *sk;
-            int ret = OK;
-            sk = mife_sk(mife);
-            if (g_verbose)
-                fprintf(stderr, "— Generating encryptions for %lu indices\n",
-                        acirc_nmuls(mife->op->circ));
-            for (size_t i = 0; i < acirc_symlen(mife->gc, 1); ++i) {
-                char *ctname = NULL;
-                mife_cmr_mife_ct_t *ct = NULL;
-                long *input = NULL;
-
-                if (g_verbose)
-                    fprintf(stderr, "— Generating encryption for index #%lu\n", i);
-
-                if ((input = my_calloc(acirc_symlen(mife->gc, 1), sizeof input[0])) == NULL)
-                    goto cleanup;
-                input[i] = 1;
-                if ((ct = my_calloc(1, sizeof ct[0])) == NULL)
-                    goto cleanup;
-                ct->vt = &mife_cmr_vtable;
-                ct->gc = sk->gc;
-                if ((ct->ct = mife->vt->mife_encrypt(sk->sk, 1, input,
-                                                     acirc_symlen(mife->gc, 1),
-                                                     nthreads, rng)) == NULL) {
-                    ret = ERR;
-                    goto cleanup;
-                }
-                ctname = makestr("%s.ix%lu.1.ct", acirc_fname(mife->gc), i);
-                mife_ct_write(&mife_gc_vtable, ct, ctname);
-            cleanup:
-                if (ct)
-                    mife_ct_free(ct);
-                if (ctname)
-                    free(ctname);
-                if (input)
-                    free(input);
-                if (ret == ERR) {
-                    mife_sk_free(sk);
-                    goto error;
-                }
-            }
-            mife_sk_free(sk);
-        }
         if (g_verbose)
-            fprintf(stderr, "— MIFE setup for garbled circuit: %.2f s\n", current_time() - start);
+            fprintf(stderr, "— MIFE setup: %.2f s\n", current_time() - start);
+    }
+    /* encrypt each index */
+    {
+        const double start = current_time();
+        const size_t nindices = acirc_symlen(mife->gc, 1); /* XXX */
+        mife_sk_t *sk;
+        int ret = OK;
+        sk = mife_sk(mife);
+        if (g_verbose)
+            fprintf(stderr, "— Encrypting %lu indices:\n",
+                    nindices);
+        for (size_t i = 0; i < nindices; ++i) {
+            char *ctname = NULL;
+            mife_cmr_mife_ct_t *ct = NULL;
+            long *input = NULL;
+
+            if (g_verbose)
+                fprintf(stderr, "—— Index #%lu\n", i);
+            if ((input = my_calloc(nindices, sizeof input[0])) == NULL)
+                goto cleanup;
+            input[i] = 1;
+            if ((ct = my_calloc(1, sizeof ct[0])) == NULL)
+                goto cleanup;
+            ct->vt = &mife_cmr_vtable;
+            ct->gc = sk->gc;
+            if ((ct->ct = mife->vt->mife_encrypt(sk->sk, 1, input, nindices,
+                                                 nthreads, rng)) == NULL) {
+                ret = ERR;
+                goto cleanup;
+            }
+            ctname = makestr("%s.ix%lu.1.ct", acirc_fname(mife->gc), i);
+            mife_ct_write(&mife_gc_vtable, ct, ctname);
+        cleanup:
+            if (ct)
+                mife_ct_free(ct);
+            if (ctname)
+                free(ctname);
+            if (input)
+                free(input);
+            if (ret == ERR) {
+                mife_sk_free(sk);
+                goto error;
+            }
+        }
+        mife_sk_free(sk);
+        if (g_verbose)
+            fprintf(stderr, "— Encryption time: %.2f s\n", current_time() - start);
     }
     return mife;
 error:

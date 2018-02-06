@@ -17,7 +17,7 @@ obf_test () {
     echo "***"
     echo "***"
     echo ""
-    $prog obf test --smart --mmap $2 --scheme $3 $1
+    $prog obf test --mmap $2 --scheme $3 $1
 }
 
 mife_test () {
@@ -28,7 +28,7 @@ mife_test () {
     echo "***"
     echo "***"
     echo ""
-    $prog mife test --smart --mmap $2 $1
+    $prog mife test --mmap $2 $1
 }
 
 for circuit in $circuits/*.acirc; do
