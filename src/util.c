@@ -2,7 +2,9 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <dirent.h>
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -397,4 +399,25 @@ str_to_longs(const char *str, size_t n)
         xs[i] = char_to_long(str[i]);
     }
     return xs;
+}
+
+int
+makedir(const char *dirname)
+{
+    DIR *dir = NULL;
+    dir = opendir(dirname);
+    if (dir) {
+        closedir(dir);
+    } else if (errno == ENOENT) {
+        if (mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == -1) {
+            if (errno != EEXIST) {
+                fprintf(stderr, "%s: unable to make directory '%s'\n",
+                        errorstr, dirname);
+                return ERR;
+            }
+        }
+    } else {
+        return ERR;
+    }
+    return OK;
 }

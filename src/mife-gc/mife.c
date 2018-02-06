@@ -9,6 +9,7 @@ struct mife_t {
     const mife_vtable *vt;
     mife_cmr_mife_t *mife;
     const obf_params_t *op;
+    char *dirname;
     obf_params_t *op_;
     acirc_t *gc;
 };
@@ -18,6 +19,7 @@ struct mife_sk_t {
     mife_cmr_mife_sk_t *sk;
     acirc_t *gc;
     const acirc_t *circ;
+    char *dirname;
     size_t npowers;
     size_t wirelen;
     size_t padding;
@@ -29,6 +31,7 @@ struct mife_ek_t {
     const mife_vtable *vt;
     mife_cmr_mife_ek_t *ek;
     const acirc_t *circ;
+    char *dirname;
     acirc_t *gc;
     size_t npowers;
     size_t padding;
@@ -81,6 +84,7 @@ mife_sk(const mife_t *mife)
     sk->vt = &mife_cmr_vtable;
     sk->circ = mife->op->circ;
     sk->gc = mife->gc;
+    sk->dirname = mife->dirname;
     if ((sk->sk = mife->vt->mife_sk(mife->mife)) == NULL)
         goto error;
     sk->npowers = mife->op->npowers;
@@ -99,8 +103,10 @@ mife_sk_free(mife_sk_t *sk)
 {
     if (sk == NULL) return;
     sk->vt->mife_sk_free(sk->sk);
-    if (sk->local)
+    if (sk->local) {
+        free(sk->dirname);
         acirc_free(sk->gc);
+    }
     free(sk);
 }
 
@@ -108,6 +114,7 @@ static int
 mife_sk_fwrite(const mife_sk_t *sk, FILE *fp)
 {
     if (sk == NULL) return ERR;
+    if (str_fwrite(sk->dirname, fp) == ERR) return ERR;
     if (sk->vt->mife_sk_fwrite(sk->sk, fp) == ERR) return ERR;
     if (size_t_fwrite(sk->npowers, fp) == ERR) return ERR;
     if (size_t_fwrite(sk->padding, fp) == ERR) return ERR;
@@ -119,18 +126,25 @@ static mife_sk_t *
 mife_sk_fread(const mmap_vtable *mmap, const acirc_t *circ, FILE *fp)
 {
     mife_sk_t *sk = NULL;
+    char *fname = NULL;
     if ((sk = my_calloc(1, sizeof sk[0])) == NULL)
         return NULL;
     sk->vt = &mife_cmr_vtable;
     sk->circ = circ;
-    if ((sk->gc = acirc_new("obf/gb.acirc2", false, true)) == NULL) goto error;
+    if ((sk->dirname = str_fread(fp)) == NULL) goto error;
+    if ((fname = makestr("%s/gb.acirc2", sk->dirname)) == NULL) goto error;
+    if ((sk->gc = acirc_new(fname, false, true)) == NULL) goto error;
     if ((sk->sk = sk->vt->mife_sk_fread(mmap, sk->gc, fp)) == NULL) goto error;
     if (size_t_fread(&sk->npowers, fp) == ERR) goto error;
     if (size_t_fread(&sk->padding, fp) == ERR) goto error;
     if (size_t_fread(&sk->wirelen, fp) == ERR) goto error;
     sk->local = true;
+    if (fname)
+        free(fname);
     return sk;
 error:
+    if (fname)
+        free(fname);
     if (sk)
         mife_sk_free(sk);
     return NULL;
@@ -145,6 +159,7 @@ mife_ek(const mife_t *mife)
     ek->mmap = mife->mmap;
     ek->vt = mife->vt;
     ek->ek = mife->vt->mife_ek(mife->mife);
+    ek->dirname = mife->dirname;
     ek->circ = mife->op->circ;
     ek->npowers = mife->op->npowers;
     ek->padding = mife->op->padding;
@@ -157,14 +172,17 @@ mife_ek_free(mife_ek_t *ek)
 {
     if (ek == NULL) return;
     ek->vt->mife_ek_free(ek->ek);
-    if (ek->local)
+    if (ek->local) {
+        free(ek->dirname);
         acirc_free(ek->gc);
+    }
     free(ek);
 }
 
 static int
 mife_ek_fwrite(const mife_ek_t *ek, FILE *fp)
 {
+    if (str_fwrite(ek->dirname, fp) == ERR) return ERR;
     if (ek->vt->mife_ek_fwrite(ek->ek, fp) == ERR) return ERR;
     if (size_t_fwrite(ek->npowers, fp) == ERR) return ERR;
     if (size_t_fwrite(ek->padding, fp) == ERR) return ERR;
@@ -175,18 +193,25 @@ static mife_ek_t *
 mife_ek_fread(const mmap_vtable *mmap, const acirc_t *circ, FILE *fp)
 {
     mife_ek_t *ek;
+    char *fname = NULL;
     if ((ek = my_calloc(1, sizeof ek[0])) == NULL)
         return NULL;
     ek->mmap = mmap;
     ek->vt = &mife_cmr_vtable;
     ek->circ = circ;
-    if ((ek->gc = acirc_new("obf/gb.acirc2", false, true)) == NULL) goto error;
+    if ((ek->dirname = str_fread(fp)) == NULL) goto error;
+    if ((fname = makestr("%s/gb.acirc2", ek->dirname)) == NULL) goto error;
+    if ((ek->gc = acirc_new(fname, false, true)) == NULL) goto error;
     if ((ek->ek = ek->vt->mife_ek_fread(mmap, ek->gc, fp)) == NULL) goto error;
     if (size_t_fread(&ek->npowers, fp) == ERR) goto error;
     if (size_t_fread(&ek->padding, fp) == ERR) goto error;
     ek->local = true;
+    if (fname)
+        free(fname);
     return ek;
 error:
+    if (fname)
+        free(fname);
     if (ek)
         mife_ek_free(ek);
     return NULL;
@@ -196,9 +221,14 @@ static void
 mife_free(mife_t *mife)
 {
     if (mife == NULL) return;
-    mife->vt->mife_free(mife->mife);
-    mife_cmr_op_vtable.free(mife->op_);
-    acirc_free(mife->gc);
+    if (mife->mife)
+        mife->vt->mife_free(mife->mife);
+    if (mife->op_)
+        mife_cmr_op_vtable.free(mife->op_);
+    if (mife->gc)
+        acirc_free(mife->gc);
+    if (mife->dirname)
+        free(mife->dirname);
     free(mife);
 }
 
@@ -226,20 +256,27 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     mife->op = op;
     mife->vt = &mife_cmr_vtable;
     mife->mmap = mmap;
+    if ((mife->dirname = makestr("%s.gc", acirc_fname(op->circ))) == NULL)
+        goto error;
     /* generate garbled circuit for input circuit */
     {
         const double start = current_time();
-        char *cmd;
+        char *cmd = NULL;
 
         if (g_verbose)
             fprintf(stderr, "— Generating garbled circuit: ");
 
-        cmd = makestr("boots garble \"%s\" -p %lu -s %lu",
-                      acirc_fname(op->circ), op->padding, op->wirelen);
+        (void) makedir(mife->dirname);
+        if ((cmd = makestr("boots garble \"%s\" -d %s -p %lu -s %lu",
+                           acirc_fname(op->circ), mife->dirname,
+                           op->padding, op->wirelen)) == NULL) {
+            goto error;
+        }
         if (system(cmd) != 0) {
             if (g_verbose) fprintf(stderr, "\n");
             fprintf(stderr, "%s: %s: error calling '%s'\n",
                     errorstr, __func__, cmd);
+            free(cmd);
             goto error;
         }
         free(cmd);
@@ -249,15 +286,21 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     /* run MIFE setup on garbled circuit */
     {
         const double start = current_time();
+        char *fname;
+
+        if ((fname = makestr("%s/gb.acirc2", mife->dirname)) == NULL)
+            goto error;
 
         if (g_verbose)
             fprintf(stderr, "— Running MIFE setup on garbled circuit:\n");
 
-        if ((mife->gc = acirc_new("obf/gb.acirc2", false, true)) == NULL) {
-            fprintf(stderr, "%s: %s: unable to parse 'obf/gb.acirc2'\n",
-                    errorstr, __func__);
+        if ((mife->gc = acirc_new(fname, false, true)) == NULL) {
+            fprintf(stderr, "%s: %s: unable to parse '%s'\n",
+                    errorstr, __func__, fname);
+            free(fname);
             goto error;
         }
+        free(fname);
         if (g_verbose)
             circ_params_print(mife->gc);
         {
@@ -343,7 +386,7 @@ mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
         if (g_verbose)
             fprintf(stderr, "— Generating input wire labels: ");
         inp = longs_to_str(inputs, acirc_symlen(sk->circ, slot));
-        cmd = makestr("boots wires %s", inp);
+        cmd = makestr("boots wires -d %s %s", sk->dirname, inp);
         if (system(cmd) != 0) {
             if (g_verbose) fprintf(stderr, "\n");
             fprintf(stderr, "%s: %s: error calling '%s'\n",
@@ -356,15 +399,20 @@ mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
     {
         const double start = current_time();
         const size_t seedlen = sk->wirelen;
+        char *fname = NULL;
         if (g_verbose)
             fprintf(stderr, "— Running MIFE encrypt on input seed\n");
         if ((seed_s = my_calloc(seedlen, sizeof seed_s[0])) == NULL)
             goto cleanup;
-        if ((fp = fopen("obf/seed", "r")) == NULL) {
-            fprintf(stderr, "%s: %s: unable to open seed file\n",
-                    errorstr, __func__);
+        if ((fname = makestr("%s/seed", sk->dirname)) == NULL)
+            goto cleanup;
+        if ((fp = fopen(fname, "r")) == NULL) {
+            fprintf(stderr, "%s: %s: unable to open seed file '%s'\n",
+                    errorstr, __func__, fname);
+            free(fname);
             goto cleanup;
         }
+        free(fname);
         if (fread(seed_s, sizeof seed_s[0], seedlen, fp) != seedlen) {
             fprintf(stderr, "%s: %s: unable to read seed\n",
                     errorstr, __func__);
@@ -401,7 +449,7 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
     (void) rop;
     const size_t noutputs = acirc_noutputs(ek->gc);
     mife_ct_t **cmr_cts = NULL;
-    char *outs = NULL;
+    char *outs = NULL, *fname;
     FILE *fp = NULL;
     long *rop_ = NULL;
     int ret = ERR;
@@ -413,11 +461,15 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
         goto cleanup;
     for (size_t i = 0; i < acirc_nsymbols(ek->circ); ++i)
         cmr_cts[i] = cts[i]->ct;
-    if ((fp = fopen("obf/gates", "w")) == NULL) {
-        fprintf(stderr, "%s: %s: unable to open file 'obf/gates'\n",
-                errorstr, __func__);
+    if ((fname = makestr("%s/gates", ek->dirname)) == NULL)
+        goto cleanup;
+    if ((fp = fopen(fname, "w")) == NULL) {
+        fprintf(stderr, "%s: %s: unable to open gates file '%s'\n",
+                errorstr, __func__, fname);
+        free(fname);
         goto cleanup;
     }
+    free(fname);
 
     for (size_t i = 0; i < acirc_symlen(ek->gc, 1); ++i) { /* XXX */
         const double start = current_time();
@@ -474,16 +526,21 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
     fp = NULL;
     {
         const double start = current_time();
+        char *cmd = NULL;
         if (g_verbose)
             fprintf(stderr, "— Evaluating the garbled circuit: ");
         if ((outs = my_calloc(1025, sizeof outs[0])) == NULL)
             goto cleanup;
-        if ((fp = popen("boots eval", "r")) == NULL) {
+        if ((cmd = makestr("boots eval -d %s", ek->dirname)) == NULL)
+            goto cleanup;
+        if ((fp = popen(cmd, "r")) == NULL) {
             if (g_verbose) fprintf(stderr, "\n");
             fprintf(stderr, "%s: %s: failed to run '%s'\n",
-                    errorstr, __func__, "boots eval");
+                    errorstr, __func__, cmd);
+            free(cmd);
             goto cleanup;
         }
+        free(cmd);
         if (fgets(outs, 1025, fp) == NULL) {
             if (g_verbose) fprintf(stderr, "\n");
             fprintf(stderr, "%s: %s: failed to get output\n",

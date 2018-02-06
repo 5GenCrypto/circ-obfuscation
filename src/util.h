@@ -85,5 +85,7 @@ int memory(unsigned long *size, unsigned long *resident);
 size_t filesize(const char *fname);
 
 char * makestr(const char *format, ...);
+int makedir(const char *dirname);
+
 char * longs_to_str(const long *xs, size_t n);
 long * str_to_longs(const char *str, size_t n);

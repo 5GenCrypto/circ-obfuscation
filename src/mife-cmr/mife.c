@@ -6,8 +6,6 @@
 #include "../util.h"
 
 #include <assert.h>
-#include <dirent.h>
-#include <errno.h>
 #include <pthread.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -953,11 +951,9 @@ open_ref_file(const char *dirname, size_t ref, const char *mode)
 {
     char *fname = NULL;
     FILE *fp = NULL;
-    int length;
 
-    length = snprintf(NULL, 0, "%s/%lu", dirname, ref);
-    fname = calloc(length + 1, sizeof fname[0]);
-    (void) snprintf(fname, length + 1, "%s/%lu", dirname, ref);
+    if ((fname = makestr("%s/%lu", dirname, ref)) == NULL)
+        goto error;
     if ((fp = fopen(fname, mode)) == NULL)
         goto error;
     free(fname);
@@ -982,21 +978,8 @@ write_f(size_t ref, void *x, void *args_)
     if (args->dirname == NULL)
         return OK;
     if (!args->dir_exists) {
-        DIR *dir = NULL;
-        dir = opendir(args->dirname);
-        if (dir) {
-            closedir(dir);
-        } else if (errno == ENOENT) {
-            if (mkdir(args->dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == -1) {
-                if (errno != EEXIST) {
-                    fprintf(stderr, "%s: unable to make directory '%s'\n",
-                            errorstr, args->dirname);
-                    goto cleanup;
-                }
-            }
-        } else {
+        if (makedir(args->dirname) == ERR)
             goto cleanup;
-        }
         args->dir_exists = true;
     }
     if ((fp = open_ref_file(args->dirname, ref, "w")) == NULL)
