@@ -16,7 +16,6 @@ _new(const acirc_t *circ, void *params_)
         return NULL;
     op->circ = circ;
     op->vt = &mife_cmr_vtable;
-    op->indexed = params->indexed;
     op->padding = params->padding;
     op->wirelen = params->wirelen;
     return op;

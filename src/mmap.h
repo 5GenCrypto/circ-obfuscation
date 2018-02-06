@@ -36,7 +36,7 @@ typedef struct {
     const mmap_vtable *mmap;
     int (*init)(secret_params *, mmap_params_t *, const obf_params_t *, size_t);
     int (*fwrite)(const secret_params *, FILE *);
-    int (*fread)(secret_params *, const obf_params_t *, FILE *);
+    int (*fread)(secret_params *, const acirc_t *, FILE *);
     void (*clear)(secret_params *);
     const void * (*toplevel)(const secret_params *);
 } sp_vtable;
@@ -52,7 +52,7 @@ typedef struct {
     int (*init)(const sp_vtable *, public_params *, const secret_params *,
                 const obf_params_t *);
     int (*fwrite)(const public_params *, FILE *);
-    int (*fread)(public_params *, const obf_params_t *, FILE *);
+    int (*fread)(public_params *, const acirc_t *, FILE *);
     void (*clear)(public_params *);
     const void * (*toplevel)(const public_params *);
 } pp_vtable;
@@ -88,7 +88,7 @@ secret_params * secret_params_new(const sp_vtable *vt, const obf_params_t *op,
                                   size_t *kappa, size_t ncores, aes_randstate_t rng);
 int             secret_params_fwrite(const sp_vtable *vt,
                                      const secret_params *sp, FILE *fp);
-secret_params * secret_params_fread(const sp_vtable *vt, const obf_params_t *cp,
+secret_params * secret_params_fread(const sp_vtable *vt, const acirc_t *circ,
                                     FILE *fp);
 void            secret_params_free(const sp_vtable *vt, secret_params *p);
 
@@ -97,7 +97,7 @@ public_params * public_params_new(const pp_vtable *vt, const sp_vtable *sp_vt,
                                   const secret_params *sp, const obf_params_t *op);
 int             public_params_fwrite(const pp_vtable *vt,
                                      const public_params *pp, FILE *fp);
-public_params * public_params_fread(const pp_vtable *vt, const obf_params_t *op,
+public_params * public_params_fread(const pp_vtable *vt, const acirc_t *circ,
                                     FILE *fp);
 void            public_params_free(const pp_vtable *vt, public_params *p);
 

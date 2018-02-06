@@ -45,10 +45,9 @@ _pp_fwrite(const public_params *pp, FILE *fp)
 }
 
 static int
-_pp_fread(public_params *pp, const obf_params_t *op, FILE *fp)
+_pp_fread(public_params *pp, const acirc_t *circ, FILE *fp)
 {
     (void) fp;
-    const acirc_t *circ = op->circ;
     if ((my(pp) = calloc(1, sizeof my(pp)[0])) == NULL)
         return ERR;
     my(pp)->toplevel = mife_params_new_toplevel(circ);

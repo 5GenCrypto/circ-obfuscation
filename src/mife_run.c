@@ -99,6 +99,7 @@ mife_run_encrypt(const mmap_vtable *mmap, const mife_vtable *vt,
                  size_t nthreads, mife_sk_t *cached_sk,
                  aes_randstate_t rng)
 {
+    (void) op;
     const double start = current_time();
     const char *circuit = acirc_fname(circ);
     mife_ct_t *ct = NULL;
@@ -136,7 +137,7 @@ mife_run_encrypt(const mmap_vtable *mmap, const mife_vtable *vt,
                     errorstr, __func__, skname);
             goto cleanup;
         }
-        if ((sk = vt->mife_sk_fread(mmap, op, fp)) == NULL) {
+        if ((sk = vt->mife_sk_fread(mmap, circ, fp)) == NULL) {
             fprintf(stderr, "%s: %s: unable to read secret key from disk\n",
                     errorstr, __func__);
             goto cleanup;
@@ -184,6 +185,7 @@ mife_run_decrypt(const mmap_vtable *mmap, const mife_vtable *vt,
                  const acirc_t *circ, const char *ek_s, char **cts_s, long *rop,
                  const obf_params_t *op, size_t *kappa, size_t nthreads)
 {
+    (void) op;
     const double start = current_time();
     mife_ct_t *cts[acirc_nsymbols(circ)];
     mife_ek_t *ek = NULL;
@@ -208,7 +210,7 @@ mife_run_decrypt(const mmap_vtable *mmap, const mife_vtable *vt,
                     errorstr, __func__, ek_s);
             goto cleanup;
         }
-        if ((ek = vt->mife_ek_fread(mmap, op, fp)) == NULL) {
+        if ((ek = vt->mife_ek_fread(mmap, circ, fp)) == NULL) {
             fprintf(stderr, "%s: %s: unable to read evaluation key\n",
                     errorstr, __func__);
             fclose(fp);
@@ -264,7 +266,7 @@ mife_run_all(const mmap_vtable *mmap, const mife_vtable *vt,
                     errorstr, __func__, skname);
             return ERR;
         }
-        sk = vt->mife_sk_fread(mmap, op, fp);
+        sk = vt->mife_sk_fread(mmap, circ, fp);
         fclose(fp);
         if (sk == NULL)
             return ERR;

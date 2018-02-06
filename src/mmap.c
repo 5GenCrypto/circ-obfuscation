@@ -49,13 +49,13 @@ secret_params_new(const sp_vtable *vt, const obf_params_t *op, const acirc_t *ci
         mpz_init_set_ui(modulus, 2);
         o.modulus = &modulus;
     }
-    if (vt->mmap == &clt_pl_vtable) {
-        if ((sp->sk = polylog_secret_params_new(vt, op, &p, &o, &params, ncores, rng)) == NULL)
-            goto cleanup;
-    } else {
+    /* if (vt->mmap == &clt_pl_vtable) { */
+    /*     if ((sp->sk = polylog_secret_params_new(vt, op, &p, &o, &params, ncores, rng)) == NULL) */
+    /*         goto cleanup; */
+    /* } else { */
         if ((sp->sk = vt->mmap->sk->new(&p, &o, ncores, rng, g_verbose)) == NULL)
             goto cleanup;
-    }
+    /* } */
     ret = OK;
 cleanup:
     if (acirc_is_binary(circ))
@@ -79,12 +79,13 @@ secret_params_fwrite(const sp_vtable *vt, const secret_params *sp, FILE *fp)
 }
 
 secret_params *
-secret_params_fread(const sp_vtable *vt, const obf_params_t *op, FILE *fp)
+secret_params_fread(const sp_vtable *vt, const acirc_t *circ, FILE *fp)
 {
     secret_params *sp;
-    sp = my_calloc(1, sizeof sp[0]);
+    if ((sp = my_calloc(1, sizeof sp[0])) == NULL)
+        return NULL;
     if (vt->fread)
-        vt->fread(sp, op, fp);
+        vt->fread(sp, circ, fp);
     sp->sk = vt->mmap->sk->fread(fp);
     return sp;
 }
@@ -119,10 +120,12 @@ public_params_fwrite(const pp_vtable *vt, const public_params *pp, FILE *fp)
 }
 
 public_params *
-public_params_fread(const pp_vtable *vt, const obf_params_t *op, FILE *fp)
+public_params_fread(const pp_vtable *vt, const acirc_t *circ, FILE *fp)
 {
-    public_params *pp = my_calloc(1, sizeof pp[0]);
-    vt->fread(pp, op, fp);
+    public_params *pp;
+
+    if ((pp = my_calloc(1, sizeof pp[0])) == NULL) return NULL;
+    vt->fread(pp, circ, fp);
     pp->pp = vt->mmap->pp->fread(fp);
     return pp;
 }

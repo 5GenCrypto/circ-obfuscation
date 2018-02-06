@@ -30,10 +30,9 @@ _sp_init(secret_params *sp, mmap_params_t *mp, const obf_params_t *op, size_t ka
 }
 
 static int
-_sp_fread(secret_params *sp, const obf_params_t *op, FILE *fp)
+_sp_fread(secret_params *sp, const acirc_t *circ, FILE *fp)
 {
     (void) fp;
-    const acirc_t *circ = op->circ;
     if ((my(sp) = calloc(1, sizeof my(sp)[0])) == NULL)
         return ERR;
     my(sp)->toplevel = mife_params_new_toplevel(circ);

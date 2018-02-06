@@ -39,13 +39,13 @@ _pp_fwrite(const public_params *pp, FILE *fp)
 }
 
 static int
-_pp_fread(public_params *pp, const obf_params_t *op, FILE *fp)
+_pp_fread(public_params *pp, const acirc_t *circ, FILE *fp)
 {
     (void) fp;
     if ((my(pp) = calloc(1, sizeof my(pp)[0])) == NULL)
         return ERR;
-    my(pp)->circ = op->circ;
-    my(pp)->toplevel = obf_params_new_toplevel(my(pp)->circ, obf_params_nzs(my(pp)->circ));
+    my(pp)->circ = circ;
+    my(pp)->toplevel = obf_params_new_toplevel(circ, obf_params_nzs(circ));
     my(pp)->local = true;
     return OK;
 }

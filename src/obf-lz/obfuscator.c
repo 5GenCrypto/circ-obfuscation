@@ -448,7 +448,7 @@ _fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     if ((obf = _alloc(mmap, op)) == NULL)
         return NULL;
 
-    obf->pp = public_params_fread(obf->pp_vt, op, fp);
+    obf->pp = public_params_fread(obf->pp_vt, circ, fp);
     for (size_t k = 0; k < acirc_nsymbols(circ); k++) {
         for (size_t s = 0; s < acirc_symnum(circ, k); s++) {
             for (size_t j = 0; j < acirc_symlen(circ, k); j++)

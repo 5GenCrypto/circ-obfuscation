@@ -172,7 +172,7 @@ _fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     const mife_vtable *vt = &mife_cmr_vtable;
     obf = my_calloc(1, sizeof obf[0]);
     obf->op = op;
-    if ((obf->ek = vt->mife_ek_fread(mmap, op, fp)) == NULL)
+    if ((obf->ek = vt->mife_ek_fread(mmap, circ, fp)) == NULL)
         goto error;
     obf->mife = NULL;
     obf->cts = my_calloc(nslots, sizeof obf->cts[0]);

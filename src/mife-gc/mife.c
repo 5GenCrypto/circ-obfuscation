@@ -16,7 +16,6 @@ struct mife_t {
 struct mife_sk_t {
     const mife_vtable *vt;
     mife_cmr_mife_sk_t *sk;
-    obf_params_t *op_;
     acirc_t *gc;
     const acirc_t *circ;
     size_t wirelen;
@@ -28,7 +27,6 @@ struct mife_ek_t {
     const mmap_vtable *mmap;
     const mife_vtable *vt;
     mife_cmr_mife_ek_t *ek;
-    obf_params_t *op_;
     const acirc_t *circ;
     acirc_t *gc;
     bool indexed;
@@ -82,7 +80,6 @@ mife_sk(const mife_t *mife)
     sk->vt = &mife_cmr_vtable;
     sk->circ = mife->op->circ;
     sk->gc = mife->gc;
-    sk->op_ = mife_cmr_op_vtable.new(sk->gc, NULL); /* XXX */
     if ((sk->sk = mife->vt->mife_sk(mife->mife)) == NULL)
         goto error;
     sk->padding = mife->op->padding;
@@ -99,7 +96,6 @@ static void
 mife_sk_free(mife_sk_t *sk)
 {
     if (sk == NULL) return;
-    mife_cmr_op_vtable.free(sk->op_);
     sk->vt->mife_sk_free(sk->sk);
     if (sk->local)
         acirc_free(sk->gc);
@@ -117,16 +113,15 @@ mife_sk_fwrite(const mife_sk_t *sk, FILE *fp)
 }
 
 static mife_sk_t *
-mife_sk_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
+mife_sk_fread(const mmap_vtable *mmap, const acirc_t *circ, FILE *fp)
 {
     mife_sk_t *sk = NULL;
     if ((sk = my_calloc(1, sizeof sk[0])) == NULL)
         return NULL;
     sk->vt = &mife_cmr_vtable;
-    sk->circ = op->circ;
+    sk->circ = circ;
     sk->gc = acirc_new("obf/gb.acirc2", false, true); /* XXX */
-    sk->op_ = mife_cmr_op_vtable.new(sk->gc, NULL); /* XXX */
-    if ((sk->sk = sk->vt->mife_sk_fread(mmap, sk->op_, fp)) == NULL) goto error;
+    if ((sk->sk = sk->vt->mife_sk_fread(mmap, sk->gc, fp)) == NULL) goto error;
     if (size_t_fread(&sk->padding, fp) == ERR) goto error;
     if (size_t_fread(&sk->wirelen, fp) == ERR) goto error;
     sk->local = true;
@@ -146,10 +141,9 @@ mife_ek(const mife_t *mife)
     ek->mmap = mife->mmap;
     ek->vt = mife->vt;
     ek->ek = mife->vt->mife_ek(mife->mife);
-    ek->op_ = mife_cmr_op_vtable.new(ek->gc, NULL); /* XXX */
     ek->circ = mife->op->circ;
-    ek->indexed = mife->op->indexed;
     ek->padding = mife->op->padding;
+    /* ek->wirelen = mife->op->wirelen; */
     ek->local = false;
     return ek;
 }
@@ -159,7 +153,6 @@ mife_ek_free(mife_ek_t *ek)
 {
     if (ek == NULL) return;
     ek->vt->mife_ek_free(ek->ek);
-    mife_cmr_op_vtable.free(ek->op_);
     if (ek->local)
         acirc_free(ek->gc);
     free(ek);
@@ -175,18 +168,16 @@ mife_ek_fwrite(const mife_ek_t *ek, FILE *fp)
 }
 
 static mife_ek_t *
-mife_ek_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
+mife_ek_fread(const mmap_vtable *mmap, const acirc_t *circ, FILE *fp)
 {
-    (void) op;
     mife_ek_t *ek;
     if ((ek = my_calloc(1, sizeof ek[0])) == NULL)
         return NULL;
     ek->mmap = mmap;
     ek->vt = &mife_cmr_vtable;
-    ek->circ = op->circ;
+    ek->circ = circ;
     ek->gc = acirc_new("obf/gb.acirc2", false, true); /* XXX */
-    ek->op_ = mife_cmr_op_vtable.new(ek->gc, NULL); /* XXX */
-    ek->ek = ek->vt->mife_ek_fread(mmap, ek->op_, fp);
+    ek->ek = ek->vt->mife_ek_fread(mmap, ek->gc, fp);
     if (bool_fread(&ek->indexed, fp) == ERR) goto error;
     if (size_t_fread(&ek->padding, fp) == ERR) goto error;
     ek->local = true;
@@ -271,6 +262,9 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
             mife_sk_t *sk;
             int ret = OK;
             sk = mife_sk(mife);
+            if (g_verbose)
+                fprintf(stderr, "— Generating encryptions for %lu indices\n",
+                        acirc_nmuls(mife->op->circ));
             for (size_t i = 0; i < acirc_nmuls(mife->op->circ); ++i) {
                 char *ctname = NULL;
                 mife_cmr_mife_ct_t *ct = NULL;
@@ -371,7 +365,7 @@ mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
         ct->ct = sk->vt->mife_encrypt(sk->sk, slot, seed, seedlen, nthreads, rng);
         ct->gc = sk->gc;
         if (g_verbose)
-            fprintf(stderr, "— MIFE encrypt for garbled circuit: %.2f s\n",
+            fprintf(stderr, "— MIFE encrypt on input seed: %.2f s\n",
                     current_time() - start);
     }
 cleanup:
@@ -399,6 +393,7 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
     FILE *fp = NULL;
     long *rop_ = NULL;
     int ret = ERR;
+    bool save = true, load = false;
 
     if ((rop_ = my_calloc(acirc_noutputs(ek->gc), sizeof rop_[0])) == NULL)
         goto cleanup;
@@ -418,33 +413,39 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
         char *ctname = NULL, *wire = NULL;
         int ret_ = ERR;
         if (g_verbose)
-            fprintf(stderr, "— Running MIFE decrypt on garbled gate #%lu\n", i);
+            fprintf(stderr, "— Running MIFE decrypt on garbled gate #%lu: ", i);
         ctname = makestr("%s.ix%lu.1.ct", acirc_fname(ek->gc), i);
         if ((ct = mife_ct_read(ek->mmap, &mife_gc_vtable, ek, ctname)) == NULL) {
+            if (g_verbose) fprintf(stderr, "\n");
             fprintf(stderr, "%s: %s: failed to read ciphertext\n",
                     errorstr, __func__);
             goto cleanup_;
         }
         cmr_cts[acirc_nsymbols(ek->circ)] = ct->ct;
         if (mife_cmr_decrypt(ek->ek, rop_, (const mife_ct_t **) cmr_cts,
-                             nthreads, kappa, true) == ERR) {
+                             nthreads, kappa, save, load) == ERR) {
+            if (g_verbose) fprintf(stderr, "\n");
             fprintf(stderr, "%s: %s: mife decrypt failed on garbled circuit\n",
                     errorstr, __func__);
             goto cleanup_;
         }
         wire = longs_to_str(rop_, noutputs);
         if (fwrite(wire, sizeof wire[0], noutputs, fp) != noutputs) {
+            if (g_verbose) fprintf(stderr, "\n");
             fprintf(stderr, "%s: %s: failed to write wire to file\n",
                     errorstr, __func__);
             goto cleanup_;
         }
         if (fwrite("\n", sizeof(char), 1, fp) != 1) {
+            if (g_verbose) fprintf(stderr, "\n");
             fprintf(stderr, "%s: %s: failed to write wire to file\n",
                     errorstr, __func__);
             goto cleanup_;
         }
         ret_ = OK;
         acirc_set_saved(ek->gc);
+        save = false;
+        load = true;
     cleanup_:
         if (wire)
             free(wire);
@@ -455,29 +456,31 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
         if (ret_ == ERR)
             goto cleanup;
         if (g_verbose)
-            fprintf(stderr, "— MIFE decrypt: %.2f s\n",
-                    current_time() - start);
+            fprintf(stderr, "%.2f s\n", current_time() - start);
     }
     fclose(fp);
     fp = NULL;
     {
         const double start = current_time();
         if (g_verbose)
-            fprintf(stderr, "— Evaluating the garbled circuit\n");
+            fprintf(stderr, "— Evaluating the garbled circuit: ");
         if ((outs = my_calloc(1025, sizeof outs[0])) == NULL)
             goto cleanup;
         if ((fp = popen("boots eval", "r")) == NULL) {
+            if (g_verbose) fprintf(stderr, "\n");
             fprintf(stderr, "%s: %s: failed to run '%s'\n",
                     errorstr, __func__, "boots eval");
             goto cleanup;
         }
         if (fgets(outs, 1025, fp) == NULL) {
+            if (g_verbose) fprintf(stderr, "\n");
             fprintf(stderr, "%s: %s: failed to get output\n",
                     errorstr, __func__);
             pclose(fp); fp = NULL;
             goto cleanup;
         }
         if (pclose(fp)) {
+            if (g_verbose) fprintf(stderr, "\n");
             fprintf(stderr, "%s: %s: '%s' failed: %s\n",
                     errorstr, __func__, "boots eval", outs);
             fp = NULL;
@@ -486,8 +489,7 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
         for (size_t i = 0; i < acirc_noutputs(ek->circ); ++i)
             rop[i] = char_to_long(outs[i]);
         if (g_verbose)
-            fprintf(stderr, "— Evaluation time: %.2f s\n",
-                    current_time() - start);
+            fprintf(stderr, "%.2f s\n", current_time() - start);
     }
     fp = NULL;
     ret = OK;
