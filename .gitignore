@@ -13,6 +13,7 @@ circuits/*.ct
 circuits/*.ek
 circuits/*.sk
 circuits/*.encodings
+circuits/*.gc
 Makefile
 *.a
 *.so
