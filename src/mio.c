@@ -220,7 +220,10 @@ static int
 args_get_size_t(size_t *result, int *argc, char ***argv)
 {
     char *endptr;
-    if (*argc <= 1) return ERR;
+    if (*argc <= 1) {
+        fprintf(stderr, "%s: needs one argument\n", errorstr);
+        return ERR;
+    }
     *result = strtol((*argv)[1], &endptr, 10);
     if (*endptr != '\0') {
         fprintf(stderr, "%s: invalid argument '%s'\n", errorstr, (*argv)[1]);
@@ -233,7 +236,10 @@ args_get_size_t(size_t *result, int *argc, char ***argv)
 static int
 args_get_string(char **result, int *argc, char ***argv)
 {
-    if (*argc <= 1) return ERR;
+    if (*argc <= 1) {
+        fprintf(stderr, "%s: needs one argument\n", errorstr);
+        return ERR;
+    }
     *result = (*argv)[1];
     (*argv)++; (*argc)--;
     return OK;
