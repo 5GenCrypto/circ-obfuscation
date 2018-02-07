@@ -6,10 +6,10 @@
 
 int
 obf_run_obfuscate(const mmap_vtable *mmap, const obfuscator_vtable *vt,
-                  const char *fname, obf_params_t *op, size_t secparam,
+                  const char *fname, const obf_params_t *op, size_t secparam,
                   size_t *kappa, size_t nthreads, aes_randstate_t rng)
 {
-    obfuscation *obf;
+    obfuscation *obf = NULL;
     double start, end, _start, _end;
     int ret = ERR;
 
@@ -28,7 +28,7 @@ obf_run_obfuscate(const mmap_vtable *mmap, const obfuscator_vtable *vt,
         if ((fp = fopen(fname, "w")) == NULL) {
             fprintf(stderr, "%s: unable to open '%s' for writing\n",
                     errorstr, fname);
-            exit(EXIT_FAILURE);
+            goto cleanup;
         }
         _start = current_time();
         if (vt->fwrite(obf, fp) == ERR) {
@@ -38,12 +38,9 @@ obf_run_obfuscate(const mmap_vtable *mmap, const obfuscator_vtable *vt,
             goto cleanup;
         }
         fclose(fp);
-        _end = current_time();
-        if (g_verbose) {
-            fprintf(stderr, "Writing obfuscation to disk: %.2fs\n", _end - _start);
-            fprintf(stderr, "  Obfuscation file size: %lu KB\n",
-                    filesize(fname) / 1024);
-        }
+        if (g_verbose)
+            fprintf(stderr, "Writing obfuscation to disk: %.2f s [%lu KB]\n",
+                    current_time() - _start, filesize(fname) / 1024);
     }
     end = current_time();
     if (g_verbose)
@@ -55,7 +52,8 @@ obf_run_obfuscate(const mmap_vtable *mmap, const obfuscator_vtable *vt,
     }
     ret = OK;
 cleanup:
-    vt->free(obf);
+    if (obf)
+        vt->free(obf);
     return ret;
 }
 
@@ -110,19 +108,21 @@ cleanup:
 
 size_t
 obf_run_smart_kappa(const obfuscator_vtable *vt, const acirc_t *circ,
-                    obf_params_t *op, size_t nthreads, aes_randstate_t rng)
+                    const obf_params_t *op, size_t nthreads,
+                    aes_randstate_t rng)
 {
     const char *fname = "/tmp/smart-kappa.obf";
     long input[acirc_ninputs(circ)];
     long output[acirc_noutputs(circ)];
     bool verbosity = g_verbose;
-    size_t kappa = 1;
+    size_t kappa = 0;
 
     if (g_verbose)
-        fprintf(stderr, "Choosing κ smartly...\n");
+        fprintf(stderr, "Choosing κ smartly... ");
 
     g_verbose = false;
     if (obf_run_obfuscate(&dummy_vtable, vt, fname, op, 8, &kappa, nthreads, rng) == ERR) {
+        if (g_verbose) fprintf(stderr, "\n");
         fprintf(stderr, "%s: unable to obfuscate to determine smart κ settings\n",
                 errorstr);
         kappa = 0;
@@ -133,10 +133,14 @@ obf_run_smart_kappa(const obfuscator_vtable *vt, const acirc_t *circ,
     memset(output, '\0', sizeof output);
     if (obf_run_evaluate(&dummy_vtable, vt, fname, circ, input, acirc_ninputs(circ),
                          output, acirc_noutputs(circ), nthreads, &kappa, NULL) == ERR) {
+        if (g_verbose) fprintf(stderr, "\n");
         fprintf(stderr, "%s: unable to evaluate to determine smart κ settings\n",
                 errorstr);
         kappa = 0;
+        goto cleanup;
     }
+    if (g_verbose)
+        fprintf(stderr, "%lu\n", kappa);
 
 cleanup:
     g_verbose = verbosity;
