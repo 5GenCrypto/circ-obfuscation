@@ -39,7 +39,10 @@ static const char *progversion = "v2.0.0 (in progress)";
 static int
 args_get_mmap_scheme(const mmap_vtable **scheme, int *argc, char ***argv)
 {
-    if (*argc <= 1) return ERR;
+    if (*argc <= 1) {
+        fprintf(stderr, "%s: needs one argument\n", errorstr);
+        return ERR;
+    }
     const char *mmap = (*argv)[1];
     if (!strcmp(mmap, "CLT")) {
         *scheme = &clt_vtable;
@@ -65,7 +68,10 @@ typedef enum {
 static int
 args_get_obf_scheme(obf_scheme_e *scheme, int *argc, char ***argv)
 {
-    if (*argc <= 1) return ERR;
+    if (*argc <= 1) {
+        fprintf(stderr, "%s: needs one argument\n", errorstr);
+        return ERR;
+    }
     const char *str = (*argv)[1];
     if (!strcmp(str, "LZ")) {
         *scheme = OBF_SCHEME_LZ;
@@ -92,7 +98,10 @@ typedef enum {
 static int
 args_get_mife_scheme(mife_scheme_e *scheme, int *argc, char ***argv)
 {
-    if (*argc <= 1) return ERR;
+    if (*argc <= 1) {
+        fprintf(stderr, "%s: needs one argument\n", errorstr);
+        return ERR;
+    }
     const char *str = (*argv)[1];
     if (!strcmp(str, "CMR")) {
         *scheme = MIFE_SCHEME_CMR;
@@ -339,6 +348,8 @@ mife_encrypt_usage(bool longform, int ret)
         usage_mife_scheme();
         usage_mmap();
         usage_nthreads();
+        usage_verbose();
+        usage_help();
         printf("\n");
     }
     exit(ret);
@@ -353,6 +364,8 @@ mife_encrypt_handle_options(int *argc, char ***argv, void *vargs)
         if (cmd[0] != '-') break;
         if (!strcmp(cmd, "--scheme")) {
             if (args_get_mife_scheme(&args->scheme, argc, argv) == ERR) return ERR;
+        } else if (!strcmp(cmd, "--mmap")) {
+            if (args_get_mmap_scheme(&args->mmap, argc, argv) == ERR) return ERR;
         } else if (!strcmp(cmd, "--nthreads")) {
             if (args_get_size_t(&args->nthreads, argc, argv) == ERR) return ERR;
         } else if (!strcmp(cmd, "--verbose")) {
@@ -410,7 +423,7 @@ mife_decrypt_handle_options(int *argc, char ***argv, void *vargs)
         if (!strcmp(cmd, "--scheme")) {
             if (args_get_mife_scheme(&args->scheme, argc, argv) == ERR) return ERR;
         } else if (!strcmp(cmd, "--mmap")) {
-                if (args_get_mmap_scheme(&args->mmap, argc, argv) == ERR) return ERR;
+            if (args_get_mmap_scheme(&args->mmap, argc, argv) == ERR) return ERR;
         } else if (!strcmp(cmd, "--nthreads")) {
             if (args_get_size_t(&args->nthreads, argc, argv) == ERR) return ERR;
         } else if (!strcmp(cmd, "--saved")) {
@@ -675,7 +688,7 @@ obf_evaluate_handle_options(int *argc, char ***argv, void *vargs)
         if (!strcmp(cmd, "--scheme")) {
             if (args_get_obf_scheme(&args->scheme, argc, argv) == ERR) return ERR;
         } else if (!strcmp(cmd, "--mmap")) {
-                if (args_get_mmap_scheme(&args->mmap, argc, argv) == ERR) return ERR;
+            if (args_get_mmap_scheme(&args->mmap, argc, argv) == ERR) return ERR;
         } else if (!strcmp(cmd, "--nthreads")) {
             if (args_get_size_t(&args->nthreads, argc, argv) == ERR) return ERR;
         } else if (!strcmp(cmd, "--verbose")) {
