@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-export PATH=$PWD/build/bin:$PATH
-export LD_LIBRARY_PATH=$PWD/build/lib
+DIR=$(dirname $(readlink -f $0))
 
-./mio "$@"
+export PATH=$DIR/build/bin:$PATH
+export LD_LIBRARY_PATH=$DIR/build/lib
+
+$DIR/mio "$@"
