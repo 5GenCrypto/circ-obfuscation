@@ -2,15 +2,6 @@
 #include "util.h"
 
 size_t
-circ_params_ninputs(const acirc_t *circ)
-{
-    size_t ninputs = 0;
-    for (size_t i = 0; i < acirc_nslots(circ); ++i)
-        ninputs += acirc_symlen(circ, i);
-    return ninputs;
-}
-
-size_t
 circ_params_slot(const acirc_t *circ, size_t pos)
 {
     size_t total = 0;

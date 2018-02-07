@@ -23,7 +23,6 @@ const char *errorstr = "\033[1;31merror\033[0m";
 const char *warnstr = "\033[1;33mwarning\033[0m";
 
 bool g_verbose = false;
-debug_e g_debug = ERROR;
 
 double
 current_time(void) {
@@ -119,10 +118,9 @@ void *
 my_calloc(size_t nmemb, size_t size)
 {
     void *ptr;
-    ptr = calloc(nmemb, size);
-    if (ptr == NULL)
-        fprintf(stderr, "%s: %s: couldn't allocate %lu bytes!\n",
-                errorstr, __func__, nmemb * size);
+    if ((ptr = calloc(nmemb, size)) == NULL)
+        fprintf(stderr, "%s: allocating %lu bytes failed\n",
+                errorstr, nmemb * size);
     return ptr;
 }
 
@@ -250,31 +248,6 @@ print_progress(size_t cur, size_t total)
             fprintf(stderr, "\n");
         fflush(stderr);
         last_val = val;
-    }
-}
-
-char *
-mmap_to_string(enum mmap_e mmap)
-{
-    switch (mmap) {
-    case MMAP_CLT:
-        return "CLT";
-    case MMAP_DUMMY:
-        return "DUMMY";
-    }
-    abort();
-}
-
-const mmap_vtable *
-mmap_to_mmap(enum mmap_e mmap)
-{
-    switch (mmap) {
-    case MMAP_CLT:
-        return &clt_vtable;
-    case MMAP_DUMMY:
-        return &dummy_vtable;
-    default:
-        return NULL;
     }
 }
 

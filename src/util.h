@@ -13,27 +13,7 @@
 
 extern const char *errorstr;
 extern const char *warnstr;
-
-typedef enum debug_e {
-    ERROR = 0,
-    WARN = 1,
-    DEBUG = 2,
-    INFO = 3
-} debug_e;
-extern debug_e g_debug;
 extern bool g_verbose;
-
-enum mmap_e {
-    MMAP_CLT,
-    MMAP_DUMMY,
-};
-char * mmap_to_string(enum mmap_e mmap);
-const mmap_vtable * mmap_to_mmap(enum mmap_e mmap);
-
-#define LOG_ERROR (g_debug >= ERROR)
-#define LOG_WARN  (g_debug >= WARN)
-#define LOG_DEBUG (g_debug >= DEBUG)
-#define LOG_INFO  (g_debug >= INFO)
 
 double current_time(void);
 
@@ -47,7 +27,6 @@ min(int a, int b) {
 }
 
 void mpz_randomm_inv(mpz_t rop, aes_randstate_t rng, const mpz_t modulus);
-
 mpz_t * mpz_vect_new(size_t n);
 void mpz_vect_print(mpz_t *vec, size_t n);
 void mpz_vect_free(mpz_t *vec, size_t n);
