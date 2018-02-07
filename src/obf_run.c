@@ -61,7 +61,7 @@ cleanup:
 
 int
 obf_run_evaluate(const mmap_vtable *mmap, const obfuscator_vtable *vt,
-                 const char *fname, obf_params_t *op, const long *inputs,
+                 const char *fname, const acirc_t *circ, const long *inputs,
                  size_t ninputs, long *outputs, size_t noutputs, size_t nthreads,
                  size_t *kappa, size_t *npowers)
 {
@@ -78,7 +78,7 @@ obf_run_evaluate(const mmap_vtable *mmap, const obfuscator_vtable *vt,
 
     start = current_time();
     _start = current_time();
-    if ((obf = vt->fread(mmap, op, fp)) == NULL) {
+    if ((obf = vt->fread(mmap, circ, fp)) == NULL) {
         fprintf(stderr, "%s: reading obfuscator failed\n", errorstr);
         goto cleanup;
     }
@@ -131,7 +131,7 @@ obf_run_smart_kappa(const obfuscator_vtable *vt, const acirc_t *circ,
 
     memset(input, '\0', sizeof input);
     memset(output, '\0', sizeof output);
-    if (obf_run_evaluate(&dummy_vtable, vt, fname, op, input, acirc_ninputs(circ),
+    if (obf_run_evaluate(&dummy_vtable, vt, fname, circ, input, acirc_ninputs(circ),
                          output, acirc_noutputs(circ), nthreads, &kappa, NULL) == ERR) {
         fprintf(stderr, "%s: unable to evaluate to determine smart κ settings\n",
                 errorstr);

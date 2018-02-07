@@ -1161,8 +1161,9 @@ cmd_obf_evaluate(int argc, char **argv, args_t *args)
         if ((input[i] = char_to_long(argv[0][i])) < 0)
             goto cleanup;
     }
-    if (obf_run_evaluate(args_.mmap, vt, fname, op, input, strlen(argv[0]), output,
-                         acirc_noutputs(args->circ), args_.nthreads, NULL, NULL) == ERR)
+    if (obf_run_evaluate(args_.mmap, vt, fname, args->circ, input,
+                         strlen(argv[0]), output, acirc_noutputs(args->circ),
+                         args_.nthreads, NULL, NULL) == ERR)
         goto cleanup;
 
     printf("result: ");
@@ -1219,8 +1220,10 @@ cmd_obf_test(int argc, char **argv, args_t *args)
 
     for (size_t t = 0; t < acirc_ntests(args->circ); ++t) {
         long outp[acirc_noutputs(args->circ)];
-        if (obf_run_evaluate(args_.mmap, vt, fname, op, acirc_test_input(args->circ, t),
-                             acirc_ninputs(args->circ), outp, acirc_noutputs(args->circ),
+        if (obf_run_evaluate(args_.mmap, vt, fname, args->circ,
+                             acirc_test_input(args->circ, t),
+                             acirc_ninputs(args->circ), outp,
+                             acirc_noutputs(args->circ),
                              args_.nthreads, &kappa, NULL) == ERR)
             goto cleanup;
         if (!print_test_output(t + 1, acirc_test_input(args->circ, t), acirc_ninputs(args->circ),

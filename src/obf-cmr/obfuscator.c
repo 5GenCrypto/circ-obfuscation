@@ -7,7 +7,7 @@
 #include <string.h>
 
 typedef struct obfuscation {
-    const obf_params_t *op;
+    const acirc_t *circ;
     mife_t *mife;
     mife_ek_t *ek;
     mife_ct_t ***cts;   /* [n][Σ] */
@@ -19,7 +19,7 @@ _free(obfuscation *obf)
     if (obf == NULL)
         return;
 
-    const acirc_t *circ = obf->op->circ;
+    const acirc_t *circ = obf->circ;
     const size_t nslots = acirc_nslots(circ);
     const mife_vtable *vt = &mife_cmr_vtable;
 
@@ -62,7 +62,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
 
     if ((obf = my_calloc(1, sizeof obf[0])) == NULL)
         return NULL;
-    obf->op = op;
+    obf->circ = circ;
     obf->mife = vt->mife_setup(mmap, op, secparam, kappa, nthreads, rng);
     obf->ek = vt->mife_ek(obf->mife);
     sk = vt->mife_sk(obf->mife);
@@ -115,7 +115,7 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
           size_t *npowers)
 {
     (void) npowers;
-    const acirc_t *circ = obf->op->circ;
+    const acirc_t *circ = obf->circ;
     const mife_vtable *vt = &mife_cmr_vtable;
     mife_ct_t **cts = NULL;
     size_t *input_syms = NULL;
@@ -151,11 +151,10 @@ cleanup:
 static int
 _fwrite(const obfuscation *const obf, FILE *const fp)
 {
-    const acirc_t *circ = obf->op->circ;
-    const size_t nslots = acirc_nslots(circ);
+    const acirc_t *circ = obf->circ;
     const mife_vtable *vt = &mife_cmr_vtable;
     vt->mife_ek_fwrite(obf->ek, fp);
-    for (size_t i = 0; i < nslots; ++i) {
+    for (size_t i = 0; i < acirc_nslots(circ); ++i) {
         for (size_t j = 0; j < acirc_symnum(circ, i); ++j) {
             vt->mife_ct_fwrite(obf->cts[i][j], fp);
         }
@@ -164,17 +163,15 @@ _fwrite(const obfuscation *const obf, FILE *const fp)
 }
 
 static obfuscation *
-_fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
+_fread(const mmap_vtable *mmap, const acirc_t *circ, FILE *fp)
 {
-    obfuscation *obf;
-    const acirc_t *circ = op->circ;
     const size_t nslots = acirc_nslots(circ);
     const mife_vtable *vt = &mife_cmr_vtable;
-    obf = my_calloc(1, sizeof obf[0]);
-    obf->op = op;
-    if ((obf->ek = vt->mife_ek_fread(mmap, circ, fp)) == NULL)
-        goto error;
+    obfuscation *obf = NULL;
+    if ((obf = my_calloc(1, sizeof obf[0])) == NULL) goto error;
+    if ((obf->ek = vt->mife_ek_fread(mmap, circ, fp)) == NULL) goto error;
     obf->mife = NULL;
+    obf->circ = circ;
     obf->cts = my_calloc(nslots, sizeof obf->cts[0]);
     for (size_t i = 0; i < nslots; ++i) {
         obf->cts[i] = my_calloc(acirc_symnum(circ, i), sizeof obf->cts[i][0]);
@@ -185,7 +182,8 @@ _fread(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp)
     }
     return obf;
 error:
-    _free(obf);
+    if (obf)
+        _free(obf);
     return NULL;
 }
 

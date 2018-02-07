@@ -12,5 +12,5 @@ typedef struct {
                     const long *inputs, size_t ninputs, size_t nthreads,
                     size_t *kappa, size_t *npowers);
     int (*fwrite)(const obfuscation *obf, FILE *fp);
-    obfuscation * (*fread)(const mmap_vtable *mmap, const obf_params_t *op, FILE *fp);
+    obfuscation * (*fread)(const mmap_vtable *mmap, const acirc_t *circ, FILE *fp);
 } obfuscator_vtable;

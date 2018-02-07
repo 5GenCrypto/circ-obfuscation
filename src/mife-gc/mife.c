@@ -446,7 +446,6 @@ static int
 mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
              size_t nthreads, size_t *kappa)
 {
-    (void) rop;
     const size_t noutputs = acirc_noutputs(ek->gc);
     mife_ct_t **cmr_cts = NULL;
     char *outs = NULL, *fname;
@@ -470,7 +469,7 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
         goto cleanup;
     }
     free(fname);
-
+    /* decrypt MIFE to generate garbled circuit */
     for (size_t i = 0; i < acirc_symlen(ek->gc, 1); ++i) { /* XXX */
         const double start = current_time();
         mife_ct_t *ct = NULL;
@@ -494,13 +493,8 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
             goto cleanup_;
         }
         wire = longs_to_str(rop_, noutputs);
-        if (fwrite(wire, sizeof wire[0], noutputs, fp) != noutputs) {
-            if (g_verbose) fprintf(stderr, "\n");
-            fprintf(stderr, "%s: %s: failed to write wire to file\n",
-                    errorstr, __func__);
-            goto cleanup_;
-        }
-        if (fwrite("\n", sizeof(char), 1, fp) != 1) {
+        if (fwrite(wire, sizeof wire[0], noutputs, fp) != noutputs
+            || fwrite("\n", sizeof(char), 1, fp) != 1) {
             if (g_verbose) fprintf(stderr, "\n");
             fprintf(stderr, "%s: %s: failed to write wire to file\n",
                     errorstr, __func__);
@@ -524,6 +518,7 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
     }
     fclose(fp);
     fp = NULL;
+    /* evaluate the garbled circuit */
     {
         const double start = current_time();
         char *cmd = NULL;
@@ -541,7 +536,7 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
             goto cleanup;
         }
         free(cmd);
-        if (fgets(outs, 1025, fp) == NULL) {
+        if (fgets(outs, 1025, fp) == NULL) { /* XXX */
             if (g_verbose) fprintf(stderr, "\n");
             fprintf(stderr, "%s: %s: failed to get output\n",
                     errorstr, __func__);
