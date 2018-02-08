@@ -367,7 +367,8 @@ long *
 str_to_longs(const char *str, size_t n)
 {
     long *xs;
-    xs = my_calloc(n, sizeof xs[0]);
+    if ((xs = my_calloc(n, sizeof xs[0])) == NULL)
+        return NULL;
     for (size_t i = 0; i < n; ++i) {
         xs[i] = char_to_long(str[i]);
     }

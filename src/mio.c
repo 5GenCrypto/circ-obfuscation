@@ -776,28 +776,34 @@ mife_select_scheme(mife_scheme_e scheme, acirc_t *circ, size_t npowers,
     switch (scheme) {
     case MIFE_SCHEME_CMR:
         *vt = &mife_cmr_vtable;
-        *op_vt = &mife_cmr_op_vtable;
-        mife_cmr_params.npowers = npowers;
-        vparams = &mife_cmr_params;
+        if (op_vt) {
+            *op_vt = &mife_cmr_op_vtable;
+            mife_cmr_params.npowers = npowers;
+            vparams = &mife_cmr_params;
+        }
         break;
     case MIFE_SCHEME_GC:
         *vt = &mife_gc_vtable;
-        *op_vt = &mife_gc_op_vtable;
-        mife_gc_params.npowers = npowers;
-        mife_gc_params.padding = padding;
-        mife_gc_params.wirelen = wirelen;
-        vparams = &mife_gc_params;
+        if (op_vt) {
+            *op_vt = &mife_gc_op_vtable;
+            mife_gc_params.npowers = npowers;
+            mife_gc_params.padding = padding;
+            mife_gc_params.wirelen = wirelen;
+            vparams = &mife_gc_params;
+        }
         break;
     }
-    *op = (*op_vt)->new(circ, vparams);
-    if (*op == NULL) {
-        fprintf(stderr, "%s: initializing MIFE parameters failed\n", errorstr);
-        return ERR;
+    if (op_vt && op) {
+        *op = (*op_vt)->new(circ, vparams);
+        if (*op == NULL) {
+            fprintf(stderr, "%s: initializing MIFE parameters failed\n", errorstr);
+            return ERR;
+        }
     }
     if (g_verbose) {
         if (circ_params_print(circ) == ERR)
             return ERR;
-        if ((*op_vt)->print)
+        if (op_vt && (*op_vt)->print)
             (*op_vt)->print(*op);
     }
     return OK;
@@ -814,9 +820,11 @@ cmd_mife_setup(int argc, char **argv, args_t *args)
 
     argv++; argc--;
     mife_setup_args_init(&args_);
-    handle_options(&argc, &argv, 0, args, &args_, mife_setup_handle_options, mife_setup_usage);
-    if (mife_select_scheme(args_.scheme, args->circ, args_.npowers, args_.padding,
-                           args_.wirelen, &vt, &op_vt, &op) == ERR)
+    handle_options(&argc, &argv, 0, args, &args_, mife_setup_handle_options,
+                   mife_setup_usage);
+    if (mife_select_scheme(args_.scheme, args->circ, args_.npowers,
+                           args_.padding, args_.wirelen, &vt, &op_vt,
+                           &op) == ERR)
         goto cleanup;
     if (mife_run_setup(args_.mmap, vt, args->circ, op, args_.secparam, args_.ek,
                        args_.sk, NULL, args_.nthreads, args->rng) == ERR)
@@ -833,8 +841,6 @@ cmd_mife_encrypt(int argc, char **argv, args_t *args)
 {
     mife_encrypt_args_t args_;
     mife_vtable *vt = NULL;
-    op_vtable *op_vt = NULL;
-    obf_params_t *op = NULL;
     long *input = NULL;
     size_t ninputs;
     size_t slot;
@@ -842,14 +848,14 @@ cmd_mife_encrypt(int argc, char **argv, args_t *args)
 
     argv++; argc--;
     mife_encrypt_args_init(&args_);
-    handle_options(&argc, &argv, 2, args, &args_, mife_encrypt_handle_options, mife_encrypt_usage);
-    ninputs = strlen(argv[0]);
-    if ((input = my_calloc(ninputs, sizeof input[0])) == NULL)
+    handle_options(&argc, &argv, 2, args, &args_, mife_encrypt_handle_options,
+                   mife_encrypt_usage);
+    if (mife_select_scheme(args_.scheme, args->circ, 0, 0, 0, &vt, NULL,
+                           NULL) == ERR)
         goto cleanup;
-    for (size_t i = 0; i < ninputs; ++i) {
-        if ((input[i] = char_to_long(argv[0][i])) < 0)
-            goto cleanup;
-    }
+    ninputs = strlen(argv[0]);
+    if ((input = str_to_longs(argv[0], ninputs)) == NULL)
+        goto cleanup;
     if (args_get_size_t(&slot, &argc, &argv) == ERR)
         goto cleanup;
     if (mife_run_encrypt(args_.mmap, vt, args->circ, input, ninputs, slot,
@@ -859,8 +865,6 @@ cmd_mife_encrypt(int argc, char **argv, args_t *args)
 cleanup:
     if (input)
         free(input);
-    if (op)
-        op_vt->free(op);
     return ret;
 }
 
@@ -879,6 +883,9 @@ cmd_mife_decrypt(int argc, char **argv, args_t *args)
     mife_decrypt_args_init(&args_);
     handle_options(&argc, &argv, 0, args, &args_, mife_decrypt_handle_options,
                    mife_decrypt_usage);
+    if (mife_select_scheme(args_.scheme, args->circ, 0, 0, 0, &vt, NULL,
+                           NULL) == ERR)
+        goto cleanup;
     if (args_.saved)
         acirc_set_saved(args->circ);
     nslots = acirc_nslots(args->circ);
