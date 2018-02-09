@@ -45,8 +45,8 @@ mife_run_setup(const mmap_vtable *mmap, const mife_vtable *vt,
         if ((sk = vt->mife_sk(mife)) == NULL)
             goto cleanup;
         if ((fp = fopen(skname, "w")) == NULL) {
-            fprintf(stderr, "%s: %s: unable to open '%s' for writing\n",
-                    errorstr, __func__, skname);
+            fprintf(stderr, "%s: unable to open '%s' for writing\n",
+                    errorstr, skname);
             goto cleanup;
         }
         if (vt->mife_sk_fwrite(sk, fp) == ERR)
@@ -56,13 +56,14 @@ mife_run_setup(const mmap_vtable *mmap, const mife_vtable *vt,
             fprintf(stderr, "— Writing secret key to disk: %.2f s [%lu KB]\n",
                     current_time() - _start, filesize(skname) / 1024);
     }
+    fp = NULL;
     {
         const double _start = current_time();
         if ((ek = vt->mife_ek(mife)) == NULL)
             goto cleanup;
         if ((fp = fopen(ekname, "w")) == NULL) {
-            fprintf(stderr, "%s: %s: unable to open '%s' for writing\n",
-                    errorstr, __func__, ekname);
+            fprintf(stderr, "%s: unable to open '%s' for writing\n",
+                    errorstr, ekname);
             goto cleanup;
         }
         if (vt->mife_ek_fwrite(ek, fp) == ERR)
@@ -72,9 +73,9 @@ mife_run_setup(const mmap_vtable *mmap, const mife_vtable *vt,
             fprintf(stderr, "— Writing evaluation key to disk: %.2f s [%lu KB]\n",
                     current_time() - _start, filesize(ekname) / 1024);
     }
+    fp = NULL;
     if (g_verbose)
         fprintf(stderr, "MIFE setup time: %.2f s\n", current_time() - start);
-    fp = NULL;
     ret = OK;
 cleanup:
     if (ekname_ == NULL && ekname)
@@ -95,11 +96,12 @@ cleanup:
 int
 mife_run_encrypt(const mmap_vtable *mmap, const mife_vtable *vt,
                  const acirc_t *circ, const long *input, size_t ninputs,
-                 size_t slot, size_t nthreads, mife_sk_t *cached_sk,
+                 size_t slot, const char *skname_, size_t nthreads,
                  aes_randstate_t rng)
 {
     const double start = current_time();
     const char *circuit = acirc_fname(circ);
+    char *skname = NULL;
     mife_ct_t *ct = NULL;
     mife_sk_t *sk = NULL;
     FILE *fp = NULL;
@@ -115,9 +117,16 @@ mife_run_encrypt(const mmap_vtable *mmap, const mife_vtable *vt,
         return ERR;
     }
 
+    if (skname_ == NULL) {
+        if ((skname = makestr("%s.sk", circuit)) == NULL) return ERR;
+    } else {
+        skname = (char *) skname_;
+    }
+
     if (g_verbose) {
         fprintf(stderr, "MIFE encryption details:\n");
         fprintf(stderr, "———— circuit: ....... %s\n", circuit);
+        fprintf(stderr, "———— sk: ............ %s\n", skname);
         fprintf(stderr, "———— slot: .......... %lu\n", slot);
         fprintf(stderr, "———— input: ......... ");
         for (size_t i = 0; i < ninputs; ++i)
@@ -126,39 +135,43 @@ mife_run_encrypt(const mmap_vtable *mmap, const mife_vtable *vt,
         fprintf(stderr, "———— # threads: ..... %lu\n", nthreads);
     }
 
-    if (cached_sk == NULL) {
+    {
         const double _start = current_time();
-        char *skname;
-        skname = makestr("%s.sk", circuit);
+
         if ((fp = fopen(skname, "r")) == NULL) {
-            fprintf(stderr, "%s: %s: unable to open '%s' for reading\n",
-                    errorstr, __func__, skname);
+            fprintf(stderr, "%s: unable to open '%s' for reading\n",
+                    errorstr, skname);
             goto cleanup;
         }
         if ((sk = vt->mife_sk_fread(mmap, circ, fp)) == NULL) {
-            fprintf(stderr, "%s: %s: unable to read secret key from disk\n",
-                    errorstr, __func__);
+            fprintf(stderr, "%s: unable to read secret key from disk\n",
+                    errorstr);
             goto cleanup;
         }
         fclose(fp);
+        fp = NULL;
         if (g_verbose)
             fprintf(stderr, "— Reading secret key from disk: %.2f s [%lu KB]\n",
                     current_time() - _start, filesize(skname) / 1024);
-        free(skname);
-    } else {
-        sk = cached_sk;
+        if (skname_ == NULL)
+            free(skname);
     }
 
     if ((ct = vt->mife_encrypt(sk, slot, input, ninputs, nthreads, rng)) == NULL) {
-        fprintf(stderr, "%s: %s: encryption failed\n", errorstr, __func__);
+        fprintf(stderr, "%s: MIFE encryption failed\n", errorstr);
         goto cleanup;
     }
 
     {
         double _start = current_time();
         char *ctname;
-        ctname = makestr("%s.%lu.ct", circuit, slot);
-        mife_ct_write(vt, ct, ctname);
+
+        if ((ctname = makestr("%s.%lu.ct", circuit, slot)) == NULL)
+            goto cleanup;
+        if (mife_ct_write(vt, ct, ctname) == ERR) {
+            free(ctname);
+            goto cleanup;
+        }
         if (g_verbose)
             fprintf(stderr, "— Writing ciphertext to disk: %.2f s [%lu KB]\n",
                     current_time() - _start, filesize(ctname) / 1024);
@@ -166,14 +179,13 @@ mife_run_encrypt(const mmap_vtable *mmap, const mife_vtable *vt,
     }
     if (g_verbose)
         fprintf(stderr, "MIFE encryption time: %.2f s\n", current_time() - start);
-    fp = NULL;
     ret = OK;
 cleanup:
     if (fp)
         fclose(fp);
     if (ct)
         vt->mife_ct_free(ct);
-    if (cached_sk == NULL && sk)
+    if (sk)
         vt->mife_sk_free(sk);
     return ret;
 }
@@ -203,13 +215,13 @@ mife_run_decrypt(const mmap_vtable *mmap, const mife_vtable *vt,
         const double _start = current_time();
         FILE *fp;
         if ((fp = fopen(ek_s, "r")) == NULL) {
-            fprintf(stderr, "%s: %s: unable to open '%s' for reading\n",
-                    errorstr, __func__, ek_s);
+            fprintf(stderr, "%s: unable to open '%s' for reading\n",
+                    errorstr, ek_s);
             goto cleanup;
         }
         if ((ek = vt->mife_ek_fread(mmap, circ, fp)) == NULL) {
-            fprintf(stderr, "%s: %s: unable to read evaluation key\n",
-                    errorstr, __func__);
+            fprintf(stderr, "%s: unable to read evaluation key\n",
+                    errorstr);
             fclose(fp);
             goto cleanup;
         }
@@ -228,7 +240,7 @@ mife_run_decrypt(const mmap_vtable *mmap, const mife_vtable *vt,
                     i, current_time() - _start, filesize(cts_s[i]) / 1024);
     }
     if (vt->mife_decrypt(ek, rop, (const mife_ct_t **) cts, nthreads, kappa) == ERR) {
-        fprintf(stderr, "%s: %s: decryption failed\n", errorstr, __func__);
+        fprintf(stderr, "%s: MIFE decryption failed\n", errorstr);
         goto cleanup;
     }
     if (g_verbose)
@@ -249,52 +261,29 @@ mife_run_all(const mmap_vtable *mmap, const mife_vtable *vt,
              size_t *kappa, size_t nthreads, aes_randstate_t rng)
 {
     const char *circuit = acirc_fname(circ);
-    mife_sk_t *sk = NULL;
+    char *skname = NULL;
     int ret = ERR;
 
-    {
-        const double _start = current_time();
-        char *skname;
-        FILE *fp;
-
-        skname = makestr("%s.sk", circuit);
-        if ((fp = fopen(skname, "r")) == NULL) {
-            fprintf(stderr, "%s: %s: unable to open '%s' for reading\n",
-                    errorstr, __func__, skname);
-            return ERR;
-        }
-        sk = vt->mife_sk_fread(mmap, circ, fp);
-        fclose(fp);
-        if (sk == NULL)
-            return ERR;
-        if (g_verbose)
-            fprintf(stderr, "— Reading secret key from disk: %.2f s [%lu KB]\n",
-                    current_time() - _start, filesize(skname) / 1024);
-        free(skname);
-    }
+    if ((skname = makestr("%s.sk", circuit)) == NULL)
+        goto cleanup;
 
     /* Encrypt each input in the right slot */
     for (size_t i = 0; i < acirc_nsymbols(circ); ++i) {
         if (mife_run_encrypt(mmap, vt, circ, inp[i], acirc_symlen(circ, i),
-                             i, nthreads, sk, rng) == ERR) {
-            fprintf(stderr, "%s: %s: mife encryption of '",
-                    errorstr, __func__);
-            for (size_t j = 0; j < acirc_symlen(circ, i); ++j) {
+                             i, skname, nthreads, rng) == ERR) {
+            fprintf(stderr, "%s: mife encryption of '", errorstr);
+            for (size_t j = 0; j < acirc_symlen(circ, i); ++j)
                 fprintf(stderr, "%ld", inp[i][j]);
-            }
             fprintf(stderr, "' in slot %lu failed\n", i);
-            vt->mife_sk_free(sk);
-            return ERR;
+            goto cleanup;
         }
     }
-
-    vt->mife_sk_free(sk);
-
     {
-        char *ek;
+        char *ek = NULL;
         char *cts[acirc_nsymbols(circ)];
 
-        ek = makestr("%s.ek", circuit);
+        if ((ek = makestr("%s.ek", circuit)) == NULL)
+            goto cleanup;
         for (size_t j = 0; j < acirc_nsymbols(circ); ++j)
             cts[j] = makestr("%s.%lu.ct", circuit, j);
         ret = mife_run_decrypt(mmap, vt, circ, ek, cts, outp, kappa, nthreads);
@@ -302,6 +291,9 @@ mife_run_all(const mmap_vtable *mmap, const mife_vtable *vt,
             free(cts[j]);
         free(ek);
     }
+cleanup:
+    if (skname)
+        free(skname);
     return ret;
 }
 
@@ -370,8 +362,8 @@ mife_run_smart_kappa(const mife_vtable *vt, const acirc_t *circ,
     for (size_t i = 0; i < acirc_nsymbols(circ); ++i)
         inps[i] = my_calloc(acirc_symlen(circ, i), sizeof inps[i][0]);
     if (mife_run_all(&dummy_vtable, vt, circ, inps, NULL, &kappa, nthreads, rng) == ERR) {
-        fprintf(stderr, "%s: %s: unable to determine κ smartly\n",
-                errorstr, __func__);
+        fprintf(stderr, "%s: unable to determine κ smartly\n",
+                errorstr);
         kappa = 0;
     }
     for (size_t i = 0; i < acirc_nsymbols(circ); ++i)

@@ -19,6 +19,7 @@ mife_gc_op_new(const acirc_t *circ, void *params_)
     op->npowers = params->npowers;
     op->padding = params->padding;
     op->wirelen = params->wirelen;
+    op->ngates = params->ngates ? params->ngates : acirc_nmuls(circ);
     return op;
 }
 
@@ -32,9 +33,10 @@ static void
 mife_gc_op_print(const obf_params_t *op)
 {
     fprintf(stderr, "MIFE parameters:\n");
-    fprintf(stderr, "———— # powers: .... %lu\n", op->npowers);
-    fprintf(stderr, "———— padding: ..... %lu\n", op->padding);
-    fprintf(stderr, "———— wire length: . %lu\n", op->wirelen);
+    fprintf(stderr, "———— # powers: ..... %lu\n", op->npowers);
+    fprintf(stderr, "———— padding: ...... %lu\n", op->padding);
+    fprintf(stderr, "———— wire length: .. %lu\n", op->wirelen);
+    fprintf(stderr, "———— # gates / GC: . %lu\n", op->ngates);
 }
 
 op_vtable mife_gc_op_vtable =

@@ -9,4 +9,5 @@ struct obf_params_t {
     size_t npowers;
     size_t padding;
     size_t wirelen;
+    size_t ngates;
 };

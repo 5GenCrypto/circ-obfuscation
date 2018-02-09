@@ -12,7 +12,7 @@ mife_run_setup(const mmap_vtable *mmap, const mife_vtable *vt,
 int
 mife_run_encrypt(const mmap_vtable *mmap, const mife_vtable *vt,
                  const acirc_t *circ, const long *input, size_t ninputs,
-                 size_t slot, size_t nthreads, mife_sk_t *cached_sk,
+                 size_t slot, const char *skname_, size_t nthreads,
                  aes_randstate_t rng);
 int
 mife_run_decrypt(const mmap_vtable *mmap, const mife_vtable *vt,

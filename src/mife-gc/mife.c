@@ -4,11 +4,13 @@
 #include "../mife_util.h"
 #include "../util.h"
 
+const char *boots = "boots";
+
 struct mife_t {
     const mmap_vtable *mmap;
     const mife_vtable *vt;
-    mife_cmr_mife_t *mife;
     const obf_params_t *op;
+    mife_cmr_mife_t *mife;
     char *dirname;
     obf_params_t *op_;
     acirc_t *gc;
@@ -16,9 +18,9 @@ struct mife_t {
 
 struct mife_sk_t {
     const mife_vtable *vt;
+    const acirc_t *circ;
     mife_cmr_mife_sk_t *sk;
     acirc_t *gc;
-    const acirc_t *circ;
     char *dirname;
     size_t npowers;
     size_t wirelen;
@@ -29,8 +31,8 @@ struct mife_sk_t {
 struct mife_ek_t {
     const mmap_vtable *mmap;
     const mife_vtable *vt;
-    mife_cmr_mife_ek_t *ek;
     const acirc_t *circ;
+    mife_cmr_mife_ek_t *ek;
     char *dirname;
     acirc_t *gc;
     size_t npowers;
@@ -243,7 +245,7 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     mife_t *mife;
 
     if (!acirc_is_binary(op->circ)) {
-        fprintf(stderr, "%s: GC approach only works for binary circuits\n",
+        fprintf(stderr, "%s: GC-based approach only works for binary circuits\n",
                 errorstr);
         return NULL;
     }
@@ -253,25 +255,25 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
 
     if ((mife = my_calloc(1, sizeof mife[0])) == NULL)
         return NULL;
-    mife->op = op;
-    mife->vt = &mife_cmr_vtable;
     mife->mmap = mmap;
+    mife->vt = &mife_cmr_vtable;
+    mife->op = op;
     if ((mife->dirname = makestr("%s.gc", acirc_fname(op->circ))) == NULL)
         goto error;
     /* generate garbled circuit for input circuit */
     {
         const double start = current_time();
+        const size_t ngates = op->ngates ? op->ngates : acirc_nmuls(op->circ);
         char *cmd = NULL;
 
         if (g_verbose)
             fprintf(stderr, "— Generating garbled circuit: ");
-
-        (void) makedir(mife->dirname);
-        if ((cmd = makestr("boots garble \"%s\" -d %s -p %lu -s %lu",
-                           acirc_fname(op->circ), mife->dirname,
-                           op->padding, op->wirelen)) == NULL) {
+        if (makedir(mife->dirname) == ERR)
             goto error;
-        }
+        if ((cmd = makestr("%s garble \"%s\" -d %s -p %lu -s %lu -g %lu",
+                           boots, acirc_fname(op->circ), mife->dirname,
+                           op->padding, op->wirelen, ngates)) == NULL)
+            goto error;
         if (system(cmd) != 0) {
             if (g_verbose) fprintf(stderr, "\n");
             fprintf(stderr, "%s: %s: error calling '%s'\n",
@@ -286,14 +288,13 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     /* run MIFE setup on garbled circuit */
     {
         const double start = current_time();
-        char *fname;
-
-        if ((fname = makestr("%s/gb.acirc2", mife->dirname)) == NULL)
-            goto error;
+        char *fname = NULL;
 
         if (g_verbose)
             fprintf(stderr, "— Running MIFE setup on garbled circuit:\n");
 
+        if ((fname = makestr("%s/gb.acirc2", mife->dirname)) == NULL)
+            goto error;
         if ((mife->gc = acirc_new(fname, false, true)) == NULL) {
             fprintf(stderr, "%s: %s: unable to parse '%s'\n",
                     errorstr, __func__, fname);
@@ -313,16 +314,26 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         if (g_verbose)
             fprintf(stderr, "— MIFE setup: %.2f s\n", current_time() - start);
     }
-    /* encrypt each index */
-    {
+    /* if the garbled circuit processes gates in chunks (rather than operating
+     * over the whole circuit), we need to encrypt each of the indices, which
+     * are encoded as Σ-vectors */
+    if (op->ngates < acirc_nmuls(mife->op->circ)) {
         const double start = current_time();
-        const size_t nindices = acirc_symlen(mife->gc, 1); /* XXX */
+        const size_t slot = acirc_nsymbols(op->circ);
+        size_t nindices;
         mife_sk_t *sk;
         int ret = OK;
-        sk = mife_sk(mife);
+
+        if (acirc_nsymbols(mife->gc) != slot + 1) {
+            fprintf(stderr, "%s: excepted garbled circuit to have one more symbol "
+                    "than circuit\n", errorstr);
+            goto error;
+        }
+        nindices = acirc_symlen(mife->gc, slot);
+        if ((sk = mife_sk(mife)) == NULL)
+            goto error;
         if (g_verbose)
-            fprintf(stderr, "— Encrypting %lu indices:\n",
-                    nindices);
+            fprintf(stderr, "— Encrypting %lu indices:\n", nindices);
         for (size_t i = 0; i < nindices; ++i) {
             char *ctname = NULL;
             mife_cmr_mife_ct_t *ct = NULL;
@@ -337,13 +348,17 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
                 goto cleanup;
             ct->vt = &mife_cmr_vtable;
             ct->gc = sk->gc;
-            if ((ct->ct = mife->vt->mife_encrypt(sk->sk, 1, input, nindices,
+            if ((ct->ct = mife->vt->mife_encrypt(sk->sk, slot, input, nindices,
                                                  nthreads, rng)) == NULL) {
                 ret = ERR;
                 goto cleanup;
             }
-            ctname = makestr("%s.ix%lu.1.ct", acirc_fname(mife->gc), i);
-            mife_ct_write(&mife_gc_vtable, ct, ctname);
+            if ((ctname = makestr("%s.ix%lu.1.ct",
+                                  acirc_fname(mife->gc), i)) == NULL) {
+                ret = ERR;
+                goto cleanup;
+            }
+            ret = mife_ct_write(&mife_gc_vtable, ct, ctname);
         cleanup:
             if (ct)
                 mife_ct_free(ct);
@@ -376,8 +391,8 @@ mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
     long *seed = NULL;
 
     if (ninputs != acirc_symlen(sk->circ, slot)) {
-        fprintf(stderr, "%s: %s: invalid input length for slot %lu (%lu ≠ %lu)\n",
-                errorstr, __func__, slot, ninputs, acirc_symlen(sk->circ, slot));
+        fprintf(stderr, "%s: invalid input length for slot %lu (%lu ≠ %lu)\n",
+                errorstr, slot, ninputs, acirc_symlen(sk->circ, slot));
         return NULL;
     }
 
@@ -385,12 +400,13 @@ mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
         const double start = current_time();
         if (g_verbose)
             fprintf(stderr, "— Generating input wire labels: ");
-        inp = longs_to_str(inputs, acirc_symlen(sk->circ, slot));
-        cmd = makestr("boots wires -d %s %s", sk->dirname, inp);
+        if ((inp = longs_to_str(inputs, acirc_symlen(sk->circ, slot))) == NULL)
+            goto cleanup;
+        if ((cmd = makestr("%s wires -d %s %s", boots, sk->dirname, inp)) == NULL)
+            goto cleanup;
         if (system(cmd) != 0) {
             if (g_verbose) fprintf(stderr, "\n");
-            fprintf(stderr, "%s: %s: error calling '%s'\n",
-                    errorstr, __func__, cmd);
+            fprintf(stderr, "%s: error calling '%s'\n", errorstr, cmd);
             goto cleanup;
         }
         if (g_verbose)
@@ -407,23 +423,31 @@ mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
         if ((fname = makestr("%s/seed", sk->dirname)) == NULL)
             goto cleanup;
         if ((fp = fopen(fname, "r")) == NULL) {
-            fprintf(stderr, "%s: %s: unable to open seed file '%s'\n",
-                    errorstr, __func__, fname);
+            fprintf(stderr, "%s: unable to open seed file '%s'\n",
+                    errorstr, fname);
+            free(fname);
+            goto cleanup;
+        }
+        if (fread(seed_s, sizeof seed_s[0], seedlen, fp) != seedlen) {
+            fprintf(stderr, "%s: unable to read seed from file '%s'\n",
+                    errorstr, fname);
+            free(fname);
+            goto cleanup;
+        }
+        if ((seed = str_to_longs(seed_s, seedlen)) == NULL) {
+            fprintf(stderr, "%s: unable to parse seed in file '%s'\n",
+                    errorstr, fname);
             free(fname);
             goto cleanup;
         }
         free(fname);
-        if (fread(seed_s, sizeof seed_s[0], seedlen, fp) != seedlen) {
-            fprintf(stderr, "%s: %s: unable to read seed\n",
-                    errorstr, __func__);
-            goto cleanup;
-        }
-        seed = str_to_longs(seed_s, seedlen);
+
         if ((ct = my_calloc(1, sizeof ct[0])) == NULL)
             goto cleanup;
         ct->vt = &mife_cmr_vtable;
         ct->ct = sk->vt->mife_encrypt(sk->sk, slot, seed, seedlen, nthreads, rng);
         ct->gc = sk->gc;
+
         if (g_verbose)
             fprintf(stderr, "— MIFE encrypt on input seed: %.2f s\n",
                     current_time() - start);
@@ -456,65 +480,100 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
 
     if ((rop_ = my_calloc(acirc_noutputs(ek->gc), sizeof rop_[0])) == NULL)
         goto cleanup;
-    if ((cmr_cts = my_calloc(acirc_nsymbols(ek->gc), sizeof cmr_cts[0])) == NULL)
+    if ((cmr_cts = my_calloc(acirc_nsymbols(ek->gc),
+                             sizeof cmr_cts[0])) == NULL)
         goto cleanup;
     for (size_t i = 0; i < acirc_nsymbols(ek->circ); ++i)
         cmr_cts[i] = cts[i]->ct;
     if ((fname = makestr("%s/gates", ek->dirname)) == NULL)
         goto cleanup;
     if ((fp = fopen(fname, "w")) == NULL) {
-        fprintf(stderr, "%s: %s: unable to open gates file '%s'\n",
-                errorstr, __func__, fname);
+        fprintf(stderr, "%s: unable to open gates file '%s'\n",
+                errorstr, fname);
         free(fname);
         goto cleanup;
     }
     free(fname);
     /* decrypt MIFE to generate garbled circuit */
-    for (size_t i = 0; i < acirc_symlen(ek->gc, 1); ++i) { /* XXX */
+    if (acirc_nsymbols(ek->gc) == acirc_nsymbols(ek->circ)) {
+        /* The GC-generation circuit does not have an index symbol, so we
+         * directly decrypt it to produce the garbled circuit. */
         const double start = current_time();
-        mife_ct_t *ct = NULL;
-        char *ctname = NULL, *wire = NULL;
-        int ret_ = ERR;
+        char *wire = NULL;
         if (g_verbose)
-            fprintf(stderr, "— Running MIFE decrypt on garbled gate #%lu: ", i);
-        ctname = makestr("%s.ix%lu.1.ct", acirc_fname(ek->gc), i);
-        if ((ct = mife_ct_read(ek->mmap, &mife_gc_vtable, ek, ctname)) == NULL) {
-            if (g_verbose) fprintf(stderr, "\n");
-            fprintf(stderr, "%s: %s: failed to read ciphertext\n",
-                    errorstr, __func__);
-            goto cleanup_;
-        }
-        cmr_cts[acirc_nsymbols(ek->circ)] = ct->ct;
+            fprintf(stderr, "— Running MIFE decrypt on garbled circuit generator: ");
         if (mife_cmr_decrypt(ek->ek, rop_, (const mife_ct_t **) cmr_cts,
                              nthreads, kappa, save, load) == ERR) {
             if (g_verbose) fprintf(stderr, "\n");
-            fprintf(stderr, "%s: %s: mife decrypt failed on garbled circuit\n",
-                    errorstr, __func__);
-            goto cleanup_;
-        }
-        wire = longs_to_str(rop_, noutputs);
-        if (fwrite(wire, sizeof wire[0], noutputs, fp) != noutputs
-            || fwrite("\n", sizeof(char), 1, fp) != 1) {
-            if (g_verbose) fprintf(stderr, "\n");
-            fprintf(stderr, "%s: %s: failed to write wire to file\n",
-                    errorstr, __func__);
-            goto cleanup_;
-        }
-        ret_ = OK;
-        acirc_set_saved(ek->gc);
-        save = false;
-        load = true;
-    cleanup_:
-        if (wire)
-            free(wire);
-        if (ctname)
-            free(ctname);
-        if (ct)
-            mife_ct_free(ct);
-        if (ret_ == ERR)
+            fprintf(stderr, "%s: mife decrypt failed on GC-generation\n",
+                    errorstr);
             goto cleanup;
+        }
+        if ((wire = longs_to_str(rop_, noutputs)) == NULL)
+            goto cleanup;
+        if (fwrite(wire, sizeof wire[0], noutputs, fp) != noutputs) {
+            if (g_verbose) fprintf(stderr, "\n");
+            fprintf(stderr, "%s: failed to write wire to file\n",
+                    errorstr);
+            free(wire);
+            goto cleanup;
+        }
+        free(wire);
         if (g_verbose)
             fprintf(stderr, "%.2f s\n", current_time() - start);
+    } else {
+        /* The GC-generation circuit has an index symbol, which means we need to
+         * iterate over all indices to produce the garbled circuit. */
+        const size_t slot = acirc_nsymbols(ek->circ);
+        if (acirc_nsymbols(ek->gc) != slot + 1) {
+            fprintf(stderr, "%s: GC-generation circuit has no index symbol?\n",
+                    errorstr);
+            goto cleanup;
+        }
+        for (size_t i = 0; i < acirc_symlen(ek->gc, slot); ++i) {
+            const double start = current_time();
+            mife_ct_t *ct = NULL;
+            char *ctname = NULL, *wire = NULL;
+            int ret_ = ERR;
+            if (g_verbose)
+                fprintf(stderr, "— Running MIFE decrypt on garbled gate #%lu: ", i);
+            ctname = makestr("%s.ix%lu.1.ct", acirc_fname(ek->gc), i);
+            if ((ct = mife_ct_read(ek->mmap, &mife_gc_vtable, ek, ctname)) == NULL) {
+                if (g_verbose) fprintf(stderr, "\n");
+                fprintf(stderr, "%s: failed to read ciphertext '%s'\n",
+                        errorstr, ctname);
+                goto cleanup_;
+            }
+            cmr_cts[slot] = ct->ct;
+            if (mife_cmr_decrypt(ek->ek, rop_, (const mife_ct_t **) cmr_cts,
+                                 nthreads, kappa, save, load) == ERR) {
+                if (g_verbose) fprintf(stderr, "\n");
+                fprintf(stderr, "%s: mife decrypt failed on GC-generation\n",
+                        errorstr);
+                goto cleanup_;
+            }
+            wire = longs_to_str(rop_, noutputs);
+            if (fwrite(wire, sizeof wire[0], noutputs, fp) != noutputs) {
+                if (g_verbose) fprintf(stderr, "\n");
+                fprintf(stderr, "%s: failed to write wire to file\n", errorstr);
+                goto cleanup_;
+            }
+            ret_ = OK;
+            acirc_set_saved(ek->gc);
+            save = false;
+            load = true;
+        cleanup_:
+            if (wire)
+                free(wire);
+            if (ctname)
+                free(ctname);
+            if (ct)
+                mife_ct_free(ct);
+            if (ret_ == ERR)
+                goto cleanup;
+            if (g_verbose)
+                fprintf(stderr, "%.2f s\n", current_time() - start);
+        }
     }
     fclose(fp);
     fp = NULL;
@@ -526,30 +585,31 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
             fprintf(stderr, "— Evaluating the garbled circuit: ");
         if ((outs = my_calloc(1025, sizeof outs[0])) == NULL)
             goto cleanup;
-        if ((cmd = makestr("boots eval -d %s", ek->dirname)) == NULL)
+        if ((cmd = makestr("%s eval -d %s", boots, ek->dirname)) == NULL)
             goto cleanup;
         if ((fp = popen(cmd, "r")) == NULL) {
             if (g_verbose) fprintf(stderr, "\n");
-            fprintf(stderr, "%s: %s: failed to run '%s'\n",
-                    errorstr, __func__, cmd);
+            fprintf(stderr, "%s: failed to run '%s'\n",
+                    errorstr, cmd);
             free(cmd);
             goto cleanup;
         }
-        free(cmd);
         if (fgets(outs, 1025, fp) == NULL) { /* XXX */
             if (g_verbose) fprintf(stderr, "\n");
-            fprintf(stderr, "%s: %s: failed to get output\n",
-                    errorstr, __func__);
+            fprintf(stderr, "%s: failed to get output\n", errorstr);
             pclose(fp); fp = NULL;
+            free(cmd);
             goto cleanup;
         }
         if (pclose(fp)) {
             if (g_verbose) fprintf(stderr, "\n");
-            fprintf(stderr, "%s: %s: '%s' failed: %s\n",
-                    errorstr, __func__, "boots eval", outs);
+            fprintf(stderr, "%s: failed to run '%s': %s\n",
+                    errorstr, cmd, outs);
+            free(cmd);
             fp = NULL;
             goto cleanup;
         }
+        free(cmd);
         if (rop)
             for (size_t i = 0; i < acirc_noutputs(ek->circ); ++i)
                 rop[i] = char_to_long(outs[i]);
