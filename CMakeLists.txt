@@ -8,17 +8,14 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 include(GNUInstallDirs)
 
-set(mio_SOURCES
+set(common_SOURCES
   src/circ_params.c
   src/index_set.c
   src/mmap.c
-  src/mife_run.c
-  src/mife_util.c
-  src/obf_run.c
-  src/util.c
-  )
+  src/util.c)
+
 set(obf_lz_SOURCES
-  ${mio_SOURCES}
+  ${common_SOURCES}
   src/obf-lz/encoding.c
   src/obf-lz/obf_params.c
   src/obf-lz/obfuscator.c
@@ -26,7 +23,7 @@ set(obf_lz_SOURCES
   src/obf-lz/secret_params.c
   )
 set(mife_cmr_SOURCES
-  ${mio_SOURCES}
+  ${common_SOURCES}
   src/mife-cmr/encoding.c
   src/mife-cmr/mife.c
   src/mife-cmr/mife_params.c
@@ -34,24 +31,31 @@ set(mife_cmr_SOURCES
   src/mife-cmr/secret_params.c
   )
 set(obf_cmr_SOURCES
-  ${mio_SOURCES}
+  ${common_SOURCES}
   src/obf-cmr/obf_params.c
   src/obf-cmr/obfuscator.c
   )
 set(mife_gc_SOURCES
-  ${mio_SOURCES}
+  ${common_SOURCES}
   src/mife-gc/mife.c
   src/mife-gc/mife_params.c
   )
-set(obf_polylog_SOURCES
-  ${mio_SOURCES}
-  src/obf-polylog/encoding.c
-  src/obf-polylog/extra.c
-  src/obf-polylog/obf_params.c
-  src/obf-polylog/obfuscator.c
-  src/obf-polylog/public_params.c
-  src/obf-polylog/secret_params.c
-  src/obf-polylog/wire.c
+# set(obf_polylog_SOURCES
+#   ${common_SOURCES}
+#   src/obf-polylog/encoding.c
+#   src/obf-polylog/extra.c
+#   src/obf-polylog/obf_params.c
+#   src/obf-polylog/obfuscator.c
+#   src/obf-polylog/public_params.c
+#   src/obf-polylog/secret_params.c
+#   src/obf-polylog/wire.c
+#   )
+
+set(mio_SOURCES
+  src/mife_run.c
+  src/mife_util.c
+  src/obf_run.c
+  src/mio.c
   )
 
 add_library(obf_lz SHARED ${obf_lz_SOURCES})
@@ -59,7 +63,7 @@ add_library(mife_cmr SHARED ${mife_cmr_SOURCES})
 add_library(obf_cmr SHARED ${obf_cmr_SOURCES})
 add_library(mife_gc SHARED ${mife_gc_SOURCES})
 # add_library(obf_polylog SHARED ${obf_polylog_SOURCES})
-add_executable(mio src/mio.c)
+add_executable(mio ${mio_SOURCES})
 target_link_libraries(mio mife_cmr)
 target_link_libraries(mio mife_gc)
 target_link_libraries(mio obf_lz)

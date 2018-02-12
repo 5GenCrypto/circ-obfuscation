@@ -11,6 +11,7 @@
 
 #define PRIVATE __attribute__ ((visibility ("hidden")))
 
+extern const char *fatalstr;
 extern const char *errorstr;
 extern const char *warnstr;
 extern bool g_verbose;
@@ -38,7 +39,7 @@ void mpz_vect_repeat_ui(mpz_t *vec, size_t x, size_t n);
 
 size_t bit(size_t x, size_t i);
 
-void * my_calloc(size_t nmemb, size_t size);
+void * xcalloc(size_t nmemb, size_t size);
 
 char * str_fread(FILE *fp);
 int    str_fwrite(const char *x, FILE *fp);

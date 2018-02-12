@@ -7,17 +7,11 @@
 index_set *
 index_set_new(size_t nzs)
 {
-    index_set *ix = NULL;
-    if ((ix = my_calloc(1, sizeof ix[0])) == NULL)
-        goto error;
+    index_set *ix;
+    ix = xcalloc(1, sizeof ix[0]);
     ix->nzs = nzs;
-    if ((ix->pows = my_calloc(ix->nzs, sizeof ix->pows[0])) == NULL)
-        goto error;
+    ix->pows = xcalloc(ix->nzs, sizeof ix->pows[0]);
     return ix;
-error:
-    if (ix)
-        free(ix);
-    return NULL;
 }
 
 void
@@ -120,14 +114,12 @@ error:
 index_set *
 index_set_fread(FILE *fp)
 {
-    index_set *ix;
+    index_set *ix = NULL;
 
-    if ((ix = my_calloc(1, sizeof ix[0])) == NULL)
-        return NULL;
+    ix = xcalloc(1, sizeof ix[0]);
     if (size_t_fread(&ix->nzs, fp) == ERR)
         goto error;
-    if ((ix->pows = my_calloc(ix->nzs, sizeof ix->pows[0])) == NULL)
-        goto error;
+    ix->pows = xcalloc(ix->nzs, sizeof ix->pows[0]);
     for (size_t i = 0; i < ix->nzs; i++)
         if (int_fread(&ix->pows[i], fp) == ERR)
             goto error;

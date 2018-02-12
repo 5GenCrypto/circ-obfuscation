@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../mife.h"
-#include "../circ_params.h"
 
 struct obf_params_t {
     const acirc_t *circ;

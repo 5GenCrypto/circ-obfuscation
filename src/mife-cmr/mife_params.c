@@ -34,8 +34,7 @@ _new(const acirc_t *circ, void *vparams)
     mife_cmr_params_t *params = vparams;
     obf_params_t *op;
 
-    if ((op = my_calloc(1, sizeof op[0])) == NULL)
-        return NULL;
+    op = xcalloc(1, sizeof op[0]);
     op->circ = circ;
     op->npowers = params->npowers;
     return op;

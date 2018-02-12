@@ -932,15 +932,15 @@ cmd_mife_decrypt(int argc, char **argv, args_t *args)
     nslots = acirc_nslots(args->circ);
 
     length = snprintf(NULL, 0, "%s.ek\n", args->circuit);
-    ek = my_calloc(length, sizeof ek[0]);
+    ek = xcalloc(length, sizeof ek[0]);
     snprintf(ek, length, "%s.ek\n", args->circuit);
-    cts = my_calloc(nslots, sizeof cts[0]);
+    cts = xcalloc(nslots, sizeof cts[0]);
     for (size_t i = 0; i < nslots; ++i) {
         length = snprintf(NULL, 0, "%s.%lu.ct\n", args->circuit, i);
-        cts[i] = my_calloc(length, sizeof cts[i][0]);
+        cts[i] = xcalloc(length, sizeof cts[i][0]);
         (void) snprintf(cts[i], length, "%s.%lu.ct\n", args->circuit, i);
     }
-    rop = my_calloc(acirc_noutputs(args->circ), sizeof rop[0]);
+    rop = xcalloc(acirc_noutputs(args->circ), sizeof rop[0]);
     if (mife_run_decrypt(args_.mmap, vt, args->circ, ek, cts, rop, NULL,
                          args_.nthreads) == ERR) {
         fprintf(stderr, "%s: mife decrypt failed\n", errorstr);
@@ -1203,8 +1203,7 @@ cmd_obf_evaluate(int argc, char **argv, args_t *args)
     /*     args->vt = &clt_pl_vtable; */
     if ((input = str_to_longs(argv[0], strlen(argv[0]))) == NULL)
         goto cleanup;
-    if ((output = my_calloc(acirc_noutputs(args->circ),
-                            sizeof output[0])) == NULL)
+    output = xcalloc(acirc_noutputs(args->circ), sizeof output[0]);
         goto cleanup;
     if (obf_run_evaluate(args_.mmap, vt, fname, args->circ, input,
                          strlen(argv[0]), output, acirc_noutputs(args->circ),
@@ -1235,7 +1234,7 @@ cmd_obf_test(int argc, char **argv, args_t *args)
     op_vtable *op_vt = NULL;
     obf_params_t *op = NULL;
     char *fname = NULL;
-    size_t length, kappa = 0;
+    size_t kappa = 0;
     bool passed = true;
     int ret = ERR;
 
@@ -1253,10 +1252,7 @@ cmd_obf_test(int argc, char **argv, args_t *args)
     /*         goto cleanup; */
     /* } */
 
-    length = snprintf(NULL, 0, "%s.obf\n", args->circuit);
-    if ((fname = my_calloc(length, sizeof fname[0])) == NULL)
-        goto cleanup;
-    snprintf(fname, length, "%s.obf", args->circuit);
+    fname = makestr("%s.obf", args->circuit);
     if (obf_run_obfuscate(args_.mmap, vt, fname, op, args_.secparam, &kappa,
                           args_.nthreads, args->rng) == ERR)
         goto cleanup;

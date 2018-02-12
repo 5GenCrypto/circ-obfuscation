@@ -313,7 +313,7 @@ mife_run_test(const mmap_vtable *mmap, const mife_vtable *vt,
         long outp[acirc_noutputs(circ)];
         size_t idx = 0;
         for (size_t i = 0; i < acirc_nsymbols(circ); ++i) {
-            inps[i] = my_calloc(acirc_symlen(circ, i), sizeof inps[i][0]);
+            inps[i] = xcalloc(acirc_symlen(circ, i), sizeof inps[i][0]);
             memcpy(inps[i], &acirc_test_input(circ, t)[idx],
                    acirc_symlen(circ, i) * sizeof inps[i][0]);
             idx += acirc_symlen(circ, i);
@@ -349,8 +349,7 @@ mife_run_smart_kappa(const mife_vtable *vt, const acirc_t *circ,
     size_t kappa = 0;
     bool verbosity = g_verbose;
 
-    if ((inps = my_calloc(acirc_nsymbols(circ), sizeof inps[0])) == NULL)
-        return 0;
+    inps = xcalloc(acirc_nsymbols(circ), sizeof inps[0]);
 
     if (g_verbose)
         fprintf(stderr, "Choosing κ smartly... ");
@@ -360,7 +359,7 @@ mife_run_smart_kappa(const mife_vtable *vt, const acirc_t *circ,
         goto cleanup;
 
     for (size_t i = 0; i < acirc_nsymbols(circ); ++i)
-        inps[i] = my_calloc(acirc_symlen(circ, i), sizeof inps[i][0]);
+        inps[i] = xcalloc(acirc_symlen(circ, i), sizeof inps[i][0]);
     if (mife_run_all(&dummy_vtable, vt, circ, inps, NULL, &kappa, nthreads, rng) == ERR) {
         fprintf(stderr, "%s: unable to determine κ smartly\n",
                 errorstr);

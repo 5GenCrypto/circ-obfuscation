@@ -20,6 +20,7 @@
 #include <mmap/mmap_dummy.h>
 
 const char *errorstr = "\033[1;31merror\033[0m";
+const char *fatalstr = "\033[1;31mfatal\033[0m";
 const char *warnstr = "\033[1;33mwarning\033[0m";
 
 bool g_verbose = false;
@@ -41,15 +42,17 @@ array_printstring(const long *xs, size_t n)
 mpz_t *
 mpz_vect_new(size_t n)
 {
-    mpz_t *xs = my_calloc(n, sizeof xs[0]);
+    mpz_t *xs;
+    xs = xcalloc(n, sizeof xs[0]);
     for (size_t i = 0; i < n; i++)
         mpz_init(xs[i]);
     return xs;
 }
 
-void mpz_vect_print(mpz_t *xs, size_t len)
+void
+mpz_vect_print(mpz_t *xs, size_t len)
 {
-    if (len == 1){
+    if (len == 1) {
         gmp_printf("[%Zd]", xs[0]);
         return;
     }
@@ -72,27 +75,31 @@ mpz_vect_free(mpz_t *xs, size_t n)
     free(xs);
 }
 
-void mpz_vect_set(mpz_t *rop, const mpz_t *xs, size_t n)
+void
+mpz_vect_set(mpz_t *rop, const mpz_t *xs, size_t n)
 {
     for (size_t i = 0; i < n; i++)
         mpz_set(rop[i], xs[i]);
 }
 
-void mpz_vect_mul(mpz_t *rop, const mpz_t *xs, const mpz_t *ys, size_t n)
+void
+mpz_vect_mul(mpz_t *rop, const mpz_t *xs, const mpz_t *ys, size_t n)
 {
     for (size_t i = 0; i < n; i++) {
         mpz_mul(rop[i], xs[i], ys[i]);
     }
 }
 
-void mpz_vect_mod(mpz_t *rop, const mpz_t *xs, const mpz_t *moduli, size_t n)
+void
+mpz_vect_mod(mpz_t *rop, const mpz_t *xs, const mpz_t *moduli, size_t n)
 {
     for (size_t i = 0; i < n; i++) {
         mpz_mod(rop[i], xs[i], moduli[i]);
     }
 }
 
-void mpz_vect_mul_mod(mpz_t *rop, const mpz_t *xs, const mpz_t *ys, const mpz_t *moduli, size_t n)
+void
+mpz_vect_mul_mod(mpz_t *rop, const mpz_t *xs, const mpz_t *ys, const mpz_t *moduli, size_t n)
 {
     mpz_vect_mul(rop, xs, ys, n);
     mpz_vect_mod(rop, (const mpz_t *const) rop, moduli, n);
@@ -115,12 +122,14 @@ size_t bit(size_t x, size_t i)
 }
 
 void *
-my_calloc(size_t nmemb, size_t size)
+xcalloc(size_t nmemb, size_t size)
 {
     void *ptr;
-    if ((ptr = calloc(nmemb, size)) == NULL)
+    if ((ptr = calloc(nmemb, size)) == NULL) {
         fprintf(stderr, "%s: allocating %lu bytes failed\n",
-                errorstr, nmemb * size);
+                fatalstr, nmemb * size);
+        exit(1);
+    }
     return ptr;
 }
 
@@ -210,7 +219,7 @@ str_fread(FILE *fp)
     size_t len;
     char *str = NULL;
     if (size_t_fread(&len, fp) == ERR) goto error;
-    if ((str = my_calloc(len, sizeof str[0])) == NULL) goto error;
+    str = xcalloc(len, sizeof str[0]);
     if (fread(str, 1, len, fp) != len) goto error;
     return str;
 error:
@@ -345,7 +354,7 @@ makestr(const char *fmt, ...)
     va_start(argp, fmt);
     length = vsnprintf(NULL, 0, fmt, argp);
     va_end(argp);
-    str = my_calloc(length + 1, sizeof str[0]);
+    str = xcalloc(length + 1, sizeof str[0]);
     va_start(argp, fmt);
     (void) vsnprintf(str, length + 1, fmt, argp);
     va_end(argp);
@@ -356,10 +365,9 @@ char *
 longs_to_str(const long *xs, size_t n)
 {
     char *str;
-    str = my_calloc(sizeof(long) * (n + 1), sizeof str[0]);
-    for (size_t i = 0; i < n; ++i) {
+    str = xcalloc(sizeof(long) * (n + 1), sizeof str[0]);
+    for (size_t i = 0; i < n; ++i)
         snprintf(&str[i], sizeof(long), "%ld", xs[i]);
-    }
     return str;
 }
 
@@ -367,11 +375,9 @@ long *
 str_to_longs(const char *str, size_t n)
 {
     long *xs;
-    if ((xs = my_calloc(n, sizeof xs[0])) == NULL)
-        return NULL;
-    for (size_t i = 0; i < n; ++i) {
+    xs = xcalloc(n, sizeof xs[0]);
+    for (size_t i = 0; i < n; ++i)
         xs[i] = char_to_long(str[i]);
-    }
     return xs;
 }
 

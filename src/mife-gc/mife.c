@@ -69,8 +69,7 @@ mife_ct_fread(const mmap_vtable *mmap, const mife_ek_t *ek, FILE *fp)
 {
     mife_ct_t *ct;
 
-    if ((ct = my_calloc(1, sizeof ct[0])) == NULL)
-        return NULL;
+    ct = xcalloc(1, sizeof ct[0]);
     ct->vt = &mife_cmr_vtable;
     ct->gc = ek->gc;
     ct->ct = ct->vt->mife_ct_fread(mmap, ek->ek, fp);
@@ -81,8 +80,7 @@ static mife_sk_t *
 mife_sk(const mife_t *mife)
 {
     mife_sk_t *sk;
-    if ((sk = my_calloc(1, sizeof sk[0])) == NULL)
-        return NULL;
+    sk = xcalloc(1, sizeof sk[0]);
     sk->vt = &mife_cmr_vtable;
     sk->circ = mife->op->circ;
     sk->gc = mife->gc;
@@ -129,8 +127,7 @@ mife_sk_fread(const mmap_vtable *mmap, const acirc_t *circ, FILE *fp)
 {
     mife_sk_t *sk = NULL;
     char *fname = NULL;
-    if ((sk = my_calloc(1, sizeof sk[0])) == NULL)
-        return NULL;
+    sk = xcalloc(1, sizeof sk[0]);
     sk->vt = &mife_cmr_vtable;
     sk->circ = circ;
     if ((sk->dirname = str_fread(fp)) == NULL) goto error;
@@ -156,8 +153,7 @@ static mife_ek_t *
 mife_ek(const mife_t *mife)
 {
     mife_ek_t *ek;
-    if ((ek = my_calloc(1, sizeof ek[0])) == NULL)
-        return NULL;
+    ek = xcalloc(1, sizeof ek[0]);
     ek->mmap = mife->mmap;
     ek->vt = mife->vt;
     ek->ek = mife->vt->mife_ek(mife->mife);
@@ -196,8 +192,7 @@ mife_ek_fread(const mmap_vtable *mmap, const acirc_t *circ, FILE *fp)
 {
     mife_ek_t *ek;
     char *fname = NULL;
-    if ((ek = my_calloc(1, sizeof ek[0])) == NULL)
-        return NULL;
+    ek = xcalloc(1, sizeof ek[0]);
     ek->mmap = mmap;
     ek->vt = &mife_cmr_vtable;
     ek->circ = circ;
@@ -253,8 +248,7 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     if (g_verbose)
         fprintf(stderr, "Running MIFE setup:\n");
 
-    if ((mife = my_calloc(1, sizeof mife[0])) == NULL)
-        return NULL;
+    mife = xcalloc(1, sizeof mife[0]);
     mife->mmap = mmap;
     mife->vt = &mife_cmr_vtable;
     mife->op = op;
@@ -341,11 +335,9 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
 
             if (g_verbose)
                 fprintf(stderr, "—— Index #%lu\n", i);
-            if ((input = my_calloc(nindices, sizeof input[0])) == NULL)
-                goto cleanup;
+            input = xcalloc(nindices, sizeof input[0]);
             input[i] = 1;
-            if ((ct = my_calloc(1, sizeof ct[0])) == NULL)
-                goto cleanup;
+            ct = xcalloc(1, sizeof ct[0]);
             ct->vt = &mife_cmr_vtable;
             ct->gc = sk->gc;
             if ((ct->ct = mife->vt->mife_encrypt(sk->sk, slot, input, nindices,
@@ -418,8 +410,7 @@ mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
         char *fname = NULL;
         if (g_verbose)
             fprintf(stderr, "— Running MIFE encrypt on input seed\n");
-        if ((seed_s = my_calloc(seedlen, sizeof seed_s[0])) == NULL)
-            goto cleanup;
+        seed_s = xcalloc(seedlen, sizeof seed_s[0]);
         if ((fname = makestr("%s/seed", sk->dirname)) == NULL)
             goto cleanup;
         if ((fp = fopen(fname, "r")) == NULL) {
@@ -442,8 +433,7 @@ mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
         }
         free(fname);
 
-        if ((ct = my_calloc(1, sizeof ct[0])) == NULL)
-            goto cleanup;
+        ct = xcalloc(1, sizeof ct[0]);
         ct->vt = &mife_cmr_vtable;
         ct->ct = sk->vt->mife_encrypt(sk->sk, slot, seed, seedlen, nthreads, rng);
         ct->gc = sk->gc;
@@ -478,11 +468,8 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
     int ret = ERR;
     bool save = true, load = false;
 
-    if ((rop_ = my_calloc(acirc_noutputs(ek->gc), sizeof rop_[0])) == NULL)
-        goto cleanup;
-    if ((cmr_cts = my_calloc(acirc_nsymbols(ek->gc),
-                             sizeof cmr_cts[0])) == NULL)
-        goto cleanup;
+    rop_ = xcalloc(acirc_noutputs(ek->gc), sizeof rop_[0]);
+    cmr_cts = xcalloc(acirc_nsymbols(ek->gc), sizeof cmr_cts[0]);
     for (size_t i = 0; i < acirc_nsymbols(ek->circ); ++i)
         cmr_cts[i] = cts[i]->ct;
     if ((fname = makestr("%s/gates", ek->dirname)) == NULL)
@@ -583,8 +570,7 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
         char *cmd = NULL;
         if (g_verbose)
             fprintf(stderr, "— Evaluating the garbled circuit: ");
-        if ((outs = my_calloc(1025, sizeof outs[0])) == NULL)
-            goto cleanup;
+        outs = xcalloc(1025, sizeof outs[0]);
         if ((cmd = makestr("%s eval -d %s", boots, ek->dirname)) == NULL)
             goto cleanup;
         if ((fp = popen(cmd, "r")) == NULL) {

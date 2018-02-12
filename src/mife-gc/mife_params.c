@@ -12,8 +12,7 @@ mife_gc_op_new(const acirc_t *circ, void *params_)
     if (params == NULL)
         return NULL;
 
-    if ((op = my_calloc(1, sizeof op[0])) == NULL)
-        return NULL;
+    op = xcalloc(1, sizeof op[0]);
     op->circ = circ;
     op->vt = &mife_cmr_vtable;
     op->npowers = params->npowers;

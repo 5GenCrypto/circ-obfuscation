@@ -15,8 +15,6 @@ typedef struct {
     void (*print)(const obf_params_t *);
 } op_vtable;
 
-/* obf_params_t * obf_params_new(const op_vtable *vt, acirc_t *circ, void *vparams); */
-
 typedef struct {
     size_t kappa;
     size_t nzs;

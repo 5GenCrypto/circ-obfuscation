@@ -60,13 +60,12 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
 
     start = _start = current_time();
 
-    if ((obf = my_calloc(1, sizeof obf[0])) == NULL)
-        return NULL;
+    obf = xcalloc(1, sizeof obf[0]);
     obf->circ = circ;
     obf->mife = vt->mife_setup(mmap, op, secparam, kappa, nthreads, rng);
     obf->ek = vt->mife_ek(obf->mife);
     sk = vt->mife_sk(obf->mife);
-    obf->cts = my_calloc(nslots, sizeof obf->cts[0]);
+    obf->cts = xcalloc(nslots, sizeof obf->cts[0]);
 
     _end = current_time();
     if (g_verbose)
@@ -81,10 +80,10 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     cache.total = obf_cmr_num_encodings(op);
 
     for (size_t i = 0; i < nslots; ++i) {
-        obf->cts[i] = my_calloc(acirc_symnum(circ, i), sizeof obf->cts[i][0]);
+        obf->cts[i] = xcalloc(acirc_symnum(circ, i), sizeof obf->cts[i][0]);
         for (size_t j = 0; j < acirc_symnum(circ, i); ++j) {
             long *inputs;
-            inputs = my_calloc(acirc_symlen(circ, i), sizeof inputs[0]);
+            inputs = xcalloc(acirc_symlen(circ, i), sizeof inputs[0]);
             for (size_t k = 0; k < acirc_symlen(circ, i); ++k)
                 inputs[k] = acirc_is_sigma(circ, i) ? j == k : j;
             obf->cts[i][j] = mife_cmr_encrypt(sk, i, inputs, acirc_symlen(circ, i),
@@ -131,7 +130,7 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
 
     if ((input_syms = get_input_syms(inputs, ninputs, circ)) == NULL)
         goto cleanup;
-    cts = my_calloc(acirc_nslots(circ), sizeof cts[0]);
+    cts = xcalloc(acirc_nslots(circ), sizeof cts[0]);
     for (size_t i = 0; i < acirc_nsymbols(circ); ++i)
         cts[i] = obf->cts[i][input_syms[i]];
     if (acirc_nconsts(circ))
@@ -168,13 +167,14 @@ _fread(const mmap_vtable *mmap, const acirc_t *circ, FILE *fp)
     const size_t nslots = acirc_nslots(circ);
     const mife_vtable *vt = &mife_cmr_vtable;
     obfuscation *obf = NULL;
-    if ((obf = my_calloc(1, sizeof obf[0])) == NULL) goto error;
+
+    obf = xcalloc(1, sizeof obf[0]);
     if ((obf->ek = vt->mife_ek_fread(mmap, circ, fp)) == NULL) goto error;
     obf->mife = NULL;
     obf->circ = circ;
-    obf->cts = my_calloc(nslots, sizeof obf->cts[0]);
+    obf->cts = xcalloc(nslots, sizeof obf->cts[0]);
     for (size_t i = 0; i < nslots; ++i) {
-        obf->cts[i] = my_calloc(acirc_symnum(circ, i), sizeof obf->cts[i][0]);
+        obf->cts[i] = xcalloc(acirc_symnum(circ, i), sizeof obf->cts[i][0]);
         for (size_t j = 0; j < acirc_symnum(circ, i); ++j) {
             if ((obf->cts[i][j] = vt->mife_ct_fread(mmap, obf->ek, fp)) == NULL)
                 goto error;

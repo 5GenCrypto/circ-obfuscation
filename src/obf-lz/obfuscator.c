@@ -57,7 +57,8 @@ __encode(threadpool *pool, const encoding_vtable *vt, encoding *enc, mpz_t inps[
          index_set *ix, const secret_params *sp, pthread_mutex_t *count_lock,
          size_t *count, size_t total)
 {
-    obf_args *args = my_calloc(1, sizeof args[0]);
+    obf_args *args;
+    args = xcalloc(1, sizeof args[0]);
     args->vt = vt;
     args->enc = enc;
     args->inps = mpz_vect_new(2);
@@ -80,32 +81,32 @@ _alloc(const mmap_vtable *mmap, const acirc_t *circ, size_t npowers)
     const size_t nconsts = acirc_nconsts(circ);
     const size_t noutputs = acirc_noutputs(circ);
 
-    obf = my_calloc(1, sizeof obf[0]);
+    obf = xcalloc(1, sizeof obf[0]);
     obf->mmap = mmap;
     obf->circ = circ;
     obf->npowers = npowers;
     obf->enc_vt = get_encoding_vtable(mmap);
     obf->pp_vt = get_pp_vtable(mmap);
     obf->sp_vt = get_sp_vtable(mmap);
-    obf->shat = my_calloc(nsymbols, sizeof obf->shat[0]);
-    obf->uhat = my_calloc(nsymbols, sizeof obf->uhat[0]);
-    obf->zhat = my_calloc(nsymbols, sizeof obf->zhat[0]);
-    obf->what = my_calloc(nsymbols, sizeof obf->what[0]);
+    obf->shat = xcalloc(nsymbols, sizeof obf->shat[0]);
+    obf->uhat = xcalloc(nsymbols, sizeof obf->uhat[0]);
+    obf->zhat = xcalloc(nsymbols, sizeof obf->zhat[0]);
+    obf->what = xcalloc(nsymbols, sizeof obf->what[0]);
     for (size_t k = 0; k < nsymbols; k++) {
-        obf->shat[k] = my_calloc(acirc_symnum(circ, k), sizeof obf->shat[0][0]);
-        obf->uhat[k] = my_calloc(acirc_symnum(circ, k), sizeof obf->uhat[0][0]);
-        obf->zhat[k] = my_calloc(acirc_symnum(circ, k), sizeof obf->zhat[0][0]);
-        obf->what[k] = my_calloc(acirc_symnum(circ, k), sizeof obf->what[0][0]);
+        obf->shat[k] = xcalloc(acirc_symnum(circ, k), sizeof obf->shat[0][0]);
+        obf->uhat[k] = xcalloc(acirc_symnum(circ, k), sizeof obf->uhat[0][0]);
+        obf->zhat[k] = xcalloc(acirc_symnum(circ, k), sizeof obf->zhat[0][0]);
+        obf->what[k] = xcalloc(acirc_symnum(circ, k), sizeof obf->what[0][0]);
         for (size_t s = 0; s < acirc_symnum(circ, k); s++) {
-            obf->shat[k][s] = my_calloc(acirc_symlen(circ, k), sizeof obf->shat[0][0][0]);
-            obf->uhat[k][s] = my_calloc(obf->npowers, sizeof obf->uhat[0][0][0]);
-            obf->zhat[k][s] = my_calloc(noutputs, sizeof obf->zhat[0][0][0]);
-            obf->what[k][s] = my_calloc(noutputs, sizeof obf->what[0][0][0]);
+            obf->shat[k][s] = xcalloc(acirc_symlen(circ, k), sizeof obf->shat[0][0][0]);
+            obf->uhat[k][s] = xcalloc(obf->npowers, sizeof obf->uhat[0][0][0]);
+            obf->zhat[k][s] = xcalloc(noutputs, sizeof obf->zhat[0][0][0]);
+            obf->what[k][s] = xcalloc(noutputs, sizeof obf->what[0][0][0]);
         }
     }
-    obf->yhat = my_calloc(nconsts, sizeof obf->yhat[0]);
-    obf->vhat = my_calloc(obf->npowers, sizeof obf->vhat[0]);
-    obf->Chatstar = my_calloc(noutputs, sizeof obf->Chatstar[0]);
+    obf->yhat = xcalloc(nconsts, sizeof obf->yhat[0]);
+    obf->vhat = xcalloc(obf->npowers, sizeof obf->vhat[0]);
+    obf->Chatstar = xcalloc(noutputs, sizeof obf->Chatstar[0]);
 
     return obf;
 }
@@ -699,7 +700,7 @@ _evaluate(const obfuscation *obf, long *outputs, size_t noutputs,
     g_max_npowers = 0;
 
     if (kappa)
-        kappas = my_calloc(acirc_noutputs(circ), sizeof kappas[0]);
+        kappas = xcalloc(acirc_noutputs(circ), sizeof kappas[0]);
     if ((symbols = get_input_syms(inputs, ninputs, circ)) == NULL)
         goto finish;
 

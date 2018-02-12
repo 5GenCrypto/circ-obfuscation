@@ -16,7 +16,7 @@ secret_params_new(const sp_vtable *vt, const obf_params_t *op, const acirc_t *ci
     size_t _kappa = kappa ? *kappa : 0;
     secret_params *sp;
 
-    sp = my_calloc(1, sizeof sp[0]);
+    sp = xcalloc(1, sizeof sp[0]);
     if (vt->init(sp, &params, op, _kappa) == ERR) {
         free(sp);
         return NULL;
@@ -82,8 +82,7 @@ secret_params *
 secret_params_fread(const sp_vtable *vt, const acirc_t *circ, FILE *fp)
 {
     secret_params *sp;
-    if ((sp = my_calloc(1, sizeof sp[0])) == NULL)
-        return NULL;
+    sp = xcalloc(1, sizeof sp[0]);
     if (vt->fread)
         vt->fread(sp, circ, fp);
     sp->sk = vt->mmap->sk->fread(fp);
@@ -104,8 +103,7 @@ public_params_new(const pp_vtable *vt, const sp_vtable *sp_vt,
                   const secret_params *sp, const obf_params_t *op)
 {
     public_params *pp;
-    if ((pp = my_calloc(1, sizeof pp[0])) == NULL)
-        return NULL;
+    pp = xcalloc(1, sizeof pp[0]);
     vt->init(sp_vt, pp, sp, op);
     pp->pp = vt->mmap->sk->pp(sp->sk);
     return pp;
@@ -124,7 +122,7 @@ public_params_fread(const pp_vtable *vt, const acirc_t *circ, FILE *fp)
 {
     public_params *pp;
 
-    if ((pp = my_calloc(1, sizeof pp[0])) == NULL) return NULL;
+    pp = xcalloc(1, sizeof pp[0]);
     vt->fread(pp, circ, fp);
     pp->pp = vt->mmap->pp->fread(fp);
     return pp;
@@ -248,7 +246,7 @@ encoding *
 encoding_fread(const encoding_vtable *vt, FILE *fp)
 {
     encoding *x;
-    if ((x = my_calloc(1, sizeof x[0])) == NULL) goto error;
+    x = xcalloc(1, sizeof x[0]);
     if (vt->fread(x, fp) == ERR) goto error;
     if ((x->enc = vt->mmap->enc->fread(fp)) == NULL) goto error;
     return x;

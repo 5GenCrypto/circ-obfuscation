@@ -13,8 +13,7 @@ static int
 _encoding_new(const pp_vtable *vt, encoding *enc, const public_params *pp)
 {
     (void) vt;
-    if ((my(enc) = my_calloc(1, sizeof my(enc)[0])) == NULL)
-        goto error;
+    my(enc) = xcalloc(1, sizeof my(enc)[0]);
     if ((my(enc)->index = index_set_new(mife_params_nzs(pp_circ(pp)))) == NULL)
         goto error;
     return OK;
@@ -47,10 +46,8 @@ _encode(encoding *rop, const void *ix_)
     const index_set *ix = ix_;
     int *pows;
     index_set_set(rop->info->index, ix);
-    if ((pows = my_calloc(ix->nzs, sizeof pows[0])) == NULL)
-        return NULL;
-    if (pows)
-        memcpy(pows, ix->pows, ix->nzs * sizeof pows[0]);
+    pows = xcalloc(ix->nzs, sizeof pows[0]);
+    memcpy(pows, ix->pows, ix->nzs * sizeof pows[0]);
     return pows;
 }
 
@@ -104,14 +101,13 @@ _encoding_is_zero(const pp_vtable *vt, const encoding *x, const public_params *p
 static int
 _encoding_fread(encoding *x, FILE *fp)
 {
-    if ((x->info = my_calloc(1, sizeof x->info[0])) == NULL)
-        goto error;
+    my(x) = xcalloc(1, sizeof x->info[0]);
     if ((x->info->index = index_set_fread(fp)) == NULL)
         goto error;
     return OK;
 error:
-    if (x->info)
-        free(x->info);
+    if (my(x))
+        free(my(x));
     return ERR;
 }
 

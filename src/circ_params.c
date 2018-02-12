@@ -72,8 +72,7 @@ get_input_syms(const long *inputs, size_t ninputs, const acirc_t *circ)
     size_t *symbols;
     size_t k = 0;
 
-    if ((symbols = my_calloc(nsymbols, sizeof symbols[0])) == NULL)
-        return NULL;
+    symbols = xcalloc(nsymbols, sizeof symbols[0]);
     for (size_t i = 0; i < nsymbols; i++) {
         symbols[i] = 0;
         for (size_t j = 0; j < acirc_symlen(circ, i); j++) {
