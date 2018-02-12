@@ -1204,7 +1204,6 @@ cmd_obf_evaluate(int argc, char **argv, args_t *args)
     if ((input = str_to_longs(argv[0], strlen(argv[0]))) == NULL)
         goto cleanup;
     output = xcalloc(acirc_noutputs(args->circ), sizeof output[0]);
-        goto cleanup;
     if (obf_run_evaluate(args_.mmap, vt, fname, args->circ, input,
                          strlen(argv[0]), output, acirc_noutputs(args->circ),
                          args_.nthreads, NULL, NULL) == ERR)

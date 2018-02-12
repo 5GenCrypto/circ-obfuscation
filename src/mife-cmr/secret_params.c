@@ -18,8 +18,7 @@ _sp_init(secret_params *sp, mmap_params_t *mp, const obf_params_t *op, size_t ka
     const size_t delta = acirc_delta(circ);
     if (delta == 0)
         return ERR;
-    if ((my(sp) = calloc(1, sizeof my(sp)[0])) == NULL)
-        return ERR;
+    my(sp) = xcalloc(1, sizeof my(sp)[0]);
     my(sp)->toplevel = mife_params_new_toplevel(circ);
 
     mp->kappa = kappa ? kappa : (size_t) max(delta + 1, acirc_nsymbols(circ));
@@ -33,8 +32,7 @@ static int
 _sp_fread(secret_params *sp, const acirc_t *circ, FILE *fp)
 {
     (void) fp;
-    if ((my(sp) = calloc(1, sizeof my(sp)[0])) == NULL)
-        return ERR;
+    my(sp) = xcalloc(1, sizeof my(sp)[0]);
     my(sp)->toplevel = mife_params_new_toplevel(circ);
     return OK;
 }

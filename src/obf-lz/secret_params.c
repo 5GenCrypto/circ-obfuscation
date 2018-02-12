@@ -17,8 +17,7 @@ _sp_init(secret_params *sp, mmap_params_t *params, const obf_params_t *op,
 {
     const acirc_t *circ = op->circ;
 
-    if ((my(sp) = calloc(1, sizeof my(sp)[0])) == NULL)
-        return ERR;
+    my(sp) = xcalloc(1, sizeof my(sp)[0]);
     if ((my(sp)->toplevel = obf_params_new_toplevel(circ, obf_params_nzs(circ))) == NULL)
         goto error;
 

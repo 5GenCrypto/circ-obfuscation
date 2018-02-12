@@ -229,7 +229,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     mpz_t Cstar[noutputs];
     threadpool *pool = threadpool_create(nthreads);
 
-    alpha = calloc(nsymbols * ell, sizeof alpha[0]);
+    alpha = xcalloc(nsymbols * ell, sizeof alpha[0]);
     for (size_t i = 0; i < nsymbols * ell; ++i)
         alpha[i] = mpz_vect_new(1);
 
@@ -258,7 +258,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     }
 
     if (nconsts) {
-        beta = calloc(nconsts, sizeof beta[0]);
+        beta = xcalloc(nconsts, sizeof beta[0]);
         for (size_t i = 0; i < nconsts; i++) {
             beta[i] = mpz_vect_new(1);
             mpz_randomm_inv(*beta[i], rng, moduli[1]);

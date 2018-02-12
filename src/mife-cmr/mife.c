@@ -531,7 +531,7 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         mife_sk_t *sk = mife_sk(mife);
         for (size_t i = 0; i < nconsts; ++i)
             consts[i] = acirc_const(circ, i);
-        mife->const_alphas = calloc(nconsts, sizeof mife->const_alphas[0]);
+        mife->const_alphas = xcalloc(nconsts, sizeof mife->const_alphas[0]);
         mife->constants = mife_cmr_encrypt(sk, nslots - 1, consts, nconsts,
                                            nthreads, rng, &cache,
                                            mife->const_alphas);
@@ -660,10 +660,10 @@ mife_cmr_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
         mpz_t **circ_inputs, **consts;
         const size_t ntotal = acirc_ninputs(circ) + acirc_nconsts(circ);
 
-        circ_inputs = calloc(ntotal, sizeof circ_inputs[0]);
+        circ_inputs = xcalloc(ntotal, sizeof circ_inputs[0]);
         for (size_t i = 0; i < ntotal; ++i)
             circ_inputs[i] = mpz_vect_new(1);
-        consts = calloc(nconsts, sizeof consts[0]);
+        consts = xcalloc(nconsts, sizeof consts[0]);
         for (size_t i = 0; i < nconsts; ++i)
             consts[i] = mpz_vect_new(1);
 

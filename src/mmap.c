@@ -140,7 +140,8 @@ encoding *
 encoding_new(const encoding_vtable *vt, const pp_vtable *pp_vt,
              const public_params *pp)
 {
-    encoding *enc = calloc(1, sizeof enc[0]);
+    encoding *enc;
+    enc = xcalloc(1, sizeof enc[0]);
     (void) vt->new(pp_vt, enc, pp);
     enc->enc = vt->mmap->enc->new(pp->pp);
     return enc;

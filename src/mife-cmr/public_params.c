@@ -21,8 +21,7 @@ static int
 _pp_init(const sp_vtable *vt, public_params *pp, const secret_params *sp,
          const obf_params_t *op)
 {
-    if ((my(pp) = calloc(1, sizeof my(pp)[0])) == NULL)
-        return ERR;
+    my(pp) = xcalloc(1, sizeof my(pp)[0]);
     my(pp)->toplevel = (index_set *) vt->toplevel(sp);
     my(pp)->circ = op->circ;
     my(pp)->local = false;
@@ -48,8 +47,7 @@ static int
 _pp_fread(public_params *pp, const acirc_t *circ, FILE *fp)
 {
     (void) fp;
-    if ((my(pp) = calloc(1, sizeof my(pp)[0])) == NULL)
-        return ERR;
+    my(pp) = xcalloc(1, sizeof my(pp)[0]);
     my(pp)->toplevel = mife_params_new_toplevel(circ);
     my(pp)->circ = circ;
     my(pp)->local = true;
