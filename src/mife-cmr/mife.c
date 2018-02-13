@@ -586,7 +586,7 @@ mife_cmr_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
     const size_t nslots = acirc_nslots(circ);
     const size_t has_consts = nconsts ? 1 : 0;
     const size_t noutputs = acirc_noutputs(circ);
-    const mpz_t *moduli = sk->mmap->sk->plaintext_fields(sk->sp->sk);
+    const mpz_t *moduli = (const mpz_t *) sk->mmap->sk->plaintext_fields(sk->sp->sk);
     index_set *ix = index_set_new(mife_params_nzs(sk->circ));
     mpz_t *slots;
     mpz_t *alphas;
