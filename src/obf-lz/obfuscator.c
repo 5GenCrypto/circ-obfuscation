@@ -41,7 +41,7 @@ static void obf_worker(void *wargs)
 {
     obf_args *args = wargs;
 
-    encode(args->vt, args->enc, args->inps, 2, args->ix, args->sp, 0);
+    encode(args->vt, args->enc, (const mpz_t *) args->inps, 2, args->ix, args->sp, 0);
     if (g_verbose) {
         pthread_mutex_lock(args->count_lock);
         print_progress(++*args->count, args->total);
