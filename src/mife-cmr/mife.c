@@ -379,7 +379,8 @@ encode_worker(void *wargs)
 {
     encode_args_t *args = wargs;
 
-    encode(args->vt, args->enc, args->inps, args->nslots, args->ix, args->sp, 0);
+    (void) encode(args->vt, args->enc, args->inps, args->nslots, args->ix,
+                  args->sp, 0);
     if (g_verbose) {
         pthread_mutex_lock(args->lock);
         print_progress(++*args->count, args->total);
@@ -400,9 +401,8 @@ __encode(threadpool *pool, const encoding_vtable *vt, encoding *enc, mpz_t *inps
     args->vt = vt;
     args->enc = enc;
     args->inps = xcalloc(nslots, sizeof args->inps[0]);
-    for (size_t i = 0; i < nslots; ++i) {
+    for (size_t i = 0; i < nslots; ++i)
         mpz_init_set(args->inps[i], inps[i]);
-    }
     args->nslots = nslots;
     args->ix = ix;
     args->sp = sp;
@@ -454,7 +454,7 @@ mife_setup(const mmap_vtable *mmap, const acirc_t *circ, const obf_params_t *op,
 {
     int result = ERR;
     mife_t *mife;
-    threadpool *pool = threadpool_create(nthreads);
+    threadpool *pool = NULL;
     pthread_mutex_t lock;
     size_t count = 0;
     size_t total = mife_num_encodings_setup(circ, op->npowers);
@@ -486,6 +486,7 @@ mife_setup(const mmap_vtable *mmap, const acirc_t *circ, const obf_params_t *op,
 
     moduli = mmap->sk->plaintext_fields(mife->sp->sk);
     pthread_mutex_init(&lock, NULL);
+    pool = threadpool_create(nthreads);
 
     if (g_verbose)
         print_progress(count, total);
@@ -562,7 +563,8 @@ mife_setup(const mmap_vtable *mmap, const acirc_t *circ, const obf_params_t *op,
     result = OK;
 cleanup:
     mpz_vect_free(inps, 1 + nslots);
-    threadpool_destroy(pool);
+    if (pool)
+        threadpool_destroy(pool);
     pthread_mutex_destroy(&lock);
     if (result == OK)
         return mife;
@@ -755,7 +757,6 @@ static int
 raise_encoding(const mife_ek_t *ek, encoding *x, const index_set *target)
 {
     const acirc_t *circ = ek->circ;
-    const bool has_consts = acirc_nconsts(circ) > 0;
     const size_t nslots = acirc_nslots(circ);
     index_set *ix;
     size_t diff;
@@ -764,13 +765,15 @@ raise_encoding(const mife_ek_t *ek, encoding *x, const index_set *target)
         return ERR;
     for (size_t i = 0; i < acirc_nsymbols(circ); i++) {
         diff = IX_X(ix, circ, i);
-        if (diff > 0)
+        if (diff > 0) {
             _raise_encoding(ek, x, ek->uhat[i], diff);
+        }
     }
-    if (has_consts) {
+    if (acirc_nconsts(circ)) {
         diff = IX_X(ix, circ, nslots - 1);
-        if (diff > 0)
+        if (diff > 0) {
             _raise_encoding(ek, x, ek->uhat[nslots - 1], diff);
+        }
     }
     index_set_free(ix);
     return OK;

@@ -183,7 +183,7 @@ encoding_print(const encoding_vtable *vt, const encoding *enc)
 }
 
 int
-encode(const encoding_vtable *vt, encoding *rop, mpz_t *inps, size_t nins,
+encode(const encoding_vtable *vt, encoding *rop, const mpz_t *inps, size_t nins,
        const void *set, const secret_params *sp, size_t level)
 {
     int *pows;
@@ -239,8 +239,7 @@ encoding_is_zero(const encoding_vtable *vt, const pp_vtable *pp_vt,
 {
     if (vt->is_zero(pp_vt, x, pp) == ERR)
         return ERR;
-    else
-        return vt->mmap->enc->is_zero(x->enc, pp->pp);
+    return vt->mmap->enc->is_zero(x->enc, pp->pp);
 }
 
 unsigned int

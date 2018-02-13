@@ -28,7 +28,7 @@ mife_params_new_toplevel(const acirc_t *circ)
 }
 
 static obf_params_t *
-_new(const acirc_t *circ, void *vparams)
+mife_cmr_op_new(const acirc_t *circ, void *vparams)
 {
     (void) circ;
     mife_cmr_params_t *params = vparams;
@@ -40,13 +40,26 @@ _new(const acirc_t *circ, void *vparams)
 }
 
 static void
-_free(obf_params_t *op)
+mife_cmr_op_free(obf_params_t *op)
 {
     free(op);
 }
 
+static void
+mife_cmr_op_print(const obf_params_t *op, const acirc_t *circ)
+{
+    fprintf(stderr, "MIFE parameters:\n");
+    fprintf(stderr, "———— # powers: ................... %lu\n", op->npowers);
+    fprintf(stderr, "———— # encodings (setup): ........ %lu\n",
+            mife_num_encodings_setup(circ, op->npowers));
+    for (size_t i = 0; i < acirc_nslots(circ); ++i)
+        fprintf(stderr, "———— # encodings (encrypt slot %lu): %lu\n",
+                i, mife_num_encodings_encrypt(circ, i));
+}
+
 op_vtable mife_cmr_op_vtable =
 {
-    .new = _new,
-    .free = _free,
+    .new = mife_cmr_op_new,
+    .free = mife_cmr_op_free,
+    .print = mife_cmr_op_print,
 };
