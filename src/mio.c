@@ -365,6 +365,7 @@ mife_encrypt_args_init(mife_encrypt_args_t *args)
 {
     args->scheme = MIFE_SCHEME_DEFAULT;
     args->mmap = &dummy_vtable;
+    args->skname = NULL;
     args->nthreads = sysconf(_SC_NPROCESSORS_ONLN);
 }
 
