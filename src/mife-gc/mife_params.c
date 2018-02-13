@@ -13,7 +13,6 @@ mife_gc_op_new(const acirc_t *circ, void *params_)
         return NULL;
 
     op = xcalloc(1, sizeof op[0]);
-    op->circ = circ;
     op->vt = &mife_cmr_vtable;
     op->npowers = params->npowers;
     op->padding = params->padding;
@@ -29,8 +28,9 @@ mife_gc_op_free(obf_params_t *op)
 }
 
 static void
-mife_gc_op_print(const obf_params_t *op)
+mife_gc_op_print(const obf_params_t *op, const acirc_t *circ)
 {
+    (void) circ;
     fprintf(stderr, "MIFE parameters:\n");
     fprintf(stderr, "———— # powers: ..... %lu\n", op->npowers);
     fprintf(stderr, "———— padding: ...... %lu\n", op->padding);

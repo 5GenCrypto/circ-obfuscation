@@ -12,24 +12,16 @@ struct sp_info {
 #define my(x) (x)->info
 
 static int
-_sp_init(secret_params *sp, mmap_params_t *params, const obf_params_t *op,
+_sp_init(secret_params *sp, mmap_params_t *params, const acirc_t *circ,
          size_t kappa)
 {
-    const acirc_t *circ = op->circ;
-
     my(sp) = xcalloc(1, sizeof my(sp)[0]);
-    if ((my(sp)->toplevel = obf_params_new_toplevel(circ, obf_params_nzs(circ))) == NULL)
-        goto error;
-
+    my(sp)->toplevel = obf_params_new_toplevel(circ, obf_params_nzs(circ));
     params->kappa = kappa ? kappa : acirc_delta(circ) + acirc_nsymbols(circ);
     params->nzs = my(sp)->toplevel->nzs;
     params->pows = my(sp)->toplevel->pows;
     params->nslots = 2;
     return OK;
-error:
-    index_set_free(my(sp)->toplevel);
-    free(my(sp));
-    return ERR;
 }
 
 static void

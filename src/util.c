@@ -102,7 +102,7 @@ void
 mpz_vect_mul_mod(mpz_t *rop, const mpz_t *xs, const mpz_t *ys, const mpz_t *moduli, size_t n)
 {
     mpz_vect_mul(rop, xs, ys, n);
-    mpz_vect_mod(rop, (const mpz_t *const) rop, moduli, n);
+    mpz_vect_mod(rop, (const mpz_t *) rop, moduli, n);
 }
 
 void

@@ -14,13 +14,8 @@ _encoding_new(const pp_vtable *vt, encoding *enc, const public_params *pp)
 {
     (void) vt;
     my(enc) = xcalloc(1, sizeof my(enc)[0]);
-    if ((my(enc)->index = index_set_new(mife_params_nzs(pp_circ(pp)))) == NULL)
-        goto error;
+    my(enc)->index = index_set_new(mife_params_nzs(pp_circ(pp)));
     return OK;
-error:
-    if (my(enc))
-        free(my(enc));
-    return ERR;
 }
 
 static void
@@ -45,7 +40,7 @@ _encode(encoding *rop, const void *ix_)
 {
     const index_set *ix = ix_;
     int *pows;
-    index_set_set(rop->info->index, ix);
+    index_set_set(my(rop)->index, ix);
     pows = xcalloc(ix->nzs, sizeof pows[0]);
     memcpy(pows, ix->pows, ix->nzs * sizeof pows[0]);
     return pows;
@@ -88,7 +83,7 @@ _encoding_sub(const pp_vtable *vt, encoding *rop, const encoding *x,
 static int
 _encoding_is_zero(const pp_vtable *vt, const encoding *x, const public_params *pp)
 {
-    const index_set *const toplevel = vt->toplevel(pp);
+    const index_set *toplevel = vt->toplevel(pp);
     if (!index_set_eq(my(x)->index, toplevel)) {
         fprintf(stderr, "%s: %s: index sets not equal\n", errorstr, __func__);
         index_set_print(my(x)->index);
@@ -102,13 +97,8 @@ static int
 _encoding_fread(encoding *x, FILE *fp)
 {
     my(x) = xcalloc(1, sizeof x->info[0]);
-    if ((x->info->index = index_set_fread(fp)) == NULL)
-        goto error;
+    my(x)->index = index_set_fread(fp);
     return OK;
-error:
-    if (my(x))
-        free(my(x));
-    return ERR;
 }
 
 static int

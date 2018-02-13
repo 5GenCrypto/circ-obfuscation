@@ -9,6 +9,7 @@ const char *boots = "boots";
 struct mife_t {
     const mmap_vtable *mmap;
     const mife_vtable *vt;
+    const acirc_t *circ;
     const obf_params_t *op;
     mife_cmr_mife_t *mife;
     char *dirname;
@@ -82,7 +83,7 @@ mife_sk(const mife_t *mife)
     mife_sk_t *sk;
     sk = xcalloc(1, sizeof sk[0]);
     sk->vt = &mife_cmr_vtable;
-    sk->circ = mife->op->circ;
+    sk->circ = mife->circ;
     sk->gc = mife->gc;
     sk->dirname = mife->dirname;
     if ((sk->sk = mife->vt->mife_sk(mife->mife)) == NULL)
@@ -158,7 +159,7 @@ mife_ek(const mife_t *mife)
     ek->vt = mife->vt;
     ek->ek = mife->vt->mife_ek(mife->mife);
     ek->dirname = mife->dirname;
-    ek->circ = mife->op->circ;
+    ek->circ = mife->circ;
     ek->npowers = mife->op->npowers;
     ek->padding = mife->op->padding;
     ek->local = false;
@@ -234,12 +235,12 @@ mife_encrypt(const mife_sk_t *sk, const size_t slot, const long *inputs,
              size_t ninputs, size_t nthreads, aes_randstate_t rng);
 
 static mife_t *
-mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
-           size_t *kappa, size_t nthreads, aes_randstate_t rng)
+mife_setup(const mmap_vtable *mmap, const acirc_t *circ, const obf_params_t *op,
+           size_t secparam, size_t *kappa, size_t nthreads, aes_randstate_t rng)
 {
     mife_t *mife;
 
-    if (!acirc_is_binary(op->circ)) {
+    if (!acirc_is_binary(circ)) {
         fprintf(stderr, "%s: GC-based approach only works for binary circuits\n",
                 errorstr);
         return NULL;
@@ -251,13 +252,13 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     mife = xcalloc(1, sizeof mife[0]);
     mife->mmap = mmap;
     mife->vt = &mife_cmr_vtable;
+    mife->circ = circ;
     mife->op = op;
-    if ((mife->dirname = makestr("%s.gc", acirc_fname(op->circ))) == NULL)
-        goto error;
+    mife->dirname = makestr("%s.gc", acirc_fname(circ));
     /* generate garbled circuit for input circuit */
     {
         const double start = current_time();
-        const size_t ngates = op->ngates ? op->ngates : acirc_nmuls(op->circ);
+        const size_t ngates = op->ngates ? op->ngates : acirc_nmuls(circ);
         char *cmd = NULL;
 
         if (g_verbose)
@@ -265,7 +266,7 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
         if (makedir(mife->dirname) == ERR)
             goto error;
         if ((cmd = makestr("%s garble \"%s\" -d %s -p %lu -s %lu -g %lu",
-                           boots, acirc_fname(op->circ), mife->dirname,
+                           boots, acirc_fname(circ), mife->dirname,
                            op->padding, op->wirelen, ngates)) == NULL)
             goto error;
         if (system(cmd) != 0) {
@@ -302,8 +303,9 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
             mife_cmr_params_t params = { .npowers = mife->op->npowers };
             mife->op_ = mife_cmr_op_vtable.new(mife->gc, &params);
         }
-        if ((mife->mife = mife->vt->mife_setup(mmap, mife->op_, secparam, kappa,
-                                               nthreads, rng)) == NULL)
+        if ((mife->mife = mife->vt->mife_setup(mmap, mife->gc, mife->op_,
+                                               secparam, kappa, nthreads,
+                                               rng)) == NULL)
             goto error;
         if (g_verbose)
             fprintf(stderr, "— MIFE setup: %.2f s\n", current_time() - start);
@@ -311,9 +313,9 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     /* if the garbled circuit processes gates in chunks (rather than operating
      * over the whole circuit), we need to encrypt each of the indices, which
      * are encoded as Σ-vectors */
-    if (op->ngates < acirc_nmuls(mife->op->circ)) {
+    if (op->ngates < acirc_nmuls(mife->circ)) {
         const double start = current_time();
-        const size_t slot = acirc_nsymbols(op->circ);
+        const size_t slot = acirc_nsymbols(circ);
         size_t nindices;
         mife_sk_t *sk;
         int ret = OK;
@@ -345,11 +347,7 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
                 ret = ERR;
                 goto cleanup;
             }
-            if ((ctname = makestr("%s.ix%lu.1.ct",
-                                  acirc_fname(mife->gc), i)) == NULL) {
-                ret = ERR;
-                goto cleanup;
-            }
+            ctname = makestr("%s.ix%lu.1.ct", acirc_fname(mife->gc), i);
             ret = mife_ct_write(&mife_gc_vtable, ct, ctname);
         cleanup:
             if (ct)
@@ -571,8 +569,7 @@ mife_decrypt(const mife_ek_t *ek, long *rop, const mife_ct_t **cts,
         if (g_verbose)
             fprintf(stderr, "— Evaluating the garbled circuit: ");
         outs = xcalloc(1025, sizeof outs[0]);
-        if ((cmd = makestr("%s eval -d %s", boots, ek->dirname)) == NULL)
-            goto cleanup;
+        cmd = makestr("%s eval -d %s", boots, ek->dirname);
         if ((fp = popen(cmd, "r")) == NULL) {
             if (g_verbose) fprintf(stderr, "\n");
             fprintf(stderr, "%s: failed to run '%s'\n",

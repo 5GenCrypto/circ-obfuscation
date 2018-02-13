@@ -12,7 +12,7 @@
 
 struct mife_t {
     const mmap_vtable *mmap;
-    const obf_params_t *op;
+    const acirc_t *circ;
     const encoding_vtable *enc_vt;
     const pp_vtable *pp_vt;
     const sp_vtable *sp_vt;
@@ -137,7 +137,7 @@ mife_sk(const mife_t *mife)
     mife_sk_t *sk;
     sk = xcalloc(1, sizeof sk[0]);
     sk->mmap = mife->mmap;
-    sk->circ = mife->op->circ;
+    sk->circ = mife->circ;
     sk->enc_vt = mife->enc_vt;
     sk->pp_vt = mife->pp_vt;
     sk->sp_vt = mife->sp_vt;
@@ -220,7 +220,7 @@ mife_ek(const mife_t *mife)
     mife_ek_t *ek;
     ek = xcalloc(1, sizeof ek[0]);
     ek->mmap = mife->mmap;
-    ek->circ = mife->op->circ;
+    ek->circ = mife->circ;
     ek->enc_vt = mife->enc_vt;
     ek->pp_vt = mife->pp_vt;
     ek->pp = mife->pp;
@@ -424,7 +424,7 @@ mife_free(mife_t *mife)
     if (mife->zhat)
         encoding_free(mife->enc_vt, mife->zhat);
     if (mife->uhat) {
-        for (size_t i = 0; i < acirc_nslots(mife->op->circ); ++i) {
+        for (size_t i = 0; i < acirc_nslots(mife->circ); ++i) {
             if (mife->uhat[i]) {
                 for (size_t p = 0; p < mife->npowers; ++p) {
                     if (mife->uhat[i][p])
@@ -436,7 +436,7 @@ mife_free(mife_t *mife)
         free(mife->uhat);
     }
     if (mife->const_alphas)
-        mpz_vect_free(mife->const_alphas, acirc_nconsts(mife->op->circ));
+        mpz_vect_free(mife->const_alphas, acirc_nconsts(mife->circ));
     if (mife->constants)
         mife_ct_free(mife->constants);
     if (mife->pp)
@@ -449,12 +449,11 @@ mife_free(mife_t *mife)
 }
 
 static mife_t *
-mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
-           size_t *kappa, size_t nthreads, aes_randstate_t rng)
+mife_setup(const mmap_vtable *mmap, const acirc_t *circ, const obf_params_t *op,
+           size_t secparam, size_t *kappa, size_t nthreads, aes_randstate_t rng)
 {
     int result = ERR;
     mife_t *mife;
-    const acirc_t *circ = op->circ;
     threadpool *pool = threadpool_create(nthreads);
     pthread_mutex_t lock;
     size_t count = 0;
@@ -468,14 +467,15 @@ mife_setup(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
 
     mife = xcalloc(1, sizeof mife[0]);
     mife->mmap = mmap;
-    mife->op = op;
+    mife->circ = circ;
     mife->enc_vt = get_encoding_vtable(mmap);
     mife->pp_vt = get_pp_vtable(mmap);
     mife->sp_vt = get_sp_vtable(mmap);
-    if ((mife->sp = secret_params_new(mife->sp_vt, op, circ, secparam, kappa,
+    if ((mife->sp = secret_params_new(mife->sp_vt, circ, secparam, kappa,
                                       nthreads, rng)) == NULL)
         goto cleanup;
-    if ((mife->pp = public_params_new(mife->pp_vt, mife->sp_vt, mife->sp, op)) == NULL)
+    if ((mife->pp = public_params_new(mife->pp_vt, mife->sp_vt, mife->sp,
+                                      circ)) == NULL)
         goto cleanup;
     mife->npowers = op->npowers;
     mife->zhat = encoding_new(mife->enc_vt, mife->pp_vt, mife->pp);

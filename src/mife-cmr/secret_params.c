@@ -12,9 +12,9 @@ struct sp_info {
 #define my(x) (x)->info
 
 static int
-_sp_init(secret_params *sp, mmap_params_t *mp, const obf_params_t *op, size_t kappa)
+_sp_init(secret_params *sp, mmap_params_t *mp, const acirc_t *circ,
+         size_t kappa)
 {
-    const acirc_t *circ = op->circ;
     const size_t delta = acirc_delta(circ);
     if (delta == 0)
         return ERR;

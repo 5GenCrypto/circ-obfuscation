@@ -33,9 +33,8 @@ obf_params_new_toplevel(const acirc_t *circ, size_t nzs)
 }
 
 PRIVATE size_t
-obf_params_num_encodings(const obf_params_t *op)
+obf_params_num_encodings(const obf_params_t *op, const acirc_t *circ)
 {
-    const acirc_t *circ = op->circ;
     const size_t nconsts = acirc_nconsts(circ);
     const size_t noutputs = acirc_noutputs(circ);
     size_t sum = nconsts + op->npowers + noutputs;
@@ -58,21 +57,21 @@ obf_lz_op_free(obf_params_t *op)
 static obf_params_t *
 obf_lz_op_new(const acirc_t *circ, void *vparams)
 {
+    (void) circ;
     const obf_lz_params_t *params = vparams;
     obf_params_t *op;
 
     op = xcalloc(1, sizeof op[0]);
-    op->circ = circ;
     op->npowers = params->npowers;
     return op;
 }
 
 static void
-obf_lz_op_print(const obf_params_t *op)
+obf_lz_op_print(const obf_params_t *op, const acirc_t *circ)
 {
     fprintf(stderr, "Obfuscation parameters:\n");
     fprintf(stderr, "———— # powers: .. %lu\n", op->npowers);
-    fprintf(stderr, "———— # encodings: %lu\n", obf_params_num_encodings(op));
+    fprintf(stderr, "———— # encodings: %lu\n", obf_params_num_encodings(op, circ));
 }
 
 op_vtable obf_lz_op_vtable =

@@ -14,8 +14,7 @@ mife_params_new_toplevel(const acirc_t *circ)
     const size_t nzs = mife_params_nzs(circ);
     index_set *ix;
 
-    if ((ix = index_set_new(nzs)) == NULL)
-        return NULL;
+    ix = index_set_new(nzs);
     IX_Z(ix) = 1;
     for (size_t i = 0; i < acirc_nsymbols(circ); ++i) {
         IX_W(ix, circ, i) = 1;
@@ -31,11 +30,11 @@ mife_params_new_toplevel(const acirc_t *circ)
 static obf_params_t *
 _new(const acirc_t *circ, void *vparams)
 {
+    (void) circ;
     mife_cmr_params_t *params = vparams;
     obf_params_t *op;
 
     op = xcalloc(1, sizeof op[0]);
-    op->circ = circ;
     op->npowers = params->npowers;
     return op;
 }

@@ -12,7 +12,7 @@ typedef struct obf_params_t obf_params_t;
 typedef struct {
     obf_params_t * (*new)(const acirc_t *, void *);
     void (*free)(obf_params_t *);
-    void (*print)(const obf_params_t *);
+    void (*print)(const obf_params_t *, const acirc_t *);
 } op_vtable;
 
 typedef struct {
@@ -30,7 +30,7 @@ typedef struct {
 
 typedef struct {
     const mmap_vtable *mmap;
-    int (*init)(secret_params *, mmap_params_t *, const obf_params_t *, size_t);
+    int (*init)(secret_params *, mmap_params_t *, const acirc_t *, size_t);
     int (*fwrite)(const secret_params *, FILE *);
     int (*fread)(secret_params *, const acirc_t *, FILE *);
     void (*clear)(secret_params *);
@@ -46,7 +46,7 @@ typedef struct {
 typedef struct {
     const mmap_vtable *mmap;
     int (*init)(const sp_vtable *, public_params *, const secret_params *,
-                const obf_params_t *);
+                const acirc_t *);
     int (*fwrite)(const public_params *, FILE *);
     int (*fread)(public_params *, const acirc_t *, FILE *);
     void (*clear)(public_params *);
@@ -79,9 +79,9 @@ typedef struct {
 } encoding_vtable;
 
 
-secret_params * secret_params_new(const sp_vtable *vt, const obf_params_t *op,
-                                  const acirc_t *circ, size_t lambda,
-                                  size_t *kappa, size_t ncores, aes_randstate_t rng);
+secret_params * secret_params_new(const sp_vtable *vt, const acirc_t *circ,
+                                  size_t lambda, size_t *kappa, size_t ncores,
+                                  aes_randstate_t rng);
 int             secret_params_fwrite(const sp_vtable *vt,
                                      const secret_params *sp, FILE *fp);
 secret_params * secret_params_fread(const sp_vtable *vt, const acirc_t *circ,
@@ -90,7 +90,7 @@ void            secret_params_free(const sp_vtable *vt, secret_params *p);
 
 
 public_params * public_params_new(const pp_vtable *vt, const sp_vtable *sp_vt,
-                                  const secret_params *sp, const obf_params_t *op);
+                                  const secret_params *sp, const acirc_t *circ);
 int             public_params_fwrite(const pp_vtable *vt,
                                      const public_params *pp, FILE *fp);
 public_params * public_params_fread(const pp_vtable *vt, const acirc_t *circ,

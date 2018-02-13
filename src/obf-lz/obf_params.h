@@ -8,7 +8,6 @@
 #include <stddef.h>
 
 struct obf_params_t {
-    const acirc_t *circ;
     int sigma;
     size_t npowers;
 };
@@ -69,4 +68,4 @@ ix_w_set(index_set *ix, const acirc_t *circ, size_t k, int pow)
 const acirc_t * pp_circ(const public_params *pp);
 size_t obf_params_nzs(const acirc_t *circ);
 index_set * obf_params_new_toplevel(const acirc_t *circ, size_t nzs);
-size_t obf_params_num_encodings(const obf_params_t *op);
+size_t obf_params_num_encodings(const obf_params_t *op, const acirc_t *circ);

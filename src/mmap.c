@@ -7,8 +7,8 @@
 #include <mmap/mmap_clt_pl.h>
 
 secret_params *
-secret_params_new(const sp_vtable *vt, const obf_params_t *op, const acirc_t *circ,
-                  size_t lambda, size_t *kappa, size_t ncores, aes_randstate_t rng)
+secret_params_new(const sp_vtable *vt, const acirc_t *circ, size_t lambda,
+                  size_t *kappa, size_t ncores, aes_randstate_t rng)
 {
     int ret = ERR;
     mpz_t modulus;
@@ -17,7 +17,7 @@ secret_params_new(const sp_vtable *vt, const obf_params_t *op, const acirc_t *ci
     secret_params *sp;
 
     sp = xcalloc(1, sizeof sp[0]);
-    if (vt->init(sp, &params, op, _kappa) == ERR) {
+    if (vt->init(sp, &params, circ, _kappa) == ERR) {
         free(sp);
         return NULL;
     }
@@ -100,11 +100,11 @@ secret_params_free(const sp_vtable *vt, secret_params *sp)
 
 public_params *
 public_params_new(const pp_vtable *vt, const sp_vtable *sp_vt,
-                  const secret_params *sp, const obf_params_t *op)
+                  const secret_params *sp, const acirc_t *circ)
 {
     public_params *pp;
     pp = xcalloc(1, sizeof pp[0]);
-    vt->init(sp_vt, pp, sp, op);
+    vt->init(sp_vt, pp, sp, circ);
     pp->pp = vt->mmap->sk->pp(sp->sk);
     return pp;
 }
@@ -112,8 +112,10 @@ public_params_new(const pp_vtable *vt, const sp_vtable *sp_vt,
 int
 public_params_fwrite(const pp_vtable *vt, const public_params *pp, FILE *fp)
 {
-    vt->fwrite(pp, fp);
-    vt->mmap->pp->fwrite(pp->pp, fp);
+    if (vt->fwrite)
+        vt->fwrite(pp, fp);
+    if (vt->mmap->pp->fwrite)
+        vt->mmap->pp->fwrite(pp->pp, fp);
     return OK;
 }
 
@@ -123,16 +125,20 @@ public_params_fread(const pp_vtable *vt, const acirc_t *circ, FILE *fp)
     public_params *pp;
 
     pp = xcalloc(1, sizeof pp[0]);
-    vt->fread(pp, circ, fp);
-    pp->pp = vt->mmap->pp->fread(fp);
+    if (vt->fread)
+        vt->fread(pp, circ, fp);
+    if (vt->mmap->pp->fread)
+        pp->pp = vt->mmap->pp->fread(fp);
     return pp;
 }
 
 void
 public_params_free(const pp_vtable *vt, public_params *pp)
 {
-    vt->clear(pp);
-    vt->mmap->pp->free(pp->pp);
+    if (vt->clear)
+        vt->clear(pp);
+    if (vt->mmap->pp->free)
+        vt->mmap->pp->free(pp->pp);
     free(pp);
 }
 

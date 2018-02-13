@@ -846,7 +846,7 @@ mife_select_scheme(mife_scheme_e scheme, acirc_t *circ, size_t npowers,
         if (circ_params_print(circ) == ERR)
             return ERR;
         if (op && op_vt && (*op_vt)->print)
-            (*op_vt)->print(*op);
+            (*op_vt)->print(*op, circ);
     }
     return OK;
 }
@@ -1135,7 +1135,7 @@ obf_select_scheme(obf_scheme_e scheme, acirc_t *circ, size_t npowers,
         if (circ_params_print(circ) == ERR)
             return ERR;
         if (op_vt && op && (*op_vt)->print)
-            (*op_vt)->print(*op);
+            (*op_vt)->print(*op, circ);
     }
     return OK;
 }
@@ -1168,8 +1168,8 @@ cmd_obf_obfuscate(int argc, char **argv, args_t *args)
     /*     if (kappa == 0) */
     /*         goto cleanup; */
     /* } */
-    if (obf_run_obfuscate(args_.mmap, vt, fname, op, args_.secparam, &kappa,
-                          args_.nthreads, args->rng) == ERR)
+    if (obf_run_obfuscate(args_.mmap, vt, args->circ, op, fname, args_.secparam,
+                          &kappa, args_.nthreads, args->rng) == ERR)
         goto cleanup;
 
     ret = OK;
@@ -1253,8 +1253,8 @@ cmd_obf_test(int argc, char **argv, args_t *args)
     /* } */
 
     fname = makestr("%s.obf", args->circuit);
-    if (obf_run_obfuscate(args_.mmap, vt, fname, op, args_.secparam, &kappa,
-                          args_.nthreads, args->rng) == ERR)
+    if (obf_run_obfuscate(args_.mmap, vt, args->circ, op, fname, args_.secparam,
+                          &kappa, args_.nthreads, args->rng) == ERR)
         goto cleanup;
 
     for (size_t t = 0; t < acirc_ntests(args->circ); ++t) {
@@ -1303,9 +1303,9 @@ cmd_obf_get_kappa(int argc, char **argv, args_t *args)
     /*     if (kappa == 0) */
     /*         goto cleanup; */
     /* } else { */
-        if (obf_run_obfuscate(&dummy_vtable, vt, NULL, op, 8, NULL,
-                              1, args->rng) == ERR)
-            goto cleanup;
+    if (obf_run_obfuscate(&dummy_vtable, vt, args->circ, op, NULL, 8, NULL,
+                          1, args->rng) == ERR)
+        goto cleanup;
     /* } */
     printf("κ = %lu\n", kappa);
     ret = OK;

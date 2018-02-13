@@ -6,8 +6,9 @@
 
 int
 obf_run_obfuscate(const mmap_vtable *mmap, const obfuscator_vtable *vt,
-                  const char *fname, const obf_params_t *op, size_t secparam,
-                  size_t *kappa, size_t nthreads, aes_randstate_t rng)
+                  const acirc_t *circ, const obf_params_t *op,
+                  const char *fname, size_t secparam, size_t *kappa,
+                  size_t nthreads, aes_randstate_t rng)
 {
     obfuscation *obf = NULL;
     double start, end, _start, _end;
@@ -15,7 +16,7 @@ obf_run_obfuscate(const mmap_vtable *mmap, const obfuscator_vtable *vt,
 
     start = current_time();
     _start = current_time();
-    obf = vt->obfuscate(mmap, op, secparam, kappa, nthreads, rng);
+    obf = vt->obfuscate(mmap, circ, op, secparam, kappa, nthreads, rng);
     if (obf == NULL) {
         fprintf(stderr, "%s: obfuscation failed\n", errorstr);
         goto cleanup;
@@ -121,7 +122,7 @@ obf_run_smart_kappa(const obfuscator_vtable *vt, const acirc_t *circ,
         fprintf(stderr, "Choosing κ smartly... ");
 
     g_verbose = false;
-    if (obf_run_obfuscate(&dummy_vtable, vt, fname, op, 8, &kappa, nthreads, rng) == ERR) {
+    if (obf_run_obfuscate(&dummy_vtable, vt, circ, op, fname, 8, &kappa, nthreads, rng) == ERR) {
         if (g_verbose) fprintf(stderr, "\n");
         fprintf(stderr, "%s: unable to obfuscate to determine smart κ settings\n",
                 errorstr);

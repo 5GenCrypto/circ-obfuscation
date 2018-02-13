@@ -4,8 +4,9 @@
 
 typedef struct obfuscation obfuscation;
 typedef struct {
-    obfuscation * (*obfuscate)(const mmap_vtable *mmap, const obf_params_t *op,
-                               size_t secparam, size_t *kappa, size_t nthreads,
+    obfuscation * (*obfuscate)(const mmap_vtable *mmap, const acirc_t *circ,
+                               const obf_params_t *op, size_t secparam,
+                               size_t *kappa, size_t nthreads,
                                aes_randstate_t rng);
     void (*free)(obfuscation *obf);
     int (*evaluate)(const obfuscation *obf, long *outputs, size_t noutputs,

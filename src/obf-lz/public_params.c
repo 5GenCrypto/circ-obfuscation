@@ -13,11 +13,11 @@ struct pp_info {
 
 static int
 _pp_init(const sp_vtable *vt, public_params *pp, const secret_params *sp,
-         const obf_params_t *op)
+         const acirc_t *circ)
 {
     my(pp) = xcalloc(1, sizeof my(pp)[0]);
     my(pp)->toplevel = (index_set *) vt->toplevel(sp);
-    my(pp)->circ = op->circ;
+    my(pp)->circ = circ;
     my(pp)->local = false;
     return OK;
 }

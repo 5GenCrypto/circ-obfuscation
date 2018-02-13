@@ -19,11 +19,11 @@ pp_circ(const public_params *pp)
 
 static int
 _pp_init(const sp_vtable *vt, public_params *pp, const secret_params *sp,
-         const obf_params_t *op)
+         const acirc_t *circ)
 {
     my(pp) = xcalloc(1, sizeof my(pp)[0]);
     my(pp)->toplevel = (index_set *) vt->toplevel(sp);
-    my(pp)->circ = op->circ;
+    my(pp)->circ = circ;
     my(pp)->local = false;
     return OK;
 }
@@ -34,13 +34,6 @@ _pp_clear(public_params *pp)
     if (my(pp)->local)
         index_set_free(my(pp)->toplevel);
     free(my(pp));
-}
-
-static int
-_pp_fwrite(const public_params *pp, FILE *fp)
-{
-    (void) pp; (void) fp;
-    return OK;
 }
 
 static int
@@ -64,7 +57,6 @@ static pp_vtable _pp_vtable = {
     .mmap = NULL,
     .init = _pp_init,
     .clear = _pp_clear,
-    .fwrite = _pp_fwrite,
     .fread = _pp_fread,
     .toplevel = _pp_toplevel,
 };

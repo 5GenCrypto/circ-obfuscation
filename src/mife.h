@@ -9,8 +9,9 @@ typedef struct mife_ek_t mife_ek_t;
 typedef struct mife_ct_t mife_ct_t;
 
 typedef struct {
-    mife_t *    (*mife_setup)(const mmap_vtable *mmap, const obf_params_t *op,
-                              size_t secparam, size_t *kappa, size_t nthreads,
+    mife_t *    (*mife_setup)(const mmap_vtable *mmap, const acirc_t *circ,
+                              const obf_params_t *op, size_t secparam,
+                              size_t *kappa, size_t nthreads,
                               aes_randstate_t rng);
     void        (*mife_free)(mife_t *mife);
     mife_sk_t * (*mife_sk)(const mife_t *mife);

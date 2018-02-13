@@ -38,7 +38,7 @@ mife_run_setup(const mmap_vtable *mmap, const mife_vtable *vt,
         fprintf(stderr, "———— # threads: ........... %lu\n", nthreads);
     }
 
-    if ((mife = vt->mife_setup(mmap, op, secparam, kappa, nthreads, rng)) == NULL)
+    if ((mife = vt->mife_setup(mmap, circ, op, secparam, kappa, nthreads, rng)) == NULL)
         goto cleanup;
     {
         const double _start = current_time();
@@ -118,7 +118,7 @@ mife_run_encrypt(const mmap_vtable *mmap, const mife_vtable *vt,
     }
 
     if (skname_ == NULL) {
-        if ((skname = makestr("%s.sk", circuit)) == NULL) return ERR;
+        skname = makestr("%s.sk", circuit);
     } else {
         skname = (char *) skname_;
     }

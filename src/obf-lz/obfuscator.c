@@ -165,12 +165,11 @@ _free(obfuscation *obf)
 }
 
 static obfuscation *
-_obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
-           size_t *kappa, size_t nthreads, aes_randstate_t rng)
+_obfuscate(const mmap_vtable *mmap, const acirc_t *circ, const obf_params_t *op,
+           size_t secparam, size_t *kappa, size_t nthreads, aes_randstate_t rng)
 {
     obfuscation *obf;
 
-    const acirc_t *circ = op->circ;
     const size_t nsymbols = acirc_nsymbols(circ);
     const size_t nconsts = acirc_nconsts(circ);
     const size_t noutputs = acirc_noutputs(circ);
@@ -179,14 +178,14 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     if (op->npowers == 0 || secparam == 0)
         return NULL;
 
-    obf = _alloc(mmap, op->circ, op->npowers);
-    obf->sp = secret_params_new(obf->sp_vt, op, circ, secparam, kappa, nthreads, rng);
-    if (obf->sp == NULL) {
+    obf = _alloc(mmap, circ, op->npowers);
+    if ((obf->sp = secret_params_new(obf->sp_vt, circ, secparam, kappa,
+                                     nthreads, rng)) == NULL) {
         _free(obf);
         return NULL;
     }
-    obf->pp = public_params_new(obf->pp_vt, obf->sp_vt, obf->sp, op);
-    if (obf->pp == NULL) {
+    if ((obf->pp = public_params_new(obf->pp_vt, obf->sp_vt, obf->sp,
+                                     circ)) == NULL) {
         _free(obf);
         return NULL;
     }
@@ -235,7 +234,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
 
     pthread_mutex_t count_lock;
     size_t count = 0;
-    const size_t total = obf_params_num_encodings(op);
+    const size_t total = obf_params_num_encodings(op, circ);
 
     pthread_mutex_init(&count_lock, NULL);
     inps = mpz_vect_new(2);

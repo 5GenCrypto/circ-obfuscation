@@ -43,8 +43,8 @@ _free(obfuscation *obf)
 }
 
 static obfuscation *
-_obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
-           size_t *kappa, size_t nthreads, aes_randstate_t rng)
+_obfuscate(const mmap_vtable *mmap, const acirc_t *circ, const obf_params_t *op,
+           size_t secparam, size_t *kappa, size_t nthreads, aes_randstate_t rng)
 {
     obfuscation *obf;
     mife_sk_t *sk;
@@ -54,7 +54,6 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     double start, end, _start, _end;
     int res = ERR;
 
-    const acirc_t *circ = op->circ;
     const size_t nslots = acirc_nslots(circ);
     const mife_vtable *vt = &mife_cmr_vtable;
 
@@ -62,7 +61,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
 
     obf = xcalloc(1, sizeof obf[0]);
     obf->circ = circ;
-    obf->mife = vt->mife_setup(mmap, op, secparam, kappa, nthreads, rng);
+    obf->mife = vt->mife_setup(mmap, circ, op, secparam, kappa, nthreads, rng);
     obf->ek = vt->mife_ek(obf->mife);
     sk = vt->mife_sk(obf->mife);
     obf->cts = xcalloc(nslots, sizeof obf->cts[0]);
@@ -77,7 +76,7 @@ _obfuscate(const mmap_vtable *mmap, const obf_params_t *op, size_t secparam,
     cache.pool = threadpool_create(nthreads);
     cache.lock = &lock;
     cache.count = &count;
-    cache.total = obf_cmr_num_encodings(op);
+    cache.total = obf_cmr_num_encodings(circ);
 
     for (size_t i = 0; i < nslots; ++i) {
         obf->cts[i] = xcalloc(acirc_symnum(circ, i), sizeof obf->cts[i][0]);
