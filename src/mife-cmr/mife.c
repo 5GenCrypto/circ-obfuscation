@@ -379,8 +379,8 @@ encode_worker(void *wargs)
 {
     encode_args_t *args = wargs;
 
-    (void) encode(args->vt, args->enc, args->inps, args->nslots, args->ix,
-                  args->sp, 0);
+    (void) encode(args->vt, args->enc, (const mpz_t *) args->inps, args->nslots,
+                  args->ix, args->sp, 0);
     if (g_verbose) {
         pthread_mutex_lock(args->lock);
         print_progress(++*args->count, args->total);
