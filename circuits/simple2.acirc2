@@ -1,0 +1,34 @@
+:binary
+:ninputs 8
+:nrefs 15
+:consts 
+:secrets 
+:outputs 14
+:symlens 8
+:sigmas 0
+:test 10010100 0
+:test 10101111 0
+:test 00001010 0
+:test 10010001 0
+:test 10110110 0
+:test 00101011 0
+:test 00011111 0
+:test 10010000 0
+:test 10100110 0
+:test 10111101 0
+:start
+0 input 0 : 1
+1 input 1 : 1
+2 input 2 : 1
+3 input 3 : 1
+4 input 4 : 1
+5 input 5 : 1
+6 input 6 : 1
+7 input 7 : 1
+8 add 0 4 : 1
+9 add 1 5 : 1
+10 add 2 6 : 1
+11 add 3 7 : 1
+12 mul 8 9 : 1
+13 mul 10 11 : 1
+14 mul 12 13 : 1
