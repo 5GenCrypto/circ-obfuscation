@@ -5,19 +5,23 @@ set -e
 
 mkdir -p build/bin build/include build/lib
 builddir=$(readlink -f build)
+build_cxs=1
 
 usage () {
     echo "circ-obfuscation build script"
     echo ""
     echo "Commands:"
-    echo "  <default>   Build everything"
-    echo "  debug       Build in debug mode"
-    echo "  clean       Remove build"
-    echo "  help        Print this info and exit"
+    echo "  <default>       Build everything"
+    echo "  debug           Build in debug mode"
+    echo "  clean           Remove build"
+    echo "  help            Print this info and exit"
+    echo "  build-no-cxs    Skip building circuit-synthesis"
 }
 
 if [[ "$1" == "" ]]; then
     debug=''
+elif [[ "$1" == "build-no-cxs" ]]; then
+    build_cxs=""
 elif [[ "$1" == "debug" ]]; then
     debug='-DCMAKE_BUILD_TYPE=Debug'
 elif [[ "$1" == "clean" ]]; then
@@ -73,13 +77,13 @@ build () {
 
 echo builddir = $builddir
 
-git pull origin dev
+# git pull origin dev
 build libaesrand        https://github.com/5GenCrypto/libaesrand cmake
 build clt13             https://github.com/5GenCrypto/clt13 dev
 build libmmap           https://github.com/5GenCrypto/libmmap dev
 build libthreadpool     https://github.com/5GenCrypto/libthreadpool dev
 build libacirc          https://github.com/amaloz/libacirc dev
-build circuit-synthesis https://github.com/spaceships/circuit-synthesis dev
+[[ $build_cxs ]] && build circuit-synthesis https://github.com/spaceships/circuit-synthesis dev
 
 echo
 echo Building mio
