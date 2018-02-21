@@ -126,8 +126,8 @@ xcalloc(size_t nmemb, size_t size)
 {
     void *ptr;
     if ((ptr = calloc(nmemb, size)) == NULL) {
-        fprintf(stderr, "%s: allocating %lu bytes failed\n",
-                fatalstr, nmemb * size);
+        fprintf(stderr, "%s: allocating %lu members of size %lu failed\n",
+                fatalstr, nmemb, size);
         exit(1);
     }
     return ptr;
