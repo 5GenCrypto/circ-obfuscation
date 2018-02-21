@@ -759,8 +759,19 @@ obf_test_usage(bool longform, int ret)
 
 #define obf_test_handle_options obf_obfuscate_handle_options
 
-typedef obf_evaluate_args_t obf_get_kappa_args_t;
-#define obf_get_kappa_args_init obf_evaluate_args_init
+typedef struct {
+    obf_scheme_e scheme;
+    size_t npowers;
+    bool smart;
+} obf_get_kappa_args_t;
+
+static void
+obf_get_kappa_args_init(obf_get_kappa_args_t *args)
+{
+    args->scheme = OBF_SCHEME_DEFAULT;
+    args->npowers = NPOWERS_DEFAULT;
+    args->smart = false;
+}
 
 static void
 obf_get_kappa_usage(bool longform, int ret)
@@ -769,6 +780,8 @@ obf_get_kappa_usage(bool longform, int ret)
     if (longform) {
         printf("\nAvailable arguments:\n\n");
         usage_obf_scheme();
+        usage_npowers();
+        usage_smart();
         usage_verbose();
         usage_help();
         printf("\n");
@@ -776,7 +789,31 @@ obf_get_kappa_usage(bool longform, int ret)
     exit(ret);
 }
 
-#define obf_get_kappa_handle_options obf_evaluate_handle_options
+static int
+obf_get_kappa_handle_options(int *argc, char ***argv, void *vargs)
+{
+    obf_get_kappa_args_t *args = vargs;
+    while (*argc) {
+        const char *cmd = (*argv)[0];
+        if (cmd[0] != '-')
+            break;
+        if (!strcmp(cmd, "--scheme")) {
+            if (args_get_obf_scheme(&args->scheme, argc, argv) == ERR) return ERR;
+        } else if (!strcmp(cmd, "--npowers")) {
+            if (args_get_size_t(&args->npowers, argc, argv) == ERR) return ERR;
+        } else if (!strcmp(cmd, "--smart")) {
+            args->smart = true;
+        } else if (!strcmp(cmd, "--verbose")) {
+            g_verbose = true;
+        } else if (!strcmp(cmd, "--help") || !strcmp(cmd, "-h")) {
+            mife_get_kappa_usage(true, EXIT_SUCCESS);
+        } else {
+            fprintf(stderr, "%s: unknown argument '%s'\n", errorstr, cmd); return ERR;
+        }
+        (*argv)++; (*argc)--;
+    }
+    return OK;
+}
 
 static void
 handle_options(int *argc, char ***argv, int left, args_t *args, void *others,
@@ -1292,21 +1329,21 @@ cmd_obf_get_kappa(int argc, char **argv, args_t *args)
 
     argv++, argc--;
     obf_get_kappa_args_init(&args_);
-    handle_options(&argc, &argv, 0, args, &args_,
-                   obf_get_kappa_handle_options, obf_get_kappa_usage);
-    if (obf_select_scheme(args_.scheme, args->circ, 1, 0,
+    handle_options(&argc, &argv, 0, args, &args_, obf_get_kappa_handle_options,
+                   obf_get_kappa_usage);
+    if (obf_select_scheme(args_.scheme, args->circ, args_.npowers, 0,
                           &vt, &op_vt, &op) == ERR)
         goto cleanup;
 
-    /* if (args_.smart) { */
-    /*     kappa = obf_run_smart_kappa(vt, args->circ, op, 1, args->rng); */
-    /*     if (kappa == 0) */
-    /*         goto cleanup; */
-    /* } else { */
-    if (obf_run_obfuscate(&dummy_vtable, vt, args->circ, op, NULL, 8, NULL,
-                          1, args->rng) == ERR)
-        goto cleanup;
-    /* } */
+    if (args_.smart) {
+        kappa = obf_run_smart_kappa(vt, args->circ, op, 1, args->rng);
+        if (kappa == 0)
+            goto cleanup;
+    } else {
+        if (obf_run_obfuscate(&dummy_vtable, vt, args->circ, op, NULL, 8, &kappa,
+                              1, args->rng) == ERR)
+            goto cleanup;
+    }
     printf("κ = %lu\n", kappa);
     ret = OK;
 cleanup:
