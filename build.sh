@@ -80,7 +80,7 @@ echo builddir = $builddir
 # git pull origin dev
 build libaesrand        https://github.com/5GenCrypto/libaesrand cmake
 build clt13             https://github.com/5GenCrypto/clt13 dev
-build libmmap           https://github.com/5GenCrypto/libmmap dev
+build libmmap           https://github.com/5GenCrypto/libmmap improved-bkz
 build libthreadpool     https://github.com/5GenCrypto/libthreadpool dev
 build libacirc          https://github.com/amaloz/libacirc dev
 [[ $build_cxs ]] && build circuit-synthesis https://github.com/spaceships/circuit-synthesis dev
