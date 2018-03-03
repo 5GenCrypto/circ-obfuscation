@@ -628,6 +628,7 @@ typedef struct {
     const mmap_vtable *mmap;
     size_t nthreads;
     size_t npowers;
+    bool smart;
 } obf_obfuscate_args_t;
 
 static void
@@ -638,6 +639,7 @@ obf_obfuscate_args_init(obf_obfuscate_args_t *args)
     args->mmap = &dummy_vtable;
     args->nthreads = sysconf(_SC_NPROCESSORS_ONLN);
     args->npowers = NPOWERS_DEFAULT;
+    args->smart = false;
 }
 
 static void
@@ -651,6 +653,7 @@ obf_obfuscate_or_test_usage(bool longform, int ret, const char *cmd)
         usage_mmap();
         usage_nthreads();
         usage_npowers();
+        usage_smart();
         usage_verbose();
         usage_help();
         printf("\n");
@@ -681,6 +684,8 @@ obf_obfuscate_handle_options(int *argc, char ***argv, void *vargs)
             if (args_get_size_t(&args->nthreads, argc, argv) == ERR) return ERR;
         } else if (!strcmp(cmd, "--npowers")) {
             if (args_get_size_t(&args->npowers, argc, argv) == ERR) return ERR;
+        } else if (!strcmp(cmd, "--smart")) {
+            args->smart = true;
         } else if (!strcmp(cmd, "--verbose")) {
             g_verbose = true;
         } else if (!strcmp(cmd, "--help") || !strcmp(cmd, "-h")) {
@@ -1200,11 +1205,11 @@ cmd_obf_obfuscate(int argc, char **argv, args_t *args)
         goto cleanup;
     /* if (args_.scheme == OBF_SCHEME_POLYLOG && args->vt == &clt_vtable) */
     /*     args->vt = &clt_pl_vtable; */
-    /* if (args->smart) { */
-    /*     kappa = obf_run_smart_kappa(vt, args->circ, op, args->nthreads, args->rng); */
-    /*     if (kappa == 0) */
-    /*         goto cleanup; */
-    /* } */
+    if (args_.smart) {
+        kappa = obf_run_smart_kappa(vt, args->circ, op, args_.nthreads, args->rng);
+        if (kappa == 0)
+            goto cleanup;
+    }
     if (obf_run_obfuscate(args_.mmap, vt, args->circ, op, fname, args_.secparam,
                           &kappa, args_.nthreads, args->rng) == ERR)
         goto cleanup;
@@ -1283,11 +1288,11 @@ cmd_obf_test(int argc, char **argv, args_t *args)
         goto cleanup;
     /* if (args_.scheme == OBF_SCHEME_POLYLOG && args->vt == &clt_vtable) */
     /*     args->vt = &clt_pl_vtable; */
-    /* if (args->smart) { */
-    /*     kappa = obf_run_smart_kappa(vt, args->circ, op, args_.nthreads, args->rng); */
-    /*     if (kappa == 0) */
-    /*         goto cleanup; */
-    /* } */
+    if (args_.smart) {
+        kappa = obf_run_smart_kappa(vt, args->circ, op, args_.nthreads, args->rng);
+        if (kappa == 0)
+            goto cleanup;
+    }
 
     fname = makestr("%s.obf", args->circuit);
     if (obf_run_obfuscate(args_.mmap, vt, args->circ, op, fname, args_.secparam,
