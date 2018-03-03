@@ -119,7 +119,7 @@ obf_run_smart_kappa(const obfuscator_vtable *vt, const acirc_t *circ,
     size_t kappa = 0;
 
     if (g_verbose)
-        fprintf(stderr, "Choosing κ smartly... ");
+        fprintf(stderr, "Choosing κ smartly...\n");
 
     g_verbose = false;
     if (obf_run_obfuscate(&dummy_vtable, vt, circ, op, fname, 8, &kappa, nthreads, rng) == ERR) {
