@@ -20,11 +20,7 @@ struct mife_t {
     public_params *pp;
     size_t npowers;
     encoding *Chatstar;
-    /* XXX may want to bring back [noutputs] number of zhats, as with only a
-     * single one we may get the scenario where we need to do multiple
-     * `raise_encodings` operations when computing the LHS of the final
-     * comparison equation. */
-    encoding *zhat;
+    encoding **zhat;            /* [m] */
     encoding ***uhat;           /* [n][npowers] */
     mife_ct_t *constants;
     mpz_t *const_alphas;
@@ -60,7 +56,7 @@ struct mife_ek_t {
     public_params *pp;
     size_t npowers;
     encoding *Chatstar;
-    encoding *zhat;
+    encoding **zhat;            /* [m] */
     encoding ***uhat;           /* [n][npowers] */
     mife_ct_t *constants;
     size_t *deg_max;            /* [n] */
@@ -245,8 +241,11 @@ mife_ek_free(mife_ek_t *ek)
             encoding_free(ek->enc_vt, ek->Chatstar);
         if (ek->constants)
             mife_ct_free(ek->constants);
-        if (ek->zhat)
-            encoding_free(ek->enc_vt, ek->zhat);
+        if (ek->zhat) {
+            for (size_t i = 0; i < acirc_noutputs(ek->circ); ++i)
+                encoding_free(ek->enc_vt, ek->zhat[i]);
+            free(ek->zhat);
+        }
         if (ek->uhat) {
             for (size_t i = 0; i < acirc_nslots(ek->circ); ++i) {
                 if (ek->uhat[i]) {
@@ -273,7 +272,8 @@ mife_ek_fwrite(const mife_ek_t *ek, FILE *fp)
         bool_fwrite(false, fp);
         encoding_fwrite(ek->enc_vt, ek->Chatstar, fp);
     }
-    encoding_fwrite(ek->enc_vt, ek->zhat, fp);
+    for (size_t i = 0; i < acirc_noutputs(ek->circ); ++i)
+        encoding_fwrite(ek->enc_vt, ek->zhat[i], fp);
     size_t_fwrite(ek->npowers, fp);
     for (size_t i = 0; i < acirc_nslots(ek->circ); ++i)
         for (size_t p = 0; p < ek->npowers; ++p)
@@ -300,7 +300,10 @@ mife_ek_fread(const mmap_vtable *mmap, const acirc_t *circ, FILE *fp)
     } else {
         if ((ek->Chatstar = encoding_fread(ek->enc_vt, fp)) == NULL) goto error;
     }
-    if ((ek->zhat = encoding_fread(ek->enc_vt, fp)) == NULL) goto error;
+    ek->zhat = xcalloc(acirc_noutputs(circ), sizeof ek->zhat[0]);
+    for (size_t i = 0; i < acirc_noutputs(circ); ++i) {
+        if ((ek->zhat[i] = encoding_fread(ek->enc_vt, fp)) == NULL) goto error;
+    }
     if (size_t_fread(&ek->npowers, fp) == ERR) goto error;
     ek->uhat = xcalloc(acirc_nslots(circ), sizeof ek->uhat[0]);
     for (size_t i = 0; i < acirc_nslots(circ); ++i) {
@@ -331,7 +334,7 @@ size_t
 mife_num_encodings_setup(const acirc_t *circ, size_t npowers)
 {
     const size_t nconsts = acirc_nconsts(circ) ? acirc_symlen(circ, acirc_nsymbols(circ)) : 1;
-    return 1 + acirc_nslots(circ) * npowers + nconsts;
+    return acirc_nslots(circ) * npowers + nconsts + acirc_noutputs(circ);
 }
 
 size_t
@@ -341,13 +344,22 @@ mife_num_encodings_encrypt(const acirc_t *circ, size_t slot)
 }
 
 static int
-populate_circ_degrees(const acirc_t *circ, size_t *maxdegs)
+populate_circ_degrees(const acirc_t *circ, size_t **degs, size_t *maxdegs)
 {
     const bool has_consts = acirc_nconsts(circ) > 0;
-    for (size_t i = 0; i < acirc_nsymbols(circ); ++i)
+    for (size_t i = 0; i < acirc_nsymbols(circ); ++i) {
+        size_t *tmp = acirc_var_degrees(circ, i);
+        for (size_t o = 0; o < acirc_noutputs(circ); ++o) {
+            degs[i][o] = tmp[o];
+        }
         if ((maxdegs[i] = acirc_max_var_degree(circ, i)) == 0) return ERR;
-    if (has_consts)
-        if ((maxdegs[acirc_nsymbols(circ)] = acirc_max_const_degree(circ)) == 0) return ERR;
+    }
+    if (has_consts) {
+        size_t deg = acirc_max_const_degree(circ);
+        for (size_t o = 0; o < acirc_noutputs(circ); ++o)
+            degs[acirc_nsymbols(circ)][o] = deg;
+        maxdegs[acirc_nsymbols(circ)] = deg;
+    }
     return OK;
 }
 
@@ -421,8 +433,11 @@ mife_free(mife_t *mife)
         return;
     if (mife->Chatstar)
         encoding_free(mife->enc_vt, mife->Chatstar);
-    if (mife->zhat)
-        encoding_free(mife->enc_vt, mife->zhat);
+    if (mife->zhat) {
+        for (size_t i = 0; i < acirc_noutputs(mife->circ); ++i)
+            encoding_free(mife->enc_vt, mife->zhat[i]);
+        free(mife->zhat);
+    }
     if (mife->uhat) {
         for (size_t i = 0; i < acirc_nslots(mife->circ); ++i) {
             if (mife->uhat[i]) {
@@ -478,10 +493,16 @@ mife_setup(const mmap_vtable *mmap, const acirc_t *circ, const obf_params_t *op,
                                       circ)) == NULL)
         goto cleanup;
     mife->npowers = op->npowers;
-    mife->zhat = encoding_new(mife->enc_vt, mife->pp_vt, mife->pp);
+    mife->zhat = xcalloc(acirc_noutputs(circ), sizeof mife->zhat[0]);
+    /* mife->zhat = encoding_new(mife->enc_vt, mife->pp_vt, mife->pp); */
     mife->uhat = xcalloc(nslots, sizeof mife->uhat[0]);
     mife->deg_max = xcalloc(nslots, sizeof mife->deg_max[0]);
-    if (populate_circ_degrees(circ, mife->deg_max) == ERR)
+
+    size_t **degs;
+    degs = xcalloc(nslots, sizeof degs[0]);
+    for (size_t i = 0; i < nslots; ++i)
+        degs[i] = xcalloc(acirc_noutputs(circ), sizeof degs[i][0]);
+    if (populate_circ_degrees(circ, degs, mife->deg_max) == ERR)
         goto cleanup;
 
     moduli = mmap->sk->plaintext_fields(mife->sp->sk);
@@ -491,7 +512,7 @@ mife_setup(const mmap_vtable *mmap, const acirc_t *circ, const obf_params_t *op,
     if (g_verbose)
         print_progress(count, total);
 
-    {
+    for (size_t o = 0; o < acirc_noutputs(circ); ++o) {
         ix = index_set_new(mife_params_nzs(circ));
         if (mpz_cmp_ui(moduli[0], 2) == 0)
             mpz_set_ui(inps[0], 1);
@@ -500,10 +521,12 @@ mife_setup(const mmap_vtable *mmap, const acirc_t *circ, const obf_params_t *op,
         for (size_t i = 0; i < nslots; ++i) {
             mpz_set_ui(inps[1 + i], 1);
             IX_W(ix, circ, i) = 1;
+            IX_X(ix, circ, i) = mife->deg_max[i] - degs[i][o];
         }
         IX_Z(ix) = 1;
+        mife->zhat[o] = encoding_new(mife->enc_vt, mife->pp_vt, mife->pp);
         /* Encode \hat z = [δ, 1, ..., 1] */
-        __encode(pool, mife->enc_vt, mife->zhat, inps, 1 + nslots,
+        __encode(pool, mife->enc_vt, mife->zhat[o], inps, 1 + nslots,
                  ix, mife->sp, &lock, &count, total);
     }
     for (size_t i = 0; i < 1 + nslots; ++i)
@@ -895,7 +918,7 @@ output_f(size_t ref, size_t o, void *x, void *args_)
     rhs = encoding_new(ek->enc_vt, ek->pp_vt, ek->pp);
 
     /* Compute LHS */
-    encoding_mul(ek->enc_vt, ek->pp_vt, lhs, x, ek->zhat, ek->pp);
+    encoding_mul(ek->enc_vt, ek->pp_vt, lhs, x, ek->zhat[o], ek->pp);
     raise_encoding(ek, lhs, toplevel);
     if (!index_set_eq(ek->enc_vt->mmap_set(lhs), toplevel)) {
         fprintf(stderr, "%s: %s: lhs != toplevel\n", errorstr, __func__);
