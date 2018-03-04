@@ -351,8 +351,10 @@ populate_circ_degrees(const acirc_t *circ, size_t **degs, size_t *maxdegs)
         size_t *tmp = acirc_var_degrees(circ, i);
         for (size_t o = 0; o < acirc_noutputs(circ); ++o) {
             degs[i][o] = tmp[o];
+            if (degs[i][o] > maxdegs[i])
+                maxdegs[i] = degs[i][o];
         }
-        if ((maxdegs[i] = acirc_max_var_degree(circ, i)) == 0) return ERR;
+        free(tmp);
     }
     if (has_consts) {
         size_t deg = acirc_max_const_degree(circ);
@@ -473,6 +475,7 @@ mife_setup(const mmap_vtable *mmap, const acirc_t *circ, const obf_params_t *op,
     pthread_mutex_t lock;
     size_t count = 0;
     size_t total = mife_num_encodings_setup(circ, op->npowers);
+    size_t **degs;
     index_set *ix;
     mpz_t *moduli;
     const size_t nslots = acirc_nslots(circ);
@@ -494,11 +497,9 @@ mife_setup(const mmap_vtable *mmap, const acirc_t *circ, const obf_params_t *op,
         goto cleanup;
     mife->npowers = op->npowers;
     mife->zhat = xcalloc(acirc_noutputs(circ), sizeof mife->zhat[0]);
-    /* mife->zhat = encoding_new(mife->enc_vt, mife->pp_vt, mife->pp); */
     mife->uhat = xcalloc(nslots, sizeof mife->uhat[0]);
     mife->deg_max = xcalloc(nslots, sizeof mife->deg_max[0]);
 
-    size_t **degs;
     degs = xcalloc(nslots, sizeof degs[0]);
     for (size_t i = 0; i < nslots; ++i)
         degs[i] = xcalloc(acirc_noutputs(circ), sizeof degs[i][0]);
@@ -529,6 +530,11 @@ mife_setup(const mmap_vtable *mmap, const acirc_t *circ, const obf_params_t *op,
         __encode(pool, mife->enc_vt, mife->zhat[o], inps, 1 + nslots,
                  ix, mife->sp, &lock, &count, total);
     }
+
+    for (size_t i = 0; i < nslots; ++i)
+        free(degs[i]);
+    free(degs);
+
     for (size_t i = 0; i < 1 + nslots; ++i)
         mpz_set_ui(inps[i], 1);
     for (size_t i = 0; i < nslots; ++i) {
