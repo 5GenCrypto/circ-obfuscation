@@ -24,7 +24,7 @@ mio=$(readlink -f "$dir/../mio.sh")
 
 circuit="${circuits}/ggm_sigma_${nprgs}_${symlen}_${keylen}.acirc2"
 
-args="--verbose --mmap DUMMY --scheme CMR ${circuit}"
+args="--verbose --mmap CLT --scheme CMR ${circuit}"
 
 $mio obf obfuscate --secparam ${secparam} $args 2>&1 | tee /tmp/obfuscate.txt
 ngates=$(grep "# gates" /tmp/obfuscate.txt | cut -d' ' -f5)
