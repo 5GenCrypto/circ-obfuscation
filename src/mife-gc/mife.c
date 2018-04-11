@@ -133,7 +133,7 @@ mife_sk_fread(const mmap_vtable *mmap, const acirc_t *circ, FILE *fp)
     sk->circ = circ;
     if ((sk->dirname = str_fread(fp)) == NULL) goto error;
     if ((fname = makestr("%s/gb.acirc2", sk->dirname)) == NULL) goto error;
-    if ((sk->gc = acirc_new(fname, false, true)) == NULL) goto error;
+    if ((sk->gc = acirc_new(fname, false)) == NULL) goto error;
     if ((sk->sk = sk->vt->mife_sk_fread(mmap, sk->gc, fp)) == NULL) goto error;
     if (size_t_fread(&sk->npowers, fp) == ERR) goto error;
     if (size_t_fread(&sk->padding, fp) == ERR) goto error;
@@ -199,7 +199,7 @@ mife_ek_fread(const mmap_vtable *mmap, const acirc_t *circ, FILE *fp)
     ek->circ = circ;
     if ((ek->dirname = str_fread(fp)) == NULL) goto error;
     if ((fname = makestr("%s/gb.acirc2", ek->dirname)) == NULL) goto error;
-    if ((ek->gc = acirc_new(fname, false, true)) == NULL) goto error;
+    if ((ek->gc = acirc_new(fname, false)) == NULL) goto error;
     if ((ek->ek = ek->vt->mife_ek_fread(mmap, ek->gc, fp)) == NULL) goto error;
     if (size_t_fread(&ek->npowers, fp) == ERR) goto error;
     if (size_t_fread(&ek->padding, fp) == ERR) goto error;
@@ -290,7 +290,7 @@ mife_setup(const mmap_vtable *mmap, const acirc_t *circ, const obf_params_t *op,
 
         if ((fname = makestr("%s/gb.acirc2", mife->dirname)) == NULL)
             goto error;
-        if ((mife->gc = acirc_new(fname, false, true)) == NULL) {
+        if ((mife->gc = acirc_new(fname, false)) == NULL) {
             fprintf(stderr, "%s: %s: unable to parse '%s'\n",
                     errorstr, __func__, fname);
             free(fname);

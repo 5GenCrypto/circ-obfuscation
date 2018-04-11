@@ -838,7 +838,7 @@ handle_options(int *argc, char ***argv, int left, args_t *args, void *others,
         usage(false, EXIT_FAILURE);
     }
     args->circuit = (*argv)[0];
-    args->circ = acirc_new(args->circuit, false, true);
+    args->circ = acirc_new(args->circuit, false);
     if (args->circ == NULL) {
         fprintf(stderr, "%s: parsing circuit '%s' failed\n", errorstr,
                 args->circuit);
