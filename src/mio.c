@@ -1232,7 +1232,7 @@ cmd_obf_evaluate(int argc, char **argv, args_t *args)
     obf_evaluate_args_init(&args_);
     handle_options(&argc, &argv, 1, args, &args_, obf_evaluate_handle_options,
                    obf_evaluate_usage);
-    if (obf_select_scheme(args_.scheme, args->circ, 0, 0, NULL, NULL,
+    if (obf_select_scheme(args_.scheme, args->circ, 0, 0, &vt, NULL,
                           NULL) == ERR)
         goto cleanup;
     if ((fname = makestr("%s.obf", args->circuit)) == NULL)
