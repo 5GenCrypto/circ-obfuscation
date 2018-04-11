@@ -15,11 +15,18 @@ static int
 _sp_init(secret_params *sp, mmap_params_t *mp, const acirc_t *circ,
          size_t kappa)
 {
-    const size_t delta = acirc_delta(circ);
-    if (delta == 0)
-        return ERR;
+    size_t delta;
+
     my(sp) = xcalloc(1, sizeof my(sp)[0]);
     my(sp)->toplevel = mife_params_new_toplevel(circ);
+
+    {
+        const double start = current_time();
+        if ((delta = acirc_delta(circ)) == 0)
+            return ERR;
+        if (g_verbose)
+            fprintf(stderr, "  Computing Δ: %.2f s\n", current_time() - start);
+    }
 
     mp->kappa = kappa ? kappa : (size_t) max(delta + 1, acirc_nsymbols(circ));
     mp->nzs = my(sp)->toplevel->nzs;

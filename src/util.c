@@ -245,19 +245,14 @@ void
 print_progress(size_t cur, size_t total)
 {
     static const char *pbstr = "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||";
-    static int last_val = 0;
     const int pbwidth = 60;
     const double percentage = (double) cur / total;
     const int val  = percentage * 100;
     const int lpad = percentage * pbwidth;
     const int rpad = pbwidth - lpad;
-    if (val != last_val) {
-        fprintf(stderr, "\r\t%3d%% [%.*s%*s] %lu/%lu", val, lpad, pbstr, rpad, "", cur, total);
-        if (cur == total)
-            fprintf(stderr, "\n");
-        fflush(stderr);
-        last_val = val;
-    }
+    fprintf(stderr, "\r\t%3d%% [%.*s%*s] %lu/%lu%s", val, lpad, pbstr, rpad, "", cur, total,
+            cur == total ? "\n" : "");
+    fflush(stderr);
 }
 
 bool

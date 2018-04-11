@@ -9,7 +9,6 @@
 #include "mife-gc/mife.h"
 #include "obf-lz/obfuscator.h"
 #include "obf-cmr/obfuscator.h"
-/* #include "obf-polylog/obfuscator.h" */
 
 #include <aesrand.h>
 #include <acirc.h>
@@ -79,8 +78,6 @@ args_get_obf_scheme(obf_scheme_e *scheme, int *argc, char ***argv)
         *scheme = OBF_SCHEME_LZ;
     } else if (!strcmp(str, "CMR")) {
         *scheme = OBF_SCHEME_CMR;
-    /* } else if (!strcmp(str, "POLYLOG")) { */
-    /*     *scheme = OBF_SCHEME_POLYLOG; */
     } else {
         fprintf(stderr, "%s: unknown obfuscation scheme '%s'\n", errorstr, str);
         return ERR;
@@ -136,8 +133,7 @@ args_clear(args_t *args)
 {
     if (args->circ)
         acirc_free(args->circ);
-    if (args->rng)
-        aes_randclear(args->rng);
+    aes_randclear(args->rng);
 }
 
 static inline void usage_secparam(void)
@@ -169,10 +165,10 @@ static inline void usage_mife_write_ek(void)
     printf("    --ek F             write evaluation key to file F (default: <circuit>.ek)\n");
 }
 
-static inline void usage_mife_read_ek(void)
-{
-    printf("    --ek F             read evaluation key from file F (default: <circuit>.ek)\n");
-}
+/* static inline void usage_mife_read_ek(void) */
+/* { */
+/*     printf("    --ek F             read evaluation key from file F (default: <circuit>.ek)\n"); */
+/* } */
 
 static inline void usage_mife_write_sk(void)
 {
@@ -1286,8 +1282,6 @@ cmd_obf_test(int argc, char **argv, args_t *args)
     if (obf_select_scheme(args_.scheme, args->circ, args_.npowers, 0,
                           &vt, &op_vt, &op) == ERR)
         goto cleanup;
-    /* if (args_.scheme == OBF_SCHEME_POLYLOG && args->vt == &clt_vtable) */
-    /*     args->vt = &clt_pl_vtable; */
     if (args_.smart) {
         kappa = obf_run_smart_kappa(vt, args->circ, op, args_.nthreads, args->rng);
         if (kappa == 0)

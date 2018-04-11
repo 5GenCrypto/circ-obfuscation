@@ -474,7 +474,7 @@ mife_setup(const mmap_vtable *mmap, const acirc_t *circ, const obf_params_t *op,
     threadpool *pool = NULL;
     pthread_mutex_t lock;
     size_t count = 0;
-    size_t total = mife_num_encodings_setup(circ, op->npowers);
+    const size_t total = mife_num_encodings_setup(circ, op->npowers);
     size_t **degs;
     index_set *ix;
     mpz_t *moduli;
@@ -489,12 +489,8 @@ mife_setup(const mmap_vtable *mmap, const acirc_t *circ, const obf_params_t *op,
     mife->enc_vt = get_encoding_vtable(mmap);
     mife->pp_vt = get_pp_vtable(mmap);
     mife->sp_vt = get_sp_vtable(mmap);
-    if ((mife->sp = secret_params_new(mife->sp_vt, circ, secparam, kappa,
-                                      nthreads, rng)) == NULL)
-        goto cleanup;
-    if ((mife->pp = public_params_new(mife->pp_vt, mife->sp_vt, mife->sp,
-                                      circ)) == NULL)
-        goto cleanup;
+    mife->sp = secret_params_new(mife->sp_vt, circ, secparam, kappa, nthreads, rng);
+    mife->pp = public_params_new(mife->pp_vt, mife->sp_vt, mife->sp, circ);
     mife->npowers = op->npowers;
     mife->zhat = xcalloc(acirc_noutputs(circ), sizeof mife->zhat[0]);
     mife->uhat = xcalloc(nslots, sizeof mife->uhat[0]);
@@ -591,10 +587,10 @@ mife_setup(const mmap_vtable *mmap, const acirc_t *circ, const obf_params_t *op,
 
     result = OK;
 cleanup:
-    mpz_vect_free(inps, 1 + nslots);
     if (pool)
         threadpool_destroy(pool);
     pthread_mutex_destroy(&lock);
+    mpz_vect_free(inps, 1 + nslots);
     if (result == OK)
         return mife;
     else {

@@ -57,6 +57,8 @@ _obfuscate(const mmap_vtable *mmap, const acirc_t *circ, const obf_params_t *op,
     const size_t nslots = acirc_nslots(circ);
     const mife_vtable *vt = &mife_cmr_vtable;
 
+    if (g_verbose)
+        fprintf(stderr, "Obfuscating...\n");
     start = _start = current_time();
 
     obf = xcalloc(1, sizeof obf[0]);
