@@ -22,16 +22,19 @@ if [[ $circuits == "" ]]; then
 fi
 mio=$(readlink -f "$dir/../mio.sh")
 
-circuit="${circuits}/ggm_sigma_${nprgs}_${symlen}_${keylen}.acirc2"
 
-args="--verbose --mmap CLT --scheme CMR ${circuit}"
+circuit="ggm_sigma_${nprgs}_${symlen}_${keylen}.acirc2"
+
+cp circuits/"${circuit}" /tmp/"${circuit}"
+
+args="--verbose --mmap CLT --scheme CMR /tmp/${circuit}"
 
 $mio obf obfuscate --secparam ${secparam} $args 2>&1 | tee /tmp/obfuscate.txt
 ngates=$(grep "# gates" /tmp/obfuscate.txt | cut -d' ' -f5)
 nencodings=$(grep "# encodings" /tmp/obfuscate.txt | cut -d' ' -f4)
 kappa=$(grep "κ:" /tmp/obfuscate.txt | head -1 | tr -s ' ' | cut -d' ' -f3)
 obf_time=$(grep "Total:" /tmp/obfuscate.txt | cut -d' ' -f2)
-obf_size=$(ls -lh "$circuit.obf" | cut -d' ' -f5)
+obf_size=$(ls -lh "/tmp/${circuit}.obf" | cut -d' ' -f5)
 obf_mem=$(grep "Memory" /tmp/obfuscate.txt | tr -s ' ' | cut -d' ' -f2)
 $mio obf evaluate $args $eval 2>&1 | tee /tmp/evaluate.txt
 eval_time=$(grep "Total" /tmp/evaluate.txt | cut -d' ' -f2)
