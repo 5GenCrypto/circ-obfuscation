@@ -12,15 +12,15 @@ symlen=$2
 keylen=$3
 secparam=$4
 circuits=$5
-npowers=8
+
 inplen=$(python -c "import math; print('%d' % (math.log(${symlen}, 2) * ${nprgs},))")
 eval=$(python -c "print('0' * ${nprgs} * ${symlen})")
 
 dir=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
 if [[ $circuits == "" ]]; then
-    circuits=$(readlink -f "$dir/../circuits")
+    circuits=$(readlink -f "${dir}/../circuits")
 fi
-mio=$(readlink -f "$dir/../mio.sh")
+mio=$(readlink -f "${dir}/../mio.sh")
 
 
 circuit="ggm_sigma_${nprgs}_${symlen}_${keylen}.acirc2"
@@ -29,7 +29,7 @@ cp circuits/"${circuit}" /tmp/"${circuit}"
 
 args="--verbose --mmap CLT --scheme CMR /tmp/${circuit}"
 
-$mio obf obfuscate --secparam ${secparam} $args 2>&1 | tee /tmp/obfuscate.txt
+$mio obf obfuscate --secparam "${secparam}" $args 2>&1 | tee /tmp/obfuscate.txt
 ngates=$(grep "# gates" /tmp/obfuscate.txt | cut -d' ' -f5)
 nencodings=$(grep "# encodings" /tmp/obfuscate.txt | cut -d' ' -f4)
 kappa=$(grep "κ:" /tmp/obfuscate.txt | head -1 | tr -s ' ' | cut -d' ' -f3)
@@ -41,18 +41,22 @@ eval_time=$(grep "Total" /tmp/evaluate.txt | cut -d' ' -f2)
 eval_mem=$(grep "Memory" /tmp/evaluate.txt | tr -s ' ' | cut -d' ' -f2)
 rm "/tmp/${circuit}.obf"
 
-echo ""
-echo "*****************************"
-echo "* n: ............ $inplen"
-echo "* |Σ|: .......... $symlen"
-echo "* k: ............ $keylen"
-echo "* # gates: ...... $ngates"
-echo "* # encodings: .. $nencodings"
-echo "* κ: ............ $kappa"
-echo "* Obf time: ..... $obf_time"
-echo "* Obf size: ..... $obf_size"
-echo "* Obf mem: ...... $obf_mem"
-echo "* Eval time: .... $eval_time"
-echo "* Eval mem: ..... $eval_mem"
-echo "*****************************"
-echo ""
+cat <<EOF | tee -a results.txt
+
+* circuit: ...... ${circuit}
+
+* n: ............ ${inplen}
+* k: ............ ${keylen}
+* |Σ|: .......... ${symlen}
+* # prgs: ....... ${nprgs}
+* # gates: ...... ${ngates}
+* # encodings: .. ${nencodings}
+* κ: ............ ${kappa}
+
+* Obf time: ..... ${obf_time}
+* Obf size: ..... ${obf_size}
+* Obf mem: ...... ${obf_mem}
+* Eval time: .... ${eval_time}
+* Eval mem: ..... ${eval_mem}
+
+EOF
