@@ -3,37 +3,28 @@
 set -e
 
 if [[ $# != 1 && $# != 2 ]]; then
-    echo "Usage: ggm-prf-all.sh <secparam> [circuit-dir]"
+    echo "Usage: ggm-prf-all.sh <secparam> [results-dir]"
     exit 1
 fi
 
 dir=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
-script="${dir}/ggm-prf.sh"
-secparam=$1
-circdir=$2
-if [[ $circdir == "" ]]; then
-    circdir="$dir/../circuits"
-else
-    mkdir -p "$circdir"
-    cp -r "$(readlink -f "$dir/../circuits")" "$circdir"
-fi
-circdir="$circdir"
 
-echo "*************"
-echo "* 8 256 [1] *"
-echo "*************"
-$script 1 256  32 "${secparam}" "$circdir"
-$script 1 256  64 "${secparam}" "$circdir"
-$script 1 256 128 "${secparam}" "$circdir"
-echo "*************"
-echo "* 8  16 [2] *"
-echo "*************"
-$script 2 16  32 "${secparam}" "$circdir"
-$script 2 16  64 "${secparam}" "$circdir"
-$script 2 16 128 "${secparam}" "$circdir"
-echo "*************"
-echo "* 12 64 [2] *"
-echo "*************"
-$script 2 64  32 "${secparam}" "$circdir"
-$script 2 64  64 "${secparam}" "$circdir"
-$script 2 64 128 "${secparam}" "$circdir"
+script="${dir}/ggm-prf.sh"
+circdir="${dir}/../circuits"
+
+secparam=${1}
+resdir=${2}
+if [[ ${resdir} == "" ]]; then
+    resdir="${dir}/results"
+fi
+mkdir -p "${resdir}"
+
+for i in 32 64 128; do
+    $script 1 256 ${i} "${secparam}" "${circdir}" "${resdir}"
+done
+for i in 32 64 128; do
+    $script 2 16 ${i} "${secparam}" "${circdir}" "${resdir}"
+done
+for i in 32 64 128; do
+    $script 2 64 ${i} "${secparam}" "${circdir}" "${resdir}"
+done
