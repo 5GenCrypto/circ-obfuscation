@@ -8,33 +8,48 @@ builddir=$(readlink -f build)
 build_cxs=1
 
 usage () {
-    echo "circ-obfuscation build script"
-    echo ""
-    echo "Commands:"
-    echo "  <default>       Build everything"
-    echo "  debug           Build in debug mode"
-    echo "  clean           Remove build"
-    echo "  help            Print this info and exit"
-    echo "  build-no-cxs    Skip building circuit-synthesis"
+    cat <<EOF
+circ-obfuscation build script
+
+usage: build.sh [options]
+
+Optional arguments:
+
+    -c, --clean    Clean before building
+    -d, --debug    Build in debug mode
+    --cxs          Build 'cxs'
+    -h, --help     Print this information and exit
+
+EOF
 }
 
-if [[ "$1" == "" ]]; then
-    debug=''
-elif [[ "$1" == "build-no-cxs" ]]; then
-    build_cxs=""
-elif [[ "$1" == "debug" ]]; then
-    debug='-DCMAKE_BUILD_TYPE=Debug'
-elif [[ "$1" == "clean" ]]; then
-    rm -rf build libaesrand clt13 libmmap libacirc libthreadpool circuit-synthesis *.so mio
-    exit 0
-elif [[ "$1" == "help" ]]; then
-    usage
-    exit 0
-else
-    echo "error: unknown command '$1'"
-    usage
-    exit 1
-fi
+debug=''
+build_cxs=0
+while [[ $# -gt 0 ]]; do
+    case "${1}" in
+        -c|--clean)
+            rm -rf build libaesrand clt13 libmmap libacirc libthreadpool circuit-synthesis *.so mio
+            shift
+            ;;
+        -d|--debug)
+            debug='-DCMAKE_BUILD_TYPE=Debug'
+            shift
+            ;;
+        --cxs)
+            build_cxs=1
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "error: unknown argument '${1}'"
+            usage
+            exit 1
+            ;;
+    esac
+done
 
 export CFLAGS=-I$builddir/include
 export LDFLAGS=-L$builddir/lib
@@ -77,13 +92,15 @@ build () {
 
 echo builddir = $builddir
 
-# git pull origin dev
+git pull origin dev
 build libaesrand        https://github.com/5GenCrypto/libaesrand cmake
 build clt13             https://github.com/5GenCrypto/clt13 dev
 build libmmap           https://github.com/5GenCrypto/libmmap dev
 build libthreadpool     https://github.com/5GenCrypto/libthreadpool dev
 build libacirc          https://github.com/amaloz/libacirc dev
-[[ $build_cxs ]] && build circuit-synthesis https://github.com/spaceships/circuit-synthesis dev
+if [[ "${build_cxs}" == 1 ]]; then
+    build circuit-synthesis https://github.com/spaceships/circuit-synthesis dev
+fi
 
 echo
 echo Building mio
