@@ -2,8 +2,8 @@
 
 set -e
 
-if [[ $# < 4 || $# > 6 ]]; then
-    echo "Usage: ggm-prf.sh <nprgs> <symlen> <keylen> <secparam> [circuit-dir] [results-dir]"
+if [[ $# < 5 || $# > 7 ]]; then
+    echo "Usage: ggm-prf.sh <nprgs> <symlen> <keylen> <secparam> <binary> [circuit-dir] [results-dir]"
     exit 1
 fi
 
@@ -13,8 +13,9 @@ nprgs=${1}
 symlen=${2}
 keylen=${3}
 secparam=${4}
-circdir=${5}
-resdir=${6}
+binary=${5}
+circdir=${6}
+resdir=${7}
 
 inplen=$(python -c "import math; print('%d' % (math.log(${symlen}, 2) * ${nprgs},))")
 input=$(python -c "print('0' * ${nprgs} * ${symlen})")
@@ -28,7 +29,12 @@ fi
 mkdir -p "${resdir}"/"${secparam}"
 mio=$(readlink -f "${dir}/../mio.sh")
 
-circuit="ggm_sigma_${nprgs}_${symlen}_${keylen}.acirc2"
+if [[ "${binary}" == "1" ]]; then
+    ext="acirc2"
+else
+    ext="acirc"
+fi
+circuit="ggm_sigma_${nprgs}_${symlen}_${keylen}.${ext}"
 
 cp "${circdir}"/"${circuit}" /tmp/"${circuit}"
 
@@ -41,12 +47,14 @@ kappa=$(grep "κ:" /tmp/obfuscate.txt | head -1 | tr -s ' ' | cut -d' ' -f3)
 obf_time=$(grep "Total:" /tmp/obfuscate.txt | cut -d' ' -f2)
 obf_size=$(ls -lh "/tmp/${circuit}.obf" | cut -d' ' -f5)
 obf_mem=$(grep "Memory" /tmp/obfuscate.txt | tr -s ' ' | cut -d' ' -f2)
+
 ${mio} obf evaluate ${args} "${input}" 2>&1 | tee /tmp/evaluate.txt
 eval_time=$(grep "Total" /tmp/evaluate.txt | cut -d' ' -f2)
 eval_mem=$(grep "Memory" /tmp/evaluate.txt | tr -s ' ' | cut -d' ' -f2)
+
 rm "/tmp/${circuit}.obf"
 
-cat <<EOF | tee "${resdir}"/"${secparam}"/"${circuit}"
+cat <<EOF | tee "${resdir}"/"${secparam}"/"${circuit}".txt
 
 * circuit: ...... ${circuit}
 
