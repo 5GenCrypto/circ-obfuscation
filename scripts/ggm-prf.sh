@@ -43,7 +43,7 @@ obf_size=$(ls -lh "/tmp/${circuit}.obf" | cut -d' ' -f5)
 obf_mem=$(grep "Memory" /tmp/obfuscate.txt | tr -s ' ' | cut -d' ' -f2)
 ${mio} obf evaluate ${args} "${input}" 2>&1 | tee /tmp/evaluate.txt
 eval_time=$(grep "Total" /tmp/evaluate.txt | cut -d' ' -f2)
-eval_mem=$(grep "Memory" /tmp/evalnuate.txt | tr -s ' ' | cut -d' ' -f2)
+eval_mem=$(grep "Memory" /tmp/evaluate.txt | tr -s ' ' | cut -d' ' -f2)
 rm "/tmp/${circuit}.obf"
 
 cat <<EOF | tee "${resdir}"/"${secparam}"/"${circuit}"
