@@ -39,7 +39,7 @@ obf_mem=$(grep "Memory" /tmp/obfuscate.txt | tr -s ' ' | cut -d' ' -f2)
 $mio obf evaluate $args $eval 2>&1 | tee /tmp/evaluate.txt
 eval_time=$(grep "Total" /tmp/evaluate.txt | cut -d' ' -f2)
 eval_mem=$(grep "Memory" /tmp/evaluate.txt | tr -s ' ' | cut -d' ' -f2)
-rm "${circuit}.obf"
+rm "/tmp/${circuit}.obf"
 
 echo ""
 echo "*****************************"
