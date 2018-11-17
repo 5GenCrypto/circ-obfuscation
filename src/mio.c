@@ -1339,6 +1339,7 @@ cmd_obf_get_kappa(int argc, char **argv, args_t *args)
         if (kappa == 0)
             goto cleanup;
     } else {
+        /* XXX this shouldn't require obfuscating the circuit */
         if (obf_run_obfuscate(&dummy_vtable, vt, args->circ, op, NULL, 8, &kappa,
                               1, args->rng) == ERR)
             goto cleanup;

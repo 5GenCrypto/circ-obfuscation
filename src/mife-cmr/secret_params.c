@@ -25,8 +25,9 @@ _sp_init(secret_params *sp, mmap_params_t *mp, const acirc_t *circ,
         if ((delta = acirc_delta(circ)) == 0)
             return ERR;
         if (g_verbose)
-            fprintf(stderr, "  Computing Δ: %.2f s\n", current_time() - start);
+            fprintf(stderr, "  Computing Δ (= %ld): %.2f s\n", delta, current_time() - start);
     }
+
 
     mp->kappa = kappa ? kappa : (size_t) max(delta + 1, acirc_nsymbols(circ));
     mp->nzs = my(sp)->toplevel->nzs;

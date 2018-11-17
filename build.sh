@@ -9,7 +9,7 @@ build_cxs=1
 
 usage () {
     cat <<EOF
-circ-obfuscation build script
+mio build script
 
 usage: build.sh [options]
 
