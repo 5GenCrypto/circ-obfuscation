@@ -35,11 +35,11 @@ set(obf_cmr_SOURCES
   src/obf-cmr/obf_params.c
   src/obf-cmr/obfuscator.c
   )
-set(mife_gc_SOURCES
-  ${common_SOURCES}
-  src/mife-gc/mife.c
-  src/mife-gc/mife_params.c
-  )
+# set(mife_gc_SOURCES
+#   ${common_SOURCES}
+#   src/mife-gc/mife.c
+#   src/mife-gc/mife_params.c
+#   )
 # set(obf_polylog_SOURCES
 #   ${common_SOURCES}
 #   src/obf-polylog/encoding.c
@@ -61,13 +61,13 @@ set(mio_SOURCES
 add_library(obf_lz SHARED ${obf_lz_SOURCES})
 add_library(mife_cmr SHARED ${mife_cmr_SOURCES})
 add_library(obf_cmr SHARED ${obf_cmr_SOURCES})
-add_library(mife_gc SHARED ${mife_gc_SOURCES})
+# add_library(mife_gc SHARED ${mife_gc_SOURCES})
 # add_library(obf_polylog SHARED ${obf_polylog_SOURCES})
 add_executable(mio ${mio_SOURCES})
-target_link_libraries(mio mife_cmr)
-target_link_libraries(mio mife_gc)
 target_link_libraries(mio obf_lz)
+target_link_libraries(mio mife_cmr)
 target_link_libraries(mio obf_cmr)
+# target_link_libraries(mio mife_gc)
 # target_link_libraries(mio obf_polylog)
 find_library(libacirc acirc)
 find_library(libmmap mmap)
