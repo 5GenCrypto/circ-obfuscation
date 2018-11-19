@@ -13,7 +13,6 @@
 #include <aesrand.h>
 #include <acirc.h>
 #include <mmap/mmap_clt.h>
-#include <mmap/mmap_clt_pl.h>
 #include <mmap/mmap_dummy.h>
 
 #include <assert.h>
@@ -32,9 +31,9 @@ static const char *progversion = "v2.0.0 (in progress)";
 #define NPOWERS_DEFAULT 1
 #define SECPARAM_DEFAULT 8
 #define WORDSIZE_DEFAULT 64
-#define PADDING_DEFAULT 4
-#define WIRELEN_DEFAULT 10
-#define NGATES_DEFAULT 0
+/* #define PADDING_DEFAULT 4 */
+/* #define WIRELEN_DEFAULT 10 */
+/* #define NGATES_DEFAULT 0 */
 #define MMAP_DEFAULT_STR "DUMMY"
 
 static int
@@ -60,7 +59,6 @@ args_get_mmap_scheme(const mmap_vtable **scheme, int *argc, char ***argv)
 typedef enum {
     OBF_SCHEME_LZ,
     OBF_SCHEME_CMR,
-    /* OBF_SCHEME_POLYLOG, */
 } obf_scheme_e;
 
 #define OBF_SCHEME_DEFAULT     OBF_SCHEME_CMR
@@ -199,7 +197,7 @@ static inline void usage_mife_read_sk(void)
 
 static inline void usage_obf_scheme(void)
 {
-    printf("    --scheme S         set obfuscation scheme to S (options: CMR, LZ, POLYLOG | default: %s)\n",
+    printf("    --scheme S         set obfuscation scheme to S (options: CMR, LZ | default: %s)\n",
            OBF_SCHEME_DEFAULT_STR);
 }
 
@@ -266,9 +264,9 @@ typedef struct {
     size_t npowers;
     char *ek;
     char *sk;
-    size_t padding;
-    size_t wirelen;
-    size_t ngates;
+    /* size_t padding; */
+    /* size_t wirelen; */
+    /* size_t ngates; */
 } mife_setup_args_t;
 
 static void
@@ -281,9 +279,9 @@ mife_setup_args_init(mife_setup_args_t *args)
     args->npowers = NPOWERS_DEFAULT;
     args->ek = NULL;
     args->sk = NULL;
-    args->padding = PADDING_DEFAULT;
-    args->wirelen = WIRELEN_DEFAULT;
-    args->ngates = NGATES_DEFAULT;
+    /* args->padding = PADDING_DEFAULT; */
+    /* args->wirelen = WIRELEN_DEFAULT; */
+    /* args->ngates = NGATES_DEFAULT; */
 }
 
 static void
@@ -331,12 +329,12 @@ mife_setup_handle_options(int *argc, char ***argv, void *vargs)
             if (args_get_string(&args->ek, argc, argv) == ERR) return ERR;
         } else if (!strcmp(cmd, "--sk")) {
             if (args_get_string(&args->sk, argc, argv) == ERR) return ERR;
-        } else if (!strcmp(cmd, "--padding")) {
-            if (args_get_size_t(&args->padding, argc, argv) == ERR) return ERR;
-        } else if (!strcmp(cmd, "--wirelen")) {
-            if (args_get_size_t(&args->wirelen, argc, argv) == ERR) return ERR;
-        } else if (!strcmp(cmd, "--ngates")) {
-            if (args_get_size_t(&args->ngates, argc, argv) == ERR) return ERR;
+        /* } else if (!strcmp(cmd, "--padding")) { */
+        /*     if (args_get_size_t(&args->padding, argc, argv) == ERR) return ERR; */
+        /* } else if (!strcmp(cmd, "--wirelen")) { */
+        /*     if (args_get_size_t(&args->wirelen, argc, argv) == ERR) return ERR; */
+        /* } else if (!strcmp(cmd, "--ngates")) { */
+        /*     if (args_get_size_t(&args->ngates, argc, argv) == ERR) return ERR; */
         } else if (!strcmp(cmd, "--verbose")) {
             g_verbose = true;
         } else if (!strcmp(cmd, "--help") || !strcmp(cmd, "-h")) {
@@ -477,9 +475,9 @@ typedef struct {
     size_t npowers;
     bool smart;
     size_t nthreads;
-    size_t padding;
-    size_t wirelen;
-    size_t ngates;
+    /* size_t padding; */
+    /* size_t wirelen; */
+    /* size_t ngates; */
 } mife_test_args_t;
 
 static void
@@ -491,9 +489,9 @@ mife_test_args_init(mife_test_args_t *args)
     args->npowers = NPOWERS_DEFAULT;
     args->smart = false;
     args->nthreads = sysconf(_SC_NPROCESSORS_ONLN);
-    args->padding = PADDING_DEFAULT;
-    args->wirelen = WIRELEN_DEFAULT;
-    args->ngates = NGATES_DEFAULT;
+    /* args->padding = PADDING_DEFAULT; */
+    /* args->wirelen = WIRELEN_DEFAULT; */
+    /* args->ngates = NGATES_DEFAULT; */
 }
 
 static void
@@ -538,12 +536,12 @@ mife_test_handle_options(int *argc, char ***argv, void *vargs)
             if (args_get_size_t(&args->npowers, argc, argv) == ERR) return ERR;
         } else if (!strcmp(cmd, "--smart")) {
             args->smart = true;
-        } else if (!strcmp(cmd, "--padding")) {
-            if (args_get_size_t(&args->padding, argc, argv) == ERR) return ERR;
-        } else if (!strcmp(cmd, "--wirelen")) {
-            if (args_get_size_t(&args->padding, argc, argv) == ERR) return ERR;
-        } else if (!strcmp(cmd, "--ngates")) {
-            if (args_get_size_t(&args->ngates, argc, argv) == ERR) return ERR;
+        /* } else if (!strcmp(cmd, "--padding")) { */
+        /*     if (args_get_size_t(&args->padding, argc, argv) == ERR) return ERR; */
+        /* } else if (!strcmp(cmd, "--wirelen")) { */
+        /*     if (args_get_size_t(&args->padding, argc, argv) == ERR) return ERR; */
+        /* } else if (!strcmp(cmd, "--ngates")) { */
+        /*     if (args_get_size_t(&args->ngates, argc, argv) == ERR) return ERR; */
         } else if (!strcmp(cmd, "--verbose")) {
             g_verbose = true;
         } else if (!strcmp(cmd, "--help") || !strcmp(cmd, "-h")) {
@@ -569,7 +567,7 @@ mife_get_kappa_args_init(mife_get_kappa_args_t *args)
     args->scheme = MIFE_SCHEME_DEFAULT;
     args->npowers = NPOWERS_DEFAULT;
     args->smart = false;
-    args->ngates = NGATES_DEFAULT;
+    /* args->ngates = NGATES_DEFAULT; */
 }
 
 static void
@@ -1156,12 +1154,6 @@ obf_select_scheme(obf_scheme_e scheme, acirc_t *circ, size_t npowers,
             vparams = &obf_lz_params;
         }
         break;
-    /* case OBF_SCHEME_POLYLOG: */
-    /*     *vt = &polylog_obfuscator_vtable; */
-    /*     *op_vt = &polylog_op_vtable; */
-    /*     polylog_params.wordsize = wordsize; */
-    /*     vparams = &polylog_params; */
-    /*     break; */
     }
     if (op_vt && op) {
         *op = (*op_vt)->new(circ, vparams);
@@ -1200,8 +1192,6 @@ cmd_obf_obfuscate(int argc, char **argv, args_t *args)
 
     if ((fname = makestr("%s.obf", args->circuit)) == NULL)
         goto cleanup;
-    /* if (args_.scheme == OBF_SCHEME_POLYLOG && args->vt == &clt_vtable) */
-    /*     args->vt = &clt_pl_vtable; */
     if (args_.smart) {
         kappa = obf_run_smart_kappa(vt, args->circ, op, args_.nthreads, args->rng);
         if (kappa == 0)
@@ -1239,8 +1229,6 @@ cmd_obf_evaluate(int argc, char **argv, args_t *args)
     if ((fname = makestr("%s.obf", args->circuit)) == NULL)
         goto cleanup;
 
-    /* if (args_.scheme == OBF_SCHEME_POLYLOG && args->vt == &clt_vtable) */
-    /*     args->vt = &clt_pl_vtable; */
     if ((input = str_to_longs(argv[0], strlen(argv[0]))) == NULL)
         goto cleanup;
     output = xcalloc(acirc_noutputs(args->circ), sizeof output[0]);

@@ -93,9 +93,9 @@ build () {
 echo builddir = $builddir
 
 git pull origin dev
-build libaesrand        https://github.com/5GenCrypto/libaesrand cmake
-build clt13             https://github.com/5GenCrypto/clt13 dev
-build libmmap           https://github.com/5GenCrypto/libmmap dev
+build libaesrand        https://github.com/5GenCrypto/libaesrand master
+build clt13             https://github.com/5GenCrypto/clt13 master
+build libmmap           https://github.com/5GenCrypto/libmmap master
 build libthreadpool     https://github.com/5GenCrypto/libthreadpool dev
 build libacirc          https://github.com/amaloz/libacirc dev
 if [[ "${build_cxs}" == 1 ]]; then

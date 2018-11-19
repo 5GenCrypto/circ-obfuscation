@@ -1,10 +1,8 @@
 #include "mmap.h"
 #include "util.h"
-#include "obf-polylog/extra.h"
 
 #include <assert.h>
 #include <stdio.h>
-#include <mmap/mmap_clt_pl.h>
 
 secret_params *
 secret_params_new(const sp_vtable *vt, const acirc_t *circ, size_t lambda,
@@ -49,13 +47,8 @@ secret_params_new(const sp_vtable *vt, const acirc_t *circ, size_t lambda,
         mpz_init_set_ui(modulus, 2);
         o.modulus = &modulus;
     }
-    /* if (vt->mmap == &clt_pl_vtable) { */
-    /*     if ((sp->sk = polylog_secret_params_new(vt, op, &p, &o, &params, ncores, rng)) == NULL) */
-    /*         goto cleanup; */
-    /* } else { */
-        if ((sp->sk = vt->mmap->sk->new(&p, &o, ncores, rng, g_verbose)) == NULL)
-            goto cleanup;
-    /* } */
+    if ((sp->sk = vt->mmap->sk->new(&p, &o, ncores, rng, g_verbose)) == NULL)
+        goto cleanup;
     ret = OK;
 cleanup:
     if (acirc_is_binary(circ))
